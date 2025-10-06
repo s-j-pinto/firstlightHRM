@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useTransition } from "react";
@@ -25,6 +26,7 @@ type SettingsFormValues = {
   friday_slots: string;
   google_client_id: string;
   google_client_secret: string;
+  google_refresh_token: string;
 };
 
 export default function AdminSettings() {
@@ -39,6 +41,7 @@ export default function AdminSettings() {
       friday_slots: "13:30, 14:30, 15:30",
       google_client_id: "",
       google_client_secret: "",
+      google_refresh_token: "",
     },
   });
 
@@ -54,6 +57,7 @@ export default function AdminSettings() {
       const googleCalendar = {
         clientId: data.google_client_id,
         clientSecret: data.google_client_secret,
+        refreshToken: data.google_refresh_token,
       };
       const result = await saveAdminSettings({ availability, googleCalendar });
       toast({
@@ -101,7 +105,7 @@ export default function AdminSettings() {
           <CardHeader>
             <CardTitle>Google Calendar Integration</CardTitle>
             <CardDescription>
-              Enter your Google API credentials to enable calendar integration. These are stored securely.
+              Enter your Google API credentials to enable calendar integration. These are stored securely as environment variables.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -120,6 +124,15 @@ export default function AdminSettings() {
                 type="password"
                 placeholder="Enter your Google Client Secret"
                 {...register("google_client_secret")}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="google_refresh_token">Refresh Token (one-time setup)</Label>
+              <Input
+                id="google_refresh_token"
+                type="password"
+                placeholder="Enter your Google Refresh Token"
+                {...register("google_refresh_token")}
               />
             </div>
           </CardContent>

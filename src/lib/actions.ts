@@ -6,6 +6,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { addCaregiver, addAppointment, getAppointments } from "./db-firestore";
 import { caregiverFormSchema, appointmentSchema, CaregiverProfile } from "./types";
+import { google } from 'googleapis';
+import { OAuth2Client } from 'google-auth-library';
 
 export async function submitCaregiverProfile(data: any) {
   console.log("Step 1: Starting caregiver profile submission.");
@@ -113,50 +115,114 @@ export async function getAdminAppointments() {
 
 export async function sendCalendarInvite(appointment: any) {
     console.log("DEBUG: Step 1 - `sendCalendarInvite` action started.");
-    
     console.log("DEBUG: Step 2 - Received appointment data:", JSON.stringify(appointment, null, 2));
 
-    console.log(`---
-    ✉️ Sending Google Calendar Invite...
-    TO: ${appointment.caregiver.email}
-    ADMIN: admin@caregiverconnect.com
-    WHEN: ${new Date(appointment.startTime).toLocaleString()} - ${new Date(appointment.endTime).toLocaleString()}
-    WHERE: 9650 Business Center Drive, Suite 132, Rancho Cucamonga, CA
-    DETAILS:
-    Interview with ${appointment.caregiver.fullName}.
-    Contact: ${appointment.caregiver.phone}
-    ---`);
-    
     console.log("DEBUG: Step 3 - Checking for Google credentials in environment variables...");
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
+    const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:9002';
 
-    if (clientId && clientSecret) {
-        console.log("DEBUG: Step 4a - ✅ Google credentials found.");
-        // Here you would implement the actual Google Calendar API call
-        console.log("DEBUG: Step 5a - (Placeholder) Google Calendar API call would happen here.");
-    } else {
-        console.warn("DEBUG: Step 4b - ⚠️ Google credentials not found.");
-        console.warn("ACTION REQUIRED: Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your .env.local file.");
+    if (!clientId || !clientSecret) {
+        const errorMsg = "⚠️ Google credentials not found. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your .env.local file via the Admin Settings page.";
+        console.error("DEBUG: Step 4b -", errorMsg);
+        return { message: errorMsg, error: true };
     }
+    console.log("DEBUG: Step 4a - ✅ Google credentials found.");
 
-    const resultMessage = `Calendar invite sent to ${appointment.caregiver.fullName}.`;
-    console.log("DEBUG: Step 6 - Preparing to return result message:", resultMessage);
+    const oAuth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
     
-    return { message: resultMessage };
+    if (refreshToken) {
+        console.log("DEBUG: Step 5a - Found refresh token. Setting credentials.");
+        oAuth2Client.setCredentials({ refresh_token: refreshToken });
+    } else {
+        console.warn("DEBUG: Step 5b - ⚠️ No refresh token found.");
+        const authUrl = oAuth2Client.generateAuthUrl({
+            access_type: 'offline',
+            scope: ['https://www.googleapis.com/auth/calendar'],
+        });
+        console.log("ACTION REQUIRED: Please authorize this app by visiting this URL:");
+        console.log(authUrl);
+        console.log("After authorization, you will be redirected with a 'code' in the URL. You need to create a GOOGLE_REFRESH_TOKEN. This is a one-time setup. A more advanced implementation would handle this OAuth2 flow automatically.");
+        return { message: "Admin authorization required. Please check server logs." };
+    }
+    
+    try {
+        console.log("DEBUG: Step 6 - Refreshing access token.");
+        const { token } = await oAuth2Client.getAccessToken();
+        if (!token) throw new Error("Failed to retrieve access token.");
+        oAuth2Client.setCredentials({ access_token: token });
+        console.log("DEBUG: Step 7 - Access token refreshed successfully.");
+
+        const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
+        
+        const event = {
+            summary: `Interview with ${appointment.caregiver?.fullName}`,
+            location: '9650 Business Center Drive, Suite 132, Rancho Cucamonga, CA',
+            description: `In-person interview with caregiver candidate ${appointment.caregiver?.fullName}. \nContact Email: ${appointment.caregiver?.email}\nContact Phone: ${appointment.caregiver?.phone}`,
+            start: {
+                dateTime: new Date(appointment.startTime).toISOString(),
+                timeZone: 'America/Los_Angeles',
+            },
+            end: {
+                dateTime: new Date(appointment.endTime).toISOString(),
+                timeZone: 'America/Los_Angeles',
+            },
+            attendees: [
+                { email: 'swasthllc@gmail.com' }, // Admin/Organizer
+                { email: appointment.caregiver?.email }, // Caregiver
+            ],
+            reminders: {
+                useDefault: false,
+                overrides: [
+                    { method: 'email', minutes: 24 * 60 },
+                    { method: 'popup', minutes: 60 },
+                ],
+            },
+        };
+
+        console.log("DEBUG: Step 8 - Creating calendar event with details:", JSON.stringify(event, null, 2));
+        await calendar.events.insert({
+            calendarId: 'primary',
+            requestBody: event,
+            sendNotifications: true,
+        });
+        console.log("DEBUG: Step 9 - ✅ Successfully created calendar event.");
+        
+        const resultMessage = `Calendar invite sent to ${appointment.caregiver.fullName}.`;
+        console.log("DEBUG: Step 10 - Preparing to return result message:", resultMessage);
+        return { message: resultMessage };
+
+    } catch (err) {
+        console.error("DEBUG: Step 9 FAILED - Error creating calendar event:", err);
+        return { message: `Failed to send invite. Check server logs for details.`, error: true };
+    }
 }
 
 export async function saveAdminSettings(data: { availability: any, googleCalendar: any }) {
     console.log("--- ⚙️ Saving Admin Settings ---");
     console.log("Availability Config:", data.availability);
     
-    if (data.googleCalendar.clientId || data.googleCalendar.clientSecret) {
-        console.warn("IMPORTANT: For security, Google credentials should not be saved directly.");
-        console.warn("Please add the following to your .env.local file at the root of your project:");
-        console.log(`GOOGLE_CLIENT_ID=${data.googleCalendar.clientId || 'YOUR_CLIENT_ID'}`);
-        console.log(`GOOGLE_CLIENT_SECRET=${data.googleCalendar.clientSecret || 'YOUR_CLIENT_SECRET'}`);
+    let envFileContent = "";
+
+    if (data.googleCalendar.clientId) {
+      envFileContent += `GOOGLE_CLIENT_ID=${data.googleCalendar.clientId}\n`;
+    }
+    if (data.googleCalendar.clientSecret) {
+      envFileContent += `GOOGLE_CLIENT_SECRET=${data.googleCalendar.clientSecret}\n`;
+    }
+    if (data.googleCalendar.refreshToken) {
+      envFileContent += `GOOGLE_REFRESH_TOKEN=${data.googleCalendar.refreshToken}\n`;
+    }
+
+    if (envFileContent) {
+        console.warn("IMPORTANT: For security, Google credentials should not be saved directly in the database.");
+        console.warn("Please add the following lines to a .env.local file at the root of your project:");
+        console.log("--- .env.local ---");
+        console.log(envFileContent.trim());
+        console.log("--------------------");
     } else {
-        console.log("No Google Calendar credentials were entered. Skipping .env.local instructions.");
+        console.log("No new Google Calendar credentials were entered. Skipping .env.local instructions.");
     }
     
     console.log("-----------------------------");

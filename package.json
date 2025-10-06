@@ -45,6 +45,8 @@
     "firebase": "^11.9.1",
     "firebase-admin": "^12.3.0",
     "genkit": "^1.20.0",
+    "google-auth-library": "^9.11.0",
+    "googleapis": "^140.0.1",
     "lucide-react": "^0.475.0",
     "next": "15.3.3",
     "patch-package": "^8.0.0",
