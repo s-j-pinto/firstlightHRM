@@ -1,3 +1,4 @@
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -9,8 +10,10 @@ import { caregiverFormSchema, appointmentSchema } from "./types";
 const toBoolean = (value: unknown) => value === "on";
 
 export async function submitCaregiverProfile(prevState: any, formData: FormData) {
+  console.log("Step 1: Starting caregiver profile submission.");
   try {
     const data = Object.fromEntries(formData.entries());
+    console.log("Step 2: Received form data.", Object.keys(data));
     
     // Reconstruct the availability object from FormData
     const availability: Record<string, string[]> = {
@@ -22,8 +25,9 @@ export async function submitCaregiverProfile(prevState: any, formData: FormData)
         saturday: formData.getAll('availability.saturday') as string[],
         sunday: formData.getAll('availability.sunday') as string[],
     };
+    console.log("Step 3: Reconstructed availability object.");
 
-    const validatedFields = caregiverFormSchema.safeParse({
+    const parsedData = {
         ...data,
         dateOfBirth: new Date(data.dateOfBirth as string),
         yearsExperience: Number(data.yearsExperience),
@@ -49,17 +53,23 @@ export async function submitCaregiverProfile(prevState: any, formData: FormData)
         cprFirstAid: toBoolean(data.cprFirstAid),
         canWorkWithCovid: toBoolean(data.canWorkWithCovid),
         covidVaccine: toBoolean(data.covidVaccine),
-    });
+    };
+    console.log("Step 4: Parsed and transformed form data for validation.");
+
+    const validatedFields = caregiverFormSchema.safeParse(parsedData);
 
     if (!validatedFields.success) {
-        console.error("Validation Errors:", validatedFields.error.flatten().fieldErrors);
+      console.error("Step 5 FAILED: Validation Errors:", validatedFields.error.flatten().fieldErrors);
       return {
         message: "Invalid form data. Please check your entries.",
         errors: validatedFields.error.flatten().fieldErrors,
       };
     }
+    console.log("Step 5: Form data validated successfully.");
 
+    console.log("Step 6: Attempting to add caregiver to Firestore...");
     const newCaregiverId = await addCaregiver(validatedFields.data);
+    console.log("Step 7: Successfully added caregiver with ID:", newCaregiverId);
 
     return {
       message: "Profile submitted successfully.",
@@ -67,7 +77,7 @@ export async function submitCaregiverProfile(prevState: any, formData: FormData)
       caregiverName: validatedFields.data.fullName
     };
   } catch (e) {
-    console.error("Submission Error:", e);
+    console.error("Submission Error during profile persistence:", e);
     return {
       message: "An unexpected error occurred.",
     };

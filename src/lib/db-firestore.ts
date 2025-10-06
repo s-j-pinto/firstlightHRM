@@ -1,3 +1,4 @@
+
 'use server';
 
 import { getFirestore, collection, addDoc, getDocs, Timestamp, FieldValue } from 'firebase-admin/firestore';
@@ -10,20 +11,27 @@ function getAdminApp(): App {
   if (getApps().length > 0) {
     return getApps()[0];
   }
+  
+  console.log("Initializing Firebase Admin SDK...");
   // This is a simplified initialization. In a real-world scenario, you'd use service accounts.
-  return initializeApp({
+  const app = initializeApp({
     projectId: firebaseConfig.projectId,
   });
+  console.log("Firebase Admin SDK initialized.");
+  return app;
 }
 
 const db = getFirestore(getAdminApp());
 
 export const addCaregiver = async (profile: Omit<CaregiverProfile, "id">): Promise<string> => {
-  const docRef = await addDoc(collection(db, "caregiver_profiles"), {
+  console.log("Step 6a: Inside addCaregiver function.");
+  const caregiverData = {
     ...profile,
-    // Convert Date object to Firestore Timestamp for server-side operations
     dateOfBirth: Timestamp.fromDate(profile.dateOfBirth),
-  });
+  };
+  console.log("Step 6b: Preparing to add document to 'caregiver_profiles' collection.");
+  const docRef = await addDoc(collection(db, "caregiver_profiles"), caregiverData);
+  console.log("Step 6c: Document added with ID:", docRef.id);
   return docRef.id;
 };
 
