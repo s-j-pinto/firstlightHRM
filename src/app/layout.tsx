@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { AppHeader } from '@/components/header';
 import { Toaster } from "@/components/ui/toaster"
 import './globals.css';
+import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
   title: 'Caregiver Connect',
@@ -21,11 +22,13 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <div className="relative flex min-h-screen flex-col">
-          <AppHeader />
-          <div className="flex-1">{children}</div>
-        </div>
-        <Toaster />
+        <FirebaseClientProvider>
+          <div className="relative flex min-h-screen flex-col">
+            <AppHeader />
+            <div className="flex-1">{children}</div>
+          </div>
+          <Toaster />
+        </FirebaseClientProvider>
       </body>
     </html>
   );

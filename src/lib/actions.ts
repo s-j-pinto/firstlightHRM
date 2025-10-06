@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { addCaregiver, addAppointment, getAppointments } from "./db";
+import { addCaregiver, addAppointment, getAppointments } from "./db-firestore";
 import { caregiverFormSchema, appointmentSchema } from "./types";
 
 const toBoolean = (value: unknown) => value === "on";
@@ -59,12 +59,12 @@ export async function submitCaregiverProfile(prevState: any, formData: FormData)
       };
     }
 
-    const newCaregiver = addCaregiver(validatedFields.data);
+    const newCaregiverId = await addCaregiver(validatedFields.data);
 
     return {
       message: "Profile submitted successfully.",
-      caregiverId: newCaregiver.id,
-      caregiverName: newCaregiver.fullName
+      caregiverId: newCaregiverId,
+      caregiverName: validatedFields.data.fullName
     };
   } catch (e) {
     console.error("Submission Error:", e);
@@ -83,28 +83,17 @@ export async function scheduleAppointment(data: z.infer<typeof appointmentSchema
         }
     }
 
-    addAppointment(validatedFields.data);
-
-    // Mock sending confirmation notification
-    console.log(`---
-    ✅ Appointment Scheduled!
-    TO: ${validatedFields.data.caregiverEmail}
-    WHAT: Interview with Caregiver Connect
-    WHEN: ${validatedFields.data.startTime.toLocaleString()}
-    ---`);
-
+    await addAppointment(validatedFields.data);
 
     revalidatePath("/admin");
     redirect(`/confirmation?time=${validatedFields.data.startTime.toISOString()}`);
 }
 
 export async function getAdminAppointments() {
-    // In a real app, you'd have authentication and authorization here
     return getAppointments();
 }
 
 export async function sendCalendarInvite(appointment: any) {
-    // In a real app, this would use the Google Calendar API
     console.log(`---
     ✉️ Sending Google Calendar Invite...
     TO: ${appointment.caregiver.email}
@@ -120,7 +109,6 @@ export async function sendCalendarInvite(appointment: any) {
 }
 
 export async function saveAdminSettings(data: { availability: any, googleCalendar: any }) {
-    // In a real app, this would save to a secure config store or database
     console.log("--- ⚙️ Saving Admin Settings ---");
     console.log("Availability Config:", data.availability);
     console.log("Google Calendar Config:", data.googleCalendar);

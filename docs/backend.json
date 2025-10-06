@@ -6,38 +6,70 @@
       "type": "object",
       "description": "Represents a caregiver's profile with detailed information.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the caregiver profile."
-        },
-        "generalInformation": {
-          "type": "string",
-          "description": "General information about the caregiver, such as name, contact details, and address."
-        },
-        "experience": {
-          "type": "string",
-          "description": "Details about the caregiver's experience, including years of experience, types of care provided, and references."
-        },
-        "certifications": {
-          "type": "string",
-          "description": "List of certifications held by the caregiver, such as CPR, First Aid, or CNA."
-        },
+        "fullName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "city": { "type": "string" },
+        "state": { "type": "string" },
+        "zip": { "type": "string" },
+        "dateOfBirth": { "type": "string", "format": "date-time" },
+        "yearsExperience": { "type": "number" },
+        "previousRoles": { "type": "string" },
+        "summary": { "type": "string" },
+        "canChangeBrief": { "type": "boolean" },
+        "canTransfer": { "type": "boolean" },
+        "canPrepareMeals": { "type": "boolean" },
+        "canDoBedBath": { "type": "boolean" },
+        "canUseHoyerLift": { "type": "boolean" },
+        "canUseGaitBelt": { "type": "boolean" },
+        "canUsePurwick": { "type": "boolean" },
+        "canEmptyCatheter": { "type": "boolean" },
+        "canEmptyColostomyBag": { "type": "boolean" },
+        "canGiveMedication": { "type": "boolean" },
+        "canTakeBloodPressure": { "type": "boolean" },
+        "hasDementiaExperience": { "type": "boolean" },
+        "hasHospiceExperience": { "type": "boolean" },
+        "hca": { "type": "boolean" },
+        "hha": { "type": "boolean" },
+        "cna": { "type": "boolean" },
+        "liveScan": { "type": "boolean" },
+        "otherLanguages": { "type": "string" },
+        "negativeTbTest": { "type": "boolean" },
+        "cprFirstAid": { "type": "boolean" },
+        "canWorkWithCovid": { "type": "boolean" },
+        "covidVaccine": { "type": "boolean" },
+        "cnaLicense": { "type": "string" },
+        "otherCertifications": { "type": "string" },
         "availability": {
-          "type": "string",
-          "description": "Caregiver's availability for taking shifts, including days and hours available."
+          "type": "object",
+          "properties": {
+            "monday": { "type": "array", "items": { "type": "string" } },
+            "tuesday": { "type": "array", "items": { "type": "string" } },
+            "wednesday": { "type": "array", "items": { "type": "string" } },
+            "thursday": { "type": "array", "items": { "type": "string" } },
+            "friday": { "type": "array", "items": { "type": "string" } },
+            "saturday": { "type": "array", "items": { "type": "string" } },
+            "sunday": { "type": "array", "items": { "type": "string" } }
+          }
         },
-        "transportation": {
-          "type": "string",
-          "description": "Information about the caregiver's transportation, such as access to a car, driver's license, and insurance."
-        }
+        "hasCar": { "type": "string", "enum": ["yes", "no"] },
+        "validLicense": { "type": "string", "enum": ["yes", "no"] }
       },
       "required": [
-        "id",
-        "generalInformation",
-        "experience",
-        "certifications",
+        "fullName",
+        "email",
+        "phone",
+        "address",
+        "city",
+        "state",
+        "zip",
+        "dateOfBirth",
+        "yearsExperience",
+        "summary",
         "availability",
-        "transportation"
+        "hasCar",
+        "validLicense"
       ]
     },
     "AppointmentSlot": {
@@ -46,34 +78,18 @@
       "type": "object",
       "description": "Represents a scheduled appointment slot for caregiver interviews.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the appointment slot."
-        },
-        "caregiverProfileId": {
-          "type": "string",
-          "description": "Reference to CaregiverProfile. (Relationship: CaregiverProfile 1:N AppointmentSlot)"
-        },
-        "date": {
-          "type": "string",
-          "description": "Date of the appointment.",
-          "format": "date"
-        },
-        "startTime": {
-          "type": "string",
-          "description": "Start time of the appointment.",
-          "format": "date-time"
-        },
-        "endTime": {
-          "type": "string",
-          "description": "End time of the appointment.",
-          "format": "date-time"
-        }
+        "caregiverId": { "type": "string" },
+        "caregiverName": { "type": "string" },
+        "caregiverEmail": { "type": "string" },
+        "caregiverPhone": { "type": "string" },
+        "startTime": { "type": "string", "format": "date-time" },
+        "endTime": { "type": "string", "format": "date-time" }
       },
       "required": [
-        "id",
-        "caregiverProfileId",
-        "date",
+        "caregiverId",
+        "caregiverName",
+        "caregiverEmail",
+        "caregiverPhone",
         "startTime",
         "endTime"
       ]
@@ -86,44 +102,13 @@
     ]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/caregiver_profiles/{caregiverProfileId}",
-        "definition": {
-          "entityName": "CaregiverProfile",
-          "schema": {
-            "$ref": "#/backend/entities/CaregiverProfile"
-          },
-          "description": "Stores caregiver profile information. The 'caregiverProfileId' is the unique identifier for the caregiver profile.",
-          "params": [
-            {
-              "name": "caregiverProfileId",
-              "description": "Unique identifier for the caregiver profile."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/caregiver_profiles/{caregiverProfileId}/appointment_slots/{appointmentSlotId}",
-        "definition": {
-          "entityName": "AppointmentSlot",
-          "schema": {
-            "$ref": "#/backend/entities/AppointmentSlot"
-          },
-          "description": "Stores appointment slots associated with a caregiver profile. The 'caregiverProfileId' identifies the caregiver, and 'appointmentSlotId' is the unique identifier for each appointment slot.",
-          "params": [
-            {
-              "name": "caregiverProfileId",
-              "description": "Unique identifier for the caregiver profile."
-            },
-            {
-              "name": "appointmentSlotId",
-              "description": "Unique identifier for the appointment slot."
-            }
-          ]
-        }
-      }
-    ],
-    "reasoning": "The Firestore structure is designed to ensure authorization independence, clarity, and scalability, aligning with the core design principles. We will create a collection for caregiver profiles under `/caregiver_profiles/{caregiverProfileId}` and a subcollection for appointment slots under each caregiver profile: `/caregiver_profiles/{caregiverProfileId}/appointment_slots/{appointmentSlotId}`.\n\nAuthorization Independence:\nCaregiver profile data is stored independently, and since the only actors are authenticated users, there's no need to denormalize data for authorization purposes.\n\nQAPs Support:\nThe structure enables secure `list` operations by segregating data based on ownership.  The caregiver profiles collection allows listing only caregiver profiles for the authenticated user. Appointment slots are namespaced under each caregiver profile."
+    "/caregiver_profiles/{caregiverProfileId}": {
+      "schema": { "$ref": "#/entities/CaregiverProfile" },
+      "description": "Stores caregiver profile information."
+    },
+    "/appointments/{appointmentId}": {
+      "schema": { "$ref": "#/entities/AppointmentSlot" },
+      "description": "Stores appointment slots for interviews."
+    }
   }
 }

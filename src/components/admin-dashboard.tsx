@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { format, isSameDay } from "date-fns";
+import { useState, useTransition, useMemo } from "react";
+import { format } from "date-fns";
 import {
   Calendar,
   Clock,
@@ -21,6 +21,8 @@ import {
   Biohazard,
   ScanSearch,
 } from "lucide-react";
+import { collection, query, where } from "firebase/firestore";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 
 import type { Appointment, CaregiverProfile } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,11 +39,9 @@ import { Badge } from "@/components/ui/badge";
 import { sendCalendarInvite } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 
-interface AdminDashboardProps {
-  initialAppointments: (Appointment & { caregiver?: CaregiverProfile })[];
-}
+type AppointmentWithCaregiver = Appointment & { caregiver?: CaregiverProfile };
 
-const groupAppointmentsByDay = (appointments: (Appointment & { caregiver?: CaregiverProfile })[]) => {
+const groupAppointmentsByDay = (appointments: AppointmentWithCaregiver[]) => {
   return appointments.reduce((acc, appointment) => {
     const dateStr = format(appointment.startTime, "yyyy-MM-dd");
     if (!acc[dateStr]) {
@@ -49,7 +49,7 @@ const groupAppointmentsByDay = (appointments: (Appointment & { caregiver?: Careg
     }
     acc[dateStr].push(appointment);
     return acc;
-  }, {} as Record<string, (Appointment & { caregiver?: CaregiverProfile })[]>);
+  }, {} as Record<string, AppointmentWithCaregiver[]>);
 };
 
 const BooleanDisplay = ({ value }: { value: boolean | undefined }) => 
@@ -80,10 +80,30 @@ const AvailabilityDisplay = ({ availability }: { availability: CaregiverProfile[
     )
 }
 
-export default function AdminDashboard({ initialAppointments }: AdminDashboardProps) {
-  const [appointments, setAppointments] = useState(initialAppointments);
+export default function AdminDashboard() {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const firestore = useFirestore();
+
+  const appointmentsRef = useMemoFirebase(() => collection(firestore, 'appointments'), [firestore]);
+  const { data: appointmentsData, isLoading: appointmentsLoading } = useCollection<Appointment>(appointmentsRef);
+
+  const caregiverProfilesRef = useMemoFirebase(() => collection(firestore, 'caregiver_profiles'), [firestore]);
+  const { data: caregiversData, isLoading: caregiversLoading } = useCollection<CaregiverProfile>(caregiverProfilesRef);
+  
+  const appointments: AppointmentWithCaregiver[] = useMemo(() => {
+    if (!appointmentsData || !caregiversData) return [];
+    
+    const caregiversMap = new Map(caregiversData.map(c => [c.id, c]));
+
+    return appointmentsData.map(appt => ({
+      ...appt,
+      startTime: (appt.startTime as any).toDate(), // Convert Firestore Timestamp to Date
+      endTime: (appt.endTime as any).toDate(),
+      caregiver: caregiversMap.get(appt.caregiverId),
+    }));
+  }, [appointmentsData, caregiversData]);
+
 
   const handleSendInvite = (appointment: Appointment) => {
     startTransition(async () => {
@@ -98,10 +118,21 @@ export default function AdminDashboard({ initialAppointments }: AdminDashboardPr
   const groupedAppointments = groupAppointmentsByDay(
     appointments.sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
   );
+  
+  const isLoading = appointmentsLoading || caregiversLoading;
+
+  if (isLoading) {
+    return (
+       <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-accent" />
+            <p className="ml-4 text-muted-foreground">Loading appointments...</p>
+        </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
-      {Object.keys(groupedAppointments).length === 0 && (
+      {Object.keys(groupedAppointments).length === 0 && !isLoading && (
         <div className="text-center py-16 border-dashed border-2 rounded-lg">
             <Calendar className="mx-auto h-12 w-12 text-muted-foreground" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">No upcoming appointments</h3>
