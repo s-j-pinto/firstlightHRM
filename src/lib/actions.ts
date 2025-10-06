@@ -112,6 +112,10 @@ export async function getAdminAppointments() {
 }
 
 export async function sendCalendarInvite(appointment: any) {
+    console.log("DEBUG: Step 1 - `sendCalendarInvite` action started.");
+    
+    console.log("DEBUG: Step 2 - Received appointment data:", JSON.stringify(appointment, null, 2));
+
     console.log(`---
     ✉️ Sending Google Calendar Invite...
     TO: ${appointment.caregiver.email}
@@ -123,17 +127,23 @@ export async function sendCalendarInvite(appointment: any) {
     Contact: ${appointment.caregiver.phone}
     ---`);
     
+    console.log("DEBUG: Step 3 - Checking for Google credentials in environment variables...");
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
     if (clientId && clientSecret) {
-        console.log("✅ Google credentials found in environment variables.");
+        console.log("DEBUG: Step 4a - ✅ Google credentials found.");
         // Here you would implement the actual Google Calendar API call
+        console.log("DEBUG: Step 5a - (Placeholder) Google Calendar API call would happen here.");
     } else {
-        console.warn("⚠️ Google credentials not found. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your .env.local file.");
+        console.warn("DEBUG: Step 4b - ⚠️ Google credentials not found.");
+        console.warn("ACTION REQUIRED: Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your .env.local file.");
     }
 
-    return { message: `Calendar invite sent to ${appointment.caregiver.fullName}.` };
+    const resultMessage = `Calendar invite sent to ${appointment.caregiver.fullName}.`;
+    console.log("DEBUG: Step 6 - Preparing to return result message:", resultMessage);
+    
+    return { message: resultMessage };
 }
 
 export async function saveAdminSettings(data: { availability: any, googleCalendar: any }) {
