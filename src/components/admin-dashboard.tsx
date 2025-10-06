@@ -15,7 +15,11 @@ import {
   Car,
   Check,
   X,
-  Stethoscope
+  Stethoscope,
+  Languages,
+  ShieldCheck,
+  Virus,
+  ScanSearch,
 } from "lucide-react";
 
 import type { Appointment, CaregiverProfile } from "@/lib/types";
@@ -47,6 +51,9 @@ const groupAppointmentsByDay = (appointments: (Appointment & { caregiver?: Careg
     return acc;
   }, {} as Record<string, (Appointment & { caregiver?: CaregiverProfile })[]>);
 };
+
+const BooleanDisplay = ({ value }: { value: boolean | undefined }) => 
+  value ? <Check className="text-green-500"/> : <X className="text-red-500"/>;
 
 export default function AdminDashboard({ initialAppointments }: AdminDashboardProps) {
   const [appointments, setAppointments] = useState(initialAppointments);
@@ -113,7 +120,7 @@ export default function AdminDashboard({ initialAppointments }: AdminDashboardPr
                           <DialogTitle className="text-2xl">{appointment.caregiver?.fullName}</DialogTitle>
                         </DialogHeader>
                         {appointment.caregiver && (
-                          <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
+                          <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
                             <h3 className="font-semibold text-lg flex items-center"><Briefcase className="mr-2 h-5 w-5 text-accent" />Experience</h3>
                             <p><span className="font-semibold">Years:</span> {appointment.caregiver.yearsExperience}</p>
                             <p><span className="font-semibold">Summary:</span> {appointment.caregiver.summary}</p>
@@ -122,26 +129,35 @@ export default function AdminDashboard({ initialAppointments }: AdminDashboardPr
                             
                              <h3 className="font-semibold text-lg flex items-center mb-2"><Stethoscope className="mr-2 h-5 w-5 text-accent" />Skills & Experience</h3>
                             <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                                <p className="flex items-center"><span className="font-semibold w-48">Able to change brief:</span> {appointment.caregiver.canChangeBrief ? <Check className="text-green-500"/> : <X className="text-red-500"/>}</p>
-                                <p className="flex items-center"><span className="font-semibold w-48">Able to Transfer:</span> {appointment.caregiver.canTransfer ? <Check className="text-green-500"/> : <X className="text-red-500"/>}</p>
-                                <p className="flex items-center"><span className="font-semibold w-48">Able to prepare meals:</span> {appointment.caregiver.canPrepareMeals ? <Check className="text-green-500"/> : <X className="text-red-500"/>}</p>
-                                <p className="flex items-center"><span className="font-semibold w-48">Bed bath/shower assistance:</span> {appointment.caregiver.canDoBedBath ? <Check className="text-green-500"/> : <X className="text-red-500"/>}</p>
-                                <p className="flex items-center"><span className="font-semibold w-48">Able to use Hoyer Lift:</span> {appointment.caregiver.canUseHoyerLift ? <Check className="text-green-500"/> : <X className="text-red-500"/>}</p>
-                                <p className="flex items-center"><span className="font-semibold w-48">Able to use Gait Belt:</span> {appointment.caregiver.canUseGaitBelt ? <Check className="text-green-500"/> : <X className="text-red-500"/>}</p>
-                                <p className="flex items-center"><span className="font-semibold w-48">Able to use a Purwick:</span> {appointment.caregiver.canUsePurwick ? <Check className="text-green-500"/> : <X className="text-red-500"/>}</p>
-                                <p className="flex items-center"><span className="font-semibold w-48">Able to empty catheter:</span> {appointment.caregiver.canEmptyCatheter ? <Check className="text-green-500"/> : <X className="text-red-500"/>}</p>
-                                <p className="flex items-center"><span className="font-semibold w-48">Able to empty colostomy bag:</span> {appointment.caregiver.canEmptyColostomyBag ? <Check className="text-green-500"/> : <X className="text-red-500"/>}</p>
-                                <p className="flex items-center"><span className="font-semibold w-48">Able to give medication:</span> {appointment.caregiver.canGiveMedication ? <Check className="text-green-500"/> : <X className="text-red-500"/>}</p>
-                                <p className="flex items-center"><span className="font-semibold w-48">Able to take blood Pressure:</span> {appointment.caregiver.canTakeBloodPressure ? <Check className="text-green-500"/> : <X className="text-red-500"/>}</p>
-                                <p className="flex items-center"><span className="font-semibold w-48">Dementia patients experience:</span> {appointment.caregiver.hasDementiaExperience ? <Check className="text-green-500"/> : <X className="text-red-500"/>}</p>
-                                <p className="flex items-center"><span className="font-semibold w-48">Hospice patients experience:</span> {appointment.caregiver.hasHospiceExperience ? <Check className="text-green-500"/> : <X className="text-red-500"/>}</p>
+                                <p className="flex items-center"><span className="font-semibold w-48">Able to change brief:</span> <BooleanDisplay value={appointment.caregiver.canChangeBrief} /></p>
+                                <p className="flex items-center"><span className="font-semibold w-48">Able to Transfer:</span> <BooleanDisplay value={appointment.caregiver.canTransfer} /></p>
+                                <p className="flex items-center"><span className="font-semibold w-48">Able to prepare meals:</span> <BooleanDisplay value={appointment.caregiver.canPrepareMeals} /></p>
+                                <p className="flex items-center"><span className="font-semibold w-48">Bed bath/shower assistance:</span> <BooleanDisplay value={appointment.caregiver.canDoBedBath} /></p>
+                                <p className="flex items-center"><span className="font-semibold w-48">Able to use Hoyer Lift:</span> <BooleanDisplay value={appointment.caregiver.canUseHoyerLift} /></p>
+                                <p className="flex items-center"><span className="font-semibold w-48">Able to use Gait Belt:</span> <BooleanDisplay value={appointment.caregiver.canUseGaitBelt} /></p>
+                                <p className="flex items-center"><span className="font-semibold w-48">Able to use a Purwick:</span> <BooleanDisplay value={appointment.caregiver.canUsePurwick} /></p>
+                                <p className="flex items-center"><span className="font-semibold w-48">Able to empty catheter:</span> <BooleanDisplay value={appointment.caregiver.canEmptyCatheter} /></p>
+                                <p className="flex items-center"><span className="font-semibold w-48">Able to empty colostomy bag:</span> <BooleanDisplay value={appointment.caregiver.canEmptyColostomyBag} /></p>
+                                <p className="flex items-center"><span className="font-semibold w-48">Able to give medication:</span> <BooleanDisplay value={appointment.caregiver.canGiveMedication} /></p>
+                                <p className="flex items-center"><span className="font-semibold w-48">Able to take blood Pressure:</span> <BooleanDisplay value={appointment.caregiver.canTakeBloodPressure} /></p>
+                                <p className="flex items-center"><span className="font-semibold w-48">Dementia patients experience:</span> <BooleanDisplay value={appointment.caregiver.hasDementiaExperience} /></p>
+                                <p className="flex items-center"><span className="font-semibold w-48">Hospice patients experience:</span> <BooleanDisplay value={appointment.caregiver.hasHospiceExperience} /></p>
                             </div>
 
                             <Separator className="my-2"/>
                             
                             <h3 className="font-semibold text-lg flex items-center"><FileText className="mr-2 h-5 w-5 text-accent" />Certifications</h3>
-                            <p><span className="font-semibold">CPR Certified:</span> {appointment.caregiver.cprCertified ? 'Yes' : 'No'}</p>
-                            {appointment.caregiver.cnaLicense && <p><span className="font-semibold">CNA License:</span> {appointment.caregiver.cnaLicense}</p>}
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                                <p className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">HCA:</span> <BooleanDisplay value={appointment.caregiver.hca} /></p>
+                                <p className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">HHA:</span> <BooleanDisplay value={appointment.caregiver.hha} /></p>
+                                <p className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">CNA:</span> <BooleanDisplay value={appointment.caregiver.cna} /></p>
+                                <p className="flex items-center gap-2"><ScanSearch className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">Live Scan:</span> <BooleanDisplay value={appointment.caregiver.liveScan} /></p>
+                                <p className="flex items-center gap-2"><FileText className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">TB Test:</span> <BooleanDisplay value={appointment.caregiver.negativeTbTest} /></p>
+                                <p className="flex items-center gap-2"><Stethoscope className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">CPR/First Aid:</span> <BooleanDisplay value={appointment.caregiver.cprFirstAid} /></p>
+                                <p className="flex items-center gap-2"><Virus className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">COVID Work:</span> <BooleanDisplay value={appointment.caregiver.canWorkWithCovid} /></p>
+                                <p className="flex items-center gap-2"><Virus className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">COVID Vaccine:</span> <BooleanDisplay value={appointment.caregiver.covidVaccine} /></p>
+                            </div>
+                            {appointment.caregiver.otherLanguages && <p className="flex items-center gap-2"><Languages className="h-4 w-4 mt-1 text-muted-foreground" /><span className="font-semibold">Other Languages:</span> {appointment.caregiver.otherLanguages}</p>}
                             {appointment.caregiver.otherCertifications && <p><span className="font-semibold">Other:</span> {appointment.caregiver.otherCertifications}</p>}
                             
                             <Separator className="my-2"/>

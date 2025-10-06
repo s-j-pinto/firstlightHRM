@@ -8,7 +8,6 @@ let caregiverIdCounter = 1;
 let appointmentIdCounter = 1;
 
 // Seed data
-const today = new Date();
 const seedCaregivers: Omit<CaregiverProfile, "id">[] = [
   {
     fullName: "Jane Doe",
@@ -22,12 +21,34 @@ const seedCaregivers: Omit<CaregiverProfile, "id">[] = [
     yearsExperience: 5,
     previousRoles: "Senior Care Assistant at Golden Years",
     summary: "Compassionate and experienced caregiver with a focus on dementia care.",
-    cprCertified: true,
     cnaLicense: "CNA123456",
     availableDays: ["monday", "wednesday", "friday"],
     preferredShift: "mornings",
     hasCar: "yes",
     validLicense: "yes",
+    canChangeBrief: true,
+    canTransfer: true,
+    canPrepareMeals: true,
+    canDoBedBath: true,
+    canUseHoyerLift: false,
+    canUseGaitBelt: true,
+    canUsePurwick: false,
+    canEmptyCatheter: true,
+    canEmptyColostomyBag: false,
+    canGiveMedication: true,
+    canTakeBloodPressure: true,
+    hasDementiaExperience: true,
+    hasHospiceExperience: false,
+    hca: true,
+    hha: false,
+    cna: true,
+    liveScan: true,
+    negativeTbTest: true,
+    cprFirstAid: true,
+    canWorkWithCovid: true,
+    covidVaccine: true,
+    otherLanguages: "Spanish",
+    otherCertifications: "Dementia Care Specialist",
   },
   {
     fullName: "John Smith",
@@ -41,13 +62,33 @@ const seedCaregivers: Omit<CaregiverProfile, "id">[] = [
     yearsExperience: 8,
     previousRoles: "Live-in Caregiver, Pediatric Special Needs Aide",
     summary: "Dedicated caregiver with extensive experience in pediatric and special needs care.",
-    cprCertified: true,
     cnaLicense: "",
     otherCertifications: "Certified Pediatric Nurse Assistant (CPNA)",
     availableDays: ["tuesday", "thursday", "saturday", "sunday"],
     preferredShift: "flexible",
     hasCar: "yes",
     validLicense: "yes",
+    canChangeBrief: true,
+    canTransfer: true,
+    canPrepareMeals: true,
+    canDoBedBath: true,
+    canUseHoyerLift: true,
+    canUseGaitBelt: true,
+    canUsePurwick: true,
+    canEmptyCatheter: true,
+    canEmptyColostomyBag: true,
+    canGiveMedication: true,
+    canTakeBloodPressure: true,
+    hasDementiaExperience: true,
+    hasHospiceExperience: true,
+    hca: true,
+    hha: true,
+    cna: false,
+    liveScan: true,
+    negativeTbTest: true,
+    cprFirstAid: true,
+    canWorkWithCovid: false,
+    covidVaccine: true,
   }
 ];
 
@@ -55,6 +96,7 @@ const initializeDb = () => {
   if (caregivers.length === 0) {
     seedCaregivers.forEach(c => addCaregiver(c));
 
+    const today = new Date();
     const firstAppointmentDate = set(addDays(today, 2), { hours: 9, minutes: 30, seconds: 0, milliseconds: 0 });
     const secondAppointmentDate = set(addDays(today, 4), { hours: 13, minutes: 30, seconds: 0, milliseconds: 0 });
     
@@ -81,6 +123,7 @@ const initializeDb = () => {
 export const addCaregiver = (profile: Omit<CaregiverProfile, "id">): CaregiverProfile => {
   const newCaregiver = { ...profile, id: String(caregiverIdCounter++) };
   caregivers.push(newCaregiver);
+  console.log("Added new caregiver:", newCaregiver);
   return newCaregiver;
 };
 

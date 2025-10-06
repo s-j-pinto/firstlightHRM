@@ -6,6 +6,8 @@ import { z } from "zod";
 import { addCaregiver, addAppointment, getAppointments } from "./db";
 import { caregiverFormSchema, appointmentSchema } from "./types";
 
+const toBoolean = (value: unknown) => value === "on";
+
 export async function submitCaregiverProfile(prevState: any, formData: FormData) {
   try {
     const data = Object.fromEntries(formData.entries());
@@ -13,12 +15,32 @@ export async function submitCaregiverProfile(prevState: any, formData: FormData)
         ...data,
         dateOfBirth: new Date(data.dateOfBirth as string),
         yearsExperience: Number(data.yearsExperience),
-        cprCertified: data.cprCertified === "on",
-        specializations: formData.getAll('specializations'),
         availableDays: formData.getAll('availableDays'),
+        canChangeBrief: toBoolean(data.canChangeBrief),
+        canTransfer: toBoolean(data.canTransfer),
+        canPrepareMeals: toBoolean(data.canPrepareMeals),
+        canDoBedBath: toBoolean(data.canDoBedBath),
+        canUseHoyerLift: toBoolean(data.canUseHoyerLift),
+        canUseGaitBelt: toBoolean(data.canUseGaitBelt),
+        canUsePurwick: toBoolean(data.canUsePurwick),
+        canEmptyCatheter: toBoolean(data.canEmptyCatheter),
+        canEmptyColostomyBag: toBoolean(data.canEmptyColostomyBag),
+        canGiveMedication: toBoolean(data.canGiveMedication),
+        canTakeBloodPressure: toBoolean(data.canTakeBloodPressure),
+        hasDementiaExperience: toBoolean(data.hasDementiaExperience),
+        hasHospiceExperience: toBoolean(data.hasHospiceExperience),
+        hca: toBoolean(data.hca),
+        hha: toBoolean(data.hha),
+        cna: toBoolean(data.cna),
+        liveScan: toBoolean(data.liveScan),
+        negativeTbTest: toBoolean(data.negativeTbTest),
+        cprFirstAid: toBoolean(data.cprFirstAid),
+        canWorkWithCovid: toBoolean(data.canWorkWithCovid),
+        covidVaccine: toBoolean(data.covidVaccine),
     });
 
     if (!validatedFields.success) {
+        console.error("Validation Errors:", validatedFields.error.flatten().fieldErrors);
       return {
         message: "Invalid form data. Please check your entries.",
         errors: validatedFields.error.flatten().fieldErrors,
@@ -33,6 +55,7 @@ export async function submitCaregiverProfile(prevState: any, formData: FormData)
       caregiverName: newCaregiver.fullName
     };
   } catch (e) {
+    console.error("Submission Error:", e);
     return {
       message: "An unexpected error occurred.",
     };

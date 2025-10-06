@@ -87,6 +87,18 @@ const experienceCheckboxes = [
     { id: "hasHospiceExperience", label: "Experience with hospice patients?" },
 ] as const;
 
+const certificationCheckboxes = [
+    { id: "hca", label: "HCA" },
+    { id: "hha", label: "HHA" },
+    { id: "cna", label: "CNA" },
+    { id: "liveScan", label: "Live scan" },
+    { id: "negativeTbTest", label: "Negative TB-test" },
+    { id: "cprFirstAid", label: "CPR/First Aid" },
+    { id: "canWorkWithCovid", label: "Are able to work with COVID client" },
+    { id: "covidVaccine", label: "Covid Vaccine or plan to take" },
+] as const;
+
+
 export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: string) => void }) {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -105,11 +117,9 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
       yearsExperience: 0,
       previousRoles: "",
       summary: "",
-      cprCertified: false,
       cnaLicense: "",
       otherCertifications: "",
       availableDays: [],
-      specializations: [],
       preferredShift: "flexible",
       canChangeBrief: false,
       canTransfer: false,
@@ -124,6 +134,15 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
       canTakeBloodPressure: false,
       hasDementiaExperience: false,
       hasHospiceExperience: false,
+      hca: false,
+      hha: false,
+      cna: false,
+      liveScan: false,
+      otherLanguages: "",
+      negativeTbTest: false,
+      cprFirstAid: false,
+      canWorkWithCovid: false,
+      covidVaccine: false,
     },
   });
 
@@ -252,9 +271,35 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
             )}
             {currentStep === 3 && (
                 <div className="space-y-6">
-                    <FormField control={form.control} name="cprCertified" render={({ field }) => ( <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><div className="space-y-1 leading-none"><FormLabel>CPR Certified</FormLabel></div></FormItem>)} />
-                    <FormField control={form.control} name="cnaLicense" render={({ field }) => ( <FormItem><FormLabel>CNA License Number (if applicable)</FormLabel><FormControl><Input placeholder="CNA123456" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                    <FormField control={form.control} name="otherCertifications" render={({ field }) => ( <FormItem><FormLabel>Other Certifications or Training</FormLabel><FormControl><Textarea placeholder="List any other relevant certifications, e.g., First Aid, Dementia Care Training" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                     <div className="space-y-4">
+                        <FormLabel>Certifications (Please check all that apply)</FormLabel>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {certificationCheckboxes.map((item) => (
+                                <FormField
+                                    key={item.id}
+                                    control={form.control}
+                                    name={item.id}
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                            <FormControl>
+                                                <Checkbox
+                                                    checked={field.value}
+                                                    onCheckedChange={field.onChange}
+                                                />
+                                            </FormControl>
+                                            <div className="space-y-1 leading-none">
+                                                <FormLabel className="font-normal">
+                                                    {item.label}
+                                                </FormLabel>
+                                            </div>
+                                        </FormItem>
+                                    )}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                    <FormField control={form.control} name="otherLanguages" render={({ field }) => ( <FormItem><FormLabel>What other languages can you speak?</FormLabel><FormControl><Input placeholder="e.g., Spanish, Tagalog" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="otherCertifications" render={({ field }) => ( <FormItem><FormLabel>Other Certifications or Training</FormLabel><FormControl><Textarea placeholder="List any other relevant certifications not listed above" {...field} /></FormControl><FormMessage /></FormItem> )} />
                 </div>
             )}
             {currentStep === 4 && (
