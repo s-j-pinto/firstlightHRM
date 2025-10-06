@@ -8,7 +8,6 @@ export const generalInfoSchema = z.object({
   city: z.string().min(2, "City is required."),
   state: z.string().min(2, "State is required."),
   zip: z.string().min(5, "Zip code is required."),
-  dateOfBirth: z.date({ required_error: "Date of birth is required." }),
 });
 
 export const experienceSchema = z.object({

@@ -29,7 +29,6 @@ export async function submitCaregiverProfile(prevState: any, formData: FormData)
 
     const parsedData = {
         ...data,
-        dateOfBirth: new Date(data.dateOfBirth as string),
         yearsExperience: Number(data.yearsExperience),
         availability: availability,
         canChangeBrief: toBoolean(data.canChangeBrief),

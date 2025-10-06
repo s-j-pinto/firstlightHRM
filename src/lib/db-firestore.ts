@@ -27,7 +27,6 @@ export const addCaregiver = async (profile: Omit<CaregiverProfile, "id">): Promi
   console.log("Step 6a: Inside addCaregiver function.");
   const caregiverData = {
     ...profile,
-    dateOfBirth: Timestamp.fromDate(profile.dateOfBirth),
   };
   console.log("Step 6b: Preparing to add document to 'caregiver_profiles' collection.");
   const docRef = await addDoc(collection(db, "caregiver_profiles"), caregiverData);
