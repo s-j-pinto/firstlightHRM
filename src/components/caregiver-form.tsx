@@ -71,6 +71,22 @@ const availabilityDays = [
   { id: "sunday", label: "Sunday" },
 ]
 
+const experienceCheckboxes = [
+    { id: "canChangeBrief", label: "Able to change brief?" },
+    { id: "canTransfer", label: "Able to Transfer?" },
+    { id: "canPrepareMeals", label: "Able to prepare meals (COOK OR REHEAT)?" },
+    { id: "canDoBedBath", label: "Able to bed bath or shower assistance?" },
+    { id: "canUseHoyerLift", label: "Able to use Hoyer Lift?" },
+    { id: "canUseGaitBelt", label: "Able to use Gait Belt?" },
+    { id: "canUsePurwick", label: "Able to use a Purwick?" },
+    { id: "canEmptyCatheter", label: "Able to empty catheter?" },
+    { id: "canEmptyColostomyBag", label: "Able to empty colostomy bag?" },
+    { id: "canGiveMedication", label: "Able to give medication?" },
+    { id: "canTakeBloodPressure", label: "Able to take blood Pressure?" },
+    { id: "hasDementiaExperience", label: "Experience with Dementia patients?" },
+    { id: "hasHospiceExperience", label: "Experience with hospice patients?" },
+] as const;
+
 export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: string) => void }) {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -95,6 +111,19 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
       availableDays: [],
       specializations: [],
       preferredShift: "flexible",
+      canChangeBrief: false,
+      canTransfer: false,
+      canPrepareMeals: false,
+      canDoBedBath: false,
+      canUseHoyerLift: false,
+      canUseGaitBelt: false,
+      canUsePurwick: false,
+      canEmptyCatheter: false,
+      canEmptyColostomyBag: false,
+      canGiveMedication: false,
+      canTakeBloodPressure: false,
+      hasDementiaExperience: false,
+      hasHospiceExperience: false,
     },
   });
 
@@ -192,6 +221,33 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
                 <FormField control={form.control} name="yearsExperience" render={({ field }) => ( <FormItem><FormLabel>Years of Experience</FormLabel><FormControl><Input type="number" placeholder="5" {...field} /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="previousRoles" render={({ field }) => ( <FormItem><FormLabel>Previous Roles (optional)</FormLabel><FormControl><Textarea placeholder="e.g., Senior Care Assistant, Pediatric Aide" {...field} /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="summary" render={({ field }) => ( <FormItem><FormLabel>Experience Summary</FormLabel><FormControl><Textarea placeholder="Describe your caregiving experience, skills, and passion." {...field} rows={5} /></FormControl><FormMessage /></FormItem> )} />
+                 <div className="space-y-4">
+                    <FormLabel>Skills & Experience</FormLabel>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {experienceCheckboxes.map((item) => (
+                            <FormField
+                                key={item.id}
+                                control={form.control}
+                                name={item.id}
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                        <FormControl>
+                                            <Checkbox
+                                                checked={field.value}
+                                                onCheckedChange={field.onChange}
+                                            />
+                                        </FormControl>
+                                        <div className="space-y-1 leading-none">
+                                            <FormLabel className="font-normal">
+                                                {item.label}
+                                            </FormLabel>
+                                        </div>
+                                    </FormItem>
+                                )}
+                            />
+                        ))}
+                    </div>
+                </div>
               </div>
             )}
             {currentStep === 3 && (

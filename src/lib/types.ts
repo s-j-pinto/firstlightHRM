@@ -16,6 +16,19 @@ export const experienceSchema = z.object({
   previousRoles: z.string().optional(),
   specializations: z.array(z.string()).optional(),
   summary: z.string().min(20, "Please provide a brief summary of your experience (min 20 characters)."),
+  canChangeBrief: z.boolean().optional(),
+  canTransfer: z.boolean().optional(),
+  canPrepareMeals: z.boolean().optional(),
+  canDoBedBath: z.boolean().optional(),
+  canUseHoyerLift: z.boolean().optional(),
+  canUseGaitBelt: z.boolean().optional(),
+  canUsePurwick: z.boolean().optional(),
+  canEmptyCatheter: z.boolean().optional(),
+  canEmptyColostomyBag: z.boolean().optional(),
+  canGiveMedication: z.boolean().optional(),
+  canTakeBloodPressure: z.boolean().optional(),
+  hasDementiaExperience: z.boolean().optional(),
+  hasHospiceExperience: z.boolean().optional(),
 });
 
 export const certificationsSchema = z.object({

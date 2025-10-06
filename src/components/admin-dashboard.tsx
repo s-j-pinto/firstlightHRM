@@ -13,6 +13,9 @@ import {
   Briefcase,
   FileText,
   Car,
+  Check,
+  X,
+  Stethoscope
 } from "lucide-react";
 
 import type { Appointment, CaregiverProfile } from "@/lib/types";
@@ -115,6 +118,25 @@ export default function AdminDashboard({ initialAppointments }: AdminDashboardPr
                             <p><span className="font-semibold">Years:</span> {appointment.caregiver.yearsExperience}</p>
                             <p><span className="font-semibold">Summary:</span> {appointment.caregiver.summary}</p>
                             
+                            <Separator className="my-2"/>
+                            
+                             <h3 className="font-semibold text-lg flex items-center mb-2"><Stethoscope className="mr-2 h-5 w-5 text-accent" />Skills & Experience</h3>
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                                <p className="flex items-center"><span className="font-semibold w-48">Able to change brief:</span> {appointment.caregiver.canChangeBrief ? <Check className="text-green-500"/> : <X className="text-red-500"/>}</p>
+                                <p className="flex items-center"><span className="font-semibold w-48">Able to Transfer:</span> {appointment.caregiver.canTransfer ? <Check className="text-green-500"/> : <X className="text-red-500"/>}</p>
+                                <p className="flex items-center"><span className="font-semibold w-48">Able to prepare meals:</span> {appointment.caregiver.canPrepareMeals ? <Check className="text-green-500"/> : <X className="text-red-500"/>}</p>
+                                <p className="flex items-center"><span className="font-semibold w-48">Bed bath/shower assistance:</span> {appointment.caregiver.canDoBedBath ? <Check className="text-green-500"/> : <X className="text-red-500"/>}</p>
+                                <p className="flex items-center"><span className="font-semibold w-48">Able to use Hoyer Lift:</span> {appointment.caregiver.canUseHoyerLift ? <Check className="text-green-500"/> : <X className="text-red-500"/>}</p>
+                                <p className="flex items-center"><span className="font-semibold w-48">Able to use Gait Belt:</span> {appointment.caregiver.canUseGaitBelt ? <Check className="text-green-500"/> : <X className="text-red-500"/>}</p>
+                                <p className="flex items-center"><span className="font-semibold w-48">Able to use a Purwick:</span> {appointment.caregiver.canUsePurwick ? <Check className="text-green-500"/> : <X className="text-red-500"/>}</p>
+                                <p className="flex items-center"><span className="font-semibold w-48">Able to empty catheter:</span> {appointment.caregiver.canEmptyCatheter ? <Check className="text-green-500"/> : <X className="text-red-500"/>}</p>
+                                <p className="flex items-center"><span className="font-semibold w-48">Able to empty colostomy bag:</span> {appointment.caregiver.canEmptyColostomyBag ? <Check className="text-green-500"/> : <X className="text-red-500"/>}</p>
+                                <p className="flex items-center"><span className="font-semibold w-48">Able to give medication:</span> {appointment.caregiver.canGiveMedication ? <Check className="text-green-500"/> : <X className="text-red-500"/>}</p>
+                                <p className="flex items-center"><span className="font-semibold w-48">Able to take blood Pressure:</span> {appointment.caregiver.canTakeBloodPressure ? <Check className="text-green-500"/> : <X className="text-red-500"/>}</p>
+                                <p className="flex items-center"><span className="font-semibold w-48">Dementia patients experience:</span> {appointment.caregiver.hasDementiaExperience ? <Check className="text-green-500"/> : <X className="text-red-500"/>}</p>
+                                <p className="flex items-center"><span className="font-semibold w-48">Hospice patients experience:</span> {appointment.caregiver.hasHospiceExperience ? <Check className="text-green-500"/> : <X className="text-red-500"/>}</p>
+                            </div>
+
                             <Separator className="my-2"/>
                             
                             <h3 className="font-semibold text-lg flex items-center"><FileText className="mr-2 h-5 w-5 text-accent" />Certifications</h3>
