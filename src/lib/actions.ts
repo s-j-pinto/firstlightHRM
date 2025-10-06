@@ -13,7 +13,7 @@ export async function submitCaregiverProfile(prevState: any, formData: FormData)
   console.log("Step 1: Starting caregiver profile submission.");
   try {
     const data = Object.fromEntries(formData.entries());
-    console.log("Step 2: Received form data.", Object.keys(data));
+    console.log("Step 2: Received form data. Keys:", Object.keys(data));
     
     // Reconstruct the availability object from FormData
     const availability: Record<string, string[]> = {
@@ -76,7 +76,7 @@ export async function submitCaregiverProfile(prevState: any, formData: FormData)
       caregiverName: validatedFields.data.fullName
     };
   } catch (e) {
-    console.error("Submission Error during profile persistence:", e);
+    console.error("Step 8 FAILED: An unexpected error occurred during submission.", e);
     return {
       message: "An unexpected error occurred.",
     };
@@ -84,22 +84,34 @@ export async function submitCaregiverProfile(prevState: any, formData: FormData)
 }
 
 export async function scheduleAppointment(data: z.infer<typeof appointmentSchema>) {
+    console.log("Step A: Starting appointment scheduling.");
     const validatedFields = appointmentSchema.safeParse(data);
 
     if (!validatedFields.success) {
+        console.error("Step B FAILED: Validation Errors:", validatedFields.error.flatten().fieldErrors);
         return {
             error: "Invalid appointment data."
         }
     }
+    console.log("Step B: Appointment data validated successfully.");
 
+    console.log("Step C: Attempting to add appointment to Firestore...");
     await addAppointment(validatedFields.data);
+    console.log("Step D: Successfully added appointment.");
 
     revalidatePath("/admin");
-    redirect(`/confirmation?time=${validatedFields.data.startTime.toISOString()}`);
+    console.log("Step E: Revalidated admin path.");
+    
+    const redirectUrl = `/confirmation?time=${validatedFields.data.startTime.toISOString()}`;
+    console.log("Step F: Redirecting to", redirectUrl);
+    redirect(redirectUrl);
 }
 
 export async function getAdminAppointments() {
-    return getAppointments();
+    console.log("Fetching admin appointments...");
+    const appointments = await getAppointments();
+    console.log(`Found ${appointments.length} appointments.`);
+    return appointments;
 }
 
 export async function sendCalendarInvite(appointment: any) {
