@@ -5,67 +5,36 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { addCaregiver, addAppointment, getAppointments } from "./db-firestore";
-import { caregiverFormSchema, appointmentSchema } from "./types";
+import { caregiverFormSchema, appointmentSchema, CaregiverProfile } from "./types";
 
-const toBoolean = (value: unknown) => value === "on";
-
-export async function submitCaregiverProfile(prevState: any, formData: FormData) {
+export async function submitCaregiverProfile(data: z.infer<typeof caregiverFormSchema>) {
   console.log("Step 1: Starting caregiver profile submission.");
+  
+  // The data is already a JS object, no need for Object.fromEntries
+  console.log("Step 2: Received data object:", data);
+  
+  // No need to reconstruct availability, it's already an object
+  console.log("Step 3: Availability object is already structured:", data.availability);
+
+  // Booleans are already booleans, no need for toBoolean
+  const parsedData = {
+      ...data,
+      yearsExperience: Number(data.yearsExperience),
+  };
+  console.log("Step 4: Parsed and transformed form data for validation.");
+
+  const validatedFields = caregiverFormSchema.safeParse(parsedData);
+
+  if (!validatedFields.success) {
+    console.error("Step 5 FAILED: Validation Errors:", validatedFields.error.flatten().fieldErrors);
+    return {
+      message: "Invalid form data. Please check your entries.",
+      errors: validatedFields.error.flatten().fieldErrors,
+    };
+  }
+  console.log("Step 5: Form data validated successfully.");
+
   try {
-    const data = Object.fromEntries(formData.entries());
-    console.log("Step 2: Received form data. Keys:", Object.keys(data));
-    
-    // Reconstruct the availability object from FormData
-    const availability: Record<string, string[]> = {
-        monday: formData.getAll('availability.monday') as string[],
-        tuesday: formData.getAll('availability.tuesday') as string[],
-        wednesday: formData.getAll('availability.wednesday') as string[],
-        thursday: formData.getAll('availability.thursday') as string[],
-        friday: formData.getAll('availability.friday') as string[],
-        saturday: formData.getAll('availability.saturday') as string[],
-        sunday: formData.getAll('availability.sunday') as string[],
-    };
-    console.log("Step 3: Reconstructed availability object.");
-
-    const parsedData = {
-        ...data,
-        yearsExperience: Number(data.yearsExperience),
-        availability: availability,
-        canChangeBrief: toBoolean(data.canChangeBrief),
-        canTransfer: toBoolean(data.canTransfer),
-        canPrepareMeals: toBoolean(data.canPrepareMeals),
-        canDoBedBath: toBoolean(data.canDoBedBath),
-        canUseHoyerLift: toBoolean(data.canUseHoyerLift),
-        canUseGaitBelt: toBoolean(data.canUseGaitBelt),
-        canUsePurwick: toBoolean(data.canUsePurwick),
-        canEmptyCatheter: toBoolean(data.canEmptyCatheter),
-        canEmptyColostomyBag: toBoolean(data.canEmptyColostomyBag),
-        canGiveMedication: toBoolean(data.canGiveMedication),
-        canTakeBloodPressure: toBoolean(data.canTakeBloodPressure),
-        hasDementiaExperience: toBoolean(data.hasDementiaExperience),
-        hasHospiceExperience: toBoolean(data.hasHospiceExperience),
-        hca: toBoolean(data.hca),
-        hha: toBoolean(data.hha),
-        cna: toBoolean(data.cna),
-        liveScan: toBoolean(data.liveScan),
-        negativeTbTest: toBoolean(data.negativeTbTest),
-        cprFirstAid: toBoolean(data.cprFirstAid),
-        canWorkWithCovid: toBoolean(data.canWorkWithCovid),
-        covidVaccine: toBoolean(data.covidVaccine),
-    };
-    console.log("Step 4: Parsed and transformed form data for validation.");
-
-    const validatedFields = caregiverFormSchema.safeParse(parsedData);
-
-    if (!validatedFields.success) {
-      console.error("Step 5 FAILED: Validation Errors:", validatedFields.error.flatten().fieldErrors);
-      return {
-        message: "Invalid form data. Please check your entries.",
-        errors: validatedFields.error.flatten().fieldErrors,
-      };
-    }
-    console.log("Step 5: Form data validated successfully.");
-
     console.log("Step 6: Attempting to add caregiver to Firestore...");
     const newCaregiverId = await addCaregiver(validatedFields.data);
     console.log("Step 7: Successfully added caregiver with ID:", newCaregiverId);
@@ -77,8 +46,13 @@ export async function submitCaregiverProfile(prevState: any, formData: FormData)
     };
   } catch (e) {
     console.error("Step 8 FAILED: An unexpected error occurred during submission.", e);
+    // Check if it's a Firestore error and log more details
+    if (e instanceof Error && 'code' in e) {
+        console.error("Firestore error code:", (e as any).code);
+        console.error("Firestore error message:", e.message);
+    }
     return {
-      message: "An unexpected error occurred.",
+      message: "An unexpected error occurred while saving your profile.",
     };
   }
 }

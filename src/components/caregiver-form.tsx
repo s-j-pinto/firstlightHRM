@@ -175,32 +175,9 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
 
   const onSubmit = async (data: CaregiverFormData) => {
     setIsSubmitting(true);
-    const formData = new FormData();
+    console.log("Client: Form data prepared for submission:", data);
 
-    // A bit of a hack to flatten the availability object for FormData
-    const flatData: any = { ...data };
-    for (const day in data.availability) {
-        const key = `availability.${day}`;
-        const value = data.availability[day as keyof typeof data.availability];
-        value.forEach((shift: string) => formData.append(key, shift));
-    }
-    delete flatData.availability;
-
-
-    for (const key in flatData) {
-        const value = flatData[key as keyof CaregiverFormData];
-        if (value instanceof Date) {
-            formData.append(key, value.toISOString());
-        } else if (Array.isArray(value)) {
-            value.forEach(item => formData.append(key, item));
-        } else if (typeof value === 'boolean') {
-             formData.append(key, value ? 'on' : 'off');
-        } else if (value != null) {
-            formData.append(key, String(value));
-        }
-    }
-    
-    const result = await submitCaregiverProfile(null, formData);
+    const result = await submitCaregiverProfile(data);
 
     setIsSubmitting(false);
 
@@ -264,7 +241,7 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
               <div className="space-y-6">
                 <FormField control={form.control} name="yearsExperience" render={({ field }) => ( <FormItem><FormLabel>Years of Experience</FormLabel><FormControl><Input type="number" placeholder="5" {...field} /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="previousRoles" render={({ field }) => ( <FormItem><FormLabel>Previous Roles (optional)</FormLabel><FormControl><Textarea placeholder="e.g., Senior Care Assistant, Pediatric Aide" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                <FormField control={form.control} name="summary" render={({ field }) => ( <FormItem><FormLabel>Experience Summary</FormLabel><FormControl><Textarea placeholder="Describe your caregiving experience, skills, and passion." {...field} rows={5} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="summary" render={({ field }) => ( <FormItem><FormLabel>Experience Summary (optional)</FormLabel><FormControl><Textarea placeholder="Describe your caregiving experience, skills, and passion." {...field} rows={5} /></FormControl><FormMessage /></FormItem> )} />
                  <div className="space-y-4">
                     <FormLabel>Skills & Experience</FormLabel>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -324,7 +301,7 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
                         </div>
                     </div>
                     <FormField control={form.control} name="otherLanguages" render={({ field }) => ( <FormItem><FormLabel>What other languages can you speak?</FormLabel><FormControl><Input placeholder="e.g., Spanish, Tagalog" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                    <FormField control={form.control} name="otherCertifications" render={({ field }) => ( <FormItem><FormLabel>Other Certifications or Training</FormLabel><FormControl><Textarea placeholder="List any other relevant certifications not listed above" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="otherCertifications" render={({ field }) => ( <FormItem><FormLabel>Other Certifications or Training (optional)</FormLabel><FormControl><Textarea placeholder="List any other relevant certifications not listed above" {...field} /></FormControl><FormMessage /></FormItem> )} />
                 </div>
             )}
             {currentStep === 4 && (

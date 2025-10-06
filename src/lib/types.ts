@@ -39,7 +39,7 @@ export const certificationsSchema = z.object({
   cprFirstAid: z.boolean().default(false),
   canWorkWithCovid: z.boolean().default(false),
   covidVaccine: z.boolean().default(false),
-  cnaLicense: z.string().optional(), // Kept for backward compatibility if needed, but not in UI
+  cnaLicense: z.string().optional(),
   otherCertifications: z.string().optional(),
 });
 
@@ -74,7 +74,7 @@ export type CaregiverProfile = z.infer<typeof caregiverFormSchema> & { id: strin
 export const appointmentSchema = z.object({
   caregiverId: z.string(),
   caregiverName: z.string(),
-  caregiverEmail: z.string(),
+  caregiverEmail: z.string().email(),
   caregiverPhone: z.string(),
   startTime: z.date(),
   endTime: z.date(),
