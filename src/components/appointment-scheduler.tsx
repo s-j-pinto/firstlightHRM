@@ -1,14 +1,15 @@
+
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
 import { format } from "date-fns";
 import { Calendar, Clock, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getAdminAppointments, scheduleAppointment } from "@/lib/actions";
 import { generateAvailableSlots } from "@/lib/availability";
-import type { Appointment } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 
 interface AppointmentSchedulerProps {
@@ -22,6 +23,7 @@ export function AppointmentScheduler({ caregiverId, caregiverName }: Appointment
   const [isLoading, setIsLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const router = useRouter();
 
   useEffect(() => {
     async function fetchSlots() {
@@ -38,7 +40,7 @@ export function AppointmentScheduler({ caregiverId, caregiverName }: Appointment
     setSelectedSlot(slot);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!selectedSlot || !caregiverId) {
         toast({
             variant: "destructive",
@@ -47,30 +49,20 @@ export function AppointmentScheduler({ caregiverId, caregiverName }: Appointment
         });
         return;
     }
-    const profile = form.getValues(); // This is a hack. In a real app, you'd fetch this.
-    startTransition(async () => {
-        await scheduleAppointment({
+    
+    startTransition(() => {
+        scheduleAppointment({
             caregiverId: caregiverId,
-            caregiverName: profile.fullName,
-            caregiverEmail: profile.email,
-            caregiverPhone: profile.phone,
+            caregiverName: caregiverName,
+            // In a real app, we'd fetch this from the caregiver's profile
+            caregiverEmail: "test@example.com", 
+            caregiverPhone: "555-555-5555",
             startTime: selectedSlot,
-            endTime: new Date(selectedSlot.getTime() + 60 * 60 * 1000),
+            endTime: new Date(selectedSlot.getTime() + 30 * 60 * 1000), // 30 min slot
         });
     });
   };
   
-  // This is a temporary workaround to get caregiver details without a separate fetch
-  // In a real application, you'd pass caregiver details or fetch them by ID
-  let form: any = {};
-  if (typeof window !== 'undefined') {
-    // This is not a good practice, but for this specific setup it's a way to get data
-    // from a form that has been unmounted. A better solution is redux/zustand or passing data.
-    // For now we will rely on a mock object.
-    form = { getValues: () => ({ fullName: caregiverName, email: 'test@test.com', phone: '123-456-7890' }) };
-  }
-
-
   return (
     <Card className="w-full max-w-4xl mx-auto my-8 animate-in fade-in-50 duration-500 shadow-lg">
       <CardHeader>
@@ -87,41 +79,51 @@ export function AppointmentScheduler({ caregiverId, caregiverName }: Appointment
           </div>
         ) : (
           <div className="space-y-6">
-            {availableSlots.map(({ date, slots }) => (
-              <div key={date.toISOString()}>
-                <h3 className="flex items-center text-lg font-semibold mb-3">
-                  <Calendar className="h-5 w-5 mr-2 text-accent" />
-                  {format(date, "EEEE, MMMM do")}
-                </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                  {slots.map((slot) => (
-                    <Button
-                      key={slot.toISOString()}
-                      variant={selectedSlot?.getTime() === slot.getTime() ? "default" : "outline"}
-                      onClick={() => handleSelectSlot(slot)}
-                      className={selectedSlot?.getTime() === slot.getTime() ? "bg-primary hover:bg-primary/90" : ""}
-                    >
-                      <Clock className="h-4 w-4 mr-2" />
-                      {format(slot, "h:mm a")}
-                    </Button>
-                  ))}
+            {availableSlots.length > 0 ? (
+              availableSlots.map(({ date, slots }) => (
+                <div key={date.toISOString()}>
+                  <h3 className="flex items-center text-lg font-semibold mb-3">
+                    <Calendar className="h-5 w-5 mr-2 text-accent" />
+                    {format(date, "EEEE, MMMM do")}
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {slots.map((slot) => (
+                      <Button
+                        key={slot.toISOString()}
+                        variant={selectedSlot?.getTime() === slot.getTime() ? "default" : "outline"}
+                        onClick={() => handleSelectSlot(slot)}
+                        className={selectedSlot?.getTime() === slot.getTime() ? "bg-primary hover:bg-primary/90" : ""}
+                      >
+                        <Clock className="h-4 w-4 mr-2" />
+                        {format(slot, "h:mm a")}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
-            <div className="pt-6 flex flex-col items-center">
-                <Button
-                    size="lg"
-                    onClick={handleSubmit}
-                    disabled={!selectedSlot || isPending}
-                    className="bg-accent hover:bg-accent/90 w-full max-w-xs"
-                >
-                    {isPending ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : null}
-                    Confirm Appointment
-                </Button>
-                {!selectedSlot && <p className="text-sm text-muted-foreground mt-2">Please select a time slot to continue.</p>}
-            </div>
+              ))
+            ) : (
+                <div className="text-center py-10">
+                    <Calendar className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">No times available</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">Please check back later for more interview slots.</p>
+                </div>
+            )}
+            {availableSlots.length > 0 && (
+                <div className="pt-6 flex flex-col items-center">
+                    <Button
+                        size="lg"
+                        onClick={handleSubmit}
+                        disabled={!selectedSlot || isPending}
+                        className="bg-accent hover:bg-accent/90 w-full max-w-xs"
+                    >
+                        {isPending ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : null}
+                        Confirm Appointment
+                    </Button>
+                    {!selectedSlot && <p className="text-sm text-muted-foreground mt-2">Please select a time slot to continue.</p>}
+                </div>
+            )}
           </div>
         )}
       </CardContent>
