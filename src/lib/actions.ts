@@ -1,13 +1,13 @@
-
 "use server";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { addCaregiver, addAppointment, getAppointments } from "./db-firestore";
+import { addCaregiver, addAppointment, getAppointments, getAdminSettings } from "./db-firestore";
 import { caregiverFormSchema, appointmentSchema, CaregiverProfile } from "./types";
 import { google } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
+import { FirestoreServerPermissionError } from "@/firebase/server-errors";
 
 export async function submitCaregiverProfile(data: any) {
   console.log("Step 1: Starting caregiver profile submission.");
@@ -124,7 +124,7 @@ export async function sendCalendarInvite(appointment: any) {
     const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:9002';
 
     if (!clientId || !clientSecret) {
-        const errorMsg = "⚠️ Google credentials not found. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your .env.local file via the Admin Settings page.";
+        const errorMsg = "⚠️ Google credentials not found. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your .env.local file in the project root.";
         console.error("DEBUG: Step 4b -", errorMsg);
         return { message: errorMsg, error: true };
     }
@@ -143,8 +143,8 @@ export async function sendCalendarInvite(appointment: any) {
         });
         console.log("ACTION REQUIRED: Please authorize this app by visiting this URL:");
         console.log(authUrl);
-        console.log("After authorization, you will be redirected with a 'code' in the URL. You need to create a GOOGLE_REFRESH_TOKEN. This is a one-time setup. A more advanced implementation would handle this OAuth2 flow automatically.");
-        return { message: "Admin authorization required. Please check server logs." };
+        console.log("After authorization, you will be redirected with a 'code' in the URL. Use this code to get a refresh token and add it as GOOGLE_REFRESH_TOKEN to your .env.local file. This is a one-time setup.");
+        return { message: "Admin authorization required. Please check server logs for the authorization URL." };
     }
     
     try {
@@ -203,24 +203,24 @@ export async function saveAdminSettings(data: { availability: any, googleCalenda
     console.log("--- ⚙️ Saving Admin Settings ---");
     console.log("Availability Config:", data.availability);
     
-    let envFileContent = "";
+    // This action now primarily serves to guide the user.
+    // The actual credentials should be managed in the .env.local file.
 
-    if (data.googleCalendar.clientId) {
-      envFileContent += `GOOGLE_CLIENT_ID=${data.googleCalendar.clientId}\n`;
-    }
-    if (data.googleCalendar.clientSecret) {
-      envFileContent += `GOOGLE_CLIENT_SECRET=${data.googleCalendar.clientSecret}\n`;
-    }
-    if (data.googleCalendar.refreshToken) {
-      envFileContent += `GOOGLE_REFRESH_TOKEN=${data.googleCalendar.refreshToken}\n`;
-    }
+    const googleData = data.googleCalendar;
+    const hasGoogleCreds = googleData.clientId || googleData.clientSecret || googleData.refreshToken;
 
-    if (envFileContent) {
-        console.warn("IMPORTANT: For security, Google credentials should not be saved directly in the database.");
-        console.warn("Please add the following lines to a .env.local file at the root of your project:");
+    if (hasGoogleCreds) {
+        console.warn("*****************************************************************");
+        console.warn("IMPORTANT: For security, Google credentials must be set in a .env.local file.");
+        console.warn("The values entered on the admin page are NOT automatically saved.");
+        console.warn("Please create or update a file named '.env.local' in your project's root directory with the following content:");
         console.log("--- .env.local ---");
-        console.log(envFileContent.trim());
+        if (googleData.clientId) console.log(`GOOGLE_CLIENT_ID=${googleData.clientId}`);
+        if (googleData.clientSecret) console.log(`GOOGLE_CLIENT_SECRET=${googleData.clientSecret}`);
+        if (googleData.refreshToken) console.log(`GOOGLE_REFRESH_TOKEN=${googleData.refreshToken}`);
         console.log("--------------------");
+        console.warn("You must restart your development server after creating or changing the .env.local file.");
+        console.warn("*****************************************************************");
     } else {
         console.log("No new Google Calendar credentials were entered. Skipping .env.local instructions.");
     }
@@ -228,5 +228,10 @@ export async function saveAdminSettings(data: { availability: any, googleCalenda
     console.log("-----------------------------");
 
     revalidatePath('/admin/settings');
-    return { message: "Settings saved successfully." };
+    
+    return { 
+        message: hasGoogleCreds 
+            ? "Instructions for saving credentials have been logged to your server console." 
+            : "Settings saved successfully." 
+    };
 }

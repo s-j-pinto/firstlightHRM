@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useTransition } from "react";
+import { useTransition, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { saveAdminSettings } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
 
 type SettingsFormValues = {
@@ -32,8 +31,12 @@ type SettingsFormValues = {
 export default function AdminSettings() {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
-  const { register, handleSubmit } = useForm<SettingsFormValues>({
-    defaultValues: {
+  const { register, handleSubmit, reset } = useForm<SettingsFormValues>();
+
+  useEffect(() => {
+    // We don't fetch credentials from the DB anymore, so we just set defaults.
+    // The form now acts as a helper to format .env.local variables.
+    reset({
       monday_slots: "8:30, 9:30, 10:30",
       tuesday_slots: "8:30, 9:30, 10:30",
       wednesday_slots: "8:30, 9:30, 10:30",
@@ -42,8 +45,8 @@ export default function AdminSettings() {
       google_client_id: "",
       google_client_secret: "",
       google_refresh_token: "",
-    },
-  });
+    });
+  }, [reset]);
 
   const onSubmit = (data: SettingsFormValues) => {
     startTransition(async () => {
@@ -64,6 +67,13 @@ export default function AdminSettings() {
         title: "Success",
         description: result.message,
       });
+      // Clear sensitive fields from the form after submission
+      reset({ 
+        ...data,
+        google_client_id: "",
+        google_client_secret: "",
+        google_refresh_token: ""
+       });
     });
   };
 
@@ -105,7 +115,7 @@ export default function AdminSettings() {
           <CardHeader>
             <CardTitle>Google Calendar Integration</CardTitle>
             <CardDescription>
-              Enter your Google API credentials to enable calendar integration. These are stored securely as environment variables.
+              Enter your Google API credentials here to generate the correct format for your `.env.local` file. Your server logs will provide instructions. These values are NOT saved in the database.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -127,11 +137,11 @@ export default function AdminSettings() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="google_refresh_token">Refresh Token (one-time setup)</Label>
+              <Label htmlFor="google_refresh_token">Refresh Token</Label>
               <Input
                 id="google_refresh_token"
                 type="password"
-                placeholder="Enter your Google Refresh Token"
+                placeholder="Paste the refresh token here after one-time setup"
                 {...register("google_refresh_token")}
               />
             </div>
@@ -139,12 +149,4 @@ export default function AdminSettings() {
         </Card>
 
         <div className="flex justify-end">
-          <Button type="submit" disabled={isPending} className="bg-accent hover:bg-accent/90">
-            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Save Settings
-          </Button>
-        </div>
-      </div>
-    </form>
-  );
-}
+          <Button type="submit" disabled={isPending} className="bg-accent hover:bg-accent/
