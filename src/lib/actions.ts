@@ -84,15 +84,23 @@ export async function scheduleAppointment(data: z.infer<typeof appointmentSchema
     }
     console.log("Step B: Appointment data validated successfully.");
 
-    console.log("Step C: Attempting to add appointment to Firestore...");
-    await addAppointment(validatedFields.data);
-    console.log("Step D: Successfully added appointment.");
+    try {
+        console.log("Step C: Attempting to add appointment to Firestore...");
+        await addAppointment(validatedFields.data);
+        console.log("Step D: Successfully added appointment.");
+    } catch (e) {
+        console.error("Step E FAILED: An unexpected error occurred during appointment scheduling.", e);
+        // Handle or rethrow error as needed
+        return {
+            error: "Could not schedule appointment."
+        }
+    }
 
     revalidatePath("/admin");
-    console.log("Step E: Revalidated admin path.");
+    console.log("Step F: Revalidated admin path.");
     
     const redirectUrl = `/confirmation?time=${validatedFields.data.startTime.toISOString()}`;
-    console.log("Step F: Redirecting to", redirectUrl);
+    console.log("Step G: Redirecting to", redirectUrl);
     redirect(redirectUrl);
 }
 
