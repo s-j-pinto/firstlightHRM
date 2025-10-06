@@ -11,11 +11,23 @@ const toBoolean = (value: unknown) => value === "on";
 export async function submitCaregiverProfile(prevState: any, formData: FormData) {
   try {
     const data = Object.fromEntries(formData.entries());
+    
+    // Reconstruct the availability object from FormData
+    const availability: Record<string, string[]> = {
+        monday: formData.getAll('availability.monday') as string[],
+        tuesday: formData.getAll('availability.tuesday') as string[],
+        wednesday: formData.getAll('availability.wednesday') as string[],
+        thursday: formData.getAll('availability.thursday') as string[],
+        friday: formData.getAll('availability.friday') as string[],
+        saturday: formData.getAll('availability.saturday') as string[],
+        sunday: formData.getAll('availability.sunday') as string[],
+    };
+
     const validatedFields = caregiverFormSchema.safeParse({
         ...data,
         dateOfBirth: new Date(data.dateOfBirth as string),
         yearsExperience: Number(data.yearsExperience),
-        availableDays: formData.getAll('availableDays'),
+        availability: availability,
         canChangeBrief: toBoolean(data.canChangeBrief),
         canTransfer: toBoolean(data.canTransfer),
         canPrepareMeals: toBoolean(data.canPrepareMeals),

@@ -18,7 +18,7 @@ import {
   Stethoscope,
   Languages,
   ShieldCheck,
-  Virus,
+  Biohazard,
   ScanSearch,
 } from "lucide-react";
 
@@ -54,6 +54,31 @@ const groupAppointmentsByDay = (appointments: (Appointment & { caregiver?: Careg
 
 const BooleanDisplay = ({ value }: { value: boolean | undefined }) => 
   value ? <Check className="text-green-500"/> : <X className="text-red-500"/>;
+
+const AvailabilityDisplay = ({ availability }: { availability: CaregiverProfile['availability'] | undefined }) => {
+    if (!availability) return <p>Not specified</p>;
+
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
+    return (
+        <div className="space-y-2">
+            {days.map(day => {
+                const shifts = availability[day as keyof typeof availability];
+                if (shifts && shifts.length > 0) {
+                    return (
+                        <div key={day} className="grid grid-cols-[100px_1fr] items-start">
+                            <span className="font-semibold capitalize">{day}:</span>
+                            <div className="flex flex-wrap gap-1">
+                                {shifts.map(shift => <Badge key={shift} variant="secondary" className="capitalize">{shift}</Badge>)}
+                            </div>
+                        </div>
+                    )
+                }
+                return null;
+            })}
+        </div>
+    )
+}
 
 export default function AdminDashboard({ initialAppointments }: AdminDashboardProps) {
   const [appointments, setAppointments] = useState(initialAppointments);
@@ -154,8 +179,8 @@ export default function AdminDashboard({ initialAppointments }: AdminDashboardPr
                                 <p className="flex items-center gap-2"><ScanSearch className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">Live Scan:</span> <BooleanDisplay value={appointment.caregiver.liveScan} /></p>
                                 <p className="flex items-center gap-2"><FileText className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">TB Test:</span> <BooleanDisplay value={appointment.caregiver.negativeTbTest} /></p>
                                 <p className="flex items-center gap-2"><Stethoscope className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">CPR/First Aid:</span> <BooleanDisplay value={appointment.caregiver.cprFirstAid} /></p>
-                                <p className="flex items-center gap-2"><Virus className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">COVID Work:</span> <BooleanDisplay value={appointment.caregiver.canWorkWithCovid} /></p>
-                                <p className="flex items-center gap-2"><Virus className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">COVID Vaccine:</span> <BooleanDisplay value={appointment.caregiver.covidVaccine} /></p>
+                                <p className="flex items-center gap-2"><Biohazard className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">COVID Work:</span> <BooleanDisplay value={appointment.caregiver.canWorkWithCovid} /></p>
+                                <p className="flex items-center gap-2"><Biohazard className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">COVID Vaccine:</span> <BooleanDisplay value={appointment.caregiver.covidVaccine} /></p>
                             </div>
                             {appointment.caregiver.otherLanguages && <p className="flex items-center gap-2"><Languages className="h-4 w-4 mt-1 text-muted-foreground" /><span className="font-semibold">Other Languages:</span> {appointment.caregiver.otherLanguages}</p>}
                             {appointment.caregiver.otherCertifications && <p><span className="font-semibold">Other:</span> {appointment.caregiver.otherCertifications}</p>}
@@ -163,8 +188,7 @@ export default function AdminDashboard({ initialAppointments }: AdminDashboardPr
                             <Separator className="my-2"/>
                             
                             <h3 className="font-semibold text-lg flex items-center"><Calendar className="mr-2 h-5 w-5 text-accent" />Availability</h3>
-                            <p><span className="font-semibold">Days:</span> {appointment.caregiver.availableDays.join(', ')}</p>
-                            <p><span className="font-semibold">Shift:</span> {appointment.caregiver.preferredShift}</p>
+                            <AvailabilityDisplay availability={appointment.caregiver.availability} />
 
                             <Separator className="my-2"/>
                             

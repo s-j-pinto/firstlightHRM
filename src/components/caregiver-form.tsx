@@ -57,7 +57,7 @@ const steps = [
   { id: 1, title: "General", icon: <User className="h-5 w-5" />, fields: Object.keys(generalInfoSchema.shape) as FieldNames<CaregiverFormData>[] },
   { id: 2, title: "Experience", icon: <Briefcase className="h-5 w-5" />, fields: Object.keys(experienceSchema.shape) as FieldNames<CaregiverFormData>[] },
   { id: 3, title: "Certifications", icon: <FileText className="h-5 w-5" />, fields: Object.keys(certificationsSchema.shape) as FieldNames<CaregiverFormData>[] },
-  { id: 4, title: "Availability", icon: <Calendar className="h-5 w-5" />, fields: Object.keys(availabilitySchema.shape) as FieldNames<CaregiverFormData>[] },
+  { id: 4, title: "Availability", icon: <Calendar className="h-5 w-5" />, fields: ["availability"] as FieldNames<CaregiverFormData>[] },
   { id: 5, title: "Transportation", icon: <Car className="h-5 w-5" />, fields: Object.keys(transportationSchema.shape) as FieldNames<CaregiverFormData>[] },
 ];
 
@@ -69,7 +69,15 @@ const availabilityDays = [
   { id: "friday", label: "Friday" },
   { id: "saturday", label: "Saturday" },
   { id: "sunday", label: "Sunday" },
-]
+] as const;
+
+const shifts = [
+    { id: "morning", label: "Morning" },
+    { id: "afternoon", label: "Afternoon" },
+    { id: "evening", label: "Evening" },
+    { id: "night", label: "Night" },
+] as const;
+
 
 const experienceCheckboxes = [
     { id: "canChangeBrief", label: "Able to change brief?" },
@@ -119,8 +127,15 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
       summary: "",
       cnaLicense: "",
       otherCertifications: "",
-      availableDays: [],
-      preferredShift: "flexible",
+      availability: {
+        monday: [],
+        tuesday: [],
+        wednesday: [],
+        thursday: [],
+        friday: [],
+        saturday: [],
+        sunday: [],
+      },
       canChangeBrief: false,
       canTransfer: false,
       canPrepareMeals: false,
@@ -161,8 +176,19 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
   const onSubmit = async (data: CaregiverFormData) => {
     setIsSubmitting(true);
     const formData = new FormData();
-    for (const key in data) {
-        const value = data[key as keyof CaregiverFormData];
+
+    // A bit of a hack to flatten the availability object for FormData
+    const flatData: any = { ...data };
+    for (const day in data.availability) {
+        const key = `availability.${day}`;
+        const value = data.availability[day as keyof typeof data.availability];
+        value.forEach((shift: string) => formData.append(key, shift));
+    }
+    delete flatData.availability;
+
+
+    for (const key in flatData) {
+        const value = flatData[key as keyof CaregiverFormData];
         if (value instanceof Date) {
             formData.append(key, value.toISOString());
         } else if (Array.isArray(value)) {
@@ -303,43 +329,69 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
                 </div>
             )}
             {currentStep === 4 && (
-                <div className="space-y-6">
-                    <FormField control={form.control} name="availableDays" render={() => (
-                        <FormItem>
-                            <div className="mb-4"><FormLabel className="text-base">Available Days</FormLabel></div>
+              <div className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="availability"
+                  render={() => (
+                    <FormItem>
+                      <div className="mb-4">
+                        <FormLabel className="text-base">
+                          Preferred Shifts
+                        </FormLabel>
+                        <p className="text-sm text-muted-foreground">Select all the shifts you are available for each day.</p>
+                      </div>
+                      <div className="space-y-4">
+                        {availabilityDays.map((day) => (
+                          <div key={day.id} className="p-4 border rounded-lg">
+                            <h4 className="font-semibold mb-2">{day.label}</h4>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {availabilityDays.map((item) => (
-                                <FormField key={item.id} control={form.control} name="availableDays" render={({ field }) => (
-                                    <FormItem key={item.id} className="flex flex-row items-start space-x-3 space-y-0">
-                                        <FormControl>
-                                            <Checkbox checked={field.value?.includes(item.id)} onCheckedChange={(checked) => {
-                                                return checked ? field.onChange([...(field.value || []), item.id]) : field.onChange(field.value?.filter((value) => value !== item.id))
-                                            }} />
-                                        </FormControl>
-                                        <FormLabel className="font-normal">{item.label}</FormLabel>
+                              {shifts.map((shift) => (
+                                <FormField
+                                  key={shift.id}
+                                  control={form.control}
+                                  name={`availability.${day.id}`}
+                                  render={({ field }) => (
+                                    <FormItem
+                                      key={shift.id}
+                                      className="flex flex-row items-start space-x-3 space-y-0"
+                                    >
+                                      <FormControl>
+                                        <Checkbox
+                                          checked={field.value?.includes(
+                                            shift.id
+                                          )}
+                                          onCheckedChange={(checked) => {
+                                            return checked
+                                              ? field.onChange([
+                                                  ...(field.value || []),
+                                                  shift.id,
+                                                ])
+                                              : field.onChange(
+                                                  field.value?.filter(
+                                                    (value) =>
+                                                      value !== shift.id
+                                                  )
+                                                );
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormLabel className="font-normal">
+                                        {shift.label}
+                                      </FormLabel>
                                     </FormItem>
-                                )} />
-                            ))}
+                                  )}
+                                />
+                              ))}
                             </div>
-                            <FormMessage />
-                        </FormItem>
-                    )} />
-                    <FormField control={form.control} name="preferredShift" render={({ field }) => (
-                        <FormItem className="space-y-3">
-                            <FormLabel>Preferred Shift</FormLabel>
-                            <FormControl>
-                                <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-1">
-                                    <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="mornings" /></FormControl><FormLabel className="font-normal">Mornings</FormLabel></FormItem>
-                                    <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="afternoons" /></FormControl><FormLabel className="font-normal">Afternoons</FormLabel></FormItem>
-                                    <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="evenings" /></FormControl><FormLabel className="font-normal">Evenings</FormLabel></FormItem>
-                                    <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="nights" /></FormControl><FormLabel className="font-normal">Nights</FormLabel></FormItem>
-                                    <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="flexible" /></FormControl><FormLabel className="font-normal">Flexible</FormLabel></FormItem>
-                                </RadioGroup>
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )} />
-                </div>
+                          </div>
+                        ))}
+                      </div>
+                       <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             )}
             {currentStep === 5 && (
                 <div className="space-y-6">

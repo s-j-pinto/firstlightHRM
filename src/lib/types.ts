@@ -45,8 +45,18 @@ export const certificationsSchema = z.object({
 });
 
 export const availabilitySchema = z.object({
-  availableDays: z.array(z.string()).min(1, "Please select at least one available day."),
-  preferredShift: z.enum(["mornings", "afternoons", "evenings", "nights", "flexible"]),
+  availability: z.object({
+    monday: z.array(z.string()),
+    tuesday: z.array(z.string()),
+    wednesday: z.array(z.string()),
+    thursday: z.array(z.string()),
+    friday: z.array(z.string()),
+    saturday: z.array(z.string()),
+    sunday: z.array(z.string()),
+  }).refine(val => Object.values(val).some(shifts => shifts.length > 0), {
+    message: "Please select at least one shift.",
+    path: ['sunday']
+  }),
 });
 
 export const transportationSchema = z.object({
