@@ -7,37 +7,53 @@ import { z } from "zod";
 import { addCaregiver, addAppointment, getAppointments } from "./db-firestore";
 import { caregiverFormSchema, appointmentSchema, CaregiverProfile } from "./types";
 
-export async function submitCaregiverProfile(data: z.infer<typeof caregiverFormSchema>) {
+export async function submitCaregiverProfile(data: any) {
   console.log("Step 1: Starting caregiver profile submission.");
   
-  // The data is already a JS object, no need for Object.fromEntries
-  console.log("Step 2: Received data object:", data);
+  console.log("Step 2: Received raw data object:", JSON.stringify(data, null, 2));
   
-  // No need to reconstruct availability, it's already an object
-  console.log("Step 3: Availability object is already structured:", data.availability);
-
-  // Booleans are already booleans, no need for toBoolean. Coerce yearsExperience to a number.
   const parsedData = {
       ...data,
-      yearsExperience: Number(data.yearsExperience),
+      yearsExperience: Number(data.yearsExperience || 0),
+      canChangeBrief: !!data.canChangeBrief,
+      canTransfer: !!data.canTransfer,
+      canPrepareMeals: !!data.canPrepareMeals,
+      canDoBedBath: !!data.canDoBedBath,
+      canUseHoyerLift: !!data.canUseHoyerLift,
+      canUseGaitBelt: !!data.canUseGaitBelt,
+      canUsePurwick: !!data.canUsePurwick,
+      canEmptyCatheter: !!data.canEmptyCatheter,
+      canEmptyColostomyBag: !!data.canEmptyColostomyBag,
+      canGiveMedication: !!data.canGiveMedication,
+      canTakeBloodPressure: !!data.canTakeBloodPressure,
+      hasDementiaExperience: !!data.hasDementiaExperience,
+      hasHospiceExperience: !!data.hasHospiceExperience,
+      hca: !!data.hca,
+      hha: !!data.hha,
+      cna: !!data.cna,
+      liveScan: !!data.liveScan,
+      negativeTbTest: !!data.negativeTbTest,
+      cprFirstAid: !!data.cprFirstAid,
+      canWorkWithCovid: !!data.canWorkWithCovid,
+      covidVaccine: !!data.covidVaccine,
   };
-  console.log("Step 4: Parsed and transformed form data for validation.");
+  console.log("Step 3: Parsed and transformed form data for validation.");
 
   const validatedFields = caregiverFormSchema.safeParse(parsedData);
 
   if (!validatedFields.success) {
-    console.error("Step 5 FAILED: Validation Errors:", validatedFields.error.flatten().fieldErrors);
+    console.error("Step 4 FAILED: Validation Errors:", validatedFields.error.flatten().fieldErrors);
     return {
       message: "Invalid form data. Please check your entries.",
       errors: validatedFields.error.flatten().fieldErrors,
     };
   }
-  console.log("Step 5: Form data validated successfully.");
+  console.log("Step 4: Form data validated successfully.");
 
   try {
-    console.log("Step 6: Attempting to add caregiver to Firestore...");
+    console.log("Step 5: Attempting to add caregiver to Firestore...");
     const newCaregiverId = await addCaregiver(validatedFields.data);
-    console.log("Step 7: Successfully added caregiver with ID:", newCaregiverId);
+    console.log("Step 6: Successfully added caregiver with ID:", newCaregiverId);
 
     return {
       message: "Profile submitted successfully.",
@@ -45,8 +61,7 @@ export async function submitCaregiverProfile(data: z.infer<typeof caregiverFormS
       caregiverName: validatedFields.data.fullName
     };
   } catch (e) {
-    console.error("Step 8 FAILED: An unexpected error occurred during submission.", e);
-    // Check if it's a Firestore error and log more details
+    console.error("Step 7 FAILED: An unexpected error occurred during submission.", e);
     if (e instanceof Error && 'code' in e) {
         console.error("Firestore error code:", (e as any).code);
         console.error("Firestore error message:", e.message);
