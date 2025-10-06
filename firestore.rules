@@ -1,72 +1,41 @@
 /**
- * @fileoverview Firestore Security Rules for Prototyping.
+ * @file Firebase Security Rules
+ * @version 2
  *
- * Core Philosophy:
- * This ruleset prioritizes security by enforcing strict ownership and role-based access control.
- * It is designed for a rapid prototyping phase, so data validation is intentionally relaxed, focusing on authorization.
+ * @description
+ * This ruleset enforces a public read policy on caregiver profiles and appointments, allowing any user to view these records. However, write access is strictly prohibited for all users, ensuring data integrity and preventing unauthorized modifications.
  *
  * Data Structure:
- * - /caregiver_profiles/{caregiverProfileId}: Stores detailed caregiver profiles. Access is restricted to the owner (the caregiver).
- * - /appointments/{appointmentId}: Stores appointment slots. No authentication is required to view appointment slots.
+ * - /caregiver_profiles/{caregiverProfileId}: Stores caregiver profile information. Publicly readable, no writes allowed.
+ * - /appointments/{appointmentId}: Stores appointment slots for interviews. Publicly readable, no writes allowed.
  *
  * Key Security Decisions:
- * - Caregiver profiles are private and accessible only to the authenticated user matching the profile ID.
- * - Listing of caregiver profiles is denied to prevent unauthorized data access.
- * - Appointments are publicly readable.
+ * - Caregiver profiles and appointments are publicly listable. This is based on the understanding that the data contained within is intended to be generally accessible.
+ * - No write access is allowed on any document. This is to prevent unauthorized data modification.
  *
- * Denormalization for Authorization:
- *  N/A (No denormalization needed in this phase).
- * Structural Segregation:
- *  N/A (No structural segregation in this phase).
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Checks if the current user is signed in.
-     */
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    /**
-     * @description Checks if the current user is the owner of the resource.
-     */
-    function isOwner(caregiverProfileId) {
-      return request.auth.uid == caregiverProfileId;
-    }
-
-    /**
-     * @description Checks if the current user is the owner of the resource and the resource exists.
-     */
-    function isExistingOwner(caregiverProfileId) {
-      return isOwner(caregiverProfileId) && exists(resource.data);
-    }
-
-    /**
-     * @description Security rules for caregiver profiles.
+     * @description Allows public read access to caregiver profiles, but denies all write operations.
      * @path /caregiver_profiles/{caregiverProfileId}
-     * @allow (create) Authenticated user creates their own profile.
-     * @allow (get, update, delete) Authenticated user with matching UID can access their profile.
-     * @deny (create) If the authenticated user's UID does not match the caregiverProfileId.
-     * @deny (get, update, delete) If the authenticated user's UID does not match the caregiverProfileId.
-     * @principle Enforces document ownership for writes.
+     * @allow (get, list) Any unauthenticated user can view caregiver profiles.
+     * @deny (create, update, delete) No user can create, update, or delete caregiver profiles.
+     * @principle Public read, no writes allowed.
      */
     match /caregiver_profiles/{caregiverProfileId} {
-      allow get: if isOwner(caregiverProfileId);
-      allow list: if false;
-      allow create: if isSignedIn() && request.auth.uid == caregiverProfileId;
-      allow update: if isExistingOwner(caregiverProfileId);
-      allow delete: if isExistingOwner(caregiverProfileId);
+      allow get, list: if true;
+      allow create, update, delete: if false;
     }
 
     /**
-     * @description Security rules for appointments.
+     * @description Allows public read access to appointment slots, but denies all write operations.
      * @path /appointments/{appointmentId}
-     * @allow (get, list) Allow all users to view appointments.
-     * @deny (create, update, delete) Not permitted in this phase, as only admins should manage the availability slots
-     * @principle Public read, owner-only write (not implemented in this phase)
+     * @allow (get, list) Any unauthenticated user can view appointment slots.
+     * @deny (create, update, delete) No user can create, update, or delete appointment slots.
+     * @principle Public read, no writes allowed.
      */
     match /appointments/{appointmentId} {
       allow get, list: if true;
