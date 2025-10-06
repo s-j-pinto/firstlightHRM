@@ -1,0 +1,75 @@
+/**
+ * @file Firestore Security Rules for Caregiver Profiles and Appointment Slots
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model where each caregiver can only access their own profile data. All write operations are restricted to the owner of the caregiver profile, identified by their UID.
+ *
+ * Data Structure:
+ * - /caregiver_profiles/{caregiverProfileId}: Stores caregiver profile information.
+ * - /caregiver_profiles/{caregiverProfileId}/appointment_slots/{appointmentSlotId}: Stores appointment slots associated with a caregiver profile.
+ *
+ * Key Security Decisions:
+ * - Caregiver profiles are only accessible by their respective owners.
+ * - Listing caregiver profiles is restricted to the owner.
+ * - Appointment slots are namespaced under each caregiver profile, and access is controlled by caregiver profile ownership.
+ * - No public read access is granted.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Enforces that only the caregiver can create, read, update, and delete their own profile.
+     * @path /caregiver_profiles/{caregiverProfileId}
+     * @allow (create) request.auth.uid == caregiverProfileId, with valid CaregiverProfile data
+     * @allow (get, list) if request.auth.uid == caregiverProfileId
+     * @allow (update, delete) if request.auth.uid == caregiverProfileId and the document exists
+     * @deny (create) if request.auth == null
+     * @deny (update, delete) if request.auth == null
+     * @deny (get, list) if request.auth == null
+     * @principle Enforces document ownership for all operations.
+     */
+    match /caregiver_profiles/{caregiverProfileId} {
+      function isOwner(caregiverProfileId) {
+        return request.auth != null && request.auth.uid == caregiverProfileId;
+      }
+
+      function isExistingOwner(caregiverProfileId) {
+        return isOwner(caregiverProfileId) && resource != null;
+      }
+
+      allow get: if isOwner(caregiverProfileId);
+      allow list: if isOwner(caregiverProfileId);
+      allow create: if isOwner(caregiverProfileId) && request.resource.data.id == caregiverProfileId;
+      allow update: if isExistingOwner(caregiverProfileId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(caregiverProfileId);
+    }
+
+    /**
+     * @description Enforces that only the caregiver can create, read, update, and delete their own appointment slots.
+     * @path /caregiver_profiles/{caregiverProfileId}/appointment_slots/{appointmentSlotId}
+     * @allow (create) request.auth.uid == caregiverProfileId, with valid AppointmentSlot data
+     * @allow (get, list) if request.auth.uid == caregiverProfileId
+     * @allow (update, delete) if request.auth.uid == caregiverProfileId and the document exists
+     * @deny (create) if request.auth == null
+     * @deny (update, delete) if request.auth == null
+     * @deny (get, list) if request.auth == null
+     * @principle Enforces document ownership for all operations.
+     */
+    match /caregiver_profiles/{caregiverProfileId}/appointment_slots/{appointmentSlotId} {
+      function isOwner(caregiverProfileId) {
+        return request.auth != null && request.auth.uid == caregiverProfileId;
+      }
+
+      function isExistingOwner(caregiverProfileId) {
+        return isOwner(caregiverProfileId) && resource != null;
+      }
+
+      allow get: if isOwner(caregiverProfileId);
+      allow list: if isOwner(caregiverProfileId);
+      allow create: if isOwner(caregiverProfileId) && request.resource.data.caregiverProfileId == caregiverProfileId;
+      allow update: if isExistingOwner(caregiverProfileId) && request.resource.data.caregiverProfileId == resource.data.caregiverProfileId;
+      allow delete: if isExistingOwner(caregiverProfileId);
+    }
+  }
+}

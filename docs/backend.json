@@ -1,0 +1,129 @@
+{
+  "entities": {
+    "CaregiverProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CaregiverProfile",
+      "type": "object",
+      "description": "Represents a caregiver's profile with detailed information.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the caregiver profile."
+        },
+        "generalInformation": {
+          "type": "string",
+          "description": "General information about the caregiver, such as name, contact details, and address."
+        },
+        "experience": {
+          "type": "string",
+          "description": "Details about the caregiver's experience, including years of experience, types of care provided, and references."
+        },
+        "certifications": {
+          "type": "string",
+          "description": "List of certifications held by the caregiver, such as CPR, First Aid, or CNA."
+        },
+        "availability": {
+          "type": "string",
+          "description": "Caregiver's availability for taking shifts, including days and hours available."
+        },
+        "transportation": {
+          "type": "string",
+          "description": "Information about the caregiver's transportation, such as access to a car, driver's license, and insurance."
+        }
+      },
+      "required": [
+        "id",
+        "generalInformation",
+        "experience",
+        "certifications",
+        "availability",
+        "transportation"
+      ]
+    },
+    "AppointmentSlot": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AppointmentSlot",
+      "type": "object",
+      "description": "Represents a scheduled appointment slot for caregiver interviews.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the appointment slot."
+        },
+        "caregiverProfileId": {
+          "type": "string",
+          "description": "Reference to CaregiverProfile. (Relationship: CaregiverProfile 1:N AppointmentSlot)"
+        },
+        "date": {
+          "type": "string",
+          "description": "Date of the appointment.",
+          "format": "date"
+        },
+        "startTime": {
+          "type": "string",
+          "description": "Start time of the appointment.",
+          "format": "date-time"
+        },
+        "endTime": {
+          "type": "string",
+          "description": "End time of the appointment.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "caregiverProfileId",
+        "date",
+        "startTime",
+        "endTime"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/caregiver_profiles/{caregiverProfileId}",
+        "definition": {
+          "entityName": "CaregiverProfile",
+          "schema": {
+            "$ref": "#/backend/entities/CaregiverProfile"
+          },
+          "description": "Stores caregiver profile information. The 'caregiverProfileId' is the unique identifier for the caregiver profile.",
+          "params": [
+            {
+              "name": "caregiverProfileId",
+              "description": "Unique identifier for the caregiver profile."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/caregiver_profiles/{caregiverProfileId}/appointment_slots/{appointmentSlotId}",
+        "definition": {
+          "entityName": "AppointmentSlot",
+          "schema": {
+            "$ref": "#/backend/entities/AppointmentSlot"
+          },
+          "description": "Stores appointment slots associated with a caregiver profile. The 'caregiverProfileId' identifies the caregiver, and 'appointmentSlotId' is the unique identifier for each appointment slot.",
+          "params": [
+            {
+              "name": "caregiverProfileId",
+              "description": "Unique identifier for the caregiver profile."
+            },
+            {
+              "name": "appointmentSlotId",
+              "description": "Unique identifier for the appointment slot."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to ensure authorization independence, clarity, and scalability, aligning with the core design principles. We will create a collection for caregiver profiles under `/caregiver_profiles/{caregiverProfileId}` and a subcollection for appointment slots under each caregiver profile: `/caregiver_profiles/{caregiverProfileId}/appointment_slots/{appointmentSlotId}`.\n\nAuthorization Independence:\nCaregiver profile data is stored independently, and since the only actors are authenticated users, there's no need to denormalize data for authorization purposes.\n\nQAPs Support:\nThe structure enables secure `list` operations by segregating data based on ownership.  The caregiver profiles collection allows listing only caregiver profiles for the authenticated user. Appointment slots are namespaced under each caregiver profile."
+  }
+}
