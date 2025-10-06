@@ -16,7 +16,7 @@ export async function submitCaregiverProfile(data: z.infer<typeof caregiverFormS
   // No need to reconstruct availability, it's already an object
   console.log("Step 3: Availability object is already structured:", data.availability);
 
-  // Booleans are already booleans, no need for toBoolean
+  // Booleans are already booleans, no need for toBoolean. Coerce yearsExperience to a number.
   const parsedData = {
       ...data,
       yearsExperience: Number(data.yearsExperience),
