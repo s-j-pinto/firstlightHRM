@@ -122,6 +122,16 @@ export async function sendCalendarInvite(appointment: any) {
     Interview with ${appointment.caregiver.fullName}.
     Contact: ${appointment.caregiver.phone}
     ---`);
+    
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+    if (clientId && clientSecret) {
+        console.log("✅ Google credentials found in environment variables.");
+        // Here you would implement the actual Google Calendar API call
+    } else {
+        console.warn("⚠️ Google credentials not found. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your .env.local file.");
+    }
 
     return { message: `Calendar invite sent to ${appointment.caregiver.fullName}.` };
 }
@@ -129,7 +139,16 @@ export async function sendCalendarInvite(appointment: any) {
 export async function saveAdminSettings(data: { availability: any, googleCalendar: any }) {
     console.log("--- ⚙️ Saving Admin Settings ---");
     console.log("Availability Config:", data.availability);
-    console.log("Google Calendar Config:", data.googleCalendar);
+    
+    if (data.googleCalendar.clientId || data.googleCalendar.clientSecret) {
+        console.warn("IMPORTANT: For security, Google credentials should not be saved directly.");
+        console.warn("Please add the following to your .env.local file at the root of your project:");
+        console.log(`GOOGLE_CLIENT_ID=${data.googleCalendar.clientId || 'YOUR_CLIENT_ID'}`);
+        console.log(`GOOGLE_CLIENT_SECRET=${data.googleCalendar.clientSecret || 'YOUR_CLIENT_SECRET'}`);
+    } else {
+        console.log("No Google Calendar credentials were entered. Skipping .env.local instructions.");
+    }
+    
     console.log("-----------------------------");
 
     revalidatePath('/admin/settings');
