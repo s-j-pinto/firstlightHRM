@@ -64,7 +64,6 @@
         "state",
         "zip",
         "yearsExperience",
-        "summary",
         "availability",
         "hasCar",
         "validLicense"

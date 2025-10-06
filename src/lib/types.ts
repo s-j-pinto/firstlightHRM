@@ -13,7 +13,7 @@ export const generalInfoSchema = z.object({
 export const experienceSchema = z.object({
   yearsExperience: z.coerce.number().min(0, "Years of experience is required."),
   previousRoles: z.string().optional(),
-  summary: z.string().min(20, "Please provide a brief summary of your experience (min 20 characters)."),
+  summary: z.string().optional(),
   canChangeBrief: z.boolean().optional().default(false),
   canTransfer: z.boolean().optional().default(false),
   canPrepareMeals: z.boolean().optional().default(false),
