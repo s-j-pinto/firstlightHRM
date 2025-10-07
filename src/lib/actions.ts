@@ -1,13 +1,15 @@
+
 "use server";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { addCaregiver, addAppointment, getAppointments, getAdminSettings } from "./db-firestore";
+import { addCaregiver, addAppointment } from "./db-firestore";
 import { caregiverFormSchema, appointmentSchema, CaregiverProfile } from "./types";
 import { google } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
 import { FirestoreServerPermissionError } from "@/firebase/server-errors";
+import { getAppointments as dbGetAppointments } from "./db-firestore";
 
 export async function submitCaregiverProfile(data: any) {
   console.log("Step 1: Starting caregiver profile submission.");
@@ -108,7 +110,7 @@ export async function scheduleAppointment(data: z.infer<typeof appointmentSchema
 
 export async function getAdminAppointments() {
     console.log("Fetching admin appointments...");
-    const appointments = await getAppointments();
+    const appointments = await dbGetAppointments();
     console.log(`Found ${appointments.length} appointments.`);
     return appointments;
 }
@@ -199,39 +201,18 @@ export async function sendCalendarInvite(appointment: any) {
     }
 }
 
-export async function saveAdminSettings(data: { availability: any, googleCalendar: any }) {
+export async function saveAdminSettings(data: { availability: any }) {
     console.log("--- ⚙️ Saving Admin Settings ---");
     console.log("Availability Config:", data.availability);
     
-    // This action now primarily serves to guide the user.
-    // The actual credentials should be managed in the .env.local file.
-
-    const googleData = data.googleCalendar;
-    const hasGoogleCreds = googleData.clientId || googleData.clientSecret || googleData.refreshToken;
-
-    if (hasGoogleCreds) {
-        console.warn("*****************************************************************");
-        console.warn("IMPORTANT: For security, Google credentials must be set in a .env.local file.");
-        console.warn("The values entered on the admin page are NOT automatically saved.");
-        console.warn("Please create or update a file named '.env.local' in your project's root directory with the following content:");
-        console.log("--- .env.local ---");
-        if (googleData.clientId) console.log(`GOOGLE_CLIENT_ID=${googleData.clientId}`);
-        if (googleData.clientSecret) console.log(`GOOGLE_CLIENT_SECRET=${googleData.clientSecret}`);
-        if (googleData.refreshToken) console.log(`GOOGLE_REFRESH_TOKEN=${googleData.refreshToken}`);
-        console.log("--------------------");
-        console.warn("You must restart your development server after creating or changing the .env.local file.");
-        console.warn("*****************************************************************");
-    } else {
-        console.log("No new Google Calendar credentials were entered. Skipping .env.local instructions.");
-    }
+    // In a real app, you would save these availability settings to your database.
+    // For this demo, we are just logging them. In a future step, we can persist them.
     
-    console.log("-----------------------------");
-
+    console.log("Availability settings logged. In a real app, you would save this to a database.");
+    
     revalidatePath('/admin/settings');
     
     return { 
-        message: hasGoogleCreds 
-            ? "Instructions for saving credentials have been logged to your server console." 
-            : "Settings saved successfully." 
+        message: "Availability settings updated." 
     };
 }
