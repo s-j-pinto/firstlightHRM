@@ -15,9 +15,8 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
+import { Loader2, Terminal, Copy, Check } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal } from "lucide-react";
 
 type SettingsFormValues = {
   monday_slots: string;
@@ -30,6 +29,8 @@ type SettingsFormValues = {
 
 export default function AdminSettings() {
   const [isPending, startTransition] = useTransition();
+  const [refreshToken, setRefreshToken] = useState<string | null>(null);
+  const [hasCopied, setHasCopied] = useState(false);
   const { toast } = useToast();
   const { register, handleSubmit, reset } = useForm<SettingsFormValues>();
 
@@ -63,7 +64,19 @@ export default function AdminSettings() {
       });
       // Clear the auth code field after submission
       reset({ ...data, googleAuthCode: "" });
+
+      if(result.refreshToken) {
+        setRefreshToken(result.refreshToken);
+      }
     });
+  };
+
+  const copyToClipboard = () => {
+    if (refreshToken) {
+      navigator.clipboard.writeText(refreshToken);
+      setHasCopied(true);
+      setTimeout(() => setHasCopied(false), 2000);
+    }
   };
 
   return (
@@ -104,7 +117,7 @@ export default function AdminSettings() {
             <CardHeader>
                 <CardTitle>Google Calendar Setup</CardTitle>
                 <CardDescription>
-                    To get your Refresh Token, paste the Authorization Code from the Google consent screen URL here and click save. Check your server logs for the token.
+                    To get your Refresh Token, paste the Authorization Code from the Google consent screen URL here and click save.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -112,6 +125,22 @@ export default function AdminSettings() {
                     <Label htmlFor="googleAuthCode">Authorization Code (Temporary)</Label>
                     <Input id="googleAuthCode" {...register("googleAuthCode")} placeholder="Paste the code from the URL here..."/>
                 </div>
+                {refreshToken && (
+                    <Alert className="mt-4">
+                        <Terminal className="h-4 w-4" />
+                        <AlertTitle>Your Refresh Token is Ready!</AlertTitle>
+                        <AlertDescription>
+                            <p>This is a one-time step. Copy this token and add it to a new file named `.env.local` in your project's root directory.</p>
+                            <pre className="my-2 p-2 bg-muted rounded-md text-xs whitespace-pre-wrap break-all relative pr-10">
+                                GOOGLE_REFRESH_TOKEN={refreshToken}
+                                <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={copyToClipboard}>
+                                    {hasCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                </Button>
+                            </pre>
+                             <p className="text-xs text-muted-foreground">After adding the token, you must restart your development server.</p>
+                        </AlertDescription>
+                    </Alert>
+                )}
             </CardContent>
         </Card>
 
@@ -119,7 +148,7 @@ export default function AdminSettings() {
           <Terminal className="h-4 w-4" />
           <AlertTitle>Google Calendar Integration</AlertTitle>
           <AlertDescription>
-            To send calendar invites, your Google credentials must be set in a `.env.local` file in your project's root directory. The server logs will provide instructions if credentials are missing.
+            To send calendar invites, your Google credentials must be set in a `.env.local` file in your project's root directory. This file should contain `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and the `GOOGLE_REFRESH_TOKEN` you generate here.
           </AlertDescription>
         </Alert>
 

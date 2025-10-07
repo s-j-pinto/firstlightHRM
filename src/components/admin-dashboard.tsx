@@ -21,8 +21,11 @@ import {
   ShieldCheck,
   Biohazard,
   ScanSearch,
+  AlertCircle,
+  ExternalLink,
 } from "lucide-react";
-import { collection, query, where } from "firebase/firestore";
+import Link from 'next/link';
+import { collection } from "firebase/firestore";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 
 import type { Appointment, CaregiverProfile } from "@/lib/types";
@@ -39,6 +42,8 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { sendCalendarInvite } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
 
 type AppointmentWithCaregiver = Appointment & { caregiver?: CaregiverProfile };
 
@@ -83,6 +88,7 @@ const AvailabilityDisplay = ({ availability }: { availability: CaregiverProfile[
 
 export default function AdminDashboard() {
   const [isPending, startTransition] = useTransition();
+  const [authUrl, setAuthUrl] = useState<string | null>(null);
   const { toast } = useToast();
   const firestore = useFirestore();
 
@@ -111,6 +117,11 @@ export default function AdminDashboard() {
     startTransition(async () => {
       const result = await sendCalendarInvite(appointment);
       console.log("CLIENT: Received response from server action:", result);
+
+      if (result.authUrl) {
+        setAuthUrl(result.authUrl);
+      }
+      
       toast({
         title: result.error ? "Error" : "Success",
         description: result.message,
@@ -136,6 +147,28 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-8">
+       {authUrl && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Action Required: Authorize Google Calendar</AlertTitle>
+          <AlertDescription>
+            <p className="mb-2">
+              To send calendar invites, you must grant permission.
+            </p>
+            <Button asChild>
+                <a href={authUrl} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Open Authorization Page
+                </a>
+            </Button>
+            <p className="mt-3 text-xs">
+                After you authorize, Google will redirect you. Copy the 'code' from the new URL, then go to{' '}
+                <Link href="/admin/settings" className="underline font-semibold">Admin Settings</Link> to paste it.
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {Object.keys(groupedAppointments).length === 0 && !isLoading && (
         <div className="text-center py-16 border-dashed border-2 rounded-lg">
             <Calendar className="mx-auto h-12 w-12 text-muted-foreground" />
@@ -252,5 +285,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-
-    

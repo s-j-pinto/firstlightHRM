@@ -8,9 +8,7 @@ import { addCaregiver, addAppointment } from "./db-firestore";
 import { caregiverFormSchema, appointmentSchema, CaregiverProfile } from "./types";
 import { google } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
-import { FirestoreServerPermissionError } from "@/firebase/server-errors";
 import { getAppointments as dbGetAppointments } from "./db-firestore";
-import { serverDb } from "@/firebase/server-init";
 
 export async function submitCaregiverProfile(data: any) {
   console.log("Step 1: Starting caregiver profile submission.");
@@ -126,7 +124,7 @@ export async function sendCalendarInvite(appointment: any) {
     const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
 
     if (!clientId || !clientSecret) {
-        const errorMsg = "Google credentials not found. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your .env.local file in the project root.";
+        const errorMsg = "Google credentials not found. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in a `.env.local` file in the project root.";
         console.error("SERVER: [FAIL] ", errorMsg);
         return { message: errorMsg, error: true };
     }
@@ -144,10 +142,9 @@ export async function sendCalendarInvite(appointment: any) {
             prompt: 'consent',
             scope: ['https://www.googleapis.com/auth/calendar.events'],
         });
-        const errorMsg = "Admin authorization required. A refresh token is missing. Please check server logs for an authorization URL to generate one."
-        console.log("ACTION REQUIRED: Please authorize this app by visiting this URL:", authUrl);
-        console.log("After authorization, you will get a 'code' in the URL. Copy that code, paste it in the Admin Settings page, and save. Then check the logs for your REFRESH TOKEN.");
-        return { message: errorMsg, error: true };
+        const errorMsg = "Admin authorization required. A refresh token is missing. Please follow the steps to authorize the application."
+        console.log("ACTION REQUIRED: Authorization URL generated for client.", authUrl);
+        return { message: errorMsg, error: true, authUrl: authUrl };
     }
     
     try {
@@ -223,7 +220,10 @@ export async function saveAdminSettings(data: { availability: any, googleAuthCod
                 console.log('--- COPY AND PASTE THIS INTO YOUR .env.local FILE ---');
                 console.log(`GOOGLE_REFRESH_TOKEN=${tokens.refresh_token}`);
                 console.log('----------------------------------------------------');
-                return { message: "Refresh token obtained! Check your server logs." };
+                return { 
+                    message: "Refresh token obtained! Add it to your .env.local file and restart the server.",
+                    refreshToken: tokens.refresh_token,
+                };
             } else {
                  return { message: "Could not obtain refresh token. You might need to generate a new auth code.", error: true };
             }
