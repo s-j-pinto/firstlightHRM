@@ -1,45 +1,12 @@
-/**
- * @file Firebase Security Rules
- * @version 2
- *
- * @description
- * This ruleset enforces a public read policy on caregiver profiles and appointments, allowing any user to view these records. However, write access is strictly prohibited for all users, ensuring data integrity and preventing unauthorized modifications.
- *
- * Data Structure:
- * - /caregiver_profiles/{caregiverProfileId}: Stores caregiver profile information. Publicly readable, no writes allowed.
- * - /appointments/{appointmentId}: Stores appointment slots for interviews. Publicly readable, no writes allowed.
- *
- * Key Security Decisions:
- * - Caregiver profiles and appointments are publicly listable. This is based on the understanding that the data contained within is intended to be generally accessible.
- * - No write access is allowed on any document. This is to prevent unauthorized data modification.
- *
- */
-rules_version = '2';
+rules_version = '3';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    /**
-     * @description Allows public read access to caregiver profiles, but denies all write operations.
-     * @path /caregiver_profiles/{caregiverProfileId}
-     * @allow (get, list) Any unauthenticated user can view caregiver profiles.
-     * @deny (create, update, delete) No user can create, update, or delete caregiver profiles.
-     * @principle Public read, no writes allowed.
-     */
-    match /caregiver_profiles/{caregiverProfileId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;
+    match /caregivers/{caregiverId} {
+      allow read, create, update, delete;
     }
-
-    /**
-     * @description Allows public read access to appointment slots, but denies all write operations.
-     * @path /appointments/{appointmentId}
-     * @allow (get, list) Any unauthenticated user can view appointment slots.
-     * @deny (create, update, delete) No user can create, update, or delete appointment slots.
-     * @principle Public read, no writes allowed.
-     */
     match /appointments/{appointmentId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;
+      allow read, create,update, delete;
     }
   }
 }
