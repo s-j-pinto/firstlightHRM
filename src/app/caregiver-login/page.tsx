@@ -62,11 +62,11 @@ export default function CaregiverLoginPage() {
           
           toast({
             title: "Sign-in successful",
-            description: "You are now logged in. Redirecting to your dashboard...",
+            description: "You are now logged in. Redirecting to the questionnaire...",
           });
 
-          // Redirect to the caregiver dashboard.
-          router.push('/caregiver/dashboard');
+          // Redirect to the caregiver questionnaire on the main page.
+          router.push('/');
 
         } catch (error) {
            toast({
