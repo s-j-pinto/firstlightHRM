@@ -1,6 +1,6 @@
+
 import Link from "next/link";
 import { HeartHand } from "@/components/icons";
-import { Button } from "./ui/button";
 
 export function AppHeader() {
   return (
@@ -12,18 +12,6 @@ export function AppHeader() {
             Caregiver Connect
           </span>
         </Link>
-        <div className="flex flex-1 items-center justify-end space-x-4">
-          <nav className="flex items-center space-x-1">
-             <Button variant="ghost" asChild>
-                <Link
-                href="/admin"
-                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-                >
-                Admin
-                </Link>
-            </Button>
-          </nav>
-        </div>
       </div>
     </header>
   );
