@@ -62,21 +62,26 @@ export async function submitCaregiverProfile(data: any) {
   const validatedFields = caregiverFormSchema.safeParse(parsedData);
 
   if (!validatedFields.success) {
+    console.log("Step 2 (Server): Validation failed.", validatedFields.error.flatten().fieldErrors);
     return {
       message: "Invalid form data. Please check your entries.",
       errors: validatedFields.error.flatten().fieldErrors,
     };
   }
+  console.log("Step 2 (Server): Validation successful.");
 
   try {
+    console.log("Step 3 (Server): Attempting to add caregiver to database...");
     const newCaregiverId = await addCaregiver(validatedFields.data);
+    console.log(`Step 4 (Server): Caregiver added with ID: ${newCaregiverId}.`);
 
     return {
       message: "Profile submitted successfully.",
       caregiverId: newCaregiverId,
       caregiverName: validatedFields.data.fullName
     };
-  } catch (e) {
+  } catch (e: any) {
+    console.error("Step 4 (Server): FAILED to add caregiver. Error:", e);
     if (e instanceof Error && 'code' in e) {
         console.error("Firestore error code:", (e as any).code);
         console.error("Firestore error message:", e.message);
@@ -97,7 +102,7 @@ export async function scheduleAppointment(data: z.infer<typeof appointmentSchema
     }
 
     try {
-        const docRef = await serverDb.collection("appointments").add({
+        await serverDb.collection("appointments").add({
             ...validatedFields.data,
             startTime: Timestamp.fromDate(validatedFields.data.startTime),
             endTime: Timestamp.fromDate(validatedFields.data.endTime),
@@ -118,3 +123,4 @@ export async function getAdminAppointments() {
     const appointments = await getAppointments();
     return appointments;
 }
+

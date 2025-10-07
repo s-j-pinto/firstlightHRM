@@ -176,11 +176,14 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
 
   const onSubmit = async (data: CaregiverFormData) => {
     setIsSubmitting(true);
+    console.log("Step 1 (Client): Starting caregiver profile submission. Data:", data);
     const result = await submitCaregiverProfile(data);
 
     if (result?.caregiverId) {
+       console.log("Step 5 (Client): Submission successful. Navigating to scheduler.");
       onSuccess(result.caregiverId, result.caregiverName || "");
     } else {
+       console.log("Step 5 (Client): Submission failed. Showing error toast.");
       toast({
         variant: "destructive",
         title: "Submission Failed",
