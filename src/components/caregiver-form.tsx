@@ -5,6 +5,8 @@ import { useState } from "react";
 import { useForm, type FieldNames } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
+import { addDoc, collection } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
 import {
   Briefcase,
   Calendar,
@@ -43,11 +45,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { cn } from "@/lib/utils";
-import { Calendar as CalendarIcon } from "lucide-react";
-import { Calendar as CalendarComponent } from "./ui/calendar";
-import { format } from "date-fns";
 import { Textarea } from "./ui/textarea";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
@@ -112,6 +110,7 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const firestore = useFirestore();
 
   const form = useForm<CaregiverFormData>({
     resolver: zodResolver(caregiverFormSchema),
@@ -175,16 +174,25 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
   };
 
   const onSubmit = async (data: CaregiverFormData) => {
-    console.log("Step 1 (Client): Form submitted. Preparing to call server action.", data);
+    console.log("Step 1 (Client): Form submitted. Preparing to write to Firestore.", data);
     setIsSubmitting(true);
     try {
-        await submitCaregiverProfile(data);
-        // On success, the user will be redirected by the server action.
-        // No need to call onSuccess or handle success toast here.
-        console.log("Step 5 (Client): Server action call completed. Awaiting redirect.");
+        const db = firestore;
+        const docRef = await addDoc(collection(db, "caregiver_profiles"), data);
+        console.log(`Step 2 (Client): Firestore write successful. Document ID: ${docRef.id}.`);
+        
+        // Now call the server action just for redirection
+        await submitCaregiverProfile({
+            caregiverId: docRef.id,
+            caregiverName: data.fullName,
+            caregiverEmail: data.email,
+            caregiverPhone: data.phone,
+        });
+        // The server action will handle the redirect, so no further client action is needed.
+        console.log("Step 3 (Client): Server action called for redirect. Awaiting navigation.");
 
     } catch (error) {
-        console.log("Step 5 (Client): Submission failed. Showing error toast.", error);
+        console.log("Step X (Client): Submission failed. Showing error toast.", error);
         toast({
             variant: "destructive",
             title: "Submission Failed",
@@ -243,7 +251,7 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
             )}
             {currentStep === 2 && (
               <div className="space-y-6">
-                <FormField control={form.control} name="yearsExperience" render={({ field }) => ( <FormItem><FormLabel>Years of Experience</FormLabel><FormControl><Input type="number" placeholder="5" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="yearsExperience" render={({ field }) => ( <FormItem><FormLabel>Years of Experience</FormLabel><FormControl><Input type="number" placeholder="5" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="previousRoles" render={({ field }) => ( <FormItem><FormLabel>Previous Roles (optional)</FormLabel><FormControl><Textarea placeholder="e.g., Senior Care Assistant, Pediatric Aide" {...field} /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="summary" render={({ field }) => ( <FormItem><FormLabel>Experience Summary (optional)</FormLabel><FormControl><Textarea placeholder="Describe your caregiving experience, skills, and passion." {...field} rows={5} /></FormControl><FormMessage /></FormItem> )} />
                  <div className="space-y-4">
@@ -423,3 +431,5 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
     </Card>
   );
 }
+
+    
