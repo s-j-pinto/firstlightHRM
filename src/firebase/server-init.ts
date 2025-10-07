@@ -9,34 +9,23 @@ const initializeServerApp = () => {
         return admin.app();
     }
     
-    // Check if the service account environment variable is set.
-    // This is the standard way to initialize in production environments like App Hosting.
-    if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-        try {
-            console.log("Initializing Firebase Admin with default credentials.");
-            return admin.initializeApp({
-                credential: admin.credential.applicationDefault(),
-                projectId: firebaseConfig.projectId // Explicitly set projectId
-            });
-        } catch (e) {
-             console.error("Firebase Admin SDK initialization failed with default credentials:", e);
-             // Fall through to the next method if this fails
-        }
-    }
-    
-    // Fallback for local development or environments without the service account env var.
-    // This uses the client-side config, which is less secure for server-side operations
-    // but necessary for the development environment to function.
-    try {
-        console.warn("Initializing Firebase Admin with client-side config project ID. This is intended for local development only.");
+    // Check if running in a production App Hosting environment
+    if (process.env.FIREBASE_APP_HOSTING_URL) {
+        console.log("Initializing Firebase Admin with default credentials for App Hosting.");
         return admin.initializeApp({
-            projectId: firebaseConfig.projectId,
+            projectId: firebaseConfig.projectId
         });
-    } catch (e) {
-        console.error("Firebase Admin SDK initialization failed with fallback config:", e);
-        // If all initialization methods fail, throw an error.
-        throw new Error("Could not initialize Firebase Admin SDK. Please check your configuration and credentials.");
     }
+
+    // For local development, connect to emulators.
+    // Ensure you have the Firebase Emulator Suite running.
+    console.log("Initializing Firebase Admin for local development with emulators.");
+    process.env.FIRESTORE_EMULATOR_HOST = "localhost:8080";
+    process.env.FIREBASE_AUTH_EMULATOR_HOST = "localhost:9099";
+
+    return admin.initializeApp({
+        projectId: firebaseConfig.projectId,
+    });
 }
 
 export const serverApp = initializeServerApp();
