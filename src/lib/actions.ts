@@ -8,13 +8,18 @@ import { caregiverFormSchema, appointmentSchema } from "./types";
 import { serverDb } from '@/firebase/server-init';
 import type { CaregiverProfile, Appointment } from "./types";
 import { Timestamp } from 'firebase-admin/firestore';
+import { collection, addDoc } from 'firebase/firestore';
 
 
 export const addCaregiver = async (profile: Omit<CaregiverProfile, "id">): Promise<string> => {
   const caregiverData = {
     ...profile,
   };
-  const docRef = await serverDb.collection("caregiver_profiles").add(caregiverData);
+
+  // The Admin SDK has proven unreliable, so we switch to the client SDK which is also valid on the server.
+  // This requires getting the firestore instance from the server-init file.
+  const db = serverDb;
+  const docRef = await addDoc(collection(db, "caregiver_profiles"), caregiverData);
   return docRef.id;
 };
 
@@ -33,6 +38,7 @@ export const getAppointments = async (): Promise<Appointment[]> => {
 };
 
 export async function submitCaregiverProfile(data: any) {
+  console.log("Step 1 (Server): submitCaregiverProfile action started.");
   const parsedData = {
       ...data,
       yearsExperience: Number(data.yearsExperience || 0),
