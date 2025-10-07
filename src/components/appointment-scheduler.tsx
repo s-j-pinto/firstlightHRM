@@ -1,16 +1,19 @@
 
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, useMemo } from "react";
 import { format } from "date-fns";
 import { Calendar, Clock, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { collection } from "firebase/firestore";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getAdminAppointments, scheduleAppointment } from "@/lib/actions";
+import { scheduleAppointment } from "@/lib/actions";
 import { generateAvailableSlots } from "@/lib/availability";
 import { useToast } from "@/hooks/use-toast";
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import type { Appointment } from "@/lib/types";
 
 interface AppointmentSchedulerProps {
   caregiverId: string;
@@ -20,24 +23,24 @@ interface AppointmentSchedulerProps {
 }
 
 export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmail, caregiverPhone }: AppointmentSchedulerProps) {
-  const [availableSlots, setAvailableSlots] = useState<{ date: Date, slots: Date[] }[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<Date | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
-  const router = useRouter();
+  const firestore = useFirestore();
 
-  useEffect(() => {
-    async function fetchSlots() {
-      setIsLoading(true);
-      const bookedAppointments = await getAdminAppointments();
-      const slots = generateAvailableSlots(bookedAppointments, 3);
-      setAvailableSlots(slots);
-      setIsLoading(false);
-    }
-    fetchSlots();
-  }, []);
+  const appointmentsRef = useMemoFirebase(() => collection(firestore, 'appointments'), [firestore]);
+  const { data: appointmentsData, isLoading: appointmentsLoading } = useCollection<Appointment>(appointmentsRef);
 
+  const availableSlots = useMemo(() => {
+    if (!appointmentsData) return [];
+    const bookedAppointments = appointmentsData.map(appt => ({
+        ...appt,
+        startTime: (appt.startTime as any).toDate(),
+        endTime: (appt.endTime as any).toDate(),
+    }));
+    return generateAvailableSlots(bookedAppointments, 3);
+  }, [appointmentsData]);
+  
   const handleSelectSlot = (slot: Date) => {
     setSelectedSlot(slot);
   };
@@ -73,7 +76,7 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
+        {appointmentsLoading ? (
           <div className="flex justify-center items-center h-64">
             <Loader2 className="h-8 w-8 animate-spin text-accent" />
             <p className="ml-4 text-muted-foreground">Loading available times...</p>

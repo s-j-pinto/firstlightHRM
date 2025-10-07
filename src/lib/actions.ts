@@ -7,20 +7,6 @@ import { z } from "zod";
 import { appointmentSchema } from "./types";
 import { serverDb } from "@/firebase/server-init";
 
-export async function getAdminAppointments() {
-    const appointmentsSnapshot = await serverDb.collection("appointments").get();
-    const appointments = appointmentsSnapshot.docs.map(doc => {
-        const data = doc.data();
-        return { 
-            id: doc.id,
-            ...data, 
-            startTime: (data.startTime).toDate(),
-            endTime: (data.endTime).toDate(),
-        }
-    });
-    return appointments;
-};
-
 // This server action is now only responsible for redirection.
 // The data is already validated and saved by the client.
 export async function submitCaregiverProfile(data: {
