@@ -1,81 +1,67 @@
 /**
- * @file Firestore Security Rules
- * @description This ruleset enforces a user-ownership model for caregiver profiles,
- *              allowing caregivers to manage their own profile data. Appointment
- *              slots can be publicly read, but only caregivers can create them.
- * @dataStructure
- *  - /caregiver_profiles/{caregiverProfileId}: Stores caregiver profile information, accessible only by the caregiver.
- *  - /appointments/{appointmentId}: Stores appointment slots. Publicly readable, but createable only by caregivers.
- * @keySecurityDecisions
- *  - Caregiver profiles are strictly owned and managed by the authenticated caregiver.
- *  - Listing of caregiver profiles is disallowed for privacy.
- *  - Appointment slots are publicly readable to allow potential matches to view available times.
- *  - Only authenticated caregivers can create appointment slots. Updates and deletes are not allowed.
+ * @file Overview
+ * This ruleset governs access to caregiver profiles and appointment slots,
+ * focusing on securing caregiver data while allowing open access to appointment listings.
  *
- *  To improve performance and security, the following denormalization strategies are employed:
- *   - Caregiver profiles use the document ID as the caregiver's UID. This ensures path consistency.
+ * Data Structure:
+ * - /caregiver_profiles/{caregiverProfileId}: Stores detailed caregiver information. Access is restricted to authenticated users only.
+ * - /appointments/{appointmentId}: Stores interview appointment slots. Access is public for reads but requires authentication for writes.
+ *
+ * Key Security Decisions:
+ * - Caregiver profiles can only be created by authenticated users.
+ * - Read access to caregiver profiles is restricted to authenticated users only.
+ * - Appointment slots are publicly readable but require authentication for modification.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Protects caregiver profiles, allowing only the owner to manage their own profile.
-     * @path /caregiver_profiles/{caregiverProfileId}
-     * @allow (create) - Authenticated user with UID 'user123' can create a profile at /caregiver_profiles/user123.
-     * @allow (get,update,delete) - Authenticated user with UID 'user123' can get, update, or delete their profile at /caregiver_profiles/user123.
-     * @deny (create) - Authenticated user with UID 'user456' cannot create a profile at /caregiver_profiles/user123.
-     * @deny (get,update,delete) - Authenticated user with UID 'user456' cannot get, update, or delete the profile at /caregiver_profiles/user123.
-     * @principle Enforces document ownership for reads and writes. Validates that the profile ID matches the authenticated user's ID.
+     * @description Controls access to caregiver profiles.
+     * @path /databases/{database}/documents/caregiver_profiles/{caregiverProfileId}
+     * @allow (create) Authenticated user can create a caregiver profile.
+     * @deny (create) Unauthenticated user cannot create a caregiver profile.
+     * @allow (get) Authenticated user can read a caregiver profile.
+     * @deny (get) Unauthenticated user cannot read a caregiver profile.
+     * @allow (update) Authenticated user can update a caregiver profile.
+     * @deny (update) Unauthenticated user cannot update a caregiver profile.
+     * @allow (delete) Authenticated user can delete a caregiver profile.
+     * @deny (delete) Unauthenticated user cannot delete a caregiver profile.
+     * @principle Requires the user to be authenticated to access and manage caregiver profiles.
      */
     match /caregiver_profiles/{caregiverProfileId} {
-      allow get: if isOwner(caregiverProfileId);
-      allow list: if false; // Listing caregiver profiles is not allowed.
-      allow create: if isOwner(caregiverProfileId) && request.resource.data.email == request.auth.token.email;
-      allow update: if isExistingOwner(caregiverProfileId) && request.resource.data.email == resource.data.email;
-      allow delete: if isExistingOwner(caregiverProfileId);
+      allow get: if isSignedIn();
+      allow list: if false;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
     }
 
     /**
-     * @description Controls access to appointment slots, allowing public read access but restricting creation to authenticated caregivers.
-     * @path /appointments/{appointmentId}
-     * @allow (get, list) Anyone can read appointment slots.
-     * @allow (create) Authenticated caregiver can create an appointment slot.
-     * @deny (update, delete) No one can update or delete appointment slots.
-     * @principle Provides public read access while restricting write access to authenticated users.
+     * @description Controls access to appointment slots.
+     * @path /databases/{database}/documents/appointments/{appointmentId}
+     * @allow (get) Any user can read an appointment slot.
+     * @deny (get) No denial condition.
+     * @allow (list) Any user can list appointment slots.
+     * @deny (list) No denial condition.
+     * @allow (create) Authenticated user can create an appointment slot.
+     * @deny (create) Unauthenticated user cannot create an appointment slot.
+     * @allow (update) Authenticated user can update an appointment slot.
+     * @deny (update) Unauthenticated user cannot update an appointment slot.
+     * @allow (delete) Authenticated user can delete an appointment slot.
+     * @deny (delete) Unauthenticated user cannot delete an appointment slot.
+     * @principle Allows public read access while restricting write access to authenticated users.
      */
     match /appointments/{appointmentId} {
-      allow get, list: if true;
+      allow get: if true;
+      allow list: if true;
       allow create: if isSignedIn();
-      allow update, delete: if false;
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
     }
+  }
 
-    // --- Helper Functions ---
-
-    /**
-     * @description Checks if the user is signed in.
-     * @return True if the user is authenticated, false otherwise.
-     */
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    /**
-     * @description Checks if the provided userId matches the authenticated user's UID.
-     * @param userId The user ID to compare against the authenticated user's UID.
-     * @return True if the user is the owner, false otherwise.
-     */
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    /**
-     * @description Checks if the provided userId matches the authenticated user's UID and the resource exists.
-     * @param userId The user ID to compare against the authenticated user's UID.
-     * @return True if the user is the owner and the resource exists, false otherwise.
-     */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
-    }
+  function isSignedIn() {
+    return request.auth != null;
   }
 }
