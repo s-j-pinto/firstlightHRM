@@ -176,21 +176,19 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
 
   const onSubmit = async (data: CaregiverFormData) => {
     setIsSubmitting(true);
-    console.log("Client: Form data prepared for submission:", data);
-
     const result = await submitCaregiverProfile(data);
 
-    setIsSubmitting(false);
-
     if (result?.caregiverId) {
-        onSuccess(result.caregiverId, result.caregiverName || '');
+      onSuccess(result.caregiverId, result.caregiverName || "");
     } else {
-        toast({
-            variant: "destructive",
-            title: "Submission Failed",
-            description: result.message || "An unknown error occurred.",
-        });
+      toast({
+        variant: "destructive",
+        title: "Submission Failed",
+        description: result.message || "An unexpected error occurred.",
+      });
     }
+
+    setIsSubmitting(false);
   };
 
   return (
