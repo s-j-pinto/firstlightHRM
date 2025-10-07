@@ -35,9 +35,9 @@ export async function sendCalendarInvite(appointment: Appointment & { caregiver:
         const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
         
         const event = {
-            summary: `Interview with ${appointment.caregiver?.fullName}`,
+            summary: `FirstLight Interview with ${appointment.caregiver?.fullName}`,
             location: '9650 Business Center Drive, Suite 132, Rancho Cucamonga, CA',
-            description: `In-person interview with caregiver candidate ${appointment.caregiver?.fullName}. \nContact Email: ${appointment.caregiver?.email}\nContact Phone: ${appointment.caregiver?.phone}`,
+            description: `Please bring the following documents: Driver's License, car insurance and registration. Social Security card or US passport (to prove your work eligibility, if you are green card holder, bring Green card. Current negative TB-Test Copy, HCA letter or number, live scan or Clearance letter if you have it. CPR-First Aide proof card, Any other certification that you have.In-person interview with caregiver candidate ${appointment.caregiver?.fullName}. \nContact Email: ${appointment.caregiver?.email}\nContact Phone: ${appointment.caregiver?.phone}`,
             start: {
                 dateTime: new Date(appointment.startTime).toISOString(),
                 timeZone: 'America/Los_Angeles',
