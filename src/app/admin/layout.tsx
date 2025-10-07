@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
@@ -24,19 +25,16 @@ export default function AdminLayout({
     router.push("/");
   };
 
-  if (isUserLoading) {
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      const loginUrl = `/login?redirect=${pathname}`;
+      router.replace(loginUrl);
+    }
+  }, [isUserLoading, user, router, pathname]);
+
+  if (isUserLoading || !user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-12 w-12 animate-spin text-accent" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    const loginUrl = `/login?redirect=${pathname}`;
-    router.replace(loginUrl);
-    return (
-       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-12 w-12 animate-spin text-accent" />
       </div>
     );
