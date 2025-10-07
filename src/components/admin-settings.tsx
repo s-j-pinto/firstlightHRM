@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useTransition, useEffect } from "react";
+import { useTransition, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { saveAdminSettings } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
@@ -25,6 +25,7 @@ type SettingsFormValues = {
   wednesday_slots: string;
   thursday_slots: string;
   friday_slots: string;
+  googleAuthCode?: string;
 };
 
 export default function AdminSettings() {
@@ -33,24 +34,35 @@ export default function AdminSettings() {
   const { register, handleSubmit, reset } = useForm<SettingsFormValues>();
 
   useEffect(() => {
-    // In a real app, you might fetch initial availability settings here.
-    // For now, we'll just use defaults.
     reset({
       monday_slots: "8:30, 9:30, 10:30",
       tuesday_slots: "8:30, 9:30, 10:30",
       wednesday_slots: "8:30, 9:30, 10:30",
       thursday_slots: "13:30, 14:30, 15:30",
       friday_slots: "13:30, 14:30, 15:30",
+      googleAuthCode: "",
     });
   }, [reset]);
 
   const onSubmit = (data: SettingsFormValues) => {
     startTransition(async () => {
-      const result = await saveAdminSettings({ availability: data });
-      toast({
-        title: "Success",
-        description: result.message,
+      const result = await saveAdminSettings({ 
+        availability: {
+            monday_slots: data.monday_slots,
+            tuesday_slots: data.tuesday_slots,
+            wednesday_slots: data.wednesday_slots,
+            thursday_slots: data.thursday_slots,
+            friday_slots: data.friday_slots,
+        },
+        googleAuthCode: data.googleAuthCode
       });
+      toast({
+        title: result.error ? "Error" : "Success",
+        description: result.message,
+        variant: result.error ? "destructive" : "default",
+      });
+      // Clear the auth code field after submission
+      reset({ ...data, googleAuthCode: "" });
     });
   };
 
@@ -88,11 +100,26 @@ export default function AdminSettings() {
           </CardContent>
         </Card>
 
+        <Card>
+            <CardHeader>
+                <CardTitle>Google Calendar Setup</CardTitle>
+                <CardDescription>
+                    To get your Refresh Token, paste the Authorization Code from the Google consent screen URL here and click save. Check your server logs for the token.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-2">
+                    <Label htmlFor="googleAuthCode">Authorization Code (Temporary)</Label>
+                    <Input id="googleAuthCode" {...register("googleAuthCode")} placeholder="Paste the code from the URL here..."/>
+                </div>
+            </CardContent>
+        </Card>
+
         <Alert>
           <Terminal className="h-4 w-4" />
           <AlertTitle>Google Calendar Integration</AlertTitle>
           <AlertDescription>
-            To send calendar invites, your Google API credentials must be set in a `.env.local` file in your project's root directory. The server logs will provide instructions if credentials are missing.
+            To send calendar invites, your Google credentials must be set in a `.env.local` file in your project's root directory. The server logs will provide instructions if credentials are missing.
           </AlertDescription>
         </Alert>
 

@@ -10,6 +10,7 @@ import { google } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
 import { FirestoreServerPermissionError } from "@/firebase/server-errors";
 import { getAppointments as dbGetAppointments } from "./db-firestore";
+import { serverDb } from "@/firebase/server-init";
 
 export async function submitCaregiverProfile(data: any) {
   console.log("Step 1: Starting caregiver profile submission.");
@@ -131,7 +132,7 @@ export async function sendCalendarInvite(appointment: any) {
     }
     console.log("SERVER: [4/10] ✅ Google Client ID and Secret found.");
 
-    const oAuth2Client = new OAuth2Client(clientId, clientSecret);
+    const oAuth2Client = new OAuth2Client(clientId, clientSecret, 'http://localhost:9002');
     
     if (refreshToken) {
         console.log("SERVER: [5/10] ✅ Refresh token found. Setting credentials on OAuth2 client.");
@@ -145,7 +146,7 @@ export async function sendCalendarInvite(appointment: any) {
         });
         const errorMsg = "Admin authorization required. A refresh token is missing. Please check server logs for an authorization URL to generate one."
         console.log("ACTION REQUIRED: Please authorize this app by visiting this URL:", authUrl);
-        console.log("After authorization, you will get a 'code' in the URL. Use that code to get a refresh token and add it as GOOGLE_REFRESH_TOKEN to your .env.local file. This is a one-time setup.");
+        console.log("After authorization, you will get a 'code' in the URL. Copy that code, paste it in the Admin Settings page, and save. Then check the logs for your REFRESH TOKEN.");
         return { message: errorMsg, error: true };
     }
     
@@ -153,8 +154,6 @@ export async function sendCalendarInvite(appointment: any) {
         console.log("SERVER: [6/10] Initializing Google Calendar API client...");
         const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
         
-        // The googleapis library handles token refreshing automatically if a refresh token is provided.
-        // The getAccessToken() call is not strictly necessary but can be used to pre-emptively check auth.
         console.log("SERVER: [7/10] Preparing calendar event details...");
         const event = {
             summary: `Interview with ${appointment.caregiver?.fullName}`,
@@ -169,8 +168,8 @@ export async function sendCalendarInvite(appointment: any) {
                 timeZone: 'America/Los_Angeles',
             },
             attendees: [
-                { email: 'swasthllc@gmail.com' }, // Admin/Organizer
-                { email: appointment.caregiver?.email }, // Caregiver
+                { email: 'swasthllc@gmail.com' }, 
+                { email: appointment.caregiver?.email }, 
             ],
             reminders: {
                 useDefault: false,
@@ -181,7 +180,7 @@ export async function sendCalendarInvite(appointment: any) {
             },
         };
 
-        console.log("SERVER: [8/10] Sending request to Google Calendar API to create event:", JSON.stringify(event, null, 2));
+        console.log("SERVER: [8/10] Sending request to Google Calendar API to create event...");
         await calendar.events.insert({
             calendarId: 'primary',
             requestBody: event,
@@ -204,12 +203,35 @@ export async function sendCalendarInvite(appointment: any) {
     }
 }
 
-export async function saveAdminSettings(data: { availability: any }) {
+export async function saveAdminSettings(data: { availability: any, googleAuthCode?: string }) {
     console.log("--- ⚙️ Saving Admin Settings ---");
-    console.log("Availability Config:", data.availability);
     
-    // In a real app, you would save these availability settings to your database.
-    // For this demo, we are just logging them. In a future step, we can persist them.
+    if (data.googleAuthCode) {
+        console.log("Received Google Auth Code:", data.googleAuthCode);
+        const clientId = process.env.GOOGLE_CLIENT_ID;
+        const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+        if (!clientId || !clientSecret) {
+            return { message: "Cannot get refresh token without Client ID and Secret in .env.local", error: true };
+        }
+
+        const oAuth2Client = new OAuth2Client(clientId, clientSecret, 'http://localhost:9002');
+        try {
+            const { tokens } = await oAuth2Client.getToken(data.googleAuthCode);
+            if (tokens.refresh_token) {
+                console.log('✅ GOT REFRESH TOKEN! ✅');
+                console.log('--- COPY AND PASTE THIS INTO YOUR .env.local FILE ---');
+                console.log(`GOOGLE_REFRESH_TOKEN=${tokens.refresh_token}`);
+                console.log('----------------------------------------------------');
+                return { message: "Refresh token obtained! Check your server logs." };
+            } else {
+                 return { message: "Could not obtain refresh token. You might need to generate a new auth code.", error: true };
+            }
+        } catch (error) {
+            console.error("Error while retrieving access token", error);
+            return { message: "Failed to get refresh token. Check logs.", error: true };
+        }
+    }
     
     console.log("Availability settings logged. In a real app, you would save this to a database.");
     
@@ -219,5 +241,3 @@ export async function saveAdminSettings(data: { availability: any }) {
         message: "Availability settings updated." 
     };
 }
-
-    
