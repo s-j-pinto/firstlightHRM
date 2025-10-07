@@ -143,8 +143,8 @@ export async function sendCalendarInvite(appointment: any) {
             prompt: 'consent',
             scope: ['https://www.googleapis.com/auth/calendar.events'],
         });
-        const errorMsg = "Admin authorization required. A refresh token is missing. Please follow the steps to authorize the application."
-        console.log("ACTION REQUIRED: Authorization URL generated for client.", authUrl);
+        const errorMsg = "Admin authorization required. A refresh token is missing. Please authorize the application to generate one."
+        console.log("ACTION REQUIRED: Please authorize this app by visiting this URL:", authUrl);
         return { message: errorMsg, error: true, authUrl: authUrl };
     }
     
@@ -191,17 +191,21 @@ export async function sendCalendarInvite(appointment: any) {
         return { message: resultMessage };
 
     } catch (err: any) {
-        console.error("SERVER: [FAIL] Error during Google Calendar operation:", err);
+        console.error("SERVER: [FAIL] Raw error during Google Calendar operation:", JSON.stringify(err, null, 2));
+
         let errorMessage = `Failed to send invite. Check server logs for details.`;
-        if (err.response?.data?.error) {
-            console.error("Google API Error Details:", err.response.data.error);
+        if (err.response?.data?.error?.message) {
             errorMessage = `Google API Error: ${err.response.data.error.message}`;
+        } else if (err.message) {
+            errorMessage = `Google API Error: ${err.message}`;
         }
+        
+        console.error("SERVER: [FAIL] Parsed error message:", errorMessage);
         return { message: errorMessage, error: true };
     }
 }
 
-export async function saveAdminSettings(data: { availability: any, googleAuthCode?: string }) {
+export async function saveAdminSettings(data: { googleAuthCode?: string }) {
     console.log("--- ⚙️ Saving Admin Settings ---");
     
     if (data.googleAuthCode) {
@@ -223,7 +227,7 @@ export async function saveAdminSettings(data: { availability: any, googleAuthCod
                 console.log(`GOOGLE_REFRESH_TOKEN=${tokens.refresh_token}`);
                 console.log('----------------------------------------------------');
                 return { 
-                    message: "Refresh token obtained! Add it to your .env.local file and restart the server.",
+                    message: "Refresh token obtained! Add it to your `.env.local` file and restart the server.",
                     refreshToken: tokens.refresh_token,
                 };
             } else {
@@ -236,13 +240,11 @@ export async function saveAdminSettings(data: { availability: any, googleAuthCod
         }
     }
     
-    console.log("Availability settings logged. In a real app, you would save this to a database.");
+    console.log("No auth code provided. In a real app, you would save other settings here.");
     
     revalidatePath('/admin/settings');
     
     return { 
-        message: "Availability settings updated." 
+        message: "Settings saved (no auth code action)." 
     };
 }
-
-    
