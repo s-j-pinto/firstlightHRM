@@ -9,17 +9,25 @@ const initializeServerApp = () => {
         return admin.app();
     }
 
-    // For local development, explicitly connect to emulators.
-    // Ensure you have the Firebase Emulator Suite running.
-    console.log("Initializing Firebase Admin for local development with emulators.");
-    process.env.FIRESTORE_EMULATOR_HOST = "localhost:8080";
-    process.env.FIREBASE_AUTH_EMULATOR_HOST = "localhost:9099";
-    
-    return admin.initializeApp({
-        projectId: firebaseConfig.projectId,
-        // Using anonymous credentials for local emulator
-        credential: admin.credential.applicationDefault()
-    });
+    // When deployed to App Hosting, GOOGLE_CLOUD_PROJECT is automatically set.
+    const isProduction = !!process.env.GOOGLE_CLOUD_PROJECT;
+
+    if (isProduction) {
+         // In production, App Default Credentials are used.
+        return admin.initializeApp();
+    } else {
+        // For local development, explicitly connect to emulators.
+        // Ensure you have the Firebase Emulator Suite running.
+        console.log("Initializing Firebase Admin for local development with emulators.");
+        process.env.FIRESTORE_EMULATOR_HOST = "localhost:8080";
+        process.env.FIREBASE_AUTH_EMULATOR_HOST = "localhost:9099";
+        
+        return admin.initializeApp({
+            projectId: firebaseConfig.projectId,
+            // Using anonymous credentials for local emulator
+            credential: admin.credential.applicationDefault()
+        });
+    }
 }
 
 export const serverApp = initializeServerApp();
