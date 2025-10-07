@@ -35,10 +35,13 @@ export default function CaregiverLoginPage() {
   
   // Effect to handle the sign-in link when the component mounts
   useEffect(() => {
+    // Only run if auth is initialized and the link is a sign-in link
     if (auth && isSignInWithEmailLink(auth, window.location.href)) {
       startTransition(async () => {
+        // Confirm the link is intended for this user.
         let email = window.localStorage.getItem('emailForSignIn');
         if (!email) {
+          // If the email is not in localStorage, ask the user for it.
           email = window.prompt('Please provide your email for confirmation');
           if (!email) {
              toast({
@@ -51,18 +54,25 @@ export default function CaregiverLoginPage() {
         }
         
         try {
+          // The client SDK will parse the code from the link for you.
           await signInWithEmailLink(auth, email, window.location.href);
+          
+          // Clear the email from storage upon successful login.
           window.localStorage.removeItem('emailForSignIn');
+          
           toast({
             title: "Sign-in successful",
-            description: "You are now logged in. Redirecting...",
+            description: "You are now logged in. Redirecting to your dashboard...",
           });
+
+          // Redirect to the caregiver dashboard.
           router.push('/caregiver/dashboard');
+
         } catch (error) {
            toast({
             variant: "destructive",
             title: "Sign-in failed",
-            description: "The sign-in link is invalid or has expired.",
+            description: "The sign-in link is invalid or has expired. Please try again.",
           });
         }
       });
@@ -72,13 +82,19 @@ export default function CaregiverLoginPage() {
   const onSubmit = (data: LoginFormValues) => {
     startTransition(async () => {
       const actionCodeSettings = {
-        url: window.location.href, // URL to redirect back to
+        // URL you want to redirect back to. The domain (www.example.com) for this
+        // URL must be whitelisted in the Firebase Console.
+        url: window.location.href,
+        // This must be true.
         handleCodeInApp: true,
       };
 
       try {
         await sendSignInLinkToEmail(auth, data.email, actionCodeSettings);
+        // Save the email locally so you don't need to ask the user for it again
+        // if they open the link on the same device.
         window.localStorage.setItem('emailForSignIn', data.email);
+
         setLinkSent(true);
         toast({
           title: "Check your email",
