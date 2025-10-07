@@ -5,9 +5,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { caregiverFormSchema, appointmentSchema } from "./types";
-import { serverDb } from "@/firebase/server-init";
+import { serverApp, serverDb } from "@/firebase/server-init";
+import { addDoc, collection, getFirestore } from "firebase/firestore";
 
 export async function getAdminAppointments() {
+    // Reading can still use the admin SDK if it's simpler or has different permission needs
     const appointmentsSnapshot = await serverDb.collection("appointments").get();
     const appointments = appointmentsSnapshot.docs.map(doc => {
         const data = doc.data();
@@ -59,7 +61,9 @@ export async function submitCaregiverProfile(data: any) {
 
   try {
     console.log("Step 3 (Server): Firestore DB instance obtained. Attempting to add document.");
-    const docRef = await serverDb.collection("caregiver_profiles").add(validatedFields.data);
+    const db = getFirestore(serverApp);
+    const docRef = await addDoc(collection(db, "caregiver_profiles"), validatedFields.data);
+    
     console.log(`Step 4 (Server): Document added successfully with ID: ${docRef.id}. Preparing to redirect.`);
     
     const params = new URLSearchParams({
@@ -82,17 +86,18 @@ export async function scheduleAppointment(data: z.infer<typeof appointmentSchema
     const validatedFields = appointmentSchema.safeParse(data);
 
     if (!validatedFields.success) {
+        // This should not be a thrown error, but a returned object for the client to handle
         return {
             error: "Invalid appointment data."
         }
     }
 
     try {
-        await serverDb.collection("appointments").add({
-            ...validatedFields.data,
-        });
+        const db = getFirestore(serverApp);
+        await addDoc(collection(db, "appointments"), validatedFields.data);
     } catch (e) {
         console.error("Failed to schedule appointment:", e);
+        // This should not be a thrown error, but a returned object for the client to handle
         return {
             error: "Could not schedule appointment."
         }

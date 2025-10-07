@@ -16,6 +16,7 @@ const initializeServerApp = () => {
             console.log("Initializing Firebase Admin with default credentials.");
             return admin.initializeApp({
                 credential: admin.credential.applicationDefault(),
+                projectId: firebaseConfig.projectId // Explicitly set projectId
             });
         } catch (e) {
              console.error("Firebase Admin SDK initialization failed with default credentials:", e);
