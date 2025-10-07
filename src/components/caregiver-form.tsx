@@ -6,7 +6,7 @@ import { useForm, type FieldNames } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
 import { addDoc, collection } from "firebase/firestore";
-import { useFirestore } from "@/firebase";
+import { useFirestore, errorEmitter, FirestorePermissionError } from "@/firebase";
 import {
   Briefcase,
   Calendar,
@@ -174,33 +174,39 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
   };
 
   const onSubmit = async (data: CaregiverFormData) => {
-    console.log("Step 1 (Client): Form submitted. Preparing to write to Firestore.", data);
     setIsSubmitting(true);
     try {
-        const db = firestore;
-        const docRef = await addDoc(collection(db, "caregiver_profiles"), data);
-        console.log(`Step 2 (Client): Firestore write successful. Document ID: ${docRef.id}.`);
-        
-        // Now call the server action just for redirection
-        await submitCaregiverProfile({
-            caregiverId: docRef.id,
-            caregiverName: data.fullName,
-            caregiverEmail: data.email,
-            caregiverPhone: data.phone,
+      const db = firestore;
+      if (!db) {
+        throw new Error("Firestore is not initialized");
+      }
+      const colRef = collection(db, "caregiver_profiles");
+      const docRef = await addDoc(colRef, data).catch((serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: colRef.path,
+          operation: "create",
+          requestResourceData: data,
         });
-        // The server action will handle the redirect, so no further client action is needed.
-        console.log("Step 3 (Client): Server action called for redirect. Awaiting navigation.");
+        errorEmitter.emit("permission-error", permissionError);
+        throw serverError; // Re-throw to be caught by outer catch
+      });
 
+      // This server action is now only for redirection
+      await submitCaregiverProfile({
+        caregiverId: docRef.id,
+        caregiverName: data.fullName,
+        caregiverEmail: data.email,
+        caregiverPhone: data.phone,
+      });
     } catch (error) {
-        console.log("Step X (Client): Submission failed. Showing error toast.", error);
-        toast({
-            variant: "destructive",
-            title: "Submission Failed",
-            description: "An unexpected error occurred. Please try again.",
-        });
-        console.error("Submission Error:", error);
+      // This will catch the re-thrown permission error or other errors.
+      toast({
+        variant: "destructive",
+        title: "Submission Failed",
+        description: "An unexpected error occurred. Please try again.",
+      });
     } finally {
-        setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -431,5 +437,3 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
     </Card>
   );
 }
-
-    
