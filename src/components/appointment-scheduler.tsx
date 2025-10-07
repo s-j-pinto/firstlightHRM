@@ -1,18 +1,18 @@
 
 "use client";
 
-import { useState, useEffect, useTransition, useMemo } from "react";
+import { useState, useTransition, useMemo } from "react";
 import { format } from "date-fns";
 import { Calendar, Clock, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { collection } from "firebase/firestore";
+import { collection, addDoc } from "firebase/firestore";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { scheduleAppointment } from "@/lib/actions";
 import { generateAvailableSlots } from "@/lib/availability";
 import { useToast } from "@/hooks/use-toast";
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
 import type { Appointment } from "@/lib/types";
 
 interface AppointmentSchedulerProps {
@@ -27,6 +27,7 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const firestore = useFirestore();
+  const router = useRouter();
 
   const appointmentsRef = useMemoFirebase(() => collection(firestore, 'appointments'), [firestore]);
   const { data: appointmentsData, isLoading: appointmentsLoading } = useCollection<Appointment>(appointmentsRef);
@@ -55,15 +56,41 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
         return;
     }
     
-    startTransition(() => {
-        scheduleAppointment({
+    startTransition(async () => {
+        const appointmentData = {
             caregiverId: caregiverId,
             caregiverName: caregiverName,
             caregiverEmail: caregiverEmail, 
             caregiverPhone: caregiverPhone,
             startTime: selectedSlot,
             endTime: new Date(selectedSlot.getTime() + 30 * 60 * 1000), // 30 min slot
-        });
+        };
+
+        try {
+            const db = firestore;
+            if (!db) throw new Error("Firestore not initialized");
+            const colRef = collection(db, "appointments");
+            await addDoc(colRef, appointmentData).catch((serverError) => {
+                const permissionError = new FirestorePermissionError({
+                    path: colRef.path,
+                    operation: 'create',
+                    requestResourceData: appointmentData,
+                });
+                errorEmitter.emit('permission-error', permissionError);
+                throw serverError;
+            });
+
+            // Redirect on success
+            const redirectUrl = `/confirmation?time=${appointmentData.startTime.toISOString()}`;
+            router.push(redirectUrl);
+
+        } catch (error) {
+            toast({
+                variant: "destructive",
+                title: "Scheduling Failed",
+                description: "Could not save your appointment. Please try again.",
+            });
+        }
     });
   };
   

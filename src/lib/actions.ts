@@ -15,8 +15,6 @@ export async function submitCaregiverProfile(data: {
     caregiverEmail: string;
     caregiverPhone: string;
 }) {
-  console.log("Step 4 (Server): `submitCaregiverProfile` action started for redirection.");
-  
   const params = new URLSearchParams({
       caregiverId: data.caregiverId,
       caregiverName: data.caregiverName,
@@ -25,28 +23,23 @@ export async function submitCaregiverProfile(data: {
       step: 'schedule'
   });
     
-  console.log("Step 5 (Server): Redirecting to scheduling step.");
   redirect(`/?${params.toString()}`);
 }
 
+
+// This server action is now only responsible for redirection.
+// The data creation is handled on the client.
 export async function scheduleAppointment(data: z.infer<typeof appointmentSchema>) {
     const validatedFields = appointmentSchema.safeParse(data);
 
     if (!validatedFields.success) {
-        return {
-            error: "Invalid appointment data."
-        }
+        // This should ideally not be hit if client-side validation is working
+        redirect('/?step=schedule&error=invalid_data');
+        return;
     }
-
-    try {
-        await serverDb.collection("appointments").add(validatedFields.data);
-    } catch (e) {
-        console.error("Failed to schedule appointment:", e);
-        return {
-            error: "Could not schedule appointment."
-        }
-    }
-
+    
+    // Although data is saved on client, we can still revalidate here
+    // to ensure the admin dashboard is updated.
     revalidatePath("/admin");
     
     const redirectUrl = `/confirmation?time=${validatedFields.data.startTime.toISOString()}`;
