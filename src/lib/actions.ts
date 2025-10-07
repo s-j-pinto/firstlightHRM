@@ -4,11 +4,40 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { addCaregiver, addAppointment } from "./db-firestore";
 import { caregiverFormSchema, appointmentSchema } from "./types";
 import { google } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
-import { getAppointments as dbGetAppointments } from "./db-firestore";
+import { serverDb } from '@/firebase/server-init';
+import type { CaregiverProfile, Appointment } from "./types";
+import { Timestamp } from 'firebase-admin/firestore';
+
+
+export const addCaregiver = async (profile: Omit<CaregiverProfile, "id">): Promise<string> => {
+  console.log("Step 6a: Inside addCaregiver function (using admin SDK on server).");
+  const caregiverData = {
+    ...profile,
+  };
+  console.log("Step 6b: Preparing to add document to 'caregiver_profiles' collection.");
+  const docRef = await serverDb.collection("caregiver_profiles").add(caregiverData);
+  console.log("Step 6c: Document added with ID:", docRef.id);
+  return docRef.id;
+};
+
+export const getAppointments = async (): Promise<Appointment[]> => {
+    console.log("Fetching appointments using admin SDK on server...");
+    const appointmentsSnapshot = await serverDb.collection("appointments").get();
+    const appointments = appointmentsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+            ...data, 
+            id: doc.id,
+            startTime: (data.startTime as Timestamp).toDate(),
+            endTime: (data.endTime as Timestamp).toDate(),
+        } as Appointment
+    });
+    console.log(`Fetched ${appointments.length} appointments.`);
+    return appointments;
+};
 
 export async function submitCaregiverProfile(data: any) {
   console.log("Step 1: Starting caregiver profile submission.");
@@ -89,8 +118,12 @@ export async function scheduleAppointment(data: z.infer<typeof appointmentSchema
 
     try {
         console.log("Step C: Attempting to add appointment to Firestore...");
-        await addAppointment(validatedFields.data);
-        console.log("Step D: Successfully added appointment.");
+        const docRef = await serverDb.collection("appointments").add({
+            ...validatedFields.data,
+            startTime: Timestamp.fromDate(validatedFields.data.startTime),
+            endTime: Timestamp.fromDate(validatedFields.data.endTime),
+        });
+        console.log("Step D: Successfully added appointment with ID:", docRef.id);
     } catch (e) {
         console.error("Step E FAILED: An unexpected error occurred during appointment scheduling.", e);
         // Handle or rethrow error as needed
@@ -109,7 +142,7 @@ export async function scheduleAppointment(data: z.infer<typeof appointmentSchema
 
 export async function getAdminAppointments() {
     console.log("Fetching admin appointments...");
-    const appointments = await dbGetAppointments();
+    const appointments = await getAppointments();
     console.log(`Found ${appointments.length} appointments.`);
     return appointments;
 }
