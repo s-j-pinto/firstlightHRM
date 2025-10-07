@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useTransition, useMemo } from "react";
@@ -106,11 +107,14 @@ export default function AdminDashboard() {
 
 
   const handleSendInvite = (appointment: Appointment) => {
+    console.log("CLIENT: 'Send Invite' button clicked. Preparing to call server action with appointment data:", appointment);
     startTransition(async () => {
       const result = await sendCalendarInvite(appointment);
+      console.log("CLIENT: Received response from server action:", result);
       toast({
-        title: "Success",
+        title: result.error ? "Error" : "Success",
         description: result.message,
+        variant: result.error ? "destructive" : "default",
       });
     });
   };
@@ -248,3 +252,5 @@ export default function AdminDashboard() {
     </div>
   );
 }
+
+    

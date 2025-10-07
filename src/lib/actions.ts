@@ -116,48 +116,46 @@ export async function getAdminAppointments() {
 }
 
 export async function sendCalendarInvite(appointment: any) {
-    console.log("DEBUG: Step 1 - `sendCalendarInvite` action started.");
-    console.log("DEBUG: Step 2 - Received appointment data:", JSON.stringify(appointment, null, 2));
+    console.log("SERVER: [1/10] `sendCalendarInvite` action started.");
+    console.log("SERVER: [2/10] Received appointment data:", JSON.stringify(appointment, null, 2));
 
-    console.log("DEBUG: Step 3 - Checking for Google credentials in environment variables...");
+    console.log("SERVER: [3/10] Reading Google credentials from environment variables...");
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
     const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
-    const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:9002';
 
     if (!clientId || !clientSecret) {
-        const errorMsg = "⚠️ Google credentials not found. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your .env.local file in the project root.";
-        console.error("DEBUG: Step 4b -", errorMsg);
+        const errorMsg = "Google credentials not found. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your .env.local file in the project root.";
+        console.error("SERVER: [FAIL] ", errorMsg);
         return { message: errorMsg, error: true };
     }
-    console.log("DEBUG: Step 4a - ✅ Google credentials found.");
+    console.log("SERVER: [4/10] ✅ Google Client ID and Secret found.");
 
-    const oAuth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
+    const oAuth2Client = new OAuth2Client(clientId, clientSecret);
     
     if (refreshToken) {
-        console.log("DEBUG: Step 5a - Found refresh token. Setting credentials.");
+        console.log("SERVER: [5/10] ✅ Refresh token found. Setting credentials on OAuth2 client.");
         oAuth2Client.setCredentials({ refresh_token: refreshToken });
     } else {
-        console.warn("DEBUG: Step 5b - ⚠️ No refresh token found.");
+        console.warn("SERVER: [FAIL] ⚠️ No refresh token found.");
         const authUrl = oAuth2Client.generateAuthUrl({
             access_type: 'offline',
-            scope: ['https://www.googleapis.com/auth/calendar'],
+            prompt: 'consent',
+            scope: ['https://www.googleapis.com/auth/calendar.events'],
         });
-        console.log("ACTION REQUIRED: Please authorize this app by visiting this URL:");
-        console.log(authUrl);
-        console.log("After authorization, you will be redirected with a 'code' in the URL. Use this code to get a refresh token and add it as GOOGLE_REFRESH_TOKEN to your .env.local file. This is a one-time setup.");
-        return { message: "Admin authorization required. Please check server logs for the authorization URL." };
+        const errorMsg = "Admin authorization required. A refresh token is missing. Please check server logs for an authorization URL to generate one."
+        console.log("ACTION REQUIRED: Please authorize this app by visiting this URL:", authUrl);
+        console.log("After authorization, you will get a 'code' in the URL. Use that code to get a refresh token and add it as GOOGLE_REFRESH_TOKEN to your .env.local file. This is a one-time setup.");
+        return { message: errorMsg, error: true };
     }
     
     try {
-        console.log("DEBUG: Step 6 - Refreshing access token.");
-        const { token } = await oAuth2Client.getAccessToken();
-        if (!token) throw new Error("Failed to retrieve access token.");
-        oAuth2Client.setCredentials({ access_token: token });
-        console.log("DEBUG: Step 7 - Access token refreshed successfully.");
-
+        console.log("SERVER: [6/10] Initializing Google Calendar API client...");
         const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
         
+        // The googleapis library handles token refreshing automatically if a refresh token is provided.
+        // The getAccessToken() call is not strictly necessary but can be used to pre-emptively check auth.
+        console.log("SERVER: [7/10] Preparing calendar event details...");
         const event = {
             summary: `Interview with ${appointment.caregiver?.fullName}`,
             location: '9650 Business Center Drive, Suite 132, Rancho Cucamonga, CA',
@@ -183,21 +181,26 @@ export async function sendCalendarInvite(appointment: any) {
             },
         };
 
-        console.log("DEBUG: Step 8 - Creating calendar event with details:", JSON.stringify(event, null, 2));
+        console.log("SERVER: [8/10] Sending request to Google Calendar API to create event:", JSON.stringify(event, null, 2));
         await calendar.events.insert({
             calendarId: 'primary',
             requestBody: event,
             sendNotifications: true,
         });
-        console.log("DEBUG: Step 9 - ✅ Successfully created calendar event.");
+        console.log("SERVER: [9/10] ✅ Successfully created calendar event.");
         
         const resultMessage = `Calendar invite sent to ${appointment.caregiver.fullName}.`;
-        console.log("DEBUG: Step 10 - Preparing to return result message:", resultMessage);
+        console.log("SERVER: [10/10] Returning success message to client:", resultMessage);
         return { message: resultMessage };
 
-    } catch (err) {
-        console.error("DEBUG: Step 9 FAILED - Error creating calendar event:", err);
-        return { message: `Failed to send invite. Check server logs for details.`, error: true };
+    } catch (err: any) {
+        console.error("SERVER: [FAIL] Error during Google Calendar operation:", err);
+        let errorMessage = `Failed to send invite. Check server logs for details.`;
+        if (err.response?.data?.error) {
+            console.error("Google API Error Details:", err.response.data.error);
+            errorMessage = `Google API Error: ${err.response.data.error.message}`;
+        }
+        return { message: errorMessage, error: true };
     }
 }
 
@@ -216,3 +219,5 @@ export async function saveAdminSettings(data: { availability: any }) {
         message: "Availability settings updated." 
     };
 }
+
+    
