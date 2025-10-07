@@ -5,40 +5,39 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { caregiverFormSchema, appointmentSchema } from "./types";
-import { serverDb } from '@/firebase/server-init';
 import type { CaregiverProfile, Appointment } from "./types";
-import { Timestamp } from 'firebase-admin/firestore';
-import { collection, addDoc } from 'firebase/firestore';
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getFirestore, collection, addDoc, getDocs, Timestamp as ClientTimestamp } from 'firebase/firestore';
+import { firebaseConfig } from "@/firebase/config";
 
-
-export const addCaregiver = async (profile: Omit<CaregiverProfile, "id">): Promise<string> => {
-  const caregiverData = {
-    ...profile,
-  };
-
-  // The Admin SDK has proven unreliable, so we switch to the client SDK which is also valid on the server.
-  // This requires getting the firestore instance from the server-init file.
-  const db = serverDb;
-  const docRef = await addDoc(collection(db, "caregiver_profiles"), caregiverData);
-  return docRef.id;
+// Helper to initialize Firebase app on the server, reusing the instance if it exists.
+const getFirebaseApp = () => {
+  if (getApps().length) {
+    return getApp();
+  }
+  return initializeApp(firebaseConfig);
 };
 
 export const getAppointments = async (): Promise<Appointment[]> => {
-    const appointmentsSnapshot = await serverDb.collection("appointments").get();
+    // This function is still problematic if called from the client, as it uses server-only logic.
+    // For now, we will assume it's only called from server components or other server actions.
+    // A proper fix would be to secure this via callable functions or dedicated API routes if needed on client.
+    const app = getFirebaseApp();
+    const db = getFirestore(app);
+    const appointmentsSnapshot = await getDocs(collection(db, "appointments"));
     const appointments = appointmentsSnapshot.docs.map(doc => {
         const data = doc.data();
         return { 
             ...data, 
             id: doc.id,
-            startTime: (data.startTime as Timestamp).toDate(),
-            endTime: (data.endTime as Timestamp).toDate(),
+            startTime: (data.startTime as ClientTimestamp).toDate(),
+            endTime: (data.endTime as ClientTimestamp).toDate(),
         } as Appointment
     });
     return appointments;
 };
 
 export async function submitCaregiverProfile(data: any) {
-  console.log("Step 1 (Server): submitCaregiverProfile action started.");
   const parsedData = {
       ...data,
       yearsExperience: Number(data.yearsExperience || 0),
@@ -68,30 +67,25 @@ export async function submitCaregiverProfile(data: any) {
   const validatedFields = caregiverFormSchema.safeParse(parsedData);
 
   if (!validatedFields.success) {
-    console.log("Step 2 (Server): Validation failed.", validatedFields.error.flatten().fieldErrors);
+    console.log("Validation failed.", validatedFields.error.flatten().fieldErrors);
     return {
       message: "Invalid form data. Please check your entries.",
       errors: validatedFields.error.flatten().fieldErrors,
     };
   }
-  console.log("Step 2 (Server): Validation successful.");
 
   try {
-    console.log("Step 3 (Server): Attempting to add caregiver to database...");
-    const newCaregiverId = await addCaregiver(validatedFields.data);
-    console.log(`Step 4 (Server): Caregiver added with ID: ${newCaregiverId}.`);
-
+    const app = getFirebaseApp();
+    const db = getFirestore(app);
+    const docRef = await addDoc(collection(db, "caregiver_profiles"), validatedFields.data);
+    
     return {
       message: "Profile submitted successfully.",
-      caregiverId: newCaregiverId,
+      caregiverId: docRef.id,
       caregiverName: validatedFields.data.fullName
     };
   } catch (e: any) {
-    console.error("Step 4 (Server): FAILED to add caregiver. Error:", e);
-    if (e instanceof Error && 'code' in e) {
-        console.error("Firestore error code:", (e as any).code);
-        console.error("Firestore error message:", e.message);
-    }
+    console.error("FAILED to add caregiver. Error:", e);
     return {
       message: "An unexpected error occurred while saving your profile.",
     };
@@ -108,12 +102,14 @@ export async function scheduleAppointment(data: z.infer<typeof appointmentSchema
     }
 
     try {
-        await serverDb.collection("appointments").add({
+        const app = getFirebaseApp();
+        const db = getFirestore(app);
+        await addDoc(collection(db, "appointments"), {
             ...validatedFields.data,
-            startTime: Timestamp.fromDate(validatedFields.data.startTime),
-            endTime: Timestamp.fromDate(validatedFields.data.endTime),
+            // Client Timestamp is compatible with what server expects
         });
     } catch (e) {
+        console.error("Failed to schedule appointment:", e);
         return {
             error: "Could not schedule appointment."
         }
@@ -129,4 +125,3 @@ export async function getAdminAppointments() {
     const appointments = await getAppointments();
     return appointments;
 }
-
