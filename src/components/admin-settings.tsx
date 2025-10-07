@@ -149,4 +149,14 @@ export default function AdminSettings() {
         </Card>
 
         <div className="flex justify-end">
-          <Button type="submit" disabled={isPending} className="bg-accent hover:bg-accent/
+          <Button type="submit" disabled={isPending} className="bg-accent hover:bg-accent/90">
+            {isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : null}
+            Save Settings
+          </Button>
+        </div>
+      </div>
+    </form>
+  );
+}
