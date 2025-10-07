@@ -148,7 +148,7 @@ export default function AdminSettings() {
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Important: Configure Redirect URI</AlertTitle>
           <AlertDescription>
-            For Google Authentication to work, you must add a `GOOGLE_REDIRECT_URI` variable to your `.env.local` file. This should be the full URL of this settings page. For example: `GOOGLE_REDIRECT_URI=http://localhost:9002/admin/settings`. You must also add this exact URI to the "Authorized redirect URIs" list in your Google Cloud project credentials.
+            For Google https://9000-firebase-studio-1759770880601.cluster-cxy3ise3prdrmx53pigwexthgs.cloudworkstations.dev/admin/settings`. You must also add this exact URI to the "Authorized redirect URIs" list in your Google Cloud project credentials.
           </AlertDescription>
         </Alert>
 

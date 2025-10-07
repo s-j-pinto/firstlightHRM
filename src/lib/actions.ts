@@ -122,7 +122,7 @@ export async function sendCalendarInvite(appointment: any) {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
     const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
-    const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:9002/admin/settings';
+    const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'https://9000-firebase-studio-1759770880601.cluster-cxy3ise3prdrmx53pigwexthgs.cloudworkstations.dev/admin/settings';
 
     if (!clientId || !clientSecret) {
         const errorMsg = "Google credentials not found. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in a `.env.local` file in the project root.";
@@ -212,7 +212,7 @@ export async function saveAdminSettings(data: { googleAuthCode?: string }) {
         console.log("Received Google Auth Code:", data.googleAuthCode);
         const clientId = process.env.GOOGLE_CLIENT_ID;
         const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-        const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:9002/admin/settings';
+        const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'https://9000-firebase-studio-1759770880601.cluster-cxy3ise3prdrmx53pigwexthgs.cloudworkstations.dev/admin/settings';
 
         if (!clientId || !clientSecret) {
             return { message: "Cannot get refresh token without Client ID and Secret in .env.local", error: true };
