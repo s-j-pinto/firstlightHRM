@@ -3,7 +3,7 @@
 
 import { useTransition, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { saveAdminSettings } from "@/lib/actions";
+import { saveAdminSettings } from "@/lib/google-calendar.actions";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,6 +35,8 @@ export default function AdminSettings() {
   const { register, handleSubmit, reset } = useForm<SettingsFormValues>();
 
   useEffect(() => {
+    // In a real app, you would fetch these initial values from a database.
+    // For this example, we'll use hardcoded defaults.
     reset({
       monday_slots: "8:30, 9:30, 10:30",
       tuesday_slots: "8:30, 9:30, 10:30",
@@ -148,7 +150,7 @@ export default function AdminSettings() {
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Important: Configure Redirect URI</AlertTitle>
           <AlertDescription>
-            For Google https://9000-firebase-studio-1759770880601.cluster-cxy3ise3prdrmx53pigwexthgs.cloudworkstations.dev/admin/settings`. You must also add this exact URI to the "Authorized redirect URIs" list in your Google Cloud project credentials.
+            For Google OAuth to work, your app must be running on the expected redirect URI. For this example, that is `https://9000-firebase-studio-1759770880601.cluster-cxy3ise3prdrmx53pigwexthgs.cloudworkstations.dev/admin/settings`. You must also add this exact URI to the "Authorized redirect URIs" list in your Google Cloud project credentials.
           </AlertDescription>
         </Alert>
 
@@ -172,5 +174,3 @@ export default function AdminSettings() {
     </form>
   );
 }
-
-    

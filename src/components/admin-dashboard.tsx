@@ -40,7 +40,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { sendCalendarInvite } from "@/lib/actions";
+import { sendCalendarInvite } from "@/lib/google-calendar.actions";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -112,11 +112,13 @@ export default function AdminDashboard() {
   }, [appointmentsData, caregiversData]);
 
 
-  const handleSendInvite = (appointment: Appointment) => {
-    console.log("CLIENT: 'Send Invite' button clicked. Preparing to call server action with appointment data:", appointment);
+  const handleSendInvite = (appointment: AppointmentWithCaregiver) => {
+    if (!appointment.caregiver) {
+        toast({ title: "Error", description: "Caregiver profile not found.", variant: "destructive" });
+        return;
+    }
     startTransition(async () => {
       const result = await sendCalendarInvite(appointment);
-      console.log("CLIENT: Received response from server action:", result);
 
       if (result.authUrl) {
         setAuthUrl(result.authUrl);
