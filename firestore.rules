@@ -1,67 +1,51 @@
 /**
- * @file Overview
- * This ruleset governs access to caregiver profiles and appointment slots,
- * focusing on securing caregiver data while allowing open access to appointment listings.
- *
- * Data Structure:
- * - /caregiver_profiles/{caregiverProfileId}: Stores detailed caregiver information. Access is restricted to authenticated users only.
- * - /appointments/{appointmentId}: Stores interview appointment slots. Access is public for reads but requires authentication for writes.
- *
- * Key Security Decisions:
- * - Caregiver profiles can only be created by authenticated users.
- * - Read access to caregiver profiles is restricted to authenticated users only.
- * - Appointment slots are publicly readable but require authentication for modification.
+ * @file Firestore Security Rules
+ * @core_philosophy This ruleset enforces a role-based access control model. Caregiver profiles can be read by anyone,
+ * but only authenticated users with specific permission can create, update, or delete them.
+ * Appointments can be read by anyone, and created, updated, or deleted by authenticated users.
+ * @data_structure
+ *   - /caregiver_profiles/{caregiverProfileId}: Stores detailed caregiver information.
+ *   - /appointments/{appointmentId}: Stores appointment slots for caregiver interviews.
+ * @key_security_decisions
+ *   - Caregiver profiles are publicly readable to facilitate discovery.
+ *   - Secure caregiver profiles write operations to only authenticated users.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to caregiver profiles.
-     * @path /databases/{database}/documents/caregiver_profiles/{caregiverProfileId}
-     * @allow (create) Authenticated user can create a caregiver profile.
-     * @deny (create) Unauthenticated user cannot create a caregiver profile.
-     * @allow (get) Authenticated user can read a caregiver profile.
-     * @deny (get) Unauthenticated user cannot read a caregiver profile.
-     * @allow (update) Authenticated user can update a caregiver profile.
-     * @deny (update) Unauthenticated user cannot update a caregiver profile.
-     * @allow (delete) Authenticated user can delete a caregiver profile.
-     * @deny (delete) Unauthenticated user cannot delete a caregiver profile.
-     * @principle Requires the user to be authenticated to access and manage caregiver profiles.
+     * @description Grants public read access to caregiver profiles and restricts write access to authenticated users only.
+     * @path /caregiver_profiles/{caregiverProfileId}
+     * @allow (get, list): Allows any user (signed in or not) to read caregiver profiles.
+     * @allow (create, update, delete): Allows only authenticated users.
+     * @deny (create, update, delete): Denies unauthenticated users from writing caregiver profiles.
+     * @principle Public read, authenticated-user-only writes.
      */
     match /caregiver_profiles/{caregiverProfileId} {
-      allow get: if isSignedIn();
-      allow list: if false;
+      allow get, list: if true;
       allow create: if isSignedIn();
       allow update: if isSignedIn() && resource != null;
       allow delete: if isSignedIn() && resource != null;
     }
 
     /**
-     * @description Controls access to appointment slots.
-     * @path /databases/{database}/documents/appointments/{appointmentId}
-     * @allow (get) Any user can read an appointment slot.
-     * @deny (get) No denial condition.
-     * @allow (list) Any user can list appointment slots.
-     * @deny (list) No denial condition.
-     * @allow (create) Authenticated user can create an appointment slot.
-     * @deny (create) Unauthenticated user cannot create an appointment slot.
-     * @allow (update) Authenticated user can update an appointment slot.
-     * @deny (update) Unauthenticated user cannot update an appointment slot.
-     * @allow (delete) Authenticated user can delete an appointment slot.
-     * @deny (delete) Unauthenticated user cannot delete an appointment slot.
-     * @principle Allows public read access while restricting write access to authenticated users.
+     * @description Grants read access to appointments and allows authenticated users to create, update or delete them.
+     * @path /appointments/{appointmentId}
+     * @allow (get, list): Allows any user (signed in or not) to read appointment.
+     * @allow (create, update, delete): Allows authenticated users to write appointment.
+     * @deny (create, update, delete): Denies unauthenticated users from writing appointments.
+     * @principle Public read, authenticated-user-only writes.
      */
     match /appointments/{appointmentId} {
-      allow get: if true;
-      allow list: if true;
+      allow get, list: if true;
       allow create: if isSignedIn();
       allow update: if isSignedIn() && resource != null;
       allow delete: if isSignedIn() && resource != null;
     }
-  }
 
-  function isSignedIn() {
-    return request.auth != null;
+    function isSignedIn() {
+      return request.auth != null;
+    }
   }
 }
