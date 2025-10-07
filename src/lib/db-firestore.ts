@@ -1,6 +1,4 @@
 
-'use server';
-
 import { serverDb } from '@/firebase/server-init';
 import type { CaregiverProfile, Appointment } from "./types";
 import { Timestamp } from 'firebase-admin/firestore';
