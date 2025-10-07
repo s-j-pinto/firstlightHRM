@@ -15,9 +15,11 @@ import { useToast } from "@/hooks/use-toast";
 interface AppointmentSchedulerProps {
   caregiverId: string;
   caregiverName: string;
+  caregiverEmail: string;
+  caregiverPhone: string;
 }
 
-export function AppointmentScheduler({ caregiverId, caregiverName }: AppointmentSchedulerProps) {
+export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmail, caregiverPhone }: AppointmentSchedulerProps) {
   const [availableSlots, setAvailableSlots] = useState<{ date: Date, slots: Date[] }[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<Date | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -54,9 +56,8 @@ export function AppointmentScheduler({ caregiverId, caregiverName }: Appointment
         scheduleAppointment({
             caregiverId: caregiverId,
             caregiverName: caregiverName,
-            // In a real app, we'd fetch this from the caregiver's profile
-            caregiverEmail: "test@example.com", 
-            caregiverPhone: "555-555-5555",
+            caregiverEmail: caregiverEmail, 
+            caregiverPhone: caregiverPhone,
             startTime: selectedSlot,
             endTime: new Date(selectedSlot.getTime() + 30 * 60 * 1000), // 30 min slot
         });

@@ -176,22 +176,21 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
 
   const onSubmit = async (data: CaregiverFormData) => {
     setIsSubmitting(true);
-    console.log("Step 1 (Client): Starting caregiver profile submission. Data:", data);
-    const result = await submitCaregiverProfile(data);
-
-    if (result?.caregiverId) {
-       console.log("Step 5 (Client): Submission successful. Navigating to scheduler.");
-      onSuccess(result.caregiverId, result.caregiverName || "");
-    } else {
-       console.log("Step 5 (Client): Submission failed. Showing error toast.");
-      toast({
-        variant: "destructive",
-        title: "Submission Failed",
-        description: result.message || "An unexpected error occurred.",
-      });
+    // The server action now handles the redirect, so we just await it.
+    // If it fails, it will throw an error which we can catch.
+    try {
+        await submitCaregiverProfile(data);
+        // On success, the user will be redirected by the server action.
+    } catch (error) {
+        toast({
+            variant: "destructive",
+            title: "Submission Failed",
+            description: "An unexpected error occurred. Please try again.",
+        });
+        console.error("Submission Error:", error);
+    } finally {
+        setIsSubmitting(false);
     }
-
-    setIsSubmitting(false);
   };
 
   return (

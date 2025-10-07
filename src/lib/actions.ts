@@ -19,9 +19,6 @@ const getFirebaseApp = () => {
 };
 
 export const getAppointments = async (): Promise<Appointment[]> => {
-    // This function is still problematic if called from the client, as it uses server-only logic.
-    // For now, we will assume it's only called from server components or other server actions.
-    // A proper fix would be to secure this via callable functions or dedicated API routes if needed on client.
     const app = getFirebaseApp();
     const db = getFirestore(app);
     const appointmentsSnapshot = await getDocs(collection(db, "appointments"));
@@ -79,11 +76,17 @@ export async function submitCaregiverProfile(data: any) {
     const db = getFirestore(app);
     const docRef = await addDoc(collection(db, "caregiver_profiles"), validatedFields.data);
     
-    return {
-      message: "Profile submitted successfully.",
-      caregiverId: docRef.id,
-      caregiverName: validatedFields.data.fullName
-    };
+    // Redirect to the scheduling page with the new caregiver's info in query params
+    const params = new URLSearchParams({
+        caregiverId: docRef.id,
+        caregiverName: validatedFields.data.fullName,
+        caregiverEmail: validatedFields.data.email,
+        caregiverPhone: validatedFields.data.phone,
+        step: 'schedule'
+    });
+    
+    redirect(`/?${params.toString()}`);
+
   } catch (e: any) {
     console.error("FAILED to add caregiver. Error:", e);
     return {
@@ -106,7 +109,6 @@ export async function scheduleAppointment(data: z.infer<typeof appointmentSchema
         const db = getFirestore(app);
         await addDoc(collection(db, "appointments"), {
             ...validatedFields.data,
-            // Client Timestamp is compatible with what server expects
         });
     } catch (e) {
         console.error("Failed to schedule appointment:", e);
