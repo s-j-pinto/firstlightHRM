@@ -18,7 +18,7 @@ export function AppHeader() {
             <Button asChild variant="ghost">
               <Link href="/caregiver-login">
                 <LogIn className="mr-2" />
-                Caregiver Login
+                Apply Now
               </Link>
             </Button>
           </nav>

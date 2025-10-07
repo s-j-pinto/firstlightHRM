@@ -96,8 +96,7 @@
   "auth": {
     "providers": [
       "password",
-      "anonymous",
-      "emailLink"
+      "anonymous"
     ]
   },
   "firestore": {
