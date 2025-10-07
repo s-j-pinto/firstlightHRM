@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Terminal, Copy, Check } from "lucide-react";
+import { Loader2, Terminal, Copy, Check, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 type SettingsFormValues = {
@@ -144,9 +144,17 @@ export default function AdminSettings() {
             </CardContent>
         </Card>
 
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Important: Configure Redirect URI</AlertTitle>
+          <AlertDescription>
+            For Google Authentication to work, you must add a `GOOGLE_REDIRECT_URI` variable to your `.env.local` file. This should be the full URL of this settings page. For example: `GOOGLE_REDIRECT_URI=http://localhost:9002/admin/settings`. You must also add this exact URI to the "Authorized redirect URIs" list in your Google Cloud project credentials.
+          </AlertDescription>
+        </Alert>
+
         <Alert>
           <Terminal className="h-4 w-4" />
-          <AlertTitle>Google Calendar Integration</AlertTitle>
+          <AlertTitle>Google Credentials</AlertTitle>
           <AlertDescription>
             To send calendar invites, your Google credentials must be set in a `.env.local` file in your project's root directory. This file should contain `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and the `GOOGLE_REFRESH_TOKEN` you generate here.
           </AlertDescription>
@@ -164,3 +172,5 @@ export default function AdminSettings() {
     </form>
   );
 }
+
+    

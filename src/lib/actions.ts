@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { addCaregiver, addAppointment } from "./db-firestore";
-import { caregiverFormSchema, appointmentSchema, CaregiverProfile } from "./types";
+import { caregiverFormSchema, appointmentSchema } from "./types";
 import { google } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
 import { getAppointments as dbGetAppointments } from "./db-firestore";
@@ -122,6 +122,7 @@ export async function sendCalendarInvite(appointment: any) {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
     const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
+    const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:9002/admin/settings';
 
     if (!clientId || !clientSecret) {
         const errorMsg = "Google credentials not found. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in a `.env.local` file in the project root.";
@@ -130,7 +131,7 @@ export async function sendCalendarInvite(appointment: any) {
     }
     console.log("SERVER: [4/10] ✅ Google Client ID and Secret found.");
 
-    const oAuth2Client = new OAuth2Client(clientId, clientSecret, 'http://localhost:9002');
+    const oAuth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
     
     if (refreshToken) {
         console.log("SERVER: [5/10] ✅ Refresh token found. Setting credentials on OAuth2 client.");
@@ -207,12 +208,13 @@ export async function saveAdminSettings(data: { availability: any, googleAuthCod
         console.log("Received Google Auth Code:", data.googleAuthCode);
         const clientId = process.env.GOOGLE_CLIENT_ID;
         const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+        const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:9002/admin/settings';
 
         if (!clientId || !clientSecret) {
             return { message: "Cannot get refresh token without Client ID and Secret in .env.local", error: true };
         }
 
-        const oAuth2Client = new OAuth2Client(clientId, clientSecret, 'http://localhost:9002');
+        const oAuth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
         try {
             const { tokens } = await oAuth2Client.getToken(data.googleAuthCode);
             if (tokens.refresh_token) {
@@ -227,9 +229,10 @@ export async function saveAdminSettings(data: { availability: any, googleAuthCod
             } else {
                  return { message: "Could not obtain refresh token. You might need to generate a new auth code.", error: true };
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error while retrieving access token", error);
-            return { message: "Failed to get refresh token. Check logs.", error: true };
+            const errorMessage = error.response?.data?.error_description || "Failed to get refresh token. Check logs.";
+            return { message: errorMessage, error: true };
         }
     }
     
@@ -241,3 +244,5 @@ export async function saveAdminSettings(data: { availability: any, googleAuthCod
         message: "Availability settings updated." 
     };
 }
+
+    
