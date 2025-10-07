@@ -13,6 +13,7 @@ const initializeServerApp = () => {
     // This is the standard way to initialize in production environments like App Hosting.
     if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
         try {
+            console.log("Initializing Firebase Admin with default credentials.");
             return admin.initializeApp({
                 credential: admin.credential.applicationDefault(),
             });
@@ -26,7 +27,7 @@ const initializeServerApp = () => {
     // This uses the client-side config, which is less secure for server-side operations
     // but necessary for the development environment to function.
     try {
-        console.warn("Initializing Firebase Admin with client-side config. This is intended for local development only.");
+        console.warn("Initializing Firebase Admin with client-side config project ID. This is intended for local development only.");
         return admin.initializeApp({
             projectId: firebaseConfig.projectId,
         });
