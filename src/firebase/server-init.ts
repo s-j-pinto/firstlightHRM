@@ -4,28 +4,36 @@ import { firebaseConfig } from './config';
 
 // IMPORTANT: This file is for server-side use only.
 
-// The service account is automatically available in the App Hosting environment
-// and will be used by initializeApp() if no credentials are provided.
-// For local development, you would need to set the GOOGLE_APPLICATION_CREDENTIALS
-// environment variable to point to your service account key file.
-// https://firebase.google.com/docs/admin/setup#initialize-sdk
-
 const initializeServerApp = () => {
     if (admin.apps.length > 0) {
         return admin.app();
     }
     
+    // Check if the service account environment variable is set.
+    // This is the standard way to initialize in production environments like App Hosting.
+    if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+        try {
+            return admin.initializeApp({
+                credential: admin.credential.applicationDefault(),
+            });
+        } catch (e) {
+             console.error("Firebase Admin SDK initialization failed with default credentials:", e);
+             // Fall through to the next method if this fails
+        }
+    }
+    
+    // Fallback for local development or environments without the service account env var.
+    // This uses the client-side config, which is less secure for server-side operations
+    // but necessary for the development environment to function.
     try {
-        // This will use the service account from the environment in production on App Hosting
-        return admin.initializeApp();
-    } catch (e) {
-        console.warn("Could not initialize Firebase Admin with default credentials. This is normal for local dev without GOOGLE_APPLICATION_CREDENTIALS. Falling back to client-like config (NOT FOR PROD).", e);
-        // Fallback for local development if GOOGLE_APPLICATION_CREDENTIALS is not set.
-        // This uses a less secure method and is not recommended for production.
+        console.warn("Initializing Firebase Admin with client-side config. This is intended for local development only.");
         return admin.initializeApp({
-            credential: admin.credential.applicationDefault(), // May not work in all environments
             projectId: firebaseConfig.projectId,
         });
+    } catch (e) {
+        console.error("Firebase Admin SDK initialization failed with fallback config:", e);
+        // If all initialization methods fail, throw an error.
+        throw new Error("Could not initialize Firebase Admin SDK. Please check your configuration and credentials.");
     }
 }
 
