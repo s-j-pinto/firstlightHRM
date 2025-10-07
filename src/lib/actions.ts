@@ -35,6 +35,7 @@ export const getAppointments = async (): Promise<Appointment[]> => {
 };
 
 export async function submitCaregiverProfile(data: any) {
+  console.log("Step 2 (Server): `submitCaregiverProfile` action started.");
   const parsedData = {
       ...data,
       yearsExperience: Number(data.yearsExperience || 0),
@@ -64,17 +65,19 @@ export async function submitCaregiverProfile(data: any) {
   const validatedFields = caregiverFormSchema.safeParse(parsedData);
 
   if (!validatedFields.success) {
-    console.log("Validation failed.", validatedFields.error.flatten().fieldErrors);
-    return {
-      message: "Invalid form data. Please check your entries.",
-      errors: validatedFields.error.flatten().fieldErrors,
-    };
+    console.log("Step 2.1 (Server): Validation failed.", validatedFields.error.flatten().fieldErrors);
+    // In a real app, you'd want to return this error to the client.
+    // For now, we'll throw to be caught by the client's try/catch.
+    throw new Error("Invalid form data.");
   }
+  console.log("Step 2.2 (Server): Validation successful.");
 
   try {
     const app = getFirebaseApp();
     const db = getFirestore(app);
+    console.log("Step 3 (Server): Firestore DB instance obtained. Attempting to add document.");
     const docRef = await addDoc(collection(db, "caregiver_profiles"), validatedFields.data);
+    console.log(`Step 4 (Server): Document added successfully with ID: ${docRef.id}. Preparing to redirect.`);
     
     // Redirect to the scheduling page with the new caregiver's info in query params
     const params = new URLSearchParams({
@@ -88,10 +91,9 @@ export async function submitCaregiverProfile(data: any) {
     redirect(`/?${params.toString()}`);
 
   } catch (e: any) {
-    console.error("FAILED to add caregiver. Error:", e);
-    return {
-      message: "An unexpected error occurred while saving your profile.",
-    };
+    console.error("Step 4.1 (Server): FAILED to add document to Firestore. Error:", e);
+    // Re-throw the error so the client-side catch block can handle it.
+    throw new Error("An unexpected error occurred while saving your profile.");
   }
 }
 

@@ -175,13 +175,16 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
   };
 
   const onSubmit = async (data: CaregiverFormData) => {
+    console.log("Step 1 (Client): Form submitted. Preparing to call server action.", data);
     setIsSubmitting(true);
-    // The server action now handles the redirect, so we just await it.
-    // If it fails, it will throw an error which we can catch.
     try {
         await submitCaregiverProfile(data);
         // On success, the user will be redirected by the server action.
+        // No need to call onSuccess or handle success toast here.
+        console.log("Step 5 (Client): Server action call completed. Awaiting redirect.");
+
     } catch (error) {
+        console.log("Step 5 (Client): Submission failed. Showing error toast.", error);
         toast({
             variant: "destructive",
             title: "Submission Failed",
