@@ -7,7 +7,7 @@ import { getFirestore } from "firebase-admin/firestore";
 initializeApp();
 const db = getFirestore();
 
-exports.sendAppointmentEmail = onDocumentCreated("appointments/{appointmentId}", async (event) => {
+export const sendAppointmentEmail = onDocumentCreated("appointments/{appointmentId}", async (event) => {
   const snapshot = event.data;
   if (!snapshot) {
     logger.log("No data associated with the event");

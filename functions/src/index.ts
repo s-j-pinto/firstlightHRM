@@ -10,6 +10,7 @@
 import {setGlobalOptions} from "firebase-functions";
 import {onRequest} from "firebase-functions/https";
 import * as logger from "firebase-functions/logger";
+import { sendAppointmentEmail } from "./email-notifications";
 
 // Start writing functions
 // https://firebase.google.com/docs/functions/typescript
@@ -31,4 +32,4 @@ setGlobalOptions({ maxInstances: 10 });
 //   response.send("Hello from Firebase!");
 // });
 
-exports.sendAppointmentEmail = require("./email-notifications");
+export { sendAppointmentEmail };
