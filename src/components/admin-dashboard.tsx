@@ -181,7 +181,7 @@ export default function AdminDashboard() {
       {Object.entries(groupedAppointments).map(([date, dayAppointments]) => (
         <div key={date}>
           <h2 className="text-xl font-semibold mb-4 pb-2 border-b">
-            {format(new Date(date), "EEEE, MMMM do, yyyy")}
+            {format(dayAppointments[0].startTime, "EEEE, MMMM do, yyyy")}
           </h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {dayAppointments.map((appointment) => (
