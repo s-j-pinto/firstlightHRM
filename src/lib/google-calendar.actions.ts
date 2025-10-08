@@ -10,7 +10,7 @@ export async function sendCalendarInvite(appointment: Appointment & { caregiver:
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
     const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
-    const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'https://9000-firebase-studio-1759770880601.cluster-cxy3ise3prdrmx53pigwexthgs.cloudworkstations.dev/admin/settings';
+    const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'https://9000-firebase-firstlighthrmgit-1759870304232.cluster-dcua5e7jvjesmwvkamxwtt7yac.cloudworkstations.dev/?monospaceUid=442053/admin/settings';
 
     if (!clientId || !clientSecret) {
         const errorMsg = "Google credentials not found. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in a `.env.local` file in the project root.";
@@ -19,7 +19,7 @@ export async function sendCalendarInvite(appointment: Appointment & { caregiver:
 
     const oAuth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
     
-    if (refreshToken) {
+    if (false) { // Modified to force re-authentication
         oAuth2Client.setCredentials({ refresh_token: refreshToken });
     } else {
         const authUrl = oAuth2Client.generateAuthUrl({
@@ -37,7 +37,7 @@ export async function sendCalendarInvite(appointment: Appointment & { caregiver:
         const event = {
             summary: `FirstLight Interview with ${appointment.caregiver?.fullName}`,
             location: '9650 Business Center Drive, Suite 132, Rancho Cucamonga, CA',
-            description: `Please bring the following documents: Driver's License, car insurance and registration. Social Security card or US passport (to prove your work eligibility, if you are green card holder, bring Green card. Current negative TB-Test Copy, HCA letter or number, live scan or Clearance letter if you have it. CPR-First Aide proof card, Any other certification that you have.In-person interview with caregiver candidate ${appointment.caregiver?.fullName}. \nContact Email: ${appointment.caregiver?.email}\nContact Phone: ${appointment.caregiver?.phone}`,
+            description: `Please bring the following documents: Driver\'s License, car insurance and registration. Social Security card or US passport (to prove your work eligibility, if you are green card holder, bring Green card. Current negative TB-Test Copy, HCA letter or number, live scan or Clearance letter if you have it. CPR-First Aide proof card, Any other certification that you have.In-person interview with caregiver candidate ${appointment.caregiver?.fullName}. \nContact Email: ${appointment.caregiver?.email}\nContact Phone: ${appointment.caregiver?.phone}`,
             start: {
                 dateTime: new Date(appointment.startTime).toISOString(),
                 timeZone: 'America/Los_Angeles',
@@ -108,7 +108,7 @@ export async function saveAdminSettings(data: { availability: any, googleAuthCod
     }
     
     // Here you would save the `data.availability` to a database or config file.
-    // For now, we'll just log it and return a success message.
+    // For now, we\'ll just log it and return a success message.
     console.log("Availability settings received:", data.availability);
     
     revalidatePath('/admin/settings');
