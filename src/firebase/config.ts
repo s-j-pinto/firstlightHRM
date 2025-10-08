@@ -1,8 +1,8 @@
 export const firebaseConfig = {
-  "projectId": "studio-6718588364-20b08",
-  "appId": "1:964792797835:web:2b54fe15fe56122448628e",
-  "apiKey": "AIzaSyCJJL0EWcaxcTikABX5zAB_uqqD4WYuauE",
-  "authDomain": "studio-6718588364-20b08.firebaseapp.com",
-  "measurementId": "",
-  "messagingSenderId": "964792797835"
+  "projectId": "firstlighthomecare-hrm",
+  "appId": "1:966448587993:web:0ff1cd1bc861c4f56dcac8",
+  "apiKey": "AIzaSyBv1oI4PNUqwCf7ttQU-9NMb4FRLDMf_4k",
+  "authDomain": "firstlighthomecare-hrm.firebaseapp.com",
+  "measurementId": "G-9VJLWNE9DK",
+  "messagingSenderId": "966448587993"
 };
