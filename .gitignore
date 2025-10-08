@@ -45,3 +45,6 @@ firebase-debug.log
 firestore-debug.log
 #env specific firebase project related configurations
 /firebase/config.ts
+
+# env
+.env.local
