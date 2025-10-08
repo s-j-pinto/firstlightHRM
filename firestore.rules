@@ -39,7 +39,7 @@ service cloud.firestore {
      */
     match /appointments/{appointmentId} {
       allow get, list: if true;
-      allow create: if isSignedIn();
+      allow create: if true;
       allow update: if isSignedIn() && resource != null;
       allow delete: if isSignedIn() && resource != null;
     }
