@@ -177,39 +177,28 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
 
   const onSubmit = async (data: CaregiverFormData) => {
     setIsSubmitting(true);
-    try {
-      const db = firestore;
-      if (!db) {
-        throw new Error("Firestore is not initialized");
-      }
-      const colRef = collection(db, "caregiver_profiles");
-      const docRef = await addDoc(colRef, { ...data, uid: user?.uid }).catch((serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: colRef.path,
-          operation: "create",
-          requestResourceData: data,
-        });
-        errorEmitter.emit("permission-error", permissionError);
-        throw serverError; // Re-throw to be caught by outer catch
-      });
-
-      // This server action is now only for redirection
-      await submitCaregiverProfile({
-        caregiverId: docRef.id,
-        caregiverName: data.fullName,
-        caregiverEmail: data.email,
-        caregiverPhone: data.phone,
-      });
-    } catch (error) {
-      // This will catch the re-thrown permission error or other errors.
-      toast({
-        variant: "destructive",
-        title: "Submission Failed",
-        description: "An unexpected error occurred. Please try again.",
-      });
-    } finally {
-      setIsSubmitting(false);
+    const db = firestore;
+    if (!db) {
+      throw new Error("Firestore is not initialized");
     }
+    const colRef = collection(db, "caregiver_profiles");
+    const docRef = await addDoc(colRef, { ...data, uid: user?.uid }).catch((serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: colRef.path,
+        operation: "create",
+        requestResourceData: data,
+      });
+      errorEmitter.emit("permission-error", permissionError);
+      throw serverError; // Re-throw to be caught by outer catch
+    });
+    // This server action is now only for redirection
+    await submitCaregiverProfile({
+      caregiverId: docRef.id,
+      caregiverName: data.fullName,
+      caregiverEmail: data.email,
+      caregiverPhone: data.phone,
+    });
+    setIsSubmitting(false);
   };
 
   return (
