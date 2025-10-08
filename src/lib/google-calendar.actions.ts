@@ -19,7 +19,7 @@ export async function sendCalendarInvite(appointment: Appointment & { caregiver:
 
     const oAuth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
     
-    if (false) { // Modified to force re-authentication
+    if (refreshToken) {
         oAuth2Client.setCredentials({ refresh_token: refreshToken });
     } else {
         const authUrl = oAuth2Client.generateAuthUrl({
