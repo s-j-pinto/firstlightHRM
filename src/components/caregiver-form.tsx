@@ -6,7 +6,7 @@ import { useForm, type FieldNames } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
 import { addDoc, collection } from "firebase/firestore";
-import { useFirestore, errorEmitter, FirestorePermissionError } from "@/firebase";
+import { useFirestore, useUser, errorEmitter, FirestorePermissionError } from "@/firebase";
 import {
   Briefcase,
   Calendar,
@@ -111,10 +111,12 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { user } = useUser();
 
   const form = useForm<CaregiverFormData>({
     resolver: zodResolver(caregiverFormSchema),
     defaultValues: {
+      uid: user?.uid,
       fullName: "",
       email: "",
       phone: "",
@@ -181,7 +183,7 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
         throw new Error("Firestore is not initialized");
       }
       const colRef = collection(db, "caregiver_profiles");
-      const docRef = await addDoc(colRef, data).catch((serverError) => {
+      const docRef = await addDoc(colRef, { ...data, uid: user?.uid }).catch((serverError) => {
         const permissionError = new FirestorePermissionError({
           path: colRef.path,
           operation: "create",
@@ -247,7 +249,7 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
             {currentStep === 1 && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField control={form.control} name="fullName" render={({ field }) => ( <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="John Doe" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel>Email</FormLabel><FormControl><Input placeholder="you@example.com" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel>Email</FormLabel><FormControl><Input placeholder="you@example.com" {...field} /></FormControl><FormMessage /></FormMessage></FormItem> )} />
                 <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input placeholder="(123) 456-7890" {...field} /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="address" render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Input placeholder="123 Main St" {...field} /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="Anytown" {...field} /></FormControl><FormMessage /></FormItem> )} />
