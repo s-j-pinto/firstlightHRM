@@ -1,0 +1,11 @@
+{
+  "projects": {},
+  "targets": {},
+  "etags": {
+    "firstlighthomecare-hrm": {
+      "extensionInstances": {
+        "firestore-send-email-tg4d": "408da6c0df78c188427f6d6b4adc149dca58e4d309c8a8cc23e19daf70b09eff"
+      }
+    }
+  }
+}

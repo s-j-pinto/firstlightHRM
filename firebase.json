@@ -1,5 +1,8 @@
 {
   "functions": {
     "source": "functions"
+  },
+  "extensions": {
+    "firestore-send-email-tg4d": "firebase/firestore-send-email@0.2.4"
   }
 }
