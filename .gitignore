@@ -45,6 +45,7 @@ firebase-debug.log
 firestore-debug.log
 #env specific firebase project related configurations
 /firebase/config.ts
+/extensions/firestore-send-email
 
 # env
 .env.local
