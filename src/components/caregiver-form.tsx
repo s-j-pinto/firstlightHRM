@@ -6,7 +6,7 @@ import { useForm, type FieldNames } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
 import { addDoc, collection } from "firebase/firestore";
-import { useFirestore, errorEmitter, FirestorePermissionError } from "@/firebase";
+import { useFirestore, useUser, errorEmitter, FirestorePermissionError } from "@/firebase";
 import {
   Briefcase,
   Calendar,
@@ -111,10 +111,12 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { user } = useUser();
 
   const form = useForm<CaregiverFormData>({
     resolver: zodResolver(caregiverFormSchema),
     defaultValues: {
+      uid: user?.uid,
       fullName: "",
       email: "",
       phone: "",
@@ -175,39 +177,28 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
 
   const onSubmit = async (data: CaregiverFormData) => {
     setIsSubmitting(true);
-    try {
-      const db = firestore;
-      if (!db) {
-        throw new Error("Firestore is not initialized");
-      }
-      const colRef = collection(db, "caregiver_profiles");
-      const docRef = await addDoc(colRef, data).catch((serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: colRef.path,
-          operation: "create",
-          requestResourceData: data,
-        });
-        errorEmitter.emit("permission-error", permissionError);
-        throw serverError; // Re-throw to be caught by outer catch
-      });
-
-      // This server action is now only for redirection
-      await submitCaregiverProfile({
-        caregiverId: docRef.id,
-        caregiverName: data.fullName,
-        caregiverEmail: data.email,
-        caregiverPhone: data.phone,
-      });
-    } catch (error) {
-      // This will catch the re-thrown permission error or other errors.
-      toast({
-        variant: "destructive",
-        title: "Submission Failed",
-        description: "An unexpected error occurred. Please try again.",
-      });
-    } finally {
-      setIsSubmitting(false);
+    const db = firestore;
+    if (!db) {
+      throw new Error("Firestore is not initialized");
     }
+    const colRef = collection(db, "caregiver_profiles");
+    const docRef = await addDoc(colRef, { ...data, uid: user?.uid }).catch((serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: colRef.path,
+        operation: "create",
+        requestResourceData: data,
+      });
+      errorEmitter.emit("permission-error", permissionError);
+      throw serverError; // Re-throw to be caught by outer catch
+    });
+    // This server action is now only for redirection
+    await submitCaregiverProfile({
+      caregiverId: docRef.id,
+      caregiverName: data.fullName,
+      caregiverEmail: data.email,
+      caregiverPhone: data.phone,
+    });
+    setIsSubmitting(false);
   };
 
   return (
