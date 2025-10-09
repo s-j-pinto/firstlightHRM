@@ -5,8 +5,8 @@ import './globals.css';
 import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
-  title: 'Caregiver Connect',
-  description: 'Connecting caregivers with opportunities.',
+  title: 'FirstLightHomeCare of Rancho Cucamonga',
+  description: 'HRM application for First-Light Home Care',
 };
 
 export default function RootLayout({
