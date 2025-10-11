@@ -1,12 +1,13 @@
 "use client";
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Calendar, Clock, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 
-export default function ConfirmationPage() {
+function ConfirmationPageContent() {
   const searchParams = useSearchParams();
   const time = searchParams.get('time');
   const appointmentTime = time ? new Date(time) : new Date();
@@ -46,4 +47,12 @@ export default function ConfirmationPage() {
       </Card>
     </main>
   );
+}
+
+export default function ConfirmationPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <ConfirmationPageContent />
+        </Suspense>
+    )
 }
