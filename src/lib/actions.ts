@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { appointmentSchema } from "./types";
-import { serverDb } from "@/firebase/server-init";
 
 // This server action is now only responsible for redirection.
 // The data is already validated and saved by the client.

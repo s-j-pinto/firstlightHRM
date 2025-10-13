@@ -23,10 +23,11 @@ import {
   ScanSearch,
   AlertCircle,
   ExternalLink,
+  Calendar as CalendarIcon,
 } from "lucide-react";
 import Link from 'next/link';
 import { collection } from "firebase/firestore";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { firestore, useCollection, useMemoFirebase } from "@/firebase";
 
 import type { Appointment, CaregiverProfile } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,7 +44,7 @@ import { Badge } from "@/components/ui/badge";
 import { sendCalendarInvite } from "@/lib/google-calendar.actions";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-
+import { EditAppointment } from "@/components/edit-appointment";
 
 type AppointmentWithCaregiver = Appointment & { caregiver?: CaregiverProfile };
 
@@ -88,16 +89,18 @@ const AvailabilityDisplay = ({ availability }: { availability: CaregiverProfile[
 
 export default function AdminDashboard() {
   const [isPending, startTransition] = useTransition();
+  const [pendingInviteId, setPendingInviteId] = useState<string | null>(null);
   const [authUrl, setAuthUrl] = useState<string | null>(null);
   const { toast } = useToast();
-  const firestore = useFirestore();
 
-  const appointmentsRef = useMemoFirebase(() => collection(firestore, 'appointments'), [firestore]);
+  const appointmentsRef = useMemoFirebase(() => collection(firestore, 'appointments'), []);
   const { data: appointmentsData, isLoading: appointmentsLoading } = useCollection<Appointment>(appointmentsRef);
 
-  const caregiverProfilesRef = useMemoFirebase(() => collection(firestore, 'caregiver_profiles'), [firestore]);
+  const caregiverProfilesRef = useMemoFirebase(() => collection(firestore, 'caregiver_profiles'), []);
   const { data: caregiversData, isLoading: caregiversLoading } = useCollection<CaregiverProfile>(caregiverProfilesRef);
   
+  const [editingAppointment, setEditingAppointment] = useState<AppointmentWithCaregiver | null>(null);
+
   const appointments: AppointmentWithCaregiver[] = useMemo(() => {
     if (!appointmentsData || !caregiversData) return [];
     
@@ -118,6 +121,7 @@ export default function AdminDashboard() {
         return;
     }
     startTransition(async () => {
+      setPendingInviteId(appointment.id);
       const result = await sendCalendarInvite(appointment);
 
       if (result.authUrl) {
@@ -129,6 +133,7 @@ export default function AdminDashboard() {
         description: result.message,
         variant: result.error ? "destructive" : "default",
       });
+      setPendingInviteId(null);
     });
   };
 
@@ -184,8 +189,10 @@ export default function AdminDashboard() {
             {format(dayAppointments[0].startTime, "EEEE, MMMM do, yyyy")}
           </h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {dayAppointments.map((appointment) => (
-              <Card key={appointment.id} className="shadow-md hover:shadow-lg transition-shadow">
+            {dayAppointments.map((appointment) => {
+              const isSending = isPending && pendingInviteId === appointment.id;
+              return (
+              <Card key={appointment.id} className={`shadow-md hover:shadow-lg transition-shadow ${appointment.inviteSent ? 'bg-gray-100' : ''}`}>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span className="flex items-center">
@@ -205,7 +212,7 @@ export default function AdminDashboard() {
                     <span>{appointment.caregiver?.phone}</span>
                   </div>
                   <Separator />
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 mt-4">
                     <Dialog>
                       <DialogTrigger asChild>
                         <Button variant="outline" className="w-full">View Profile</Button>
@@ -250,7 +257,7 @@ export default function AdminDashboard() {
                                 <p className="flex items-center gap-2"><FileText className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">TB Test:</span> <BooleanDisplay value={appointment.caregiver.negativeTbTest} /></p>
                                 <p className="flex items-center gap-2"><Stethoscope className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">CPR/First Aid:</span> <BooleanDisplay value={appointment.caregiver.cprFirstAid} /></p>
                                 <p className="flex items-center gap-2"><Biohazard className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">COVID Work:</span> <BooleanDisplay value={appointment.caregiver.canWorkWithCovid} /></p>
-                                <p className="flex items-center gap-2"><Biohazard className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">COVID Vaccine:</span> <BooleanDisplay value={appointment.caregiver.covidVaccine} /></p>
+                                <p className='flex items-center gap-2'><Biohazard className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">COVID Vaccine:</span> <BooleanDisplay value={appointment.caregiver.covidVaccine} /></p>
                             </div>
                             {appointment.caregiver.otherLanguages && <p className="flex items-center gap-2"><Languages className="h-4 w-4 mt-1 text-muted-foreground" /><span className="font-semibold">Other Languages:</span> {appointment.caregiver.otherLanguages}</p>}
                             {appointment.caregiver.otherCertifications && <p><span className="font-semibold">Other:</span> {appointment.caregiver.otherCertifications}</p>}
@@ -269,21 +276,48 @@ export default function AdminDashboard() {
                         )}
                       </DialogContent>
                     </Dialog>
-                    <Button onClick={() => handleSendInvite(appointment)} disabled={isPending} className="w-full bg-accent hover:bg-accent/90">
-                      {isPending ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Send className="mr-2 h-4 w-4" />
-                      )}
-                      Send Invite
+
+                    <Button 
+                      onClick={() => setEditingAppointment(appointment)}
+                      disabled={appointment.inviteSent}
+                      variant="outline" 
+                      className="w-full"
+                    >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        Edit Appointment
                     </Button>
                   </div>
+
+                  <Button 
+                    onClick={() => handleSendInvite(appointment)} 
+                    disabled={isSending || appointment.inviteSent}
+                    className="w-full bg-accent hover:bg-accent/90 disabled:bg-gray-300"
+                  >
+                    {isSending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="mr-2 h-4 w-4" />
+                    )}
+                    {appointment.inviteSent ? 'Invite Sent' : 'Send Invite'}
+                  </Button>
+
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
         </div>
       ))}
+
+      {editingAppointment && (
+        <EditAppointment
+          appointmentId={editingAppointment.id}
+          currentDate={editingAppointment.startTime}
+          currentEndDate={editingAppointment.endTime}
+          isOpen={!!editingAppointment}
+          onClose={() => setEditingAppointment(null)}
+        />
+      )}
     </div>
   );
 }

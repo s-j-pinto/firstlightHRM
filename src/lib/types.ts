@@ -80,6 +80,7 @@ export const appointmentSchema = z.object({
   caregiverPhone: z.string(),
   startTime: z.date(),
   endTime: z.date(),
+  inviteSent: z.boolean().optional(),
 });
 
 export type Appointment = z.infer<typeof appointmentSchema> & { id: string };
