@@ -4,6 +4,7 @@
 import { revalidatePath } from "next/cache";
 import { google } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
+import { getLazyFirestore } from "@/firebase/server-init";
 import type { Appointment } from "./types";
 
 export async function sendCalendarInvite(appointment: Appointment & { caregiver: any }) {
@@ -64,6 +65,12 @@ export async function sendCalendarInvite(appointment: Appointment & { caregiver:
             requestBody: event,
             sendNotifications: true,
         });
+        
+        const firestore = getLazyFirestore();
+        const appointmentRef = firestore.collection('appointments').doc(appointment.id);
+        await appointmentRef.update({ inviteSent: true });
+
+        revalidatePath('/admin');
         
         const resultMessage = `Calendar invite sent to ${appointment.caregiver.fullName}.`;
         return { message: resultMessage };
