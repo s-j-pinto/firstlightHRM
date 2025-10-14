@@ -58,6 +58,12 @@ export default function AdminLayout({
             Dashboard
           </Link>
           <Link
+            href="/admin/reports"
+            className="text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Reports
+          </Link>
+          <Link
             href="/admin/settings"
             className="text-muted-foreground transition-colors hover:text-foreground"
           >
