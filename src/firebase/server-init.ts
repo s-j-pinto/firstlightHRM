@@ -19,16 +19,12 @@ const initializeServerApp = () => {
          // In production, App Default Credentials are used.
         return admin.initializeApp();
     } else {
-        // For local development, explicitly connect to emulators.
-        // Ensure you have the Firebase Emulator Suite running.
-        console.log("Initializing Firebase Admin for local development with emulators.");
-        process.env.FIRESTORE_EMULATOR_HOST = "localhost:8080";
-        process.env.FIREBASE_AUTH_EMULATOR_HOST = "localhost:9099";
-        
+        // For local development, use a service account
+        console.log("Initializing Firebase Admin for local development with service account.");
+        const serviceAccount = require('./service-account.json');
         return admin.initializeApp({
-            projectId: firebaseConfig.projectId,
-            // Using anonymous credentials for local emulator
-            credential: admin.credential.applicationDefault()
+            credential: admin.credential.cert(serviceAccount),
+            databaseURL: `https://${firebaseConfig.projectId}.firebaseio.com`,
         });
     }
 }
