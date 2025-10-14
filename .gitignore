@@ -45,6 +45,8 @@ firebase-debug.log
 firestore-debug.log
 #env specific firebase project related configurations
 /firebase/config.ts
+/src/firebase/service-account.json
+service-account.json
 
 # env
 .env.local
