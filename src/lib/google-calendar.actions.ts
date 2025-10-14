@@ -1,10 +1,9 @@
-
 "use server";
 
 import { revalidatePath } from "next/cache";
 import { google } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
-import { getLazyFirestore } from "@/firebase/server-init";
+import { serverDb } from "@/firebase/server-init";
 import type { Appointment } from "./types";
 
 export async function sendCalendarInvite(appointment: Appointment & { caregiver: any }) {
@@ -38,7 +37,7 @@ export async function sendCalendarInvite(appointment: Appointment & { caregiver:
         const event = {
             summary: `FirstLight Interview with ${appointment.caregiver?.fullName}`,
             location: '9650 Business Center Drive, Suite 132, Rancho Cucamonga, CA',
-            description: `Dear ${appointment.caregiver?.fullName},\nPlease bring the following documents:\n Driver\'s License,\nCar insurance and registration.\nSocial Security card or US passport (to prove your work eligibility, If you are green card holder, bring Green card.)\nCurrent negative TB-Test Copy,\nHCA letter or number,\nlive scan or Clearance letter if you have it.\nCPR-First Aide proof card, Any other certification that you have. \n\nContact Email: ${appointment.caregiver?.email}\nContact Phone: ${appointment.caregiver?.phone}`,
+            description: `Dear ${appointment.caregiver?.fullName},\nPlease bring the following documents:\n Driver's License,\nCar insurance and registration.\nSocial Security card or US passport (to prove your work eligibility, If you are green card holder, bring Green card.)\nCurrent negative TB-Test Copy,\nHCA letter or number,\nlive scan or Clearance letter if you have it.\nCPR-First Aide proof card, Any other certification that you have. \n\nContact Email: ${appointment.caregiver?.email}\nContact Phone: ${appointment.caregiver?.phone}`,
             start: {
                 dateTime: new Date(appointment.startTime).toISOString(),
                 timeZone: 'America/Los_Angeles',
@@ -66,7 +65,7 @@ export async function sendCalendarInvite(appointment: Appointment & { caregiver:
             sendNotifications: true,
         });
         
-        const firestore = getLazyFirestore();
+        const firestore = serverDb;
         const appointmentRef = firestore.collection('appointments').doc(appointment.id);
         await appointmentRef.update({ inviteSent: true });
 
@@ -115,7 +114,7 @@ export async function saveAdminSettings(data: { availability: any, googleAuthCod
     }
     
     // Here you would save the `data.availability` to a database or config file.
-    // For now, we\'ll just log it and return a success message.
+    // For now, we'll just log it and return a success message.
     console.log("Availability settings received:", data.availability);
     
     revalidatePath('/admin/settings');

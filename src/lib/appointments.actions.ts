@@ -1,13 +1,12 @@
-
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getLazyFirestore } from "@/firebase/server-init";
+import { serverDb } from "@/firebase/server-init";
 import type { Appointment } from "./types";
 
 export async function updateAppointment(appointmentId: string, newStartTime: Date, newEndTime: Date) {
     try {
-        const firestore = getLazyFirestore();
+        const firestore = serverDb;
         const appointmentRef = firestore.collection('appointments').doc(appointmentId);
         
         const appointmentDoc = await appointmentRef.get();
@@ -24,9 +23,8 @@ export async function updateAppointment(appointmentId: string, newStartTime: Dat
         revalidatePath('/admin');
 
         return { message: "Appointment updated successfully." };
-
-    } catch (error: any) {
+    } catch (error) {
         console.error("Error updating appointment:", error);
-        return { message: `Failed to update appointment: ${error.message}`, error: true };
+        return { message: "Failed to update appointment.", error: true };
     }
 }

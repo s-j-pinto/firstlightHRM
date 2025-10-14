@@ -1,15 +1,11 @@
-
-import { initializeApp, getApp, getApps, App } from 'firebase-admin/app';
-import { getAuth, Auth } from 'firebase-admin/auth';
-import { getFirestore, Firestore } from 'firebase-admin/firestore';
-import { getStorage, Storage } from 'firebase-admin/storage';
-import { getMessaging, Messaging } from 'firebase-admin/messaging';
+import * as admin from 'firebase-admin';
 
 // IMPORTANT: This file is for server-side use only.
 
 const initializeServerApp = () => {
-    if (admin.apps.length > 0) {
-        return admin.app();
+    // Check if the app is already initialized to prevent errors in hot-reloading environments
+    if (admin.apps.length > 0 && admin.apps[0]) {
+        return admin.apps[0];
     }
 
     // When deployed to App Hosting, GOOGLE_CLOUD_PROJECT is automatically set.
@@ -20,12 +16,22 @@ const initializeServerApp = () => {
         return admin.initializeApp();
     } else {
         // For local development, use a service account
-        console.log("Initializing Firebase Admin for local development with service account.");
-        const serviceAccount = require('./service-account.json');
-        return admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount),
-            databaseURL: `https://${firebaseConfig.projectId}.firebaseio.com`,
-        });
+        try {
+            console.log("Initializing Firebase Admin for local development with service account.");
+            const serviceAccount = require('./service-account.json');
+            return admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount),
+            });
+        } catch (e: any) {
+            if (e.code === 'MODULE_NOT_FOUND') {
+                console.log("Initializing Firebase Admin using Application Default Credentials for local development.");
+                // If service account is not found, fall back to Application Default Credentials
+                // This is useful for local development when `gcloud auth application-default login` is used.
+                 return admin.initializeApp();
+            } else {
+                throw e;
+            }
+        }
     }
 }
 
