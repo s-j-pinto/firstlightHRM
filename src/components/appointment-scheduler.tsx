@@ -1,16 +1,14 @@
-
 "use client";
 
-import { useState, useTransition, useMemo } from "react";
-import { format } from "date-fns";
+import { useState, useTransition, useMemo, useEffect } from "react";
+import { format, parseISO } from "date-fns";
 import { Calendar, Clock, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { collection, addDoc } from "firebase/firestore";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { scheduleAppointment } from "@/lib/actions";
-import { generateAvailableSlots } from "@/lib/availability";
+import { getAvailableSlotsAction } from "@/lib/availability.actions";
 import { useToast } from "@/hooks/use-toast";
 import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
 import type { Appointment } from "@/lib/types";
@@ -23,26 +21,33 @@ interface AppointmentSchedulerProps {
 }
 
 export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmail, caregiverPhone }: AppointmentSchedulerProps) {
-  const [selectedSlot, setSelectedSlot] = useState<Date | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const firestore = useFirestore();
   const router = useRouter();
+  const [availableSlots, setAvailableSlots] = useState<{ date: string, slots: string[] }[]>([]);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(true);
 
   const appointmentsRef = useMemoFirebase(() => collection(firestore, 'appointments'), [firestore]);
   const { data: appointmentsData, isLoading: appointmentsLoading } = useCollection<Appointment>(appointmentsRef);
 
-  const availableSlots = useMemo(() => {
-    if (!appointmentsData) return [];
-    const bookedAppointments = appointmentsData.map(appt => ({
-        ...appt,
-        startTime: (appt.startTime as any).toDate(),
-        endTime: (appt.endTime as any).toDate(),
-    }));
-    return generateAvailableSlots(bookedAppointments, 3);
+  useEffect(() => {
+    if (appointmentsData) {
+        const bookedAppointmentsSerializable = appointmentsData.map(appt => ({
+            ...appt,
+            startTime: (appt.startTime as any).toDate().toISOString(),
+            endTime: (appt.endTime as any).toDate().toISOString(),
+        }));
+        
+        getAvailableSlotsAction(bookedAppointmentsSerializable).then(slots => {
+            setAvailableSlots(slots);
+            setIsLoadingSlots(false);
+        });
+    }
   }, [appointmentsData]);
   
-  const handleSelectSlot = (slot: Date) => {
+  const handleSelectSlot = (slot: string) => {
     setSelectedSlot(slot);
   };
 
@@ -57,13 +62,14 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
     }
     
     startTransition(async () => {
+        const appointmentDate = parseISO(selectedSlot);
         const appointmentData = {
             caregiverId: caregiverId,
             caregiverName: caregiverName,
             caregiverEmail: caregiverEmail, 
             caregiverPhone: caregiverPhone,
-            startTime: selectedSlot,
-            endTime: new Date(selectedSlot.getTime() + 30 * 60 * 1000), // 30 min slot
+            startTime: appointmentDate,
+            endTime: new Date(appointmentDate.getTime() + 60 * 60 * 1000), // 60 min slot
         };
 
         try {
@@ -103,7 +109,7 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {appointmentsLoading ? (
+        {appointmentsLoading || isLoadingSlots ? (
           <div className="flex justify-center items-center h-64">
             <Loader2 className="h-8 w-8 animate-spin text-accent" />
             <p className="ml-4 text-muted-foreground">Loading available times...</p>
@@ -112,21 +118,21 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
           <div className="space-y-6">
             {availableSlots.length > 0 ? (
               availableSlots.map(({ date, slots }) => (
-                <div key={date.toISOString()}>
+                <div key={date}>
                   <h3 className="flex items-center text-lg font-semibold mb-3">
                     <Calendar className="h-5 w-5 mr-2 text-accent" />
-                    {format(date, "EEEE, MMMM do")}
+                    {format(parseISO(date), "EEEE, MMMM do")}
                   </h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                     {slots.map((slot) => (
                       <Button
-                        key={slot.toISOString()}
-                        variant={selectedSlot?.getTime() === slot.getTime() ? "default" : "outline"}
+                        key={slot}
+                        variant={selectedSlot === slot ? "default" : "outline"}
                         onClick={() => handleSelectSlot(slot)}
-                        className={selectedSlot?.getTime() === slot.getTime() ? "bg-primary hover:bg-primary/90" : ""}
+                        className={selectedSlot === slot ? "bg-primary hover:bg-primary/90" : ""}
                       >
                         <Clock className="h-4 w-4 mr-2" />
-                        {format(slot, "h:mm a")}
+                        {format(parseISO(slot), "h:mm a")}
                       </Button>
                     ))}
                   </div>

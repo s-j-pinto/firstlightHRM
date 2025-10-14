@@ -1,51 +1,27 @@
-/**
- * @file Firestore Security Rules
- * @core_philosophy This ruleset enforces a role-based access control model. Caregiver profiles can be read by anyone,
- * but only authenticated users with specific permission can create, update, or delete them.
- * Appointments can be read by anyone, and created, updated, or deleted by authenticated users.
- * @data_structure
- *   - /caregiver_profiles/{caregiverProfileId}: Stores detailed caregiver information.
- *   - /appointments/{appointmentId}: Stores appointment slots for caregiver interviews.
- * @key_security_decisions
- *   - Caregiver profiles are publicly readable to facilitate discovery.
- *   - Secure caregiver profiles write operations to only authenticated users.
- */
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * @description Grants public read access to caregiver profiles and restricts write access to authenticated users only.
-     * @path /caregiver_profiles/{caregiverProfileId}
-     * @allow (get, list): Allows any user (signed in or not) to read caregiver profiles.
-     * @allow (create, update, delete): Allows only authenticated users.
-     * @deny (create, update, delete): Denies unauthenticated users from writing caregiver profiles.
-     * @principle Public read, authenticated-user-only writes.
-     */
-    match /caregiver_profiles/{caregiverProfileId} {
-      allow get, list: if true;
-      allow create: if request.auth.uid == request.resource.data.uid;
-      allow update: if request.auth.uid == request.resource.data.uid;
-      allow delete: if request.auth.uid == request.resource.data.uid;
-    }
-
-    /**
-     * @description Grants read access to appointments and allows authenticated users to create, update or delete them.
-     * @path /appointments/{appointmentId}
-     * @allow (get, list): Allows any user (signed in or not) to read appointment.
-     * @allow (create, update, delete): Allows authenticated users to write appointment.
-     * @deny (create, update, delete): Denies unauthenticated users from writing appointments.
-     * @principle Public read, authenticated-user-only writes.
-     */
-    match /appointments/{appointmentId} {
-      allow get, list: if true;
-      allow create: if true;
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
-    }
-
     function isSignedIn() {
       return request.auth != null;
+    }
+
+    function isAdmin() {
+      return request.auth.token.isAdmin == true;
+    }
+
+    match /caregiver_profiles/{profileId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /appointments/{appointmentId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
   }
 }

@@ -10,6 +10,7 @@ import {
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { useFirebase } from '@/firebase/provider';
 
 /** Utility type to add an 'id' field to a given type T. */
 type WithId<T> = T & { id: string };
@@ -43,12 +44,13 @@ export function useDoc<T = any>(
 ): UseDocResult<T> {
   type StateDataType = WithId<T> | null;
 
+  const { user, isUserLoading } = useFirebase();
   const [data, setData] = useState<StateDataType>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
-    if (!memoizedDocRef) {
+    if (isUserLoading || !memoizedDocRef || !user) {
       setData(null);
       setIsLoading(false);
       setError(null);
@@ -57,10 +59,12 @@ export function useDoc<T = any>(
 
     setIsLoading(true);
     setError(null);
-    // Optional: setData(null); // Clear previous data instantly
+
+    // Capture the docRef for this effect run to avoid closure issues.
+    const docRef = memoizedDocRef;
 
     const unsubscribe = onSnapshot(
-      memoizedDocRef,
+      docRef,
       (snapshot: DocumentSnapshot<DocumentData>) => {
         if (snapshot.exists()) {
           setData({ ...(snapshot.data() as T), id: snapshot.id });
@@ -74,7 +78,7 @@ export function useDoc<T = any>(
       (error: FirestoreError) => {
         const contextualError = new FirestorePermissionError({
           operation: 'get',
-          path: memoizedDocRef.path,
+          path: docRef.path, // Use the stable, captured docRef
         })
 
         setError(contextualError)
@@ -87,7 +91,7 @@ export function useDoc<T = any>(
     );
 
     return () => unsubscribe();
-  }, [memoizedDocRef]); // Re-run if the memoizedDocRef changes.
+  }, [memoizedDocRef, user, isUserLoading]); // Re-run if the memoizedDocRef changes.
 
-  return { data, isLoading, error };
+  return { data, isLoading: isLoading || isUserLoading, error };
 }

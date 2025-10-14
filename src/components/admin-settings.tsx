@@ -17,13 +17,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Terminal, Copy, Check, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { doc, setDoc } from "firebase/firestore";
+import { useFirestore, useFirebase, useMemoFirebase } from "@/firebase";
+import { useDoc } from "@/firebase/firestore/use-doc";
 
 type SettingsFormValues = {
+  sunday_slots: string;
   monday_slots: string;
   tuesday_slots: string;
   wednesday_slots: string;
   thursday_slots: string;
   friday_slots: string;
+  saturday_slots: string;
   googleAuthCode?: string;
 };
 
@@ -33,42 +38,65 @@ export default function AdminSettings() {
   const [hasCopied, setHasCopied] = useState(false);
   const { toast } = useToast();
   const { register, handleSubmit, reset } = useForm<SettingsFormValues>();
+  const firestore = useFirestore();
+  const { isUserLoading: isUserAuthLoading } = useFirebase();
+
+  const settingsDocRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, "settings", "availability") : null),
+    [firestore]
+  );
+
+  const { data: settingsData, isLoading: isSettingsLoading } = useDoc<SettingsFormValues>(settingsDocRef);
 
   useEffect(() => {
-    // In a real app, you would fetch these initial values from a database.
-    // For this example, we'll use hardcoded defaults.
-    reset({
-      monday_slots: "8:30, 9:30, 10:30",
-      tuesday_slots: "8:30, 9:30, 10:30",
-      wednesday_slots: "8:30, 9:30, 10:30",
-      thursday_slots: "13:30, 14:30, 15:30",
-      friday_slots: "13:30, 14:30, 15:30",
-      googleAuthCode: "",
-    });
-  }, [reset]);
+    if (settingsData) {
+      reset(settingsData);
+    } else {
+      reset({
+        sunday_slots: "11:00, 12:00, 13:00, 14:00, 15:00, 16:00",
+        monday_slots: "11:00, 12:00, 13:00, 14:00, 15:00, 16:00",
+        tuesday_slots: "11:00, 12:00, 13:00, 14:00, 15:00, 16:00",
+        wednesday_slots: "11:00, 12:00, 13:00, 14:00, 15:00, 16:00",
+        thursday_slots: "",
+        friday_slots: "",
+        saturday_slots: "",
+        googleAuthCode: "",
+      });
+    }
+  }, [settingsData, reset]);
 
   const onSubmit = (data: SettingsFormValues) => {
     startTransition(async () => {
-      const result = await saveAdminSettings({ 
-        availability: {
-            monday_slots: data.monday_slots,
-            tuesday_slots: data.tuesday_slots,
-            wednesday_slots: data.wednesday_slots,
-            thursday_slots: data.thursday_slots,
-            friday_slots: data.friday_slots,
-        },
-        googleAuthCode: data.googleAuthCode
-      });
-      toast({
-        title: result.error ? "Error" : "Success",
-        description: result.message,
-        variant: result.error ? "destructive" : "default",
-      });
-      // Clear the auth code field after submission
-      reset({ ...data, googleAuthCode: "" });
+      if (!firestore) return;
+      const { googleAuthCode, ...availability } = data;
+      
+      try {
+        await setDoc(doc(firestore, "settings", "availability"), availability, { merge: true });
+        toast({
+          title: "Success",
+          description: "Availability settings have been saved.",
+        });
 
-      if(result.refreshToken) {
-        setRefreshToken(result.refreshToken);
+        if (googleAuthCode) {
+          const result = await saveAdminSettings({ googleAuthCode });
+          toast({
+            title: result.error ? "Error" : "Google Auth",
+            description: result.message,
+            variant: result.error ? "destructive" : "default",
+          });
+          if (result.refreshToken) {
+            setRefreshToken(result.refreshToken);
+          }
+        }
+        
+        reset({ ...data, googleAuthCode: "" });
+
+      } catch (e) {
+        toast({
+          title: "Error",
+          description: "Failed to save settings.",
+          variant: "destructive",
+        });
       }
     });
   };
@@ -80,6 +108,10 @@ export default function AdminSettings() {
       setTimeout(() => setHasCopied(false), 2000);
     }
   };
+  
+  if (isUserAuthLoading || isSettingsLoading) {
+    return <p>Loading...</p>;
+  }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
@@ -91,7 +123,11 @@ export default function AdminSettings() {
               Set the available time slots for each day. Use 24-hour format, separated by commas.
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid md:grid-cols-2 gap-6">
+          <CardContent className="grid md:grid-cols-3 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="sunday_slots">Sunday</Label>
+              <Input id="sunday_slots" {...register("sunday_slots")} />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="monday_slots">Monday</Label>
               <Input id="monday_slots" {...register("monday_slots")} />
@@ -111,6 +147,10 @@ export default function AdminSettings() {
             <div className="space-y-2">
               <Label htmlFor="friday_slots">Friday</Label>
               <Input id="friday_slots" {...register("friday_slots")} />
+            </div>
+             <div className="space-y-2">
+              <Label htmlFor="saturday_slots">Saturday</Label>
+              <Input id="saturday_slots" {...register("saturday_slots")} />
             </div>
           </CardContent>
         </Card>
@@ -150,7 +190,7 @@ export default function AdminSettings() {
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Important: Configure Redirect URI</AlertTitle>
           <AlertDescription>
-            For Google OAuth to work, your app must be running on the expected redirect URI. For this example, that is `https://9000-firebase-studio-1759770880601.cluster-cxy3ise3prdrmx53pigwexthgs.cloudworkstations.dev/admin/settings`. You must also add this exact URI to the "Authorized redirect URIs" list in your Google Cloud project credentials.
+             For Google OAuth to work, your app must be running on the expected redirect URI. You must also add this exact URI to the "Authorized redirect URIs" list in your Google Cloud project credentials.
           </AlertDescription>
         </Alert>
 

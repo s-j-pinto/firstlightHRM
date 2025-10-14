@@ -2,6 +2,9 @@
   "functions": {
     "source": "functions"
   },
+  "firestore": {
+    "rules": "firestore.rules"
+  },
   "extensions": {
     "firestore-send-email-tg4d": "firebase/firestore-send-email@0.2.4"
   }
