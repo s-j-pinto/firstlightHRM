@@ -81,6 +81,9 @@ export const appointmentSchema = z.object({
   startTime: z.date(),
   endTime: z.date(),
   inviteSent: z.boolean().optional(),
+  appointmentStatus: z.string().optional(),
+  cancelReason: z.string().optional(),
+  cancelDateTime: z.date().optional(),
 });
 
 export type Appointment = z.infer<typeof appointmentSchema> & { id: string };

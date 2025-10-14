@@ -106,7 +106,11 @@ export default function AdminDashboard() {
     
     const caregiversMap = new Map(caregiversData.map(c => [c.id, c]));
 
-    return appointmentsData.map(appt => ({
+    const activeAppointments = appointmentsData.filter(
+        (appt) => appt.appointmentStatus !== "cancelled"
+    );
+
+    return activeAppointments.map(appt => ({
       ...appt,
       startTime: (appt.startTime as any).toDate(), // Convert Firestore Timestamp to Date
       endTime: (appt.endTime as any).toDate(),
