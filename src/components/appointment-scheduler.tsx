@@ -3,7 +3,7 @@
 
 import { useState, useTransition, useEffect, useMemo } from "react";
 import { format, parse, isBefore, set } from "date-fns";
-import { zonedTimeToUtc, utcToZonedTime, formatInTimeZone } from "date-fns-tz";
+import { fromZonedTime, toZonedTime, formatInTimeZone } from "date-fns-tz";
 import { Calendar, Clock, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
@@ -80,7 +80,7 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
     
     startTransition(async () => {
         // Parse the local time string into a Date object, specifying the intended timezone
-        const appointmentDate = zonedTimeToUtc(selectedSlot, pacificTimeZone);
+        const appointmentDate = fromZonedTime(selectedSlot, pacificTimeZone);
 
         const appointmentData = {
             caregiverId: caregiverId,
