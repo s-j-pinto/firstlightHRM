@@ -1,7 +1,7 @@
 
 "use server";
 
-import { addDays, getDay, set, isBefore, parse, formatISO } from 'date-fns';
+import { addDays, getDay, set, isBefore, parse, format } from 'date-fns';
 import { serverDb } from "@/firebase/server-init";
 
 const dayNameToIndex: { [key: string]: number } = {
@@ -86,13 +86,14 @@ async function generateConfiguredSlots(weeksToCheck: number = 3): Promise<{ date
         });
 
         if (isBefore(new Date(), combinedDateTime)) {
-          daySlots.push(formatISO(combinedDateTime));
+          // Format as a simple string that can be reconstructed on the client
+          daySlots.push(format(combinedDateTime, "yyyy-MM-dd HH:mm"));
         }
       });
       
       if (daySlots.length > 0) {
         availableSlots.push({
-          date: formatISO(currentDate).slice(0, 10),
+          date: format(currentDate, "yyyy-MM-dd"),
           slots: daySlots,
         });
       }

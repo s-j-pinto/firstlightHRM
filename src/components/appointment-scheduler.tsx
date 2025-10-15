@@ -2,10 +2,11 @@
 "use client";
 
 import { useState, useTransition, useEffect, useMemo } from "react";
-import { format, parseISO, isBefore, set } from "date-fns";
+import { format, parse, isBefore, set } from "date-fns";
+import { zonedTimeToUtc, utcToZonedTime, formatInTimeZone } from "date-fns-tz";
 import { Calendar, Clock, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { collection, addDoc } from "firebase/firestore";
+import { collection, addDoc, Timestamp } from "firebase/firestore";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,8 @@ interface AppointmentSchedulerProps {
   caregiverPhone: string;
 }
 
+const pacificTimeZone = "America/Los_Angeles";
+
 export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmail, caregiverPhone }: AppointmentSchedulerProps) {
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -31,7 +34,7 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
   const [configuredSlots, setConfiguredSlots] = useState<{ date: string, slots: string[] }[]>([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState(true);
 
-  const appointmentsRef = useMemoFirebase(() => collection(firestore, 'appointments'), []);
+  const appointmentsRef = useMemoFirebase(() => db ? collection(db, 'appointments') : null, [db]);
   const { data: appointmentsData, isLoading: appointmentsLoading } = useCollection<Appointment>(appointmentsRef);
 
   useEffect(() => {
@@ -47,14 +50,15 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
     const bookedTimes = new Set(
       appointmentsData
         .filter(appt => appt.appointmentStatus !== 'cancelled')
-        .map(appt => (appt.startTime as any).toDate().getTime())
+        .map(appt => {
+          // Convert Firestore Timestamp to JS Date, then to a specific timezone string
+          const date = (appt.startTime as any).toDate();
+          return formatInTimeZone(date, pacificTimeZone, "yyyy-MM-dd HH:mm");
+        })
     );
-
+    
     return configuredSlots.map(day => {
-        const filteredSlots = day.slots.filter(slot => {
-            const slotTime = parseISO(slot).getTime();
-            return !bookedTimes.has(slotTime);
-        });
+        const filteredSlots = day.slots.filter(slotStr => !bookedTimes.has(slotStr));
         return { ...day, slots: filteredSlots };
     }).filter(day => day.slots.length > 0);
 
@@ -75,14 +79,16 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
     }
     
     startTransition(async () => {
-        const appointmentDate = parseISO(selectedSlot);
+        // Parse the local time string into a Date object, specifying the intended timezone
+        const appointmentDate = zonedTimeToUtc(selectedSlot, pacificTimeZone);
+
         const appointmentData = {
             caregiverId: caregiverId,
             caregiverName: caregiverName,
             caregiverEmail: caregiverEmail, 
             caregiverPhone: caregiverPhone,
-            startTime: appointmentDate,
-            endTime: new Date(appointmentDate.getTime() + 60 * 60 * 1000), // 60 min slot
+            startTime: Timestamp.fromDate(appointmentDate),
+            endTime: Timestamp.fromDate(new Date(appointmentDate.getTime() + 60 * 60 * 1000)), // 60 min slot
         };
 
         try {
@@ -98,7 +104,7 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
                 throw serverError;
             });
 
-            const redirectUrl = `/confirmation?time=${appointmentData.startTime.toISOString()}`;
+            const redirectUrl = `/confirmation?time=${appointmentDate.toISOString()}`;
             router.push(redirectUrl);
 
         } catch (error) {
@@ -134,7 +140,7 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
                 <div key={date}>
                   <h3 className="flex items-center text-lg font-semibold mb-3">
                     <Calendar className="h-5 w-5 mr-2 text-accent" />
-                    {format(parseISO(date), "EEEE, MMMM do")}
+                    {format(parse(date, "yyyy-MM-dd", new Date()), "EEEE, MMMM do")}
                   </h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                     {slots.map((slot) => (
@@ -145,7 +151,7 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
                         className={selectedSlot === slot ? "bg-primary hover:bg-primary/90" : ""}
                       >
                         <Clock className="h-4 w-4 mr-2" />
-                        {format(parseISO(slot), "h:mm a")}
+                        {format(parse(slot, "yyyy-MM-dd HH:mm", new Date()), "h:mm a")}
                       </Button>
                     ))}
                   </div>
