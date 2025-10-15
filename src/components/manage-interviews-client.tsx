@@ -5,8 +5,8 @@ import { useState, useMemo, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { firestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
+import { firestore, useCollection, useMemoFirebase, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
 import type { CaregiverProfile } from '@/lib/types';
 import { saveInterviewAndSchedule } from '@/lib/interviews.actions';
 import { generateInterviewInsights, type InterviewInsightsOutput } from '@/ai/flows/interview-insights-flow';
@@ -65,6 +65,7 @@ export default function ManageInterviewsClient() {
   const [isSearching, startSearchTransition] = useTransition();
   const [isSubmitting, startSubmitTransition] = useTransition();
   const { toast } = useToast();
+  const { user } = useUser();
 
   const caregiverProfilesRef = useMemoFirebase(() => collection(firestore, 'caregiver_profiles'), []);
   const { data: allCaregivers, isLoading: caregiversLoading } = useCollection<CaregiverProfile>(caregiverProfilesRef);
@@ -123,51 +124,82 @@ export default function ManageInterviewsClient() {
     }
 
     startAiTransition(async () => {
-      const result = await generateInterviewInsights({
-        caregiverProfile: selectedCaregiver,
-        interviewNotes,
-        candidateRating,
-      });
-      setAiInsight(result.aiGeneratedInsight);
+      try {
+        const result = await generateInterviewInsights({
+            caregiverProfile: selectedCaregiver,
+            interviewNotes,
+            candidateRating,
+        });
+        setAiInsight(result.aiGeneratedInsight);
+      } catch (e) {
+        toast({ title: "AI Error", description: "Failed to generate AI insights.", variant: "destructive"});
+      }
     });
   };
   
   const onSubmit = (data: InterviewFormData) => {
-    if (!selectedCaregiver) return;
+    if (!selectedCaregiver || !firestore) return;
 
     startSubmitTransition(async () => {
-        let inPersonDateTime: Date | undefined = undefined;
-        if (data.phoneScreenPassed === 'Yes' && data.inPersonDate && data.inPersonTime) {
+      try {
+        // Step 1: Save interview data to Firestore from the client
+        const interviewDocData = {
+          caregiverProfileId: selectedCaregiver.id,
+          caregiverUid: selectedCaregiver.uid,
+          interviewDateTime: new Date(),
+          interviewType: 'Phone',
+          interviewNotes: data.interviewNotes,
+          candidateRating: data.candidateRating,
+          phoneScreenPassed: data.phoneScreenPassed,
+          aiGeneratedInsight: aiInsight,
+        };
+        const colRef = collection(firestore, "interviews");
+        await addDoc(colRef, interviewDocData).catch((serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: colRef.path,
+                operation: 'create',
+                requestResourceData: interviewDocData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            throw serverError; // Re-throw to be caught by outer catch
+        });
+        
+        toast({ title: "Success", description: "Phone interview results saved." });
+
+        // Step 2: If passed, call server action to schedule in-person interview
+        if (data.phoneScreenPassed === 'Yes') {
+          if (data.inPersonDate && data.inPersonTime) {
             const [hours, minutes] = data.inPersonTime.split(':').map(Number);
-            inPersonDateTime = setMinutes(setHours(data.inPersonDate, hours), minutes);
-        } else if (data.phoneScreenPassed === 'Yes' && (!data.inPersonDate || !data.inPersonTime)) {
+            const inPersonDateTime = setMinutes(setHours(data.inPersonDate, hours), minutes);
+
+            const result = await saveInterviewAndSchedule({
+              caregiverProfile: selectedCaregiver,
+              inPersonDateTime: inPersonDateTime,
+            });
+
+            if (result.error) {
+              toast({ title: "Calendar Error", description: result.message, variant: "destructive" });
+            } else {
+              toast({ title: "Success", description: result.message });
+            }
+          } else {
             toast({
                 title: "Incomplete Information",
                 description: "Please select a date and time for the in-person interview.",
                 variant: "destructive"
             });
-            return;
+            return; // Don't reset the form yet
+          }
         }
+        
+        // Reset form on success
+        setSelectedCaregiver(null);
+        setAiInsight(null);
+        form.reset();
 
-        const result = await saveInterviewAndSchedule({
-            caregiverProfile: selectedCaregiver,
-            interviewData: {
-                interviewNotes: data.interviewNotes,
-                candidateRating: data.candidateRating,
-                phoneScreenPassed: data.phoneScreenPassed,
-                aiGeneratedInsight: aiInsight,
-            },
-            inPersonDateTime: inPersonDateTime,
-        });
-
-        if (result.error) {
-            toast({ title: "Error", description: result.message, variant: "destructive" });
-        } else {
-            toast({ title: "Success", description: result.message });
-            setSelectedCaregiver(null);
-            setAiInsight(null);
-            form.reset();
-        }
+      } catch (error) {
+        toast({ title: "Error", description: "Failed to save interview data.", variant: "destructive" });
+      }
     });
   };
 
@@ -357,3 +389,5 @@ export default function ManageInterviewsClient() {
     </div>
   );
 }
+
+    
