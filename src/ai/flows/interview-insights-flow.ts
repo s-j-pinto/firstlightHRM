@@ -20,8 +20,7 @@ const InterviewInsightsInputSchema = z.object({
 export type InterviewInsightsInput = z.infer<typeof InterviewInsightsInputSchema>;
 
 const InterviewInsightsOutputSchema = z.object({
-  summary: z.string().describe('A concise summary of the candidate, their experience, and the interview, up to 200 words.'),
-  recommendation: z.string().describe('A clear hiring recommendation (e.g., "Recommend for in-person interview," "Proceed with caution," "Do not recommend"). Provide a brief justification.'),
+  aiGeneratedInsight: z.string().describe('A concise summary of the candidate (max 200 words), followed by a clear hiring recommendation (e.g., "Recommend for in-person interview," "Proceed with caution," "Do not recommend") with a brief justification.'),
 });
 export type InterviewInsightsOutput = z.infer<typeof InterviewInsightsOutputSchema>;
 
@@ -33,7 +32,7 @@ const prompt = ai.definePrompt({
   name: 'interviewInsightsPrompt',
   input: { schema: InterviewInsightsInputSchema },
   output: { schema: InterviewInsightsOutputSchema },
-  prompt: `You are an expert HR assistant for a home care agency. Your task is to analyze a caregiver candidate's profile and the notes from their phone screen to provide a summary and a hiring recommendation.
+  prompt: `You are an expert HR assistant for a home care agency. Your task is to analyze a caregiver candidate's profile and the notes from their phone screen to provide a single, combined insight containing a summary and a hiring recommendation.
 
 Analyze the following information:
 
@@ -60,11 +59,18 @@ Analyze the following information:
 - Notes:
 {{{interviewNotes}}}
 
-**Your Tasks:**
+**Your Task:**
 
-1.  **Summary:** Based on all the information, write a concise professional summary of the candidate. Highlight their key strengths, potential weaknesses, and alignment with a caregiver role. The summary must be a maximum of 200 words.
+Generate a single string for the 'aiGeneratedInsight' field. This string should contain two parts:
 
-2.  **Recommendation:** Provide a clear, actionable hiring recommendation. Choose from "Recommend for in-person interview," "Proceed with caution," or "Do not recommend." Justify your choice with 1-2 key reasons based on the provided data.
+1.  **Summary:** First, write a concise professional summary of the candidate. Highlight their key strengths, potential weaknesses, and alignment with a caregiver role. The summary must be a maximum of 200 words.
+
+2.  **Recommendation:** After the summary, add two new lines, then provide a clear, actionable hiring recommendation. Start this part with "Recommendation:". Choose from "Recommend for in-person interview," "Proceed with caution," or "Do not recommend." Justify your choice with 1-2 key reasons based on the provided data.
+
+Example format:
+[Summary of the candidate...]
+
+Recommendation: [Your recommendation and justification...]
 `,
 });
 

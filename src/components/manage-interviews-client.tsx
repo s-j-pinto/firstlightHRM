@@ -60,7 +60,7 @@ export default function ManageInterviewsClient() {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<CaregiverProfile[]>([]);
   const [selectedCaregiver, setSelectedCaregiver] = useState<CaregiverProfile | null>(null);
-  const [aiInsights, setAiInsights] = useState<InterviewInsightsOutput | null>(null);
+  const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [isAiPending, startAiTransition] = useTransition();
   const [isSearching, startSearchTransition] = useTransition();
   const [isSubmitting, startSubmitTransition] = useTransition();
@@ -99,7 +99,7 @@ export default function ManageInterviewsClient() {
     setSelectedCaregiver(caregiver);
     setSearchResults([]);
     setSearchTerm('');
-    setAiInsights(null);
+    setAiInsight(null);
     form.reset({
       interviewNotes: '',
       candidateRating: 3,
@@ -128,7 +128,7 @@ export default function ManageInterviewsClient() {
         interviewNotes,
         candidateRating,
       });
-      setAiInsights(result);
+      setAiInsight(result.aiGeneratedInsight);
     });
   };
   
@@ -155,8 +155,7 @@ export default function ManageInterviewsClient() {
                 interviewNotes: data.interviewNotes,
                 candidateRating: data.candidateRating,
                 phoneScreenPassed: data.phoneScreenPassed,
-                aiSummary: aiInsights?.summary,
-                aiRecommendation: aiInsights?.recommendation,
+                aiGeneratedInsight: aiInsight,
             },
             inPersonDateTime: inPersonDateTime,
         });
@@ -166,7 +165,7 @@ export default function ManageInterviewsClient() {
         } else {
             toast({ title: "Success", description: result.message });
             setSelectedCaregiver(null);
-            setAiInsights(null);
+            setAiInsight(null);
             form.reset();
         }
     });
@@ -269,19 +268,12 @@ export default function ManageInterviewsClient() {
                           <p className="text-sm text-center text-muted-foreground">The AI is analyzing the profile, please wait...</p>
                         )}
 
-                        {aiInsights && (
+                        {aiInsight && (
                           <Alert>
                             <Sparkles className="h-4 w-4" />
-                            <AlertTitle>AI-Generated Insights</AlertTitle>
-                            <AlertDescription className="space-y-4 mt-2">
-                               <div>
-                                  <h4 className="font-semibold mb-1">AI Summary</h4>
-                                  <p className='text-sm text-foreground'>{aiInsights.summary}</p>
-                               </div>
-                               <div>
-                                  <h4 className="font-semibold mb-1">AI Recommendation</h4>
-                                   <p className='text-sm text-foreground'>{aiInsights.recommendation}</p>
-                               </div>
+                            <AlertTitle>AI-Generated Insight</AlertTitle>
+                            <AlertDescription className="space-y-4 mt-2 whitespace-pre-wrap">
+                               <p className='text-sm text-foreground'>{aiInsight}</p>
                             </AlertDescription>
                           </Alert>
                         )}

@@ -13,8 +13,7 @@ interface SaveInterviewPayload {
     interviewNotes?: string;
     candidateRating: number;
     phoneScreenPassed: 'Yes' | 'No';
-    aiSummary?: string;
-    aiRecommendation?: string;
+    aiGeneratedInsight?: string | null;
   };
   inPersonDateTime?: Date;
 }
@@ -34,8 +33,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
       interviewNotes: interviewData.interviewNotes,
       candidateRating: interviewData.candidateRating,
       phoneScreenPassed: interviewData.phoneScreenPassed,
-      aiSummary: interviewData.aiSummary,
-      aiRecommendation: interviewData.aiRecommendation,
+      aiGeneratedInsight: interviewData.aiGeneratedInsight,
     });
     
     revalidatePath('/admin/manage-interviews');
@@ -55,7 +53,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
         const oAuth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
         oAuth2Client.setCredentials({ refresh_token: refreshToken });
 
-        const calendar = google.calendar({ version: 'v3', auth: oAuth2Clien });
+        const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
         
         const startTime = inPersonDateTime;
         const endTime = new Date(startTime.getTime() + 2.5 * 60 * 60 * 1000); // 2.5 hours interview
