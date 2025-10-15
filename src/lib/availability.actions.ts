@@ -3,7 +3,6 @@
 
 import { addDays, getDay, set, isBefore, parse, formatISO } from 'date-fns';
 import { serverDb } from "@/firebase/server-init";
-import type { Appointment } from './types';
 
 const dayNameToIndex: { [key: string]: number } = {
   sunday: 0,
@@ -67,13 +66,9 @@ async function getInterviewSlots(): Promise<{ [key: number]: Date[] }> {
 }
 
 
-async function generateAvailableSlots(
-  bookedAppointments: Appointment[],
-  weeksToCheck: number = 3
-): Promise<{ date: string, slots: string[] }[]> {
+async function generateConfiguredSlots(weeksToCheck: number = 3): Promise<{ date: string, slots: string[] }[]> {
   const availableSlots: { date: string, slots: string[] }[] = [];
   const today = new Date();
-  const bookedTimes = new Set(bookedAppointments.map(a => a.startTime.getTime()));
   const interviewSlotsByDay = await getInterviewSlots();
 
   for (let i = 0; i < weeksToCheck * 7; i++) {
@@ -90,7 +85,7 @@ async function generateAvailableSlots(
             milliseconds: 0 
         });
 
-        if (isBefore(new Date(), combinedDateTime) && !bookedTimes.has(combinedDateTime.getTime())) {
+        if (isBefore(new Date(), combinedDateTime)) {
           daySlots.push(formatISO(combinedDateTime));
         }
       });
@@ -108,18 +103,6 @@ async function generateAvailableSlots(
 }
 
 export async function getAvailableSlotsAction() {
-    const appointmentsSnapshot = await serverDb.collection("appointments").get();
-    const bookedAppointments: Appointment[] = appointmentsSnapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-            ...data,
-            id: doc.id,
-            startTime: data.startTime.toDate(),
-            endTime: data.endTime.toDate(),
-        } as Appointment;
-    }).filter(appt => appt.appointmentStatus !== "cancelled");
-
-
-    const availableSlots = await generateAvailableSlots(bookedAppointments, 3);
-    return availableSlots;
+    const configuredSlots = await generateConfiguredSlots(3);
+    return configuredSlots;
 }

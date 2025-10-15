@@ -1,8 +1,8 @@
 
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
-import { format, parseISO } from "date-fns";
+import { useState, useTransition, useEffect, useMemo } from "react";
+import { format, parseISO, isBefore, set } from "date-fns";
 import { Calendar, Clock, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { collection, addDoc } from "firebase/firestore";
@@ -11,7 +11,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { getAvailableSlotsAction } from "@/lib/availability.actions";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore, errorEmitter, FirestorePermissionError } from "@/firebase";
+import { firestore, useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
+import type { Appointment } from "@/lib/types";
 
 interface AppointmentSchedulerProps {
   caregiverId: string;
@@ -24,17 +25,40 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
-  const firestore = useFirestore();
+  const db = useFirestore();
   const router = useRouter();
-  const [availableSlots, setAvailableSlots] = useState<{ date: string, slots: string[] }[]>([]);
+  
+  const [configuredSlots, setConfiguredSlots] = useState<{ date: string, slots: string[] }[]>([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState(true);
+
+  const appointmentsRef = useMemoFirebase(() => collection(firestore, 'appointments'), []);
+  const { data: appointmentsData, isLoading: appointmentsLoading } = useCollection<Appointment>(appointmentsRef);
 
   useEffect(() => {
     getAvailableSlotsAction().then(slots => {
-        setAvailableSlots(slots);
-        setIsLoadingSlots(false);
+      setConfiguredSlots(slots);
+      setIsLoadingSlots(false);
     });
   }, []);
+
+  const availableSlots = useMemo(() => {
+    if (!configuredSlots || !appointmentsData) return [];
+
+    const bookedTimes = new Set(
+      appointmentsData
+        .filter(appt => appt.appointmentStatus !== 'cancelled')
+        .map(appt => (appt.startTime as any).toDate().getTime())
+    );
+
+    return configuredSlots.map(day => {
+        const filteredSlots = day.slots.filter(slot => {
+            const slotTime = parseISO(slot).getTime();
+            return !bookedTimes.has(slotTime);
+        });
+        return { ...day, slots: filteredSlots };
+    }).filter(day => day.slots.length > 0);
+
+  }, [configuredSlots, appointmentsData]);
   
   const handleSelectSlot = (slot: string) => {
     setSelectedSlot(slot);
@@ -62,7 +86,6 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
         };
 
         try {
-            const db = firestore;
             if (!db) throw new Error("Firestore not initialized");
             const colRef = collection(db, "appointments");
             await addDoc(colRef, appointmentData).catch((serverError) => {
@@ -75,7 +98,6 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
                 throw serverError;
             });
 
-            // Redirect on success
             const redirectUrl = `/confirmation?time=${appointmentData.startTime.toISOString()}`;
             router.push(redirectUrl);
 
@@ -89,6 +111,8 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
     });
   };
   
+  const isLoading = isLoadingSlots || appointmentsLoading;
+
   return (
     <Card className="w-full max-w-4xl mx-auto my-8 animate-in fade-in-50 duration-500 shadow-lg">
       <CardHeader>
@@ -98,7 +122,7 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {isLoadingSlots ? (
+        {isLoading ? (
           <div className="flex justify-center items-center h-64">
             <Loader2 className="h-8 w-8 animate-spin text-accent" />
             <p className="ml-4 text-muted-foreground">Loading available times...</p>
