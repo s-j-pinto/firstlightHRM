@@ -30,7 +30,6 @@ import {
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Search } from "lucide-react";
-import { revalidatePath } from "next/cache";
 
 type GeneralInfoFormData = z.infer<typeof generalInfoSchema>;
 
@@ -95,13 +94,11 @@ export default function ManageApplicationsClient() {
         
         toast({
           title: "Success",
-          description: "Caregiver profile updated successfully.",
+          description: "Caregiver profile update initiated.",
         });
         
-        // This is a client component, so we can't use server-side revalidation directly.
-        // We will rely on the real-time updates from useCollection or manual refetching.
-        // Or trigger a server action whose only job is to revalidate.
-        // For now, let's just clear the form.
+        // The UI will update via real-time listener.
+        // We'll clear the selection to allow a new search.
         setSelectedCaregiver(null);
 
       } catch (error) {
