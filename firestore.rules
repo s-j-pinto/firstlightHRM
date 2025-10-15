@@ -1,27 +1,39 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isAdmin() {
-      return request.auth.token.isAdmin == true;
-    }
-
+    
+    // Allow anonymous users to create their own caregiver profile
     match /caregiver_profiles/{profileId} {
-      allow read, write: if isSignedIn();
+      allow create: if request.auth != null;
+      allow read, update: if request.auth != null && request.auth.uid == resource.data.uid;
+      // Admins (any authenticated user that is not anonymous) can read any profile
+      allow get: if request.auth != null && request.auth.token.firebase.sign_in_provider != "anonymous";
+      allow list: if request.auth != null && request.auth.token.firebase.sign_in_provider != "anonymous";
     }
 
+    // Allow anonymous users to create appointments for themselves
     match /appointments/{appointmentId} {
-      allow read, write: if isSignedIn();
+      allow create: if request.auth != null;
+      // Allow any authenticated (non-anonymous) user to read/write all appointments for the admin dashboard
+      allow read, write: if request.auth != null && request.auth.token.firebase.sign_in_provider != "anonymous";
     }
 
-    match /settings/{settingId} {
-      allow read: if true;
-      allow write: if isAdmin();
+    // Allow admins to manage interview settings
+    match /settings/availability {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null && request.auth.token.firebase.sign_in_provider != "anonymous";
+    }
+
+    // Allow admins to manage interview records
+    match /interviews/{interviewId} {
+      allow read, write: if request.auth != null && request.auth.token.firebase.sign_in_provider != "anonymous";
+    }
+
+    // Allow admins to manage the mail queue for sending emails
+    match /mail/{emailId} {
+        allow read, write: if request.auth != null && request.auth.token.firebase.sign_in_provider != "anonymous";
     }
   }
 }

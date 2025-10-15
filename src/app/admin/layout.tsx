@@ -58,6 +58,12 @@ export default function AdminLayout({
             Dashboard
           </Link>
           <Link
+            href="/admin/manage-interviews"
+            className="text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Manage Interviews
+          </Link>
+          <Link
             href="/admin/reports"
             className="text-muted-foreground transition-colors hover:text-foreground"
           >

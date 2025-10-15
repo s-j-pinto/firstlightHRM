@@ -87,3 +87,15 @@ export const appointmentSchema = z.object({
 });
 
 export type Appointment = z.infer<typeof appointmentSchema> & { id: string };
+
+export const interviewSchema = z.object({
+  caregiverProfileId: z.string(),
+  caregiverUid: z.string().optional(),
+  interviewDateTime: z.date(),
+  interviewType: z.enum(["Phone", "In-Person"]),
+  interviewNotes: z.string().optional(),
+  candidateRating: z.number().min(0).max(5),
+  phoneScreenPassed: z.enum(["Yes", "No", "N/A"]),
+});
+
+export type Interview = z.infer<typeof interviewSchema> & { id: string };

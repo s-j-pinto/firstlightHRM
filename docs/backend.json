@@ -91,6 +91,27 @@
         "startTime",
         "endTime"
       ]
+    },
+    "Interview": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Interview",
+      "type": "object",
+      "description": "Stores details about a caregiver interview session.",
+      "properties": {
+        "caregiverProfileId": { "type": "string" },
+        "caregiverUid": { "type": "string" },
+        "interviewDateTime": { "type": "string", "format": "date-time" },
+        "interviewType": { "type": "string", "enum": ["Phone", "In-Person"] },
+        "interviewNotes": { "type": "string" },
+        "candidateRating": { "type": "number", "minimum": 0, "maximum": 5 },
+        "phoneScreenPassed": { "type": "string", "enum": ["Yes", "No", "N/A"] }
+      },
+      "required": [
+        "caregiverProfileId",
+        "interviewDateTime",
+        "interviewType",
+        "phoneScreenPassed"
+      ]
     }
   },
   "auth": {
@@ -107,6 +128,10 @@
     "/appointments/{appointmentId}": {
       "schema": { "$ref": "#/entities/AppointmentSlot" },
       "description": "Stores appointment slots for interviews."
+    },
+    "/interviews/{interviewId}": {
+        "schema": { "$ref": "#/entities/Interview" },
+        "description": "Stores details of an interview conducted with a caregiver."
     }
   }
 }
