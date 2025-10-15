@@ -72,8 +72,11 @@ export default function ManageInterviewsClient() {
   const form = useForm<InterviewFormData>({
     resolver: zodResolver(interviewFormSchema),
     defaultValues: {
+      interviewNotes: '',
       candidateRating: 3,
       phoneScreenPassed: 'No',
+      inPersonDate: undefined,
+      inPersonTime: '',
     },
   });
 
@@ -97,7 +100,13 @@ export default function ManageInterviewsClient() {
     setSearchResults([]);
     setSearchTerm('');
     setAiInsights(null);
-    form.reset();
+    form.reset({
+      interviewNotes: '',
+      candidateRating: 3,
+      phoneScreenPassed: 'No',
+      inPersonDate: undefined,
+      inPersonTime: '',
+    });
   };
 
   const handleGenerateInsights = () => {
