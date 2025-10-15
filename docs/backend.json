@@ -124,7 +124,6 @@
         "interviewId": { "type": "string" },
         "inPersonInterviewDate": { "type": "string", "format": "date-time" },
         "hireDate": { "type": "string", "format": "date-time" },
-        "hireTime": { "type": "string", "format": "time" },
         "hiringComments": { "type": "string" },
         "hiringManager": { "type": "string" },
         "startDate": { "type": "string", "format": "date-time" }

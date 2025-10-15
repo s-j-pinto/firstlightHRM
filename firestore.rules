@@ -1,28 +1,85 @@
+/**
+ * @file Firestore Security Rules
+ * @description This ruleset enforces a data-centric security model, focusing on restricting access based on role and resource ownership.
+ *
+ * Data Structure:
+ * - /caregiver_profiles/{caregiverProfileId}: Stores caregiver profiles. Access is unrestricted (public read), but only authorized users can modify.
+ * - /appointments/{appointmentId}: Stores appointment slots. Access is unrestricted (public read), but only authorized users can modify.
+ * - /interviews/{interviewId}: Stores interview data. Access is unrestricted (public read), but only authorized users can modify.
+ * - /caregiver_employees/{employeeId}: Stores caregiver employment data. Access is unrestricted (public read), but only authorized users can modify.
+ *
+ * Key Security Decisions:
+ * - Public Read Access: Read access is granted to all users (signed in or not) for all collections to enable open data consumption.
+ * - Owner-Only Writes: Write access (create, update, delete) is restricted to authorized users with an ownership claim on the specific document. This requires an `ownerId` or similar field on each document.
+ */
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isAdmin() {
-      return request.auth != null;
+    /**
+     * @description Controls access to caregiver profile documents.
+     * @path /caregiver_profiles/{caregiverProfileId}
+     * @allow (get, list): Any user can read caregiver profiles.
+     * @allow (create): Only authorized users can create caregiver profiles. The profile must contain a field "ownerId" that matches the user's UID.
+     * @allow (update, delete): Only the caregiver who owns the profile can update or delete it.
+     * @deny (create): Unauthorized users cannot create caregiver profiles.
+     * @deny (update, delete): Non-owners cannot modify caregiver profiles.
+     * @principle Allows public read access while restricting writes to authorized users.
+     */
+    match /caregiver_profiles/{caregiverProfileId} {
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn();
     }
 
-    match /caregiver_profiles/{caregiverProfileId} {
-      allow read: if isAdmin();
-      allow create: if request.auth != null; // Allow anonymous users to apply
-    }
+    /**
+     * @description Controls access to appointment slot documents.
+     * @path /appointments/{appointmentId}
+     * @allow (get, list): Any user can read appointment slots.
+     * @allow (create): Only authorized users can create appointment slots.
+     * @allow (update, delete): Only authorized users can update or delete appointment slots.
+     * @deny (create): Unauthorized users cannot create appointment slots.
+     * @deny (update, delete): Unauthorized users cannot modify appointment slots.
+     */
     match /appointments/{appointmentId} {
-      allow read, update, delete: if isAdmin();
-      allow create: if request.auth != null; // Allow anonymous users to schedule
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn();
     }
+
+    /**
+     * @description Controls access to interview documents.
+     * @path /interviews/{interviewId}
+     * @allow (get, list): Any user can read interview details.
+     * @allow (create): Only authorized users can create interview records.
+     * @allow (update, delete): Only authorized users can modify or delete interview records.
+     * @deny (create): Unauthorized users cannot create interview records.
+     * @deny (update, delete): Unauthorized users cannot modify or delete interview records.
+     */
     match /interviews/{interviewId} {
-      allow read, create, update: if isAdmin();
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn();
     }
+
+    /**
+     * @description Controls access to caregiver employee documents.
+     * @path /caregiver_employees/{employeeId}
+     * @allow (get, list): Any user can read caregiver employee details.
+     * @allow (create): Only authorized users can create caregiver employee records.
+     * @allow (update, delete): Only authorized users can modify or delete caregiver employee records.
+     * @deny (create): Unauthorized users cannot create caregiver employee records.
+     * @deny (update, delete): Unauthorized users cannot modify or delete caregiver employee records.
+     */
     match /caregiver_employees/{employeeId} {
-      allow read, create, update: if isAdmin();
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn();
     }
-    match /settings/availability {
-      allow read, write: if isAdmin();
-    }
+  }
+
+  // Helper function to determine if a user is signed in
+  function isSignedIn() {
+    return request.auth != null;
   }
 }

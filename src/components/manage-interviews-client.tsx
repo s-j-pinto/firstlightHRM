@@ -5,12 +5,14 @@ import { useState, useMemo, useTransition, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { collection, query, where, getDocs, addDoc, doc } from 'firebase/firestore';
-import { firestore, useCollection, useMemoFirebase, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
-import type { CaregiverProfile, Interview } from '@/lib/types';
+import Link from 'next/link';
+import { collection, query, where, getDocs, addDoc, Timestamp } from 'firebase/firestore';
+import { firestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
+import type { CaregiverProfile, Interview, CaregiverEmployee } from '@/lib/types';
+import { caregiverEmployeeSchema } from '@/lib/types';
+import { generateInterviewInsights } from '@/ai/flows/interview-insights-flow';
 import { saveInterviewAndSchedule } from '@/lib/interviews.actions';
-import { hireCaregiver } from '@/lib/employees.actions';
-import { generateInterviewInsights, type InterviewInsightsOutput } from '@/ai/flows/interview-insights-flow';
+
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -29,16 +31,24 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from '@/components/ui/textarea';
 import { Slider } from '@/components/ui/slider';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Search, Calendar as CalendarIcon, Sparkles, UserCheck } from 'lucide-react';
+import { Loader2, Search, Calendar as CalendarIcon, Sparkles, UserCheck, AlertCircle, ExternalLink } from 'lucide-react';
 import { format, setHours, setMinutes } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { useRouter } from 'next/navigation';
 
 const phoneScreenSchema = z.object({
   interviewNotes: z.string().optional(),
@@ -48,17 +58,9 @@ const phoneScreenSchema = z.object({
   inPersonTime: z.string().optional(),
 });
 
-const hiringSchema = z.object({
-    inPersonInterviewDate: z.date().optional(),
-    hireDate: z.date({ required_error: 'Hire date is required.' }),
-    hireTime: z.string().optional(),
-    hiringComments: z.string().optional(),
-    hiringManager: z.string().min(1, 'Hiring manager is required.'),
-    startDate: z.date({ required_error: 'Start date is required.' }),
-});
 
 type PhoneScreenFormData = z.infer<typeof phoneScreenSchema>;
-type HiringFormData = z.infer<typeof hiringSchema>;
+type HiringFormData = z.infer<typeof caregiverEmployeeSchema>;
 
 export default function ManageInterviewsClient() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -66,15 +68,17 @@ export default function ManageInterviewsClient() {
   const [selectedCaregiver, setSelectedCaregiver] = useState<CaregiverProfile | null>(null);
   const [existingInterview, setExistingInterview] = useState<Interview | null>(null);
   const [aiInsight, setAiInsight] = useState<string | null>(null);
+  const [authUrl, setAuthUrl] = useState<string | null>(null);
   
   const [isAiPending, startAiTransition] = useTransition();
   const [isSearching, startSearchTransition] = useTransition();
   const [isSubmitting, startSubmitTransition] = useTransition();
 
   const { toast } = useToast();
-  const { user } = useUser();
+  const router = useRouter();
+  const db = firestore;
 
-  const caregiverProfilesRef = useMemoFirebase(() => collection(firestore, 'caregiver_profiles'), []);
+  const caregiverProfilesRef = useMemoFirebase(() => collection(db, 'caregiver_profiles'), [db]);
   const { data: allCaregivers, isLoading: caregiversLoading } = useCollection<CaregiverProfile>(caregiverProfilesRef);
   
   const phoneScreenForm = useForm<PhoneScreenFormData>({
@@ -89,16 +93,31 @@ export default function ManageInterviewsClient() {
   });
 
   const hiringForm = useForm<HiringFormData>({
-    resolver: zodResolver(hiringSchema),
+    resolver: zodResolver(caregiverEmployeeSchema),
     defaultValues: {
+      caregiverProfileId: '',
+      interviewId: '',
       inPersonInterviewDate: undefined,
-      hireDate: undefined,
-      hireTime: '',
+      hireDate: new Date(),
       hiringComments: '',
-      hiringManager: '',
-      startDate: undefined,
+      hiringManager: 'Lolita Pinto',
+      startDate: new Date(),
     }
   });
+
+  useEffect(() => {
+    if (selectedCaregiver && existingInterview) {
+      hiringForm.reset({
+        caregiverProfileId: selectedCaregiver.id,
+        interviewId: existingInterview.id,
+        inPersonInterviewDate: undefined, 
+        hireDate: new Date(),
+        hiringComments: '',
+        hiringManager: 'Lolita Pinto',
+        startDate: new Date(),
+      });
+    }
+  }, [selectedCaregiver, existingInterview, hiringForm]);
 
   const phoneScreenPassed = phoneScreenForm.watch('phoneScreenPassed');
 
@@ -120,27 +139,41 @@ export default function ManageInterviewsClient() {
     setSearchResults([]);
     setSearchTerm('');
     setAiInsight(null);
-    phoneScreenForm.reset();
-    hiringForm.reset();
+    phoneScreenForm.reset({
+      interviewNotes: '',
+      candidateRating: 3,
+      phoneScreenPassed: 'No',
+      inPersonDate: undefined,
+      inPersonTime: '',
+    });
     setExistingInterview(null);
+    setAuthUrl(null);
 
-    // Check for existing interview
-    const interviewsRef = collection(firestore, 'interviews');
+    const interviewsRef = collection(db, 'interviews');
     const q = query(interviewsRef, where("caregiverProfileId", "==", caregiver.id));
-    const querySnapshot = await getDocs(q);
+    
+    try {
+        const querySnapshot = await getDocs(q);
 
-    if (!querySnapshot.empty) {
-        const interviewDoc = querySnapshot.docs[0];
-        const interviewData = { ...interviewDoc.data(), id: interviewDoc.id } as Interview;
-        setExistingInterview(interviewData);
-        phoneScreenForm.reset({
-            interviewNotes: interviewData.interviewNotes,
-            candidateRating: interviewData.candidateRating,
-            phoneScreenPassed: interviewData.phoneScreenPassed as 'Yes' | 'No',
-        });
-        if(interviewData.aiGeneratedInsight) {
-            setAiInsight(interviewData.aiGeneratedInsight);
+        if (!querySnapshot.empty) {
+            const interviewDoc = querySnapshot.docs[0];
+            const interviewData = { ...interviewDoc.data(), id: interviewDoc.id } as Interview;
+            setExistingInterview(interviewData);
+            phoneScreenForm.reset({
+                interviewNotes: interviewData.interviewNotes,
+                candidateRating: interviewData.candidateRating,
+                phoneScreenPassed: interviewData.phoneScreenPassed as 'Yes' | 'No',
+            });
+            if(interviewData.aiGeneratedInsight) {
+                setAiInsight(interviewData.aiGeneratedInsight);
+            }
         }
+    } catch (error) {
+        toast({
+            title: "Permission Error",
+            description: "Could not fetch existing interview data. Check security rules for the 'interviews' collection.",
+            variant: "destructive"
+        });
     }
   };
 
@@ -160,7 +193,7 @@ export default function ManageInterviewsClient() {
     startAiTransition(async () => {
       try {
         const result = await generateInterviewInsights({
-            caregiverProfile: selectedCaregiver,
+            caregiverProfile: { ...selectedCaregiver, id: selectedCaregiver.id },
             interviewNotes,
             candidateRating,
         });
@@ -172,82 +205,123 @@ export default function ManageInterviewsClient() {
   };
   
   const onPhoneScreenSubmit = (data: PhoneScreenFormData) => {
-    if (!selectedCaregiver || !firestore) return;
-
+    if (!selectedCaregiver || !db) return;
+  
     startSubmitTransition(async () => {
+      const colRef = collection(db, 'interviews');
+      const interviewDocData = {
+        caregiverProfileId: selectedCaregiver.id,
+        caregiverUid: selectedCaregiver.uid,
+        interviewDateTime: new Date(),
+        interviewType: 'Phone' as const,
+        interviewNotes: data.interviewNotes,
+        candidateRating: data.candidateRating,
+        phoneScreenPassed: data.phoneScreenPassed,
+        aiGeneratedInsight: aiInsight || '',
+      };
+  
       try {
-        // Step 1: Save interview data to Firestore from the client
-        const interviewDocData = {
-          caregiverProfileId: selectedCaregiver.id,
-          caregiverUid: selectedCaregiver.uid,
-          interviewDateTime: new Date(),
-          interviewType: 'Phone',
-          interviewNotes: data.interviewNotes,
-          candidateRating: data.candidateRating,
-          phoneScreenPassed: data.phoneScreenPassed,
-          aiGeneratedInsight: aiInsight,
-        };
-        const colRef = collection(firestore, "interviews");
-        const docRef = await addDoc(colRef, interviewDocData).catch((serverError) => {
-            const permissionError = new FirestorePermissionError({
-                path: colRef.path,
-                operation: 'create',
-                requestResourceData: interviewDocData,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-            throw serverError; // Re-throw to be caught by outer catch
+        const docRef = await addDoc(colRef, interviewDocData);
+        toast({
+          title: 'Success',
+          description: 'Phone interview results saved.',
         });
-        
-        toast({ title: "Success", description: "Phone interview results saved." });
-
-        // Step 2: If passed, call server action to schedule in-person interview
-        if (data.phoneScreenPassed === 'Yes' && data.inPersonDate && data.inPersonTime) {
+  
+        if (
+          data.phoneScreenPassed === 'Yes' &&
+          data.inPersonDate &&
+          data.inPersonTime
+        ) {
           const [hours, minutes] = data.inPersonTime.split(':').map(Number);
-          const inPersonDateTime = setMinutes(setHours(data.inPersonDate, hours), minutes);
-
+          const inPersonDateTime = setMinutes(
+            setHours(data.inPersonDate, hours),
+            minutes
+          );
+  
           const result = await saveInterviewAndSchedule({
             caregiverProfile: selectedCaregiver,
             inPersonDateTime: inPersonDateTime,
+            interviewId: docRef.id,
+            aiInsight: aiInsight || '',
           });
-
-          if (result.error) {
-            toast({ title: "Calendar Error", description: result.message, variant: "destructive" });
+  
+          if (result.authUrl) {
+            setAuthUrl(result.authUrl);
           } else {
-            toast({ title: "Success", description: result.message });
+            setAuthUrl(null);
           }
+  
+          toast({
+            title: result.error ? 'Calendar Error' : 'Success',
+            description: result.message,
+            variant: result.error ? 'destructive' : 'default',
+          });
         }
-        
-        // Reset form on success and update state
         handleSelectCaregiver(selectedCaregiver);
-
-
       } catch (error) {
-        toast({ title: "Error", description: "Failed to save interview data.", variant: "destructive" });
+        const permissionError = new FirestorePermissionError({
+          path: colRef.path,
+          operation: 'create',
+          requestResourceData: interviewDocData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({
+          title: 'Error',
+          description: 'Could not save interview results due to permissions.',
+          variant: 'destructive',
+        });
       }
     });
   };
 
   const onHiringSubmit = (data: HiringFormData) => {
-     if (!selectedCaregiver || !existingInterview) return;
+    if (!selectedCaregiver || !existingInterview || !db) return;
 
-     startSubmitTransition(async () => {
-        const payload = {
-            ...data,
-            caregiverProfileId: selectedCaregiver.id,
-            interviewId: existingInterview.id,
+    startSubmitTransition(async () => {
+      try {
+        const employeeData: { [key: string]: any } = {
+          caregiverProfileId: selectedCaregiver.id,
+          interviewId: existingInterview.id,
+          hiringManager: data.hiringManager,
+          hiringComments: data.hiringComments,
+          hireDate: Timestamp.fromDate(data.hireDate),
+          startDate: Timestamp.fromDate(data.startDate),
+          createdAt: Timestamp.now(),
         };
 
-        const result = await hireCaregiver(payload);
-
-        if (result.error) {
-            toast({ title: "Hiring Error", description: result.message, variant: "destructive" });
-        } else {
-            toast({ title: "Success", description: result.message });
-            setSelectedCaregiver(null);
-            setExistingInterview(null);
-            hiringForm.reset();
+        if (data.inPersonInterviewDate) {
+          employeeData.inPersonInterviewDate = Timestamp.fromDate(data.inPersonInterviewDate);
         }
-     });
+
+        const colRef = collection(db, 'caregiver_employees');
+        await addDoc(colRef, employeeData).catch(serverError => {
+            const permissionError = new FirestorePermissionError({
+                path: 'caregiver_employees',
+                operation: 'create',
+                requestResourceData: employeeData
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            // We throw the original error so the try/catch block can handle it
+            throw serverError;
+        });
+
+        toast({ title: 'Success', description: 'Caregiver has been successfully marked as hired.' });
+        
+        // Reset state
+        setSelectedCaregiver(null);
+        setExistingInterview(null);
+        hiringForm.reset();
+        router.refresh();
+
+      } catch (error) {
+        // This will now catch the error thrown from the .catch block above
+        toast({
+          title: 'Error Saving Hiring Data',
+          description: 'An error occurred while saving. Please check the permissions.',
+          variant: 'destructive',
+        });
+      }
+    });
   };
 
   const handleCancel = () => {
@@ -256,10 +330,33 @@ export default function ManageInterviewsClient() {
     setAiInsight(null);
     phoneScreenForm.reset();
     hiringForm.reset();
+    setAuthUrl(null);
   }
 
   return (
     <div className="space-y-6">
+      {authUrl && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Action Required: Authorize Google Calendar</AlertTitle>
+          <AlertDescription>
+            <p className="mb-2">
+              To send calendar invites, you must grant permission. Click the button below to authorize.
+            </p>
+            <Button asChild>
+                <a href={authUrl} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Open Authorization Page
+                </a>
+            </Button>
+            <p className="mt-3 text-xs">
+                After you authorize, Google will redirect you. Copy the 'code' from the new URL, then go to{' '}
+                <Link href="/admin/settings" className="underline font-semibold">Admin Settings</Link> to paste it and generate a new refresh token.
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Search for a Caregiver</CardTitle>
@@ -538,28 +635,24 @@ export default function ManageInterviewsClient() {
                                     </FormItem>
                                 )}
                             />
-                             <FormField
-                                control={hiringForm.control}
-                                name="hireTime"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Hire Time</FormLabel>
-                                        <FormControl>
-                                            <Input type="time" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
                             <FormField
                                 control={hiringForm.control}
                                 name="hiringManager"
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Hiring Manager</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="Manager's name" {...field} />
-                                        </FormControl>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select a hiring manager" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="Lolita Pinto">Lolita Pinto</SelectItem>
+                                                <SelectItem value="Jacqui Wilson">Jacqui Wilson</SelectItem>
+                                                <SelectItem value="Office Hiring Manager">Office Hiring Manager</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -594,3 +687,5 @@ export default function ManageInterviewsClient() {
     </div>
   );
 }
+
+    

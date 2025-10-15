@@ -10,23 +10,50 @@ import type { CaregiverProfile } from './types';
 interface SaveInterviewPayload {
   caregiverProfile: CaregiverProfile;
   inPersonDateTime: Date;
+  interviewId: string;
+  aiInsight: string | null;
 }
 
 export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
-  const { caregiverProfile, inPersonDateTime } = payload;
+  const { caregiverProfile, inPersonDateTime, interviewId, aiInsight } = payload;
+  
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:9002/admin/settings';
+
+  // First, save the AI insight to the existing interview document
+  try {
+    const interviewRef = serverDb.collection('interviews').doc(interviewId);
+    await interviewRef.update({ aiGeneratedInsight: aiInsight || '' });
+  } catch (dbError) {
+    console.error("Error saving AI insight to interview:", dbError);
+    return { message: "Failed to save AI Insight to the interview record.", error: true };
+  }
+
+  // Then, proceed with calendar scheduling
+  if (!clientId || !clientSecret) {
+      const errorMsg = "Google API credentials are not configured. Please set them in your environment.";
+      return { message: errorMsg, error: true };
+  }
+
+  const oAuth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
+  
+  if (refreshToken) {
+      oAuth2Client.setCredentials({ refresh_token: refreshToken });
+  } else {
+      const authUrl = oAuth2Client.generateAuthUrl({
+          access_type: 'offline',
+          prompt: 'consent',
+          scope: ['https://www.googleapis.com/auth/calendar.events'],
+      });
+      const errorMsg = "Admin authorization required. A refresh token is missing. Please authorize the application to generate one.";
+      return { message: errorMsg, error: true, authUrl: authUrl };
+  }
 
   try {
-    const clientId = process.env.GOOGLE_CLIENT_ID;
-    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
-    const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:9002/admin/settings';
-
-    if (!clientId || !clientSecret || !refreshToken) {
-      throw new Error('Google API credentials are not fully configured in .env.local');
-    }
-
-    const oAuth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
-    oAuth2Client.setCredentials({ refresh_token: refreshToken });
+    // This will throw an error if the refresh token is invalid.
+    await oAuth2Client.getAccessToken();
 
     const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
     
@@ -70,13 +97,23 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
   } catch(calendarError: any) {
      console.error('Error sending calendar invite:', calendarError);
      let errorMessage = 'Failed to send calendar invite. Please check Google credentials.';
-     if (calendarError.response?.data?.error?.message) {
+     if (calendarError.message.includes('invalid_grant') || calendarError.message.includes('revoked')) {
+        const authUrl = oAuth2Client.generateAuthUrl({
+            access_type: 'offline',
+            prompt: 'consent',
+            scope: ['https://www.googleapis.com/auth/calendar.events'],
+        });
+        return {
+            message: "Your Google authentication token is invalid or has expired. Please re-authorize.",
+            error: true,
+            authUrl: authUrl
+        };
+      } else if (calendarError.response?.data?.error?.message) {
         errorMessage += ` Google API Error: ${calendarError.response.data.error.message}`;
      } else if (calendarError.message) {
         errorMessage += ` Error: ${calendarError.message}`;
      }
+
      return { message: errorMessage, error: true };
   }
 }
-
-    

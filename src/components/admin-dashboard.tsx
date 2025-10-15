@@ -130,6 +130,8 @@ export default function AdminDashboard() {
 
       if (result.authUrl) {
         setAuthUrl(result.authUrl);
+      } else {
+        setAuthUrl(null); // Clear any previous auth URL
       }
       
       toast({

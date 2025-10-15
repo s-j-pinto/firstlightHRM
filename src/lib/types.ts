@@ -102,14 +102,15 @@ export const interviewSchema = z.object({
 export type Interview = z.infer<typeof interviewSchema> & { id: string };
 
 export const caregiverEmployeeSchema = z.object({
-  caregiverProfileId: z.string(),
-  interviewId: z.string(),
-  inPersonInterviewDate: z.date().optional(),
-  hireDate: z.date(),
-  hireTime: z.string().optional(),
+  caregiverProfileId: z.string().min(1, 'Caregiver Profile ID is required.'),
+  interviewId: z.string().min(1, 'Interview ID is required.'),
+  inPersonInterviewDate: z.coerce.date().optional(),
+  hireDate: z.coerce.date(),
   hiringComments: z.string().optional(),
   hiringManager: z.string(),
-  startDate: z.date(),
+  startDate: z.coerce.date(),
 });
 
 export type CaregiverEmployee = z.infer<typeof caregiverEmployeeSchema> & { id: string };
+
+    
