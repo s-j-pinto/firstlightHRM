@@ -7,7 +7,7 @@ import { collection } from "firebase/firestore";
 import { Loader2, CalendarX2, FileText } from "lucide-react";
 import { firestore, useCollection, useMemoFirebase } from "@/firebase";
 
-import type { Appointment } from "@/lib/types";
+import type { Appointment, CaregiverProfile } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -26,19 +26,29 @@ import {
 } from "@/components/ui/select";
 import { Button } from "./ui/button";
 
-type CancelledAppointment = Appointment & { cancelDateTime: Date, caregiverName: string, caregiverEmail: string, cancelReason: string };
+type CancelledAppointmentWithCaregiver = Appointment & { caregiver?: CaregiverProfile } & { 
+    cancelDateTime: Date, 
+    cancelReason: string 
+};
 
-const isCancelledAppointment = (appt: Appointment): appt is CancelledAppointment => {
-    return appt.appointmentStatus === "cancelled" && !!appt.cancelDateTime && !!appt.caregiverName && !!appt.caregiverEmail && !!appt.cancelReason;
+
+const isCancelledAppointment = (appt: Appointment & { caregiver?: CaregiverProfile }): appt is CancelledAppointmentWithCaregiver => {
+    return appt.appointmentStatus === "cancelled" && !!appt.cancelDateTime && !!appt.caregiver && !!appt.cancelReason;
 }
 
 export default function CancelledInterviewsReport() {
   const [timeFrame, setTimeFrame] = useState("last_month");
+  
   const appointmentsRef = useMemoFirebase(() => collection(firestore, "appointments"), []);
-  const { data: appointmentsData, isLoading } = useCollection<Appointment>(appointmentsRef);
+  const { data: appointmentsData, isLoading: appointmentsLoading } = useCollection<Appointment>(appointmentsRef);
+
+  const caregiverProfilesRef = useMemoFirebase(() => collection(firestore, 'caregiver_profiles'), []);
+  const { data: caregiversData, isLoading: caregiversLoading } = useCollection<CaregiverProfile>(caregiverProfilesRef);
 
   const filteredAppointments = useMemo(() => {
-    if (!appointmentsData) return [];
+    if (!appointmentsData || !caregiversData) return [];
+    
+    const caregiversMap = new Map(caregiversData.map(c => [c.id, c]));
 
     const now = new Date();
     let startDate: Date;
@@ -65,20 +75,21 @@ export default function CancelledInterviewsReport() {
       .map(appt => ({
           ...appt,
           cancelDateTime: (appt.cancelDateTime as any)?.toDate(),
+          caregiver: caregiversMap.get(appt.caregiverId),
       }))
       .filter(isCancelledAppointment)
       .filter(appt => appt.cancelDateTime >= startOfFilterDate)
       .sort((a, b) => b.cancelDateTime.getTime() - a.cancelDateTime.getTime());
 
-  }, [appointmentsData, timeFrame]);
+  }, [appointmentsData, caregiversData, timeFrame]);
 
   const handleExport = () => {
     let csvContent = "data:text/csv;charset=utf-8,";
     csvContent += "Caregiver Name,Email,Cancelled Date,Reason\n";
     filteredAppointments.forEach(appt => {
         const row = [
-            `"${appt.caregiverName}"`,
-            `"${appt.caregiverEmail}"`,
+            `"${appt.caregiver?.fullName}"`,
+            `"${appt.caregiver?.email}"`,
             `"${format(appt.cancelDateTime, "yyyy-MM-dd HH:mm")}"`,
             `"${appt.cancelReason}"`
         ].join(",");
@@ -93,6 +104,8 @@ export default function CancelledInterviewsReport() {
     link.click();
     document.body.removeChild(link);
   }
+  
+  const isLoading = appointmentsLoading || caregiversLoading;
 
   return (
     <Card className="shadow-md">
@@ -149,8 +162,8 @@ export default function CancelledInterviewsReport() {
             <TableBody>
               {filteredAppointments.map((appt) => (
                 <TableRow key={appt.id}>
-                  <TableCell>{appt.caregiverName}</TableCell>
-                  <TableCell>{appt.caregiverEmail}</TableCell>
+                  <TableCell>{appt.caregiver?.fullName}</TableCell>
+                  <TableCell>{appt.caregiver?.email}</TableCell>
                   <TableCell>{format(appt.cancelDateTime, "PPp")}</TableCell>
                   <TableCell>{appt.cancelReason}</TableCell>
                 </TableRow>

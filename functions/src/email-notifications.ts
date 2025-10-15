@@ -28,7 +28,7 @@ export const sendAppointmentEmail = onDocumentCreated("appointments/{appointment
       return;
     }
 
-    const caregiverData = caregiverProfile.data();
+    const caregiverData = caregiverProfile.data()!;
 
     const startTime = appointment.startTime.toDate();
     const endTime = appointment.endTime.toDate();
@@ -36,13 +36,13 @@ export const sendAppointmentEmail = onDocumentCreated("appointments/{appointment
     const email = {
       to: [adminEmail],
       message: {
-        subject: `New FirstLightHRM Phone Interview Appointment with ${appointment.caregiverName}`,
+        subject: `New FirstLightHRM Phone Interview Appointment with ${caregiverData.fullName}`,
         html: `
           <h1>New Appointment Scheduled</h1>
           <p>A new appointment has been scheduled with the following caregiver. Please send them a calendar invite.</p>
           
           <h2>Appointment Details</h2>
-          <p><strong>Caregiver:</strong> ${appointment.caregiverName}</p>
+          <p><strong>Caregiver:</strong> ${caregiverData.fullName}</p>
           <p><strong>Date:</strong> ${formatInTimeZone(startTime, pacificTimeZone, 'EEEE, MMMM do, yyyy')}</p>
           <p><strong>Time:</strong> ${formatInTimeZone(startTime, pacificTimeZone, 'h:mm a')} - ${formatInTimeZone(endTime, pacificTimeZone, 'h:mm a')}</p>
           

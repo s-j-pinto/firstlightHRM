@@ -84,9 +84,6 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
 
         const appointmentData = {
             caregiverId: caregiverId,
-            caregiverName: caregiverName,
-            caregiverEmail: caregiverEmail, 
-            caregiverPhone: caregiverPhone,
             startTime: Timestamp.fromDate(appointmentDate),
             endTime: Timestamp.fromDate(new Date(appointmentDate.getTime() + 60 * 60 * 1000)), // 60 min slot
         };

@@ -77,17 +77,11 @@
       "description": "Represents a scheduled appointment slot for caregiver interviews.",
       "properties": {
         "caregiverId": { "type": "string" },
-        "caregiverName": { "type": "string" },
-        "caregiverEmail": { "type": "string" },
-        "caregiverPhone": { "type": "string" },
         "startTime": { "type": "string", "format": "date-time" },
         "endTime": { "type": "string", "format": "date-time" }
       },
       "required": [
         "caregiverId",
-        "caregiverName",
-        "caregiverEmail",
-        "caregiverPhone",
         "startTime",
         "endTime"
       ]

@@ -75,9 +75,6 @@ export type CaregiverProfile = z.infer<typeof caregiverFormSchema> & { id: strin
 
 export const appointmentSchema = z.object({
   caregiverId: z.string(),
-  caregiverName: z.string(),
-  caregiverEmail: z.string().email(),
-  caregiverPhone: z.string(),
   startTime: z.date(),
   endTime: z.date(),
   inviteSent: z.boolean().optional(),
