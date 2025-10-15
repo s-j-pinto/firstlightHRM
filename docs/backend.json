@@ -113,6 +113,29 @@
         "interviewType",
         "phoneScreenPassed"
       ]
+    },
+    "CaregiverEmployee": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CaregiverEmployee",
+      "type": "object",
+      "description": "Stores hiring information for a caregiver who has become an employee.",
+      "properties": {
+        "caregiverProfileId": { "type": "string" },
+        "interviewId": { "type": "string" },
+        "inPersonInterviewDate": { "type": "string", "format": "date-time" },
+        "hireDate": { "type": "string", "format": "date-time" },
+        "hireTime": { "type": "string", "format": "time" },
+        "hiringComments": { "type": "string" },
+        "hiringManager": { "type": "string" },
+        "startDate": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "caregiverProfileId",
+        "interviewId",
+        "hireDate",
+        "hiringManager",
+        "startDate"
+      ]
     }
   },
   "auth": {
@@ -133,6 +156,10 @@
     "/interviews/{interviewId}": {
         "schema": { "$ref": "#/entities/Interview" },
         "description": "Stores details of an interview conducted with a caregiver."
+    },
+    "/caregiver_employees/{employeeId}": {
+      "schema": { "$ref": "#/entities/CaregiverEmployee" },
+      "description": "Stores hiring and employment details for caregivers."
     }
   }
 }

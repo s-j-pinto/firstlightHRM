@@ -1,14 +1,15 @@
 
 "use client";
 
-import { useState, useMemo, useTransition } from 'react';
+import { useState, useMemo, useTransition, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, doc } from 'firebase/firestore';
 import { firestore, useCollection, useMemoFirebase, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
-import type { CaregiverProfile } from '@/lib/types';
+import type { CaregiverProfile, Interview } from '@/lib/types';
 import { saveInterviewAndSchedule } from '@/lib/interviews.actions';
+import { hireCaregiver } from '@/lib/employees.actions';
 import { generateInterviewInsights, type InterviewInsightsOutput } from '@/ai/flows/interview-insights-flow';
 
 import { Input } from '@/components/ui/input';
@@ -28,25 +29,18 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Slider } from '@/components/ui/slider';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Search, Calendar as CalendarIcon, Sparkles } from 'lucide-react';
+import { Loader2, Search, Calendar as CalendarIcon, Sparkles, UserCheck } from 'lucide-react';
 import { format, setHours, setMinutes } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
-const interviewFormSchema = z.object({
+const phoneScreenSchema = z.object({
   interviewNotes: z.string().optional(),
   candidateRating: z.number().min(0).max(5),
   phoneScreenPassed: z.enum(['Yes', 'No']),
@@ -54,24 +48,37 @@ const interviewFormSchema = z.object({
   inPersonTime: z.string().optional(),
 });
 
-type InterviewFormData = z.infer<typeof interviewFormSchema>;
+const hiringSchema = z.object({
+    inPersonInterviewDate: z.date().optional(),
+    hireDate: z.date({ required_error: 'Hire date is required.' }),
+    hireTime: z.string().optional(),
+    hiringComments: z.string().optional(),
+    hiringManager: z.string().min(1, 'Hiring manager is required.'),
+    startDate: z.date({ required_error: 'Start date is required.' }),
+});
+
+type PhoneScreenFormData = z.infer<typeof phoneScreenSchema>;
+type HiringFormData = z.infer<typeof hiringSchema>;
 
 export default function ManageInterviewsClient() {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<CaregiverProfile[]>([]);
   const [selectedCaregiver, setSelectedCaregiver] = useState<CaregiverProfile | null>(null);
+  const [existingInterview, setExistingInterview] = useState<Interview | null>(null);
   const [aiInsight, setAiInsight] = useState<string | null>(null);
+  
   const [isAiPending, startAiTransition] = useTransition();
   const [isSearching, startSearchTransition] = useTransition();
   const [isSubmitting, startSubmitTransition] = useTransition();
+
   const { toast } = useToast();
   const { user } = useUser();
 
   const caregiverProfilesRef = useMemoFirebase(() => collection(firestore, 'caregiver_profiles'), []);
   const { data: allCaregivers, isLoading: caregiversLoading } = useCollection<CaregiverProfile>(caregiverProfilesRef);
   
-  const form = useForm<InterviewFormData>({
-    resolver: zodResolver(interviewFormSchema),
+  const phoneScreenForm = useForm<PhoneScreenFormData>({
+    resolver: zodResolver(phoneScreenSchema),
     defaultValues: {
       interviewNotes: '',
       candidateRating: 3,
@@ -81,7 +88,19 @@ export default function ManageInterviewsClient() {
     },
   });
 
-  const phoneScreenPassed = form.watch('phoneScreenPassed');
+  const hiringForm = useForm<HiringFormData>({
+    resolver: zodResolver(hiringSchema),
+    defaultValues: {
+      inPersonInterviewDate: undefined,
+      hireDate: undefined,
+      hireTime: '',
+      hiringComments: '',
+      hiringManager: '',
+      startDate: undefined,
+    }
+  });
+
+  const phoneScreenPassed = phoneScreenForm.watch('phoneScreenPassed');
 
   const handleSearch = () => {
     if (!searchTerm.trim() || !allCaregivers) return;
@@ -96,23 +115,38 @@ export default function ManageInterviewsClient() {
     });
   };
 
-  const handleSelectCaregiver = (caregiver: CaregiverProfile) => {
+  const handleSelectCaregiver = async (caregiver: CaregiverProfile) => {
     setSelectedCaregiver(caregiver);
     setSearchResults([]);
     setSearchTerm('');
     setAiInsight(null);
-    form.reset({
-      interviewNotes: '',
-      candidateRating: 3,
-      phoneScreenPassed: 'No',
-      inPersonDate: undefined,
-      inPersonTime: '',
-    });
+    phoneScreenForm.reset();
+    hiringForm.reset();
+    setExistingInterview(null);
+
+    // Check for existing interview
+    const interviewsRef = collection(firestore, 'interviews');
+    const q = query(interviewsRef, where("caregiverProfileId", "==", caregiver.id));
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+        const interviewDoc = querySnapshot.docs[0];
+        const interviewData = { ...interviewDoc.data(), id: interviewDoc.id } as Interview;
+        setExistingInterview(interviewData);
+        phoneScreenForm.reset({
+            interviewNotes: interviewData.interviewNotes,
+            candidateRating: interviewData.candidateRating,
+            phoneScreenPassed: interviewData.phoneScreenPassed as 'Yes' | 'No',
+        });
+        if(interviewData.aiGeneratedInsight) {
+            setAiInsight(interviewData.aiGeneratedInsight);
+        }
+    }
   };
 
   const handleGenerateInsights = () => {
     if (!selectedCaregiver) return;
-    const { interviewNotes, candidateRating } = form.getValues();
+    const { interviewNotes, candidateRating } = phoneScreenForm.getValues();
 
     if (!interviewNotes) {
       toast({
@@ -137,7 +171,7 @@ export default function ManageInterviewsClient() {
     });
   };
   
-  const onSubmit = (data: InterviewFormData) => {
+  const onPhoneScreenSubmit = (data: PhoneScreenFormData) => {
     if (!selectedCaregiver || !firestore) return;
 
     startSubmitTransition(async () => {
@@ -154,7 +188,7 @@ export default function ManageInterviewsClient() {
           aiGeneratedInsight: aiInsight,
         };
         const colRef = collection(firestore, "interviews");
-        await addDoc(colRef, interviewDocData).catch((serverError) => {
+        const docRef = await addDoc(colRef, interviewDocData).catch((serverError) => {
             const permissionError = new FirestorePermissionError({
                 path: colRef.path,
                 operation: 'create',
@@ -167,41 +201,62 @@ export default function ManageInterviewsClient() {
         toast({ title: "Success", description: "Phone interview results saved." });
 
         // Step 2: If passed, call server action to schedule in-person interview
-        if (data.phoneScreenPassed === 'Yes') {
-          if (data.inPersonDate && data.inPersonTime) {
-            const [hours, minutes] = data.inPersonTime.split(':').map(Number);
-            const inPersonDateTime = setMinutes(setHours(data.inPersonDate, hours), minutes);
+        if (data.phoneScreenPassed === 'Yes' && data.inPersonDate && data.inPersonTime) {
+          const [hours, minutes] = data.inPersonTime.split(':').map(Number);
+          const inPersonDateTime = setMinutes(setHours(data.inPersonDate, hours), minutes);
 
-            const result = await saveInterviewAndSchedule({
-              caregiverProfile: selectedCaregiver,
-              inPersonDateTime: inPersonDateTime,
-            });
+          const result = await saveInterviewAndSchedule({
+            caregiverProfile: selectedCaregiver,
+            inPersonDateTime: inPersonDateTime,
+          });
 
-            if (result.error) {
-              toast({ title: "Calendar Error", description: result.message, variant: "destructive" });
-            } else {
-              toast({ title: "Success", description: result.message });
-            }
+          if (result.error) {
+            toast({ title: "Calendar Error", description: result.message, variant: "destructive" });
           } else {
-            toast({
-                title: "Incomplete Information",
-                description: "Please select a date and time for the in-person interview.",
-                variant: "destructive"
-            });
-            return; // Don't reset the form yet
+            toast({ title: "Success", description: result.message });
           }
         }
         
-        // Reset form on success
-        setSelectedCaregiver(null);
-        setAiInsight(null);
-        form.reset();
+        // Reset form on success and update state
+        handleSelectCaregiver(selectedCaregiver);
+
 
       } catch (error) {
         toast({ title: "Error", description: "Failed to save interview data.", variant: "destructive" });
       }
     });
   };
+
+  const onHiringSubmit = (data: HiringFormData) => {
+     if (!selectedCaregiver || !existingInterview) return;
+
+     startSubmitTransition(async () => {
+        const payload = {
+            ...data,
+            caregiverProfileId: selectedCaregiver.id,
+            interviewId: existingInterview.id,
+        };
+
+        const result = await hireCaregiver(payload);
+
+        if (result.error) {
+            toast({ title: "Hiring Error", description: result.message, variant: "destructive" });
+        } else {
+            toast({ title: "Success", description: result.message });
+            setSelectedCaregiver(null);
+            setExistingInterview(null);
+            hiringForm.reset();
+        }
+     });
+  };
+
+  const handleCancel = () => {
+    setSelectedCaregiver(null);
+    setExistingInterview(null);
+    setAiInsight(null);
+    phoneScreenForm.reset();
+    hiringForm.reset();
+  }
 
   return (
     <div className="space-y-6">
@@ -247,17 +302,17 @@ export default function ManageInterviewsClient() {
         </CardContent>
       </Card>
 
-      {selectedCaregiver && (
+      {selectedCaregiver && !existingInterview && (
         <Card>
             <CardHeader>
                 <CardTitle>Phone Screen: {selectedCaregiver.fullName}</CardTitle>
                 <CardDescription>Record the results of the phone interview.</CardDescription>
             </CardHeader>
             <CardContent>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                <Form {...phoneScreenForm}>
+                    <form onSubmit={phoneScreenForm.handleSubmit(onPhoneScreenSubmit)} className="space-y-8">
                          <FormField
-                            control={form.control}
+                            control={phoneScreenForm.control}
                             name="interviewNotes"
                             render={({ field }) => (
                                 <FormItem>
@@ -271,7 +326,7 @@ export default function ManageInterviewsClient() {
                         />
 
                         <FormField
-                            control={form.control}
+                            control={phoneScreenForm.control}
                             name="candidateRating"
                             render={({ field }) => (
                                 <FormItem>
@@ -311,7 +366,7 @@ export default function ManageInterviewsClient() {
                         )}
 
                         <FormField
-                            control={form.control}
+                            control={phoneScreenForm.control}
                             name="phoneScreenPassed"
                             render={({ field }) => (
                                 <FormItem className="space-y-3">
@@ -335,7 +390,7 @@ export default function ManageInterviewsClient() {
                                 </CardHeader>
                                 <CardContent className="grid md:grid-cols-2 gap-4">
                                      <FormField
-                                        control={form.control}
+                                        control={phoneScreenForm.control}
                                         name="inPersonDate"
                                         render={({ field }) => (
                                             <FormItem className="flex flex-col">
@@ -358,7 +413,7 @@ export default function ManageInterviewsClient() {
                                         )}
                                     />
                                     <FormField
-                                        control={form.control}
+                                        control={phoneScreenForm.control}
                                         name="inPersonTime"
                                         render={({ field }) => (
                                             <FormItem>
@@ -375,7 +430,7 @@ export default function ManageInterviewsClient() {
                         )}
 
                         <div className="flex justify-end gap-4">
-                            <Button variant="outline" onClick={() => setSelectedCaregiver(null)}>Cancel</Button>
+                            <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
                              <Button type="submit" disabled={isSubmitting}>
                                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Save and Complete
@@ -386,8 +441,156 @@ export default function ManageInterviewsClient() {
             </CardContent>
         </Card>
       )}
+
+      {selectedCaregiver && existingInterview && (
+        <Card>
+            <CardHeader>
+                 <CardTitle>Hiring & Onboarding: {selectedCaregiver.fullName}</CardTitle>
+                <CardDescription>
+                    The phone screen for this candidate has been completed. Enter hiring details below.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <Alert variant="default">
+                    <Sparkles className="h-4 w-4" />
+                    <AlertTitle>Phone Screen Results</AlertTitle>
+                    <AlertDescription>
+                        <p className="font-semibold mt-2">Passed: {existingInterview.phoneScreenPassed}</p>
+                        <p className="mt-2 text-sm text-muted-foreground">Notes: {existingInterview.interviewNotes || 'N/A'}</p>
+                         {existingInterview.aiGeneratedInsight && (
+                            <div className='mt-4 p-3 bg-background rounded-md border'>
+                                <p className="font-semibold text-foreground">AI Insight:</p>
+                                <p className="mt-1 text-sm text-muted-foreground whitespace-pre-wrap">{existingInterview.aiGeneratedInsight}</p>
+                            </div>
+                        )}
+                    </AlertDescription>
+                </Alert>
+                
+                <Form {...hiringForm}>
+                    <form onSubmit={hiringForm.handleSubmit(onHiringSubmit)} className="space-y-8 pt-4">
+                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                             <FormField
+                                control={hiringForm.control}
+                                name="inPersonInterviewDate"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-col">
+                                        <FormLabel>In-Person Interview Date</FormLabel>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                            <FormControl>
+                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                </Button>
+                                            </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                            </PopoverContent>
+                                        </Popover>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={hiringForm.control}
+                                name="hireDate"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-col">
+                                        <FormLabel>Hire Date</FormLabel>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                            <FormControl>
+                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                </Button>
+                                            </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} />
+                                            </PopoverContent>
+                                        </Popover>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={hiringForm.control}
+                                name="startDate"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-col">
+                                        <FormLabel>Start Date</FormLabel>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                            <FormControl>
+                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                </Button>
+                                            </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} />
+                                            </PopoverContent>
+                                        </Popover>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={hiringForm.control}
+                                name="hireTime"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Hire Time</FormLabel>
+                                        <FormControl>
+                                            <Input type="time" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={hiringForm.control}
+                                name="hiringManager"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Hiring Manager</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="Manager's name" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+                        <FormField
+                            control={hiringForm.control}
+                            name="hiringComments"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Hiring Comments</FormLabel>
+                                    <FormControl>
+                                        <Textarea placeholder="Additional comments about the hiring decision..." {...field} rows={4} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <div className="flex justify-end gap-4">
+                            <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
+                             <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
+                                Complete Hiring
+                            </Button>
+                        </div>
+                    </form>
+                </Form>
+            </CardContent>
+        </Card>
+      )}
+
     </div>
   );
 }
-
-    
