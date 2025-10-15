@@ -64,6 +64,12 @@ export default function AdminLayout({
             Manage Interviews
           </Link>
           <Link
+            href="/admin/manage-applications"
+            className="text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Manage Applications
+          </Link>
+          <Link
             href="/admin/reports"
             className="text-muted-foreground transition-colors hover:text-foreground"
           >
