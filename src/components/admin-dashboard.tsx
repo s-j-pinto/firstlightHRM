@@ -164,7 +164,7 @@ export default function AdminDashboard() {
           <AlertTitle>Action Required: Authorize Google Calendar</AlertTitle>
           <AlertDescription>
             <p className="mb-2">
-              To send calendar invites, you must grant permission.
+              To send calendar invites, you must grant permission. Click the button below to authorize.
             </p>
             <Button asChild>
                 <a href={authUrl} target="_blank" rel="noopener noreferrer">
@@ -174,7 +174,7 @@ export default function AdminDashboard() {
             </Button>
             <p className="mt-3 text-xs">
                 After you authorize, Google will redirect you. Copy the 'code' from the new URL, then go to{' '}
-                <Link href="/admin/settings" className="underline font-semibold">Admin Settings</Link> to paste it.
+                <Link href="/admin/settings" className="underline font-semibold">Admin Settings</Link> to paste it and generate a new refresh token.
             </p>
           </AlertDescription>
         </Alert>

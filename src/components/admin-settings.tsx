@@ -37,7 +37,7 @@ export default function AdminSettings() {
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [hasCopied, setHasCopied] = useState(false);
   const { toast } = useToast();
-  const { register, handleSubmit, reset } = useForm<SettingsFormValues>();
+  const { register, handleSubmit, reset, getValues, setValue } = useForm<SettingsFormValues>();
   const firestore = useFirestore();
   const { isUserLoading: isUserAuthLoading } = useFirebase();
 
@@ -79,17 +79,14 @@ export default function AdminSettings() {
 
         if (googleAuthCode) {
           const result = await saveAdminSettings({ googleAuthCode });
-          toast({
-            title: result.error ? "Error" : "Google Auth",
-            description: result.message,
-            variant: result.error ? "destructive" : "default",
-          });
-          if (result.refreshToken) {
+          if (result.error) {
+            toast({ title: "Google Auth Error", description: result.message, variant: "destructive" });
+          } else if (result.refreshToken) {
             setRefreshToken(result.refreshToken);
+            toast({ title: "Google Auth Success", description: result.message });
           }
+          setValue("googleAuthCode", "");
         }
-        
-        reset({ ...data, googleAuthCode: "" });
 
       } catch (e) {
         toast({
@@ -110,7 +107,7 @@ export default function AdminSettings() {
   };
   
   if (isUserAuthLoading || isSettingsLoading) {
-    return <p>Loading...</p>;
+    return <p>Loading settings...</p>;
   }
 
   return (
@@ -159,27 +156,27 @@ export default function AdminSettings() {
             <CardHeader>
                 <CardTitle>Google Calendar Setup</CardTitle>
                 <CardDescription>
-                    To get your Refresh Token, paste the Authorization Code from the Google consent screen URL here and click save.
+                    To get or refresh your token, paste the Authorization Code from the Google consent screen URL here and click save.
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="space-y-2">
-                    <Label htmlFor="googleAuthCode">Authorization Code (Temporary)</Label>
+                    <Label htmlFor="googleAuthCode">Authorization Code (One-time use)</Label>
                     <Input id="googleAuthCode" {...register("googleAuthCode")} placeholder="Paste the code from the URL here..."/>
                 </div>
                 {refreshToken && (
                     <Alert className="mt-4">
                         <Terminal className="h-4 w-4" />
-                        <AlertTitle>Your Refresh Token is Ready!</AlertTitle>
+                        <AlertTitle>Your New Refresh Token is Ready!</AlertTitle>
                         <AlertDescription>
-                            <p>This is a one-time step. Copy this token and add it to a new file named `.env.local` in your project's root directory.</p>
+                            <p>This is a one-time step. Copy this new token and update the `GOOGLE_REFRESH_TOKEN` value in your `.env.local` file.</p>
                             <pre className="my-2 p-2 bg-muted rounded-md text-xs whitespace-pre-wrap break-all relative pr-10">
                                 GOOGLE_REFRESH_TOKEN={refreshToken}
                                 <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={copyToClipboard}>
                                     {hasCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                                 </Button>
                             </pre>
-                             <p className="text-xs text-muted-foreground">After adding the token, you must restart your development server.</p>
+                             <p className="text-xs text-muted-foreground">After updating the token, you must restart your development server for the change to take effect.</p>
                         </AlertDescription>
                     </Alert>
                 )}
@@ -191,6 +188,7 @@ export default function AdminSettings() {
           <AlertTitle>Important: Configure Redirect URI</AlertTitle>
           <AlertDescription>
              For Google OAuth to work, your app must be running on the expected redirect URI. You must also add this exact URI to the "Authorized redirect URIs" list in your Google Cloud project credentials.
+             By default, this is `http://localhost:9002/admin/settings`.
           </AlertDescription>
         </Alert>
 
@@ -198,7 +196,7 @@ export default function AdminSettings() {
           <Terminal className="h-4 w-4" />
           <AlertTitle>Google Credentials</AlertTitle>
           <AlertDescription>
-            To send calendar invites, your Google credentials must be set in a `.env.local` file in your project's root directory. This file should contain `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and the `GOOGLE_REFRESH_TOKEN` you generate here.
+            To send calendar invites, your Google credentials must be set in a `.env.local` file in your project's root directory. This file must contain `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and the `GOOGLE_REFRESH_TOKEN` you generate here.
           </AlertDescription>
         </Alert>
 
