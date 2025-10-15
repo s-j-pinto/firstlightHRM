@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useTransition, useMemo, useEffect } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { format, parseISO } from "date-fns";
 import { Calendar, Clock, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -11,8 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { getAvailableSlotsAction } from "@/lib/availability.actions";
 import { useToast } from "@/hooks/use-toast";
-import { useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
-import type { Appointment } from "@/lib/types";
+import { useFirestore, errorEmitter, FirestorePermissionError } from "@/firebase";
 
 interface AppointmentSchedulerProps {
   caregiverId: string;
@@ -30,27 +29,12 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
   const [availableSlots, setAvailableSlots] = useState<{ date: string, slots: string[] }[]>([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState(true);
 
-  const appointmentsRef = useMemoFirebase(() => collection(firestore, 'appointments'), [firestore]);
-  const { data: appointmentsData, isLoading: appointmentsLoading } = useCollection<Appointment>(appointmentsRef);
-
   useEffect(() => {
-    if (appointmentsData) {
-        const activeAppointments = appointmentsData.filter(
-            (appt) => appt.appointmentStatus !== "cancelled"
-        );
-        
-        const bookedAppointmentsSerializable = activeAppointments.map(appt => ({
-            ...appt,
-            startTime: (appt.startTime as any).toDate().toISOString(),
-            endTime: (appt.endTime as any).toDate().toISOString(),
-        }));
-        
-        getAvailableSlotsAction(bookedAppointmentsSerializable).then(slots => {
-            setAvailableSlots(slots);
-            setIsLoadingSlots(false);
-        });
-    }
-  }, [appointmentsData]);
+    getAvailableSlotsAction().then(slots => {
+        setAvailableSlots(slots);
+        setIsLoadingSlots(false);
+    });
+  }, []);
   
   const handleSelectSlot = (slot: string) => {
     setSelectedSlot(slot);
@@ -114,7 +98,7 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {appointmentsLoading || isLoadingSlots ? (
+        {isLoadingSlots ? (
           <div className="flex justify-center items-center h-64">
             <Loader2 className="h-8 w-8 animate-spin text-accent" />
             <p className="ml-4 text-muted-foreground">Loading available times...</p>

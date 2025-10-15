@@ -1,3 +1,4 @@
+
 "use server";
 
 import { addDays, getDay, set, isBefore, parse, formatISO } from 'date-fns';
@@ -90,7 +91,7 @@ async function generateAvailableSlots(
         });
 
         if (isBefore(new Date(), combinedDateTime) && !bookedTimes.has(combinedDateTime.getTime())) {
-          daySlots.push(formatISO(combinedDateTime).slice(0, 19));
+          daySlots.push(formatISO(combinedDateTime));
         }
       });
       
@@ -106,21 +107,18 @@ async function generateAvailableSlots(
   return availableSlots;
 }
 
-type BookedAppointmentSerializable = Omit<Appointment, 'startTime' | 'endTime'> & {
-    startTime: string;
-    endTime: string;
-};
+export async function getAvailableSlotsAction() {
+    const appointmentsSnapshot = await serverDb.collection("appointments").get();
+    const bookedAppointments: Appointment[] = appointmentsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            ...data,
+            id: doc.id,
+            startTime: data.startTime.toDate(),
+            endTime: data.endTime.toDate(),
+        } as Appointment;
+    }).filter(appt => appt.appointmentStatus !== "cancelled");
 
-export async function getAvailableSlotsAction(
-    bookedAppointmentsSerializable: BookedAppointmentSerializable[]
-) {
-    const bookedAppointments: Appointment[] = bookedAppointmentsSerializable.map(
-        (appt) => ({
-            ...appt,
-            startTime: new Date(appt.startTime),
-            endTime: new Date(appt.endTime),
-        })
-    );
 
     const availableSlots = await generateAvailableSlots(bookedAppointments, 3);
     return availableSlots;
