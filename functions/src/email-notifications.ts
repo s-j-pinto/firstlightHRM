@@ -3,9 +3,12 @@ import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import * as logger from "firebase-functions/logger";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import { formatInTimeZone } from "date-fns-tz";
 
 initializeApp();
 const db = getFirestore();
+
+const pacificTimeZone = "America/Los_Angeles";
 
 export const sendAppointmentEmail = onDocumentCreated("appointments/{appointmentId}", async (event) => {
   const snapshot = event.data;
@@ -27,6 +30,9 @@ export const sendAppointmentEmail = onDocumentCreated("appointments/{appointment
 
     const caregiverData = caregiverProfile.data();
 
+    const startTime = appointment.startTime.toDate();
+    const endTime = appointment.endTime.toDate();
+
     const email = {
       to: [adminEmail],
       message: {
@@ -37,8 +43,8 @@ export const sendAppointmentEmail = onDocumentCreated("appointments/{appointment
           
           <h2>Appointment Details</h2>
           <p><strong>Caregiver:</strong> ${appointment.caregiverName}</p>
-          <p><strong>Date:</strong> ${appointment.startTime.toDate().toLocaleDateString()}</p>
-          <p><strong>Time:</strong> ${appointment.startTime.toDate().toLocaleTimeString()} - ${appointment.endTime.toDate().toLocaleTimeString()}</p>
+          <p><strong>Date:</strong> ${formatInTimeZone(startTime, pacificTimeZone, 'EEEE, MMMM do, yyyy')}</p>
+          <p><strong>Time:</strong> ${formatInTimeZone(startTime, pacificTimeZone, 'h:mm a')} - ${formatInTimeZone(endTime, pacificTimeZone, 'h:mm a')}</p>
           
           <h2>Caregiver Profile</h2>
           <p><strong>Email:</strong> ${caregiverData?.email}</p>
