@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useTransition, useMemo, useEffect } from "react";
@@ -34,7 +35,11 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
 
   useEffect(() => {
     if (appointmentsData) {
-        const bookedAppointmentsSerializable = appointmentsData.map(appt => ({
+        const activeAppointments = appointmentsData.filter(
+            (appt) => appt.appointmentStatus !== "cancelled"
+        );
+        
+        const bookedAppointmentsSerializable = activeAppointments.map(appt => ({
             ...appt,
             startTime: (appt.startTime as any).toDate().toISOString(),
             endTime: (appt.endTime as any).toDate().toISOString(),
