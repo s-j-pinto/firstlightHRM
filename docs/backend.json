@@ -104,7 +104,9 @@
         "interviewType": { "type": "string", "enum": ["Phone", "In-Person"] },
         "interviewNotes": { "type": "string" },
         "candidateRating": { "type": "number", "minimum": 0, "maximum": 5 },
-        "phoneScreenPassed": { "type": "string", "enum": ["Yes", "No", "N/A"] }
+        "phoneScreenPassed": { "type": "string", "enum": ["Yes", "No", "N/A"] },
+        "aiSummary": { "type": "string" },
+        "aiRecommendation": { "type": "string" }
       },
       "required": [
         "caregiverProfileId",

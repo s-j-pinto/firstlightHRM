@@ -96,6 +96,8 @@ export const interviewSchema = z.object({
   interviewNotes: z.string().optional(),
   candidateRating: z.number().min(0).max(5),
   phoneScreenPassed: z.enum(["Yes", "No", "N/A"]),
+  aiSummary: z.string().optional(),
+  aiRecommendation: z.string().optional(),
 });
 
 export type Interview = z.infer<typeof interviewSchema> & { id: string };

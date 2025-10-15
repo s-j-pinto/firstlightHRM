@@ -13,6 +13,8 @@ interface SaveInterviewPayload {
     interviewNotes?: string;
     candidateRating: number;
     phoneScreenPassed: 'Yes' | 'No';
+    aiSummary?: string;
+    aiRecommendation?: string;
   };
   inPersonDateTime?: Date;
 }
@@ -37,6 +39,8 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
       interviewNotes: interviewData.interviewNotes,
       candidateRating: interviewData.candidateRating,
       phoneScreenPassed: interviewData.phoneScreenPassed,
+      aiSummary: interviewData.aiSummary,
+      aiRecommendation: interviewData.aiRecommendation,
     });
 
     // 3. If passed and scheduled, send calendar invite

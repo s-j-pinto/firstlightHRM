@@ -9,6 +9,7 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { firestore, useCollection, useMemoFirebase } from '@/firebase';
 import type { CaregiverProfile } from '@/lib/types';
 import { saveInterviewAndSchedule } from '@/lib/interviews.actions';
+import { generateInterviewInsights, type InterviewInsightsOutput } from '@/ai/flows/interview-insights-flow';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -40,9 +41,10 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Search, Calendar as CalendarIcon } from 'lucide-react';
+import { Loader2, Search, Calendar as CalendarIcon, Sparkles } from 'lucide-react';
 import { format, setHours, setMinutes } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
 const interviewFormSchema = z.object({
   interviewNotes: z.string().optional(),
@@ -58,6 +60,8 @@ export default function ManageInterviewsClient() {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<CaregiverProfile[]>([]);
   const [selectedCaregiver, setSelectedCaregiver] = useState<CaregiverProfile | null>(null);
+  const [aiInsights, setAiInsights] = useState<InterviewInsightsOutput | null>(null);
+  const [isAiPending, startAiTransition] = useTransition();
   const [isSearching, startSearchTransition] = useTransition();
   const [isSubmitting, startSubmitTransition] = useTransition();
   const { toast } = useToast();
@@ -92,7 +96,31 @@ export default function ManageInterviewsClient() {
     setSelectedCaregiver(caregiver);
     setSearchResults([]);
     setSearchTerm('');
+    setAiInsights(null);
     form.reset();
+  };
+
+  const handleGenerateInsights = () => {
+    if (!selectedCaregiver) return;
+    const { interviewNotes, candidateRating } = form.getValues();
+
+    if (!interviewNotes) {
+      toast({
+        title: "Missing Information",
+        description: "Please provide interview notes before generating insights.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    startAiTransition(async () => {
+      const result = await generateInterviewInsights({
+        caregiverProfile: selectedCaregiver,
+        interviewNotes,
+        candidateRating,
+      });
+      setAiInsights(result);
+    });
   };
   
   const onSubmit = (data: InterviewFormData) => {
@@ -118,6 +146,8 @@ export default function ManageInterviewsClient() {
                 interviewNotes: data.interviewNotes,
                 candidateRating: data.candidateRating,
                 phoneScreenPassed: data.phoneScreenPassed,
+                aiSummary: aiInsights?.summary,
+                aiRecommendation: aiInsights?.recommendation,
             },
             inPersonDateTime: inPersonDateTime,
         });
@@ -127,6 +157,7 @@ export default function ManageInterviewsClient() {
         } else {
             toast({ title: "Success", description: result.message });
             setSelectedCaregiver(null);
+            setAiInsights(null);
             form.reset();
         }
     });
@@ -217,6 +248,34 @@ export default function ManageInterviewsClient() {
                                 </FormItem>
                             )}
                         />
+
+                        <div className="flex justify-center">
+                          <Button type="button" onClick={handleGenerateInsights} disabled={isAiPending}>
+                            {isAiPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                            Generate AI Insights
+                          </Button>
+                        </div>
+
+                        {isAiPending && (
+                          <p className="text-sm text-center text-muted-foreground">The AI is analyzing the profile, please wait...</p>
+                        )}
+
+                        {aiInsights && (
+                          <Alert>
+                            <Sparkles className="h-4 w-4" />
+                            <AlertTitle>AI-Generated Insights</AlertTitle>
+                            <AlertDescription className="space-y-4 mt-2">
+                               <div>
+                                  <h4 className="font-semibold mb-1">AI Summary</h4>
+                                  <p className='text-sm text-foreground'>{aiInsights.summary}</p>
+                               </div>
+                               <div>
+                                  <h4 className="font-semibold mb-1">AI Recommendation</h4>
+                                   <p className='text-sm text-foreground'>{aiInsights.recommendation}</p>
+                               </div>
+                            </AlertDescription>
+                          </Alert>
+                        )}
 
                         <FormField
                             control={form.control}
