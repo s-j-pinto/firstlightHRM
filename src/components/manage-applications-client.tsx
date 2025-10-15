@@ -5,11 +5,11 @@ import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
-import { collection } from "firebase/firestore";
+import { collection, doc } from "firebase/firestore";
 import { firestore, useCollection, useMemoFirebase } from "@/firebase";
 import type { CaregiverProfile } from "@/lib/types";
 import { generalInfoSchema } from "@/lib/types";
-import { updateCaregiverProfile } from "@/lib/caregiver.actions";
+import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Search } from "lucide-react";
+import { revalidatePath } from "next/cache";
 
 type GeneralInfoFormData = z.infer<typeof generalInfoSchema>;
 
@@ -46,7 +47,7 @@ export default function ManageApplicationsClient() {
   const db = firestore;
 
   const caregiverProfilesRef = useMemoFirebase(
-    () => collection(db, "caregiver_profiles"),
+    () => (db ? collection(db, "caregiver_profiles") : null),
     [db]
   );
   const { data: allCaregivers, isLoading: caregiversLoading } =
@@ -85,22 +86,32 @@ export default function ManageApplicationsClient() {
   };
 
   const onSubmit = (data: GeneralInfoFormData) => {
-    if (!selectedCaregiver) return;
-
-    startSubmitTransition(async () => {
-      const result = await updateCaregiverProfile(selectedCaregiver.id, data);
-      if (result.error) {
-        toast({
-          title: "Error",
-          description: result.message,
-          variant: "destructive",
-        });
-      } else {
+    if (!selectedCaregiver || !db) return;
+    
+    startSubmitTransition(() => {
+      try {
+        const profileRef = doc(db, "caregiver_profiles", selectedCaregiver.id);
+        updateDocumentNonBlocking(profileRef, data);
+        
         toast({
           title: "Success",
-          description: result.message,
+          description: "Caregiver profile updated successfully.",
         });
+        
+        // This is a client component, so we can't use server-side revalidation directly.
+        // We will rely on the real-time updates from useCollection or manual refetching.
+        // Or trigger a server action whose only job is to revalidate.
+        // For now, let's just clear the form.
         setSelectedCaregiver(null);
+
+      } catch (error) {
+        // The non-blocking update function will emit a global error, which is caught by FirebaseErrorListener.
+        // We can also show a local toast here.
+        toast({
+            title: "Error",
+            description: "Failed to update profile. Check console for details.",
+            variant: "destructive",
+        });
       }
     });
   };

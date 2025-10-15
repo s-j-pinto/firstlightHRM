@@ -25,7 +25,8 @@ export async function updateCaregiverProfile(
       return { message: "Caregiver profile not found.", error: true };
     }
 
-    await profileRef.update(validatedFields.data);
+    // Using set with merge for a more robust update
+    await profileRef.set(validatedFields.data, { merge: true });
 
     revalidatePath("/admin/manage-applications");
     revalidatePath("/admin");
