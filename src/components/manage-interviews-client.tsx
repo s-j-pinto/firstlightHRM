@@ -50,6 +50,7 @@ import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { useRouter } from 'next/navigation';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { Separator } from './ui/separator';
+import { usePathname } from 'next/navigation';
 
 const phoneScreenSchema = z.object({
   interviewNotes: z.string().optional(),
@@ -79,6 +80,7 @@ export default function ManageInterviewsClient() {
   const { toast } = useToast();
   const router = useRouter();
   const db = firestore;
+  const pathname = usePathname();
 
   const caregiverProfilesRef = useMemoFirebase(() => collection(db, 'caregiver_profiles'), [db]);
   const { data: allCaregivers, isLoading: caregiversLoading } = useCollection<CaregiverProfile>(caregiverProfilesRef);
@@ -110,18 +112,35 @@ export default function ManageInterviewsClient() {
     }
   });
 
+  const handleCancel = () => {
+    setSelectedCaregiver(null);
+    setExistingInterview(null);
+    setExistingEmployee(null);
+    setAiInsight(null);
+    phoneScreenForm.reset();
+    hiringForm.reset();
+    setAuthUrl(null);
+    setSearchTerm('');
+    setSearchResults([]);
+  }
+
+  // Effect to reset state on mount or path change
+  useEffect(() => {
+    handleCancel();
+  }, [pathname]);
+
   useEffect(() => {
     if (selectedCaregiver && existingInterview) {
-      const interviewDate = (existingInterview.interviewDateTime as any)?.toDate();
-      hiringForm.reset({
-        caregiverProfileId: selectedCaregiver.id,
-        interviewId: existingInterview.id,
-        inPersonInterviewDate: interviewDate,
-        hireDate: new Date(),
-        hiringComments: '',
-        hiringManager: 'Lolita Pinto',
-        startDate: new Date(),
-      });
+        const interviewDate = (existingInterview.interviewDateTime as any)?.toDate();
+        hiringForm.reset({
+            caregiverProfileId: selectedCaregiver.id,
+            interviewId: existingInterview.id,
+            inPersonInterviewDate: interviewDate,
+            hireDate: new Date(),
+            hiringComments: '',
+            hiringManager: 'Lolita Pinto',
+            startDate: new Date(),
+        });
     }
   }, [selectedCaregiver, existingInterview, hiringForm]);
 
@@ -142,6 +161,8 @@ export default function ManageInterviewsClient() {
   const shouldShowHiringForm = existingInterview?.phoneScreenPassed === 'Yes' && !existingEmployee;
   
   const handleSelectCaregiver = async (caregiver: CaregiverProfile) => {
+    handleCancel(); // Reset state before selecting a new caregiver
+    
     const employeeRecord = allEmployees?.find(emp => emp.caregiverProfileId === caregiver.id);
     if (employeeRecord) {
         toast({
@@ -149,26 +170,13 @@ export default function ManageInterviewsClient() {
             description: `${caregiver.fullName} has already been hired. You can search for another candidate.`,
             duration: 5000,
         });
-        handleCancel();
         return;
     }
 
     setSelectedCaregiver(caregiver);
     setSearchResults([]);
     setSearchTerm('');
-    setAiInsight(null);
-    setExistingInterview(null);
-    setExistingEmployee(null);
-    setAuthUrl(null);
     
-    phoneScreenForm.reset({
-      interviewNotes: '',
-      candidateRating: 3,
-      phoneScreenPassed: 'No',
-      inPersonDate: undefined,
-      inPersonTime: '',
-    });
-
     const interviewsRef = collection(db, 'interviews');
     const q = query(interviewsRef, where("caregiverProfileId", "==", caregiver.id));
     
@@ -202,7 +210,6 @@ export default function ManageInterviewsClient() {
             if(interviewData.aiGeneratedInsight) {
                 setAiInsight(interviewData.aiGeneratedInsight);
             }
-
         }
     } catch (error) {
         toast({
@@ -367,17 +374,6 @@ export default function ManageInterviewsClient() {
     });
   };
 
-  const handleCancel = () => {
-    setSelectedCaregiver(null);
-    setExistingInterview(null);
-    setExistingEmployee(null);
-    setAiInsight(null);
-    phoneScreenForm.reset();
-    hiringForm.reset();
-    setAuthUrl(null);
-    setSearchTerm('');
-    setSearchResults([]);
-  }
 
   const isLoading = caregiversLoading || employeesLoading;
 
