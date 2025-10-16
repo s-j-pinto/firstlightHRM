@@ -415,7 +415,7 @@ export default function ManageInterviewsClient() {
         </CardContent>
       </Card>
 
-      {selectedCaregiver && !shouldShowHiringForm && !existingEmployee && (
+      {selectedCaregiver && !existingEmployee && (
         <Card>
             <CardHeader>
                 <CardTitle>Phone Screen: {selectedCaregiver.fullName}</CardTitle>
@@ -561,7 +561,7 @@ export default function ManageInterviewsClient() {
         </Card>
       )}
 
-      {shouldShowHiringForm && existingInterview && (
+      {selectedCaregiver && shouldShowHiringForm && (
         <Card>
             <CardHeader>
                  <CardTitle>Hiring &amp; Onboarding: {selectedCaregiver?.fullName}</CardTitle>
@@ -706,12 +706,12 @@ export default function ManageInterviewsClient() {
         </Card>
       )}
 
-      {existingEmployee && (
+      {selectedCaregiver && existingEmployee && (
         <Card>
             <CardHeader>
                 <CardTitle className='flex items-center gap-2'>
                     <Briefcase />
-                    Hired Information: {selectedCaregiver?.fullName}
+                    Hired Information: {selectedCaregiver.fullName}
                 </CardTitle>
                 <CardDescription>
                     This caregiver has already been hired.
