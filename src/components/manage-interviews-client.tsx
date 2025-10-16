@@ -125,7 +125,7 @@ export default function ManageInterviewsClient() {
 
   const phoneScreenPassed = phoneScreenForm.watch('phoneScreenPassed');
   const shouldShowHiringForm = existingInterview?.phoneScreenPassed === 'Yes' && !existingEmployee;
-
+  
   const handleSearch = () => {
     if (!searchTerm.trim() || !allCaregivers) return;
     startSearchTransition(() => {
@@ -183,9 +183,6 @@ export default function ManageInterviewsClient() {
                 setAiInsight(interviewData.aiGeneratedInsight);
             }
 
-            if (interviewData.phoneScreenPassed === 'No' && !employeeRecord) {
-              // Show the form to allow edits
-            }
         }
     } catch (error) {
         toast({
