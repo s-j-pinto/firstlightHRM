@@ -46,21 +46,21 @@ export const sendAppointmentEmail = onDocumentCreated("appointments/{appointment
     const email = {
       to: [adminEmail],
       message: {
-        subject: `New Phone Interview Appointment with ${caregiverData?.fullName}`,
+        subject: `New Phone Interview Appointment with ${caregiverData.fullName}`,
         html: `
           <h1>New Appointment Scheduled</h1>
           <p>A new appointment slot has been requested with the following caregiver. Please send them a calendar invite.</p>
           
           <h2>Appointment Details</h2>
-          <p><strong>Caregiver:</strong> ${caregiverData?.fullName}</p>
+          <p><strong>Caregiver:</strong> ${caregiverData.fullName}</p>
           <p><strong>Date:</strong> ${formatInTimeZone(startTime, pacificTimeZone, 'EEEE, MMMM do, yyyy')}</p>
           <p><strong>Time:</strong> ${formatInTimeZone(startTime, pacificTimeZone, 'h:mm a')} - ${formatInTimeZone(endTime, pacificTimeZone, 'h:mm a')} (Pacific Time)</p>
           
           <h2>Caregiver Profile</h2>
-          <p><strong>Email:</strong> ${caregiverData?.email}</p>
-          <p><strong>Phone:</strong> ${caregiverData?.phone}</p>
-          <p><strong>Years of Experience:</strong> ${caregiverData?.yearsExperience}</p>
-          <p><strong>Summary:</strong> ${caregiverData?.summary}</p>
+          <p><strong>Email:</strong> ${caregiverData.email}</p>
+          <p><strong>Phone:</strong> ${caregiverData.phone}</p>
+          <p><strong>Years of Experience:</strong> ${caregiverData.yearsExperience}</p>
+          <p><strong>Summary:</strong> ${caregiverData.summary}</p>
           
           <p>You can view the full details on the admin dashboard.</p>
         `,
@@ -74,3 +74,4 @@ export const sendAppointmentEmail = onDocumentCreated("appointments/{appointment
     logger.error("Error sending appointment email:", error);
   }
 });
+
