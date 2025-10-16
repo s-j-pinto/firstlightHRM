@@ -1,0 +1,17 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Match the specific logo file and allow public read access.
+    match /FirstlightLogo_transparent.png {
+      allow read: if true;
+      allow write: if request.auth != null; // Only authenticated users can overwrite it.
+    }
+
+    // All other files in storage require authentication to read or write.
+    // This ensures that user-uploaded content or other private files remain secure.
+    match /{allPaths=**} {
+      allow read, write: if request.auth != null && allPaths != "FirstlightLogo_transparent.png";
+    }
+  }
+}
