@@ -72,7 +72,7 @@ export const sendAppointmentEmail = onDocumentCreated("appointments/{appointment
     const email = {
       to: [adminEmail],
       message: {
-        subject: `[ACTION REQUIRED] New Phone Interview Appointment Requested`,
+        subject: `[Action Required] New Phone Interview Appointment Requested with ${caregiverData.fullName}`,
         html: `
           <h1>New Appointment Scheduled</h1>
           <p>A new appointment slot has been requested with the following caregiver. Please send them a calendar invite.\n https://care-connect-360--firstlighthomecare-hrm.us-central1.hosted.app/login?redirect=/admin </p>
