@@ -370,28 +370,6 @@ export default function ManageInterviewsClient() {
 
   return (
     <div className="space-y-6">
-      {authUrl && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Action Required: Authorize Google Calendar</AlertTitle>
-          <AlertDescription>
-            <p className="mb-2">
-              To send calendar invites, you must grant permission. Click the button below to authorize.
-            </p>
-            <Button asChild>
-                <a href={authUrl} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    Open Authorization Page
-                </a>
-            </Button>
-            <p className="mt-3 text-xs">
-                After you authorize, Google will redirect you. Copy the 'code' from the new URL, then go to{' '}
-                <Link href="/admin/settings" className="underline font-semibold">Admin Settings</Link> to paste it and generate a new refresh token.
-            </p>
-          </AlertDescription>
-        </Alert>
-      )}
-
       <Card>
         <CardHeader>
         <CardTitle>Search for a Caregiver</CardTitle>
@@ -406,9 +384,8 @@ export default function ManageInterviewsClient() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            disabled={!!selectedCaregiver}
             />
-            <Button onClick={handleSearch} disabled={isSearching || !searchTerm.trim() || !!selectedCaregiver}>
+            <Button onClick={handleSearch} disabled={isSearching || !searchTerm.trim()}>
             {isSearching ? <Loader2 className="animate-spin" /> : <Search />}
             <span className="ml-2">Search</span>
             </Button>
@@ -434,9 +411,30 @@ export default function ManageInterviewsClient() {
         )}
         </CardContent>
       </Card>
+      
+      {authUrl && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Action Required: Authorize Google Calendar</AlertTitle>
+          <AlertDescription>
+            <p className="mb-2">
+              To send calendar invites, you must grant permission. Click the button below to authorize.
+            </p>
+            <Button asChild>
+                <a href={authUrl} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Open Authorization Page
+                </a>
+            </Button>
+            <p className="mt-3 text-xs">
+                After you authorize, Google will redirect you. Copy the 'code' from the new URL, then go to{' '}
+                <Link href="/admin/settings" className="underline font-semibold">Admin Settings</Link> to paste it and generate a new refresh token.
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
 
-
-      {selectedCaregiver && !existingEmployee && (
+      {selectedCaregiver && (
         <Card>
             <CardHeader>
                 <CardTitle>Phone Screen: {selectedCaregiver.fullName}</CardTitle>
