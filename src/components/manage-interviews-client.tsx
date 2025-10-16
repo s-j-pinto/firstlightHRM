@@ -44,7 +44,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Search, Calendar as CalendarIcon, Sparkles, UserCheck, AlertCircle, ExternalLink, Briefcase } from 'lucide-react';
-import { format, setHours, setMinutes } from 'date-fns';
+import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { useRouter } from 'next/navigation';
@@ -127,19 +127,6 @@ export default function ManageInterviewsClient() {
   const phoneScreenPassed = phoneScreenForm.watch('phoneScreenPassed');
   const shouldShowHiringForm = existingInterview?.phoneScreenPassed === 'Yes' && !existingEmployee;
 
-
-  const handleSearch = () => {
-    if (!searchTerm.trim() || !allCaregivers) return;
-    startSearchTransition(() => {
-      const lowercasedTerm = searchTerm.toLowerCase();
-      const results = allCaregivers.filter(
-        (caregiver) =>
-          caregiver.fullName.toLowerCase().includes(lowercasedTerm) ||
-          caregiver.phone.includes(searchTerm)
-      );
-      setSearchResults(results);
-    });
-  };
 
   const handleSelectCaregiver = async (caregiver: CaregiverProfile) => {
     setSelectedCaregiver(caregiver);
@@ -255,7 +242,7 @@ export default function ManageInterviewsClient() {
   
         if (data.phoneScreenPassed === 'Yes' && data.inPersonDate && data.inPersonTime) {
           const [hours, minutes] = data.inPersonTime.split(':').map(Number);
-          const inPersonDateTime = setMinutes(setHours(data.inPersonDate, hours), minutes);
+          const inPersonDateTime = new Date(data.inPersonDate.setHours(hours, minutes));
   
           const result = await saveInterviewAndSchedule({
             caregiverProfile: selectedCaregiver,
@@ -747,5 +734,3 @@ export default function ManageInterviewsClient() {
     </div>
   );
 }
-
-    
