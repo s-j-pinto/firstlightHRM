@@ -45,16 +45,37 @@ export const sendAppointmentEmail = onDocumentCreated("appointments/{appointment
 
     // Format the date and time correctly in the Pacific Time Zone
     const formattedDate = formatInTimeZone(startTime, pacificTimeZone, 'EEEE, MMMM do, yyyy');
-    const formattedStartTime = formatInTimeZone(startTime, pacificTimeZone, 'h:mm a zzz');
-    const formattedEndTime = formatInTimeZone(endTime, pacificTimeZone, 'h:mm a zzz');
+    //const formattedStartTime = formatInTimeZone(startTime, pacificTimeZone, 'h:mm a zzz');
+    //const formattedEndTime = formatInTimeZone(endTime, pacificTimeZone, 'h:mm a zzz');
+    const formattedStartTime = startTime.toLocaleString("en-US", {
+      timeZone: "America/Los_Angeles", // Set the time zone to PST
+      hour12: true,
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      second: "numeric",
+    })
+    const formattedStartTime = endTime.toLocaleString("en-US", {
+      timeZone: "America/Los_Angeles", // Set the time zone to PST
+      hour12: true,
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      second: "numeric",
+    })
+    const formattedEndTime = formatInTimeZone(endTime, pacificTimeZone, 'h:mm a');
 
     const email = {
       to: [adminEmail],
       message: {
-        subject: `New Phone Interview Appointment with ${caregiverData.fullName}`,
+        subject: `[ACTION REQUIRED] New Phone Interview Appointment Requested`,
         html: `
           <h1>New Appointment Scheduled</h1>
-          <p>A new appointment slot has been requested with the following caregiver. Please send them a calendar invite.</p>
+          <p>A new appointment slot has been requested with the following caregiver. Please send them a calendar invite.\n https://care-connect-360--firstlighthomecare-hrm.us-central1.hosted.app/login?redirect=/admin </p>
           
           <h2>Appointment Details</h2>
           <p><strong>Caregiver:</strong> ${caregiverData.fullName}</p>
