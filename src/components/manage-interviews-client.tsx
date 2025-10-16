@@ -112,10 +112,11 @@ export default function ManageInterviewsClient() {
 
   useEffect(() => {
     if (selectedCaregiver && existingInterview) {
+      const interviewDate = (existingInterview.interviewDateTime as any)?.toDate();
       hiringForm.reset({
         caregiverProfileId: selectedCaregiver.id,
         interviewId: existingInterview.id,
-        inPersonInterviewDate: undefined, 
+        inPersonInterviewDate: interviewDate,
         hireDate: new Date(),
         hiringComments: '',
         hiringManager: 'Lolita Pinto',
