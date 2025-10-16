@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Link from 'next/link';
-import { collection, query, where, getDocs, addDoc, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, doc, updateDoc, Timestamp } from 'firebase/firestore';
 import { firestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import type { CaregiverProfile, Interview, CaregiverEmployee } from '@/lib/types';
 import { caregiverEmployeeSchema } from '@/lib/types';
@@ -120,6 +120,9 @@ export default function ManageInterviewsClient() {
   }, [selectedCaregiver, existingInterview, hiringForm]);
 
   const phoneScreenPassed = phoneScreenForm.watch('phoneScreenPassed');
+  const formPhoneScreenPassedState = phoneScreenForm.watch('phoneScreenPassed');
+  const shouldShowHiringForm = existingInterview?.phoneScreenPassed === 'Yes' && formPhoneScreenPassedState === 'Yes';
+
 
   const handleSearch = () => {
     if (!searchTerm.trim() || !allCaregivers) return;
@@ -159,15 +162,6 @@ export default function ManageInterviewsClient() {
             const interviewDoc = querySnapshot.docs[0];
             const interviewData = { ...interviewDoc.data(), id: interviewDoc.id } as Interview;
             
-            if (interviewData.phoneScreenPassed === 'No') {
-                toast({
-                    title: "Hiring Not Recommended",
-                    description: `${caregiver.fullName} did not pass the initial phone screen.`,
-                    variant: "destructive",
-                });
-                return; // Stop the process here
-            }
-
             setExistingInterview(interviewData);
             phoneScreenForm.reset({
                 interviewNotes: interviewData.interviewNotes,
@@ -178,7 +172,7 @@ export default function ManageInterviewsClient() {
                 setAiInsight(interviewData.aiGeneratedInsight);
             }
         }
-        // If no existing interview, or if they passed, we can select them.
+        // Always select the caregiver to show the appropriate form
         setSelectedCaregiver(caregiver);
     } catch (error) {
         toast({
@@ -223,7 +217,6 @@ export default function ManageInterviewsClient() {
     if (!selectedCaregiver || !db) return;
   
     startSubmitTransition(async () => {
-      const colRef = collection(db, 'interviews');
       const interviewDocData = {
         caregiverProfileId: selectedCaregiver.id,
         caregiverUid: selectedCaregiver.uid,
@@ -234,29 +227,31 @@ export default function ManageInterviewsClient() {
         phoneScreenPassed: data.phoneScreenPassed,
         aiGeneratedInsight: aiInsight || '',
       };
+      
+      let interviewId = existingInterview?.id;
   
       try {
-        const docRef = await addDoc(colRef, interviewDocData);
-        toast({
-          title: 'Success',
-          description: 'Phone interview results saved.',
-        });
+        if (interviewId) {
+            // Update existing interview
+            const docRef = doc(db, 'interviews', interviewId);
+            await updateDoc(docRef, interviewDocData);
+            toast({ title: 'Success', description: 'Phone interview results updated.' });
+        } else {
+            // Create new interview
+            const colRef = collection(db, 'interviews');
+            const docRef = await addDoc(colRef, interviewDocData);
+            interviewId = docRef.id;
+            toast({ title: 'Success', description: 'Phone interview results saved.' });
+        }
   
-        if (
-          data.phoneScreenPassed === 'Yes' &&
-          data.inPersonDate &&
-          data.inPersonTime
-        ) {
+        if (data.phoneScreenPassed === 'Yes' && data.inPersonDate && data.inPersonTime) {
           const [hours, minutes] = data.inPersonTime.split(':').map(Number);
-          const inPersonDateTime = setMinutes(
-            setHours(data.inPersonDate, hours),
-            minutes
-          );
+          const inPersonDateTime = setMinutes(setHours(data.inPersonDate, hours), minutes);
   
           const result = await saveInterviewAndSchedule({
             caregiverProfile: selectedCaregiver,
             inPersonDateTime: inPersonDateTime,
-            interviewId: docRef.id,
+            interviewId: interviewId,
             aiInsight: aiInsight || '',
           });
   
@@ -272,11 +267,12 @@ export default function ManageInterviewsClient() {
             variant: result.error ? 'destructive' : 'default',
           });
         }
-        handleSelectCaregiver(selectedCaregiver);
+        // Refresh the component state after submission
+        await handleSelectCaregiver(selectedCaregiver);
       } catch (error) {
         const permissionError = new FirestorePermissionError({
-          path: colRef.path,
-          operation: 'create',
+          path: existingInterview ? `interviews/${interviewId}` : 'interviews',
+          operation: existingInterview ? 'update' : 'create',
           requestResourceData: interviewDocData,
         });
         errorEmitter.emit('permission-error', permissionError);
@@ -414,11 +410,13 @@ export default function ManageInterviewsClient() {
         </CardContent>
       </Card>
 
-      {selectedCaregiver && !existingInterview && (
+      {selectedCaregiver && !shouldShowHiringForm && (
         <Card>
             <CardHeader>
                 <CardTitle>Phone Screen: {selectedCaregiver.fullName}</CardTitle>
-                <CardDescription>Record the results of the phone interview.</CardDescription>
+                <CardDescription>
+                    {existingInterview ? "Update the results of the phone interview." : "Record the results of the phone interview."}
+                </CardDescription>
             </CardHeader>
             <CardContent>
                 <Form {...phoneScreenForm}>
@@ -484,7 +482,7 @@ export default function ManageInterviewsClient() {
                                 <FormItem className="space-y-3">
                                     <FormLabel>Did the candidate pass the phone screen?</FormLabel>
                                     <FormControl>
-                                        <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-4">
+                                        <RadioGroup onValueChange={field.onChange} defaultValue={field.value} value={field.value} className="flex gap-4">
                                             <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="Yes" /></FormControl><FormLabel className="font-normal">Yes</FormLabel></FormItem>
                                             <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="No" /></FormControl><FormLabel className="font-normal">No</FormLabel></FormItem>
                                         </RadioGroup>
@@ -554,7 +552,7 @@ export default function ManageInterviewsClient() {
         </Card>
       )}
 
-      {selectedCaregiver && existingInterview && (
+      {selectedCaregiver && shouldShowHiringForm && existingInterview && (
         <Card>
             <CardHeader>
                  <CardTitle>Hiring & Onboarding: {selectedCaregiver.fullName}</CardTitle>
@@ -702,5 +700,7 @@ export default function ManageInterviewsClient() {
     </div>
   );
 }
+
+    
 
     
