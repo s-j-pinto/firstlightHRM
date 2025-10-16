@@ -61,9 +61,9 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
     const endTime = new Date(startTime.getTime() + 2.5 * 60 * 60 * 1000); // 2.5 hours interview
 
     const event = {
-      summary: `Firstlight In-Person Interview with ${caregiverProfile.fullName}`,
-      location: '9650 Business Center Drive, Suite 132, Rancho Cucamonga, CA',
-      description: `Dear ${caregiverProfile.fullName},\nPlease bring the following documents to In person Interview:\n- Driver's License,\n- Car insurance and registration,\n- Social Security card or US passport (to prove your work eligibility, If you are green card holder, bring Green card.)\n- Current negative TB-Test Copy,\n- HCA letter or number,\n- Live scan or Clearance letter if you have it,\n- CPR-First Aide proof card, Any other certification that you have.`,
+      summary: `In-Person interview with ${caregiverProfile.fullName}`,
+      location: '9650 Business Center Drive, Suite #132, Bldg #17, Rancho Cucamonga, CA 92730, PH: 909-321-4466',
+      description: `Dear ${caregiverProfile.fullName},\nPlease bring the following documents to in-person Interview:\n- Driver's License,\n- Car insurance and registration,\n- Social Security card or US passport (to prove your work eligibility, If you are green card holder, bring Green card.)\n- Current negative TB-Test Copy,\n- HCA letter or number,\n- Live scan or Clearance letter if you have it,\n If you have not registered, please register on this link: https://guardian.dss.ca.gov/Applicant/ \n- CPR-First Aide proof card, Any other certification that you have.`,
       start: {
         dateTime: startTime.toISOString(),
         timeZone: 'America/Los_Angeles',
