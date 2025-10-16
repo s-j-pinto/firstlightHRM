@@ -44,7 +44,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Search, Calendar as CalendarIcon, Sparkles, UserCheck, AlertCircle, ExternalLink, Briefcase } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, toDate } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { useRouter } from 'next/navigation';
@@ -187,10 +187,15 @@ export default function ManageInterviewsClient() {
             }
             
             setExistingInterview(interviewData);
+
+            const interviewDate = (interviewData.inPersonInterviewDate as any)?.toDate();
+
             phoneScreenForm.reset({
                 interviewNotes: interviewData.interviewNotes,
                 candidateRating: interviewData.candidateRating,
                 phoneScreenPassed: interviewData.phoneScreenPassed as 'Yes' | 'No',
+                inPersonDate: interviewDate ? toDate(interviewDate) : undefined,
+                inPersonTime: interviewDate ? format(toDate(interviewDate), 'HH:mm') : '',
             });
 
             if(interviewData.aiGeneratedInsight) {
@@ -241,7 +246,7 @@ export default function ManageInterviewsClient() {
     if (!selectedCaregiver || !db) return;
   
     startSubmitTransition(async () => {
-      const interviewDocData = {
+      const interviewDocData: Partial<Interview> = {
         caregiverProfileId: selectedCaregiver.id,
         caregiverUid: selectedCaregiver.uid,
         interviewDateTime: new Date(),
@@ -251,6 +256,12 @@ export default function ManageInterviewsClient() {
         phoneScreenPassed: data.phoneScreenPassed,
         aiGeneratedInsight: aiInsight || '',
       };
+
+      if (data.phoneScreenPassed === 'Yes' && data.inPersonDate && data.inPersonTime) {
+        const [hours, minutes] = data.inPersonTime.split(':').map(Number);
+        const inPersonDateTime = new Date(data.inPersonDate.setHours(hours, minutes));
+        interviewDocData.inPersonInterviewDate = Timestamp.fromDate(inPersonDateTime);
+      }
       
       let interviewId = existingInterview?.id;
   
@@ -259,13 +270,13 @@ export default function ManageInterviewsClient() {
         if (interviewId) {
             const docRef = doc(db, 'interviews', interviewId);
             await updateDoc(docRef, interviewDocData);
-            savedInterviewData = { ...existingInterview!, ...interviewDocData };
+            savedInterviewData = { ...existingInterview!, ...interviewDocData } as Interview;
             toast({ title: 'Success', description: 'Phone interview results updated.' });
         } else {
             const colRef = collection(db, 'interviews');
             const docRef = await addDoc(colRef, interviewDocData);
             interviewId = docRef.id;
-            savedInterviewData = { ...interviewDocData, id: interviewId };
+            savedInterviewData = { ...interviewDocData, id: interviewId } as Interview;
             toast({ title: 'Success', description: 'Phone interview results saved.' });
         }
         
@@ -565,7 +576,7 @@ export default function ManageInterviewsClient() {
                         )}
 
                         <div className="flex justify-end gap-4">
-                            <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
+                            <Button type="button" variant="outline" onClick={handleCancel} disabled={!!existingInterview}>Cancel</Button>
                              <Button type="submit" disabled={isSubmitting || !!existingInterview}>
                                 {isSubmitting ? (
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -714,5 +725,3 @@ export default function ManageInterviewsClient() {
     </div>
   );
 }
-
-    

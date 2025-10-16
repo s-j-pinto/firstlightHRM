@@ -94,6 +94,7 @@ export const interviewSchema = z.object({
   candidateRating: z.number().min(0).max(5),
   phoneScreenPassed: z.enum(["Yes", "No", "N/A"]),
   aiGeneratedInsight: z.string().optional(),
+  inPersonInterviewDate: z.date().optional(),
 });
 
 export type Interview = z.infer<typeof interviewSchema> & { id: string };
@@ -109,5 +110,3 @@ export const caregiverEmployeeSchema = z.object({
 });
 
 export type CaregiverEmployee = z.infer<typeof caregiverEmployeeSchema> & { id: string };
-
-    

@@ -6,6 +6,7 @@ import { serverDb } from '@/firebase/server-init';
 import { google } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
 import type { CaregiverProfile } from './types';
+import { Timestamp } from 'firebase-admin/firestore';
 
 interface SaveInterviewPayload {
   caregiverProfile: CaregiverProfile;
@@ -22,13 +23,16 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
   const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
   const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:9002/admin/settings';
 
-  // First, save the AI insight to the existing interview document
+  // First, save the AI insight and interview date to the existing interview document
   try {
     const interviewRef = serverDb.collection('interviews').doc(interviewId);
-    await interviewRef.update({ aiGeneratedInsight: aiInsight || '' });
+    await interviewRef.update({ 
+      aiGeneratedInsight: aiInsight || '',
+      inPersonInterviewDate: Timestamp.fromDate(inPersonDateTime),
+    });
   } catch (dbError) {
-    console.error("Error saving AI insight to interview:", dbError);
-    return { message: "Failed to save AI Insight to the interview record.", error: true };
+    console.error("Error saving AI insight/date to interview:", dbError);
+    return { message: "Failed to save AI Insight or date to the interview record.", error: true };
   }
 
   // Then, proceed with calendar scheduling
