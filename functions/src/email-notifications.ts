@@ -3,7 +3,6 @@ import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import * as logger from "firebase-functions/logger";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
-import { formatInTimeZone } from "date-fns-tz";
 import { Timestamp } from "firebase-admin/firestore";
 
 // Check if the app is already initialized to prevent re-initialization
@@ -12,7 +11,6 @@ if (!getFirestore().app.name) {
 }
 
 const db = getFirestore();
-const pacificTimeZone = "America/Los_Angeles";
 
 export const sendAppointmentEmail = onDocumentCreated("appointments/{appointmentId}", async (event) => {
   const snapshot = event.data;
@@ -33,6 +31,8 @@ export const sendAppointmentEmail = onDocumentCreated("appointments/{appointment
     }
 
     const caregiverData = caregiverProfile.data()!;
+    logger.info("Retrieved caregiver data:", caregiverData);
+
 
     // Ensure startTime and endTime are valid Timestamps before converting
     const startTime = (appointment.startTime as Timestamp)?.toDate();
@@ -43,8 +43,6 @@ export const sendAppointmentEmail = onDocumentCreated("appointments/{appointment
         return;
     }
 
-    const formattedDate = formatInTimeZone(startTime, pacificTimeZone, 'EEEE, MMMM do, yyyy');
-    
     const formattedStartTime = startTime.toLocaleString("en-US", {
       timeZone: "America/Los_Angeles",
       hour12: true,
@@ -58,17 +56,26 @@ export const sendAppointmentEmail = onDocumentCreated("appointments/{appointment
       hour: "numeric",
       minute: "numeric",
     });
+    
+    const formattedDate = startTime.toLocaleDateString("en-US", {
+        timeZone: "America/Los_Angeles",
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+
 
     const email = {
       to: [adminEmail],
       message: {
-        subject: `[Action Required] New Phone Interview Appointment Requested with ${caregiverData.fullName}`,
+        subject: `[Action Required] New Phone Interview Appointment Requested with ${caregiverData.fullName || 'N/A'}`,
         html: `
           <h1>New Appointment Scheduled</h1>
           <p>A new appointment slot has been requested with the following caregiver. Please send them a calendar invite.\n https://care-connect-360--firstlighthomecare-hrm.us-central1.hosted.app/login?redirect=/admin </p>
           
           <h2>Appointment Details</h2>
-          <p><strong>Caregiver:</strong> ${caregiverData.fullName}</p>
+          <p><strong>Caregiver:</strong> ${caregiverData.fullName || 'N/A'}</p>
           <p><strong>Date:</strong> ${formattedDate}</p>
           <p><strong>Start Time:</strong> ${formattedStartTime} (Pacific Time)</p>
           <p><strong>End Time:</strong> ${formattedEndTime} (Pacific Time)</p>
