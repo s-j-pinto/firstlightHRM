@@ -57,7 +57,7 @@ export const sendAppointmentEmail = onDocumentCreated("appointments/{appointment
       minute: "numeric",
       second: "numeric",
     })
-    const formattedStartTime = endTime.toLocaleString("en-US", {
+    const formattedEndTime = endTime.toLocaleString("en-US", {
       timeZone: "America/Los_Angeles", // Set the time zone to PST
       hour12: true,
       year: "numeric",
@@ -67,7 +67,7 @@ export const sendAppointmentEmail = onDocumentCreated("appointments/{appointment
       minute: "numeric",
       second: "numeric",
     })
-    const formattedEndTime = formatInTimeZone(endTime, pacificTimeZone, 'h:mm a');
+    //const formattedEndTime = formatInTimeZone(endTime, pacificTimeZone, 'h:mm a');
 
     const email = {
       to: [adminEmail],
