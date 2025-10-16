@@ -1,10 +1,12 @@
 'use client';
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from 'next/navigation';
 import { LogIn } from "lucide-react";
-import { HeartHand } from "@/components/icons";
 import { Button } from "./ui/button";
+
+const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
 
 export function AppHeader() {
   const pathname = usePathname();
@@ -13,10 +15,14 @@ export function AppHeader() {
     <header className="bg-background/80 backdrop-blur-sm sticky top-0 z-40 w-full border-b">
       <div className="container flex h-16 items-center">
         <Link href="/" className="flex items-center space-x-2">
-          <HeartHand className="h-7 w-7 text-accent" />
-          <span className="font-bold text-xl font-headline text-foreground">
-            FirstLightHomeCare of Rancho Cucamonga
-          </span>
+          <Image 
+            src={logoUrl}
+            alt="FirstLight Home Care Logo"
+            width={250}
+            height={40}
+            priority
+            className="object-contain"
+          />
         </Link>
         <div className="flex flex-1 items-center justify-end space-x-4">
           <nav className="flex items-center space-x-1">
