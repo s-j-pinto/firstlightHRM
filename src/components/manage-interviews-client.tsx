@@ -188,7 +188,7 @@ export default function ManageInterviewsClient() {
             
             setExistingInterview(interviewData);
 
-            const interviewDate = (interviewData.inPersonInterviewDate as any)?.toDate();
+            const interviewDate = (interviewData.interviewDateTime as any)?.toDate();
 
             phoneScreenForm.reset({
                 interviewNotes: interviewData.interviewNotes,
@@ -249,7 +249,6 @@ export default function ManageInterviewsClient() {
       const interviewDocData: Partial<Interview> = {
         caregiverProfileId: selectedCaregiver.id,
         caregiverUid: selectedCaregiver.uid,
-        interviewDateTime: new Date(),
         interviewType: 'Phone' as const,
         interviewNotes: data.interviewNotes,
         candidateRating: data.candidateRating,
@@ -260,7 +259,9 @@ export default function ManageInterviewsClient() {
       if (data.phoneScreenPassed === 'Yes' && data.inPersonDate && data.inPersonTime) {
         const [hours, minutes] = data.inPersonTime.split(':').map(Number);
         const inPersonDateTime = new Date(data.inPersonDate.setHours(hours, minutes));
-        interviewDocData.inPersonInterviewDate = Timestamp.fromDate(inPersonDateTime);
+        interviewDocData.interviewDateTime = Timestamp.fromDate(inPersonDateTime);
+      } else {
+        interviewDocData.interviewDateTime = Timestamp.now();
       }
       
       let interviewId = existingInterview?.id;

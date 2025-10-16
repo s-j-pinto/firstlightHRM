@@ -28,7 +28,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
     const interviewRef = serverDb.collection('interviews').doc(interviewId);
     await interviewRef.update({ 
       aiGeneratedInsight: aiInsight || '',
-      inPersonInterviewDate: Timestamp.fromDate(inPersonDateTime),
+      interviewDateTime: Timestamp.fromDate(inPersonDateTime),
     });
   } catch (dbError) {
     console.error("Error saving AI insight/date to interview:", dbError);
