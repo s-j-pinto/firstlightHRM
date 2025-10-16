@@ -48,23 +48,15 @@ export const sendAppointmentEmail = onDocumentCreated("appointments/{appointment
     const formattedStartTime = startTime.toLocaleString("en-US", {
       timeZone: "America/Los_Angeles",
       hour12: true,
-      year: "numeric",
-      month: "numeric",
-      day: "numeric",
       hour: "numeric",
       minute: "numeric",
-      second: "numeric",
     });
 
     const formattedEndTime = endTime.toLocaleString("en-US", {
       timeZone: "America/Los_Angeles",
       hour12: true,
-      year: "numeric",
-      month: "numeric",
-      day: "numeric",
       hour: "numeric",
       minute: "numeric",
-      second: "numeric",
     });
 
     const email = {
@@ -78,8 +70,8 @@ export const sendAppointmentEmail = onDocumentCreated("appointments/{appointment
           <h2>Appointment Details</h2>
           <p><strong>Caregiver:</strong> ${caregiverData.fullName}</p>
           <p><strong>Date:</strong> ${formattedDate}</p>
-          <p><strong>Start Time:</strong> ${formattedStartTime}</p>
-          <p><strong>End Time:</strong> ${formattedEndTime}</p>
+          <p><strong>Start Time:</strong> ${formattedStartTime} (Pacific Time)</p>
+          <p><strong>End Time:</strong> ${formattedEndTime} (Pacific Time)</p>
           
           <h2>Caregiver Profile</h2>
           <p><strong>Email:</strong> ${caregiverData.email}</p>
