@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useTransition, useEffect } from 'react';
@@ -127,6 +126,18 @@ export default function ManageInterviewsClient() {
   const phoneScreenPassed = phoneScreenForm.watch('phoneScreenPassed');
   const shouldShowHiringForm = existingInterview?.phoneScreenPassed === 'Yes' && !existingEmployee;
 
+  const handleSearch = () => {
+    if (!searchTerm.trim() || !allCaregivers) return;
+    startSearchTransition(() => {
+      const lowercasedTerm = searchTerm.toLowerCase();
+      const results = allCaregivers.filter(
+        (caregiver) =>
+          caregiver.fullName.toLowerCase().includes(lowercasedTerm) ||
+          (caregiver.phone && caregiver.phone.includes(searchTerm))
+      );
+      setSearchResults(results);
+    });
+  };
 
   const handleSelectCaregiver = async (caregiver: CaregiverProfile) => {
     setSelectedCaregiver(caregiver);
@@ -170,6 +181,10 @@ export default function ManageInterviewsClient() {
 
             if(interviewData.aiGeneratedInsight) {
                 setAiInsight(interviewData.aiGeneratedInsight);
+            }
+
+            if (interviewData.phoneScreenPassed === 'No' && !employeeRecord) {
+              // Show the form to allow edits
             }
         }
     } catch (error) {
