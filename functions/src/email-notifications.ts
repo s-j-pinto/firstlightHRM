@@ -3,7 +3,6 @@ import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import * as logger from "firebase-functions/logger";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
-import { format } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 import { Timestamp } from "firebase-admin/firestore";
 
@@ -46,8 +45,8 @@ export const sendAppointmentEmail = onDocumentCreated("appointments/{appointment
 
     // Format the date and time correctly in the Pacific Time Zone
     const formattedDate = formatInTimeZone(startTime, pacificTimeZone, 'EEEE, MMMM do, yyyy');
-    const formattedStartTime = formatInTimeZone(startTime, pacificTimeZone, 'h:mm a');
-    const formattedEndTime = formatInTimeZone(endTime, pacificTimeZone, 'h:mm a');
+    const formattedStartTime = formatInTimeZone(startTime, pacificTimeZone, 'h:mm a zzz');
+    const formattedEndTime = formatInTimeZone(endTime, pacificTimeZone, 'h:mm a zzz');
 
     const email = {
       to: [adminEmail],
@@ -60,7 +59,7 @@ export const sendAppointmentEmail = onDocumentCreated("appointments/{appointment
           <h2>Appointment Details</h2>
           <p><strong>Caregiver:</strong> ${caregiverData.fullName}</p>
           <p><strong>Date:</strong> ${formattedDate}</p>
-          <p><strong>Time:</strong> ${formattedStartTime} - ${formattedEndTime} (Pacific Time)</p>
+          <p><strong>Time:</strong> ${formattedStartTime} - ${formattedEndTime}</p>
           
           <h2>Caregiver Profile</h2>
           <p><strong>Email:</strong> ${caregiverData.email}</p>
@@ -80,4 +79,3 @@ export const sendAppointmentEmail = onDocumentCreated("appointments/{appointment
     logger.error("Error sending appointment email:", error);
   }
 });
-
