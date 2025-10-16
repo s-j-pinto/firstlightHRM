@@ -43,7 +43,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Search, Calendar as CalendarIcon, Sparkles, UserCheck, AlertCircle, ExternalLink } from 'lucide-react';
+import { Loader2, Search, Calendar as CalendarIcon, Sparkles, UserCheck, AlertCircle, ExternalLink, Briefcase } from 'lucide-react';
 import { format, setHours, setMinutes } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
@@ -67,6 +67,7 @@ export default function ManageInterviewsClient() {
   const [searchResults, setSearchResults] = useState<CaregiverProfile[]>([]);
   const [selectedCaregiver, setSelectedCaregiver] = useState<CaregiverProfile | null>(null);
   const [existingInterview, setExistingInterview] = useState<Interview | null>(null);
+  const [existingEmployee, setExistingEmployee] = useState<CaregiverEmployee | null>(null);
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [authUrl, setAuthUrl] = useState<string | null>(null);
   
@@ -80,6 +81,9 @@ export default function ManageInterviewsClient() {
 
   const caregiverProfilesRef = useMemoFirebase(() => collection(db, 'caregiver_profiles'), [db]);
   const { data: allCaregivers, isLoading: caregiversLoading } = useCollection<CaregiverProfile>(caregiverProfilesRef);
+
+  const employeesRef = useMemoFirebase(() => collection(db, 'caregiver_employees'), [db]);
+  const { data: allEmployees, isLoading: employeesLoading } = useCollection<CaregiverEmployee>(employeesRef);
   
   const phoneScreenForm = useForm<PhoneScreenFormData>({
     resolver: zodResolver(phoneScreenSchema),
@@ -120,8 +124,7 @@ export default function ManageInterviewsClient() {
   }, [selectedCaregiver, existingInterview, hiringForm]);
 
   const phoneScreenPassed = phoneScreenForm.watch('phoneScreenPassed');
-  const formPhoneScreenPassedState = phoneScreenForm.watch('phoneScreenPassed');
-  const shouldShowHiringForm = existingInterview?.phoneScreenPassed === 'Yes' && formPhoneScreenPassedState === 'Yes';
+  const shouldShowHiringForm = existingInterview?.phoneScreenPassed === 'Yes' && !existingEmployee;
 
 
   const handleSearch = () => {
@@ -138,10 +141,14 @@ export default function ManageInterviewsClient() {
   };
 
   const handleSelectCaregiver = async (caregiver: CaregiverProfile) => {
-    setSelectedCaregiver(null); // Reset first
+    setSelectedCaregiver(caregiver);
     setSearchResults([]);
     setSearchTerm('');
     setAiInsight(null);
+    setExistingInterview(null);
+    setExistingEmployee(null);
+    setAuthUrl(null);
+    
     phoneScreenForm.reset({
       interviewNotes: '',
       candidateRating: 3,
@@ -149,8 +156,6 @@ export default function ManageInterviewsClient() {
       inPersonDate: undefined,
       inPersonTime: '',
     });
-    setExistingInterview(null);
-    setAuthUrl(null);
 
     const interviewsRef = collection(db, 'interviews');
     const q = query(interviewsRef, where("caregiverProfileId", "==", caregiver.id));
@@ -168,18 +173,24 @@ export default function ManageInterviewsClient() {
                 candidateRating: interviewData.candidateRating,
                 phoneScreenPassed: interviewData.phoneScreenPassed as 'Yes' | 'No',
             });
+
             if(interviewData.aiGeneratedInsight) {
                 setAiInsight(interviewData.aiGeneratedInsight);
             }
         }
-        // Always select the caregiver to show the appropriate form
-        setSelectedCaregiver(caregiver);
     } catch (error) {
         toast({
             title: "Permission Error",
-            description: "Could not fetch existing interview data. Check security rules for the 'interviews' collection.",
+            description: "Could not fetch existing interview data. Check security rules.",
             variant: "destructive"
         });
+    }
+
+    if (allEmployees) {
+        const employeeRecord = allEmployees.find(emp => emp.caregiverProfileId === caregiver.id);
+        if (employeeRecord) {
+            setExistingEmployee(employeeRecord);
+        }
     }
   };
 
@@ -232,12 +243,10 @@ export default function ManageInterviewsClient() {
   
       try {
         if (interviewId) {
-            // Update existing interview
             const docRef = doc(db, 'interviews', interviewId);
             await updateDoc(docRef, interviewDocData);
             toast({ title: 'Success', description: 'Phone interview results updated.' });
         } else {
-            // Create new interview
             const colRef = collection(db, 'interviews');
             const docRef = await addDoc(colRef, interviewDocData);
             interviewId = docRef.id;
@@ -267,7 +276,6 @@ export default function ManageInterviewsClient() {
             variant: result.error ? 'destructive' : 'default',
           });
         }
-        // Refresh the component state after submission
         await handleSelectCaregiver(selectedCaregiver);
       } catch (error) {
         const permissionError = new FirestorePermissionError({
@@ -312,23 +320,18 @@ export default function ManageInterviewsClient() {
                 requestResourceData: employeeData
             });
             errorEmitter.emit('permission-error', permissionError);
-            // We throw the original error so the try/catch block can handle it
             throw serverError;
         });
 
         toast({ title: 'Success', description: 'Caregiver has been successfully marked as hired.' });
         
-        // Reset state
-        setSelectedCaregiver(null);
-        setExistingInterview(null);
-        hiringForm.reset();
+        handleCancel();
         router.refresh();
 
       } catch (error) {
-        // This will now catch the error thrown from the .catch block above
         toast({
           title: 'Error Saving Hiring Data',
-          description: 'An error occurred while saving. Please check the permissions.',
+          description: 'An error occurred while saving. Please check permissions.',
           variant: 'destructive',
         });
       }
@@ -338,11 +341,14 @@ export default function ManageInterviewsClient() {
   const handleCancel = () => {
     setSelectedCaregiver(null);
     setExistingInterview(null);
+    setExistingEmployee(null);
     setAiInsight(null);
     phoneScreenForm.reset();
     hiringForm.reset();
     setAuthUrl(null);
   }
+
+  const isLoading = caregiversLoading || employeesLoading;
 
   return (
     <div className="space-y-6">
@@ -388,7 +394,7 @@ export default function ManageInterviewsClient() {
               <span className="ml-2">Search</span>
             </Button>
           </div>
-          {(isSearching || caregiversLoading) && <p className="text-sm text-muted-foreground mt-2">Loading...</p>}
+          {isLoading && <p className="text-sm text-muted-foreground mt-2">Loading...</p>}
           {searchResults.length > 0 && (
             <ul className="mt-4 border rounded-md divide-y">
               {searchResults.map((caregiver) => (
@@ -410,7 +416,7 @@ export default function ManageInterviewsClient() {
         </CardContent>
       </Card>
 
-      {selectedCaregiver && !shouldShowHiringForm && (
+      {selectedCaregiver && (
         <Card>
             <CardHeader>
                 <CardTitle>Phone Screen: {selectedCaregiver.fullName}</CardTitle>
@@ -482,7 +488,7 @@ export default function ManageInterviewsClient() {
                                 <FormItem className="space-y-3">
                                     <FormLabel>Did the candidate pass the phone screen?</FormLabel>
                                     <FormControl>
-                                        <RadioGroup onValueChange={field.onChange} defaultValue={field.value} value={field.value} className="flex gap-4">
+                                        <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4">
                                             <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="Yes" /></FormControl><FormLabel className="font-normal">Yes</FormLabel></FormItem>
                                             <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="No" /></FormControl><FormLabel className="font-normal">No</FormLabel></FormItem>
                                         </RadioGroup>
@@ -542,7 +548,7 @@ export default function ManageInterviewsClient() {
                         <div className="flex justify-end gap-4">
                             <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
                              <Button type="submit" disabled={isSubmitting}>
-                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Loader2 className="mr-2 h-4 w-4" />}
                                 Save and Complete
                             </Button>
                         </div>
@@ -552,10 +558,10 @@ export default function ManageInterviewsClient() {
         </Card>
       )}
 
-      {selectedCaregiver && shouldShowHiringForm && existingInterview && (
+      {shouldShowHiringForm && existingInterview && (
         <Card>
             <CardHeader>
-                 <CardTitle>Hiring & Onboarding: {selectedCaregiver.fullName}</CardTitle>
+                 <CardTitle>Hiring &amp; Onboarding: {selectedCaregiver?.fullName}</CardTitle>
                 <CardDescription>
                     The phone screen for this candidate has been completed. Enter hiring details below.
                 </CardDescription>
@@ -697,10 +703,31 @@ export default function ManageInterviewsClient() {
         </Card>
       )}
 
+      {existingEmployee && (
+        <Card>
+            <CardHeader>
+                <CardTitle className='flex items-center gap-2'>
+                    <Briefcase />
+                    Hired Information: {selectedCaregiver?.fullName}
+                </CardTitle>
+                <CardDescription>
+                    This caregiver has already been hired.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm">
+                <p><strong>Hiring Manager:</strong> {existingEmployee.hiringManager}</p>
+                <p><strong>Hire Date:</strong> {format((existingEmployee.hireDate as any).toDate(), 'PPP')}</p>
+                <p><strong>Start Date:</strong> {format((existingEmployee.startDate as any).toDate(), 'PPP')}</p>
+                {existingEmployee.inPersonInterviewDate && <p><strong>In-Person Interview Date:</strong> {format((existingEmployee.inPersonInterviewDate as any).toDate(), 'PPP')}</p>}
+                {existingEmployee.hiringComments && <p><strong>Comments:</strong> {existingEmployee.hiringComments}</p>}
+                <div className="flex justify-end gap-4 pt-4">
+                    <Button type="button" variant="outline" onClick={handleCancel}>Close</Button>
+                </div>
+            </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
-
-    
 
     
