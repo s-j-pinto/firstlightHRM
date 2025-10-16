@@ -140,6 +140,16 @@ export default function ManageInterviewsClient() {
   };
 
   const handleSelectCaregiver = async (caregiver: CaregiverProfile) => {
+    const employeeRecord = allEmployees?.find(emp => emp.caregiverProfileId === caregiver.id);
+    if (employeeRecord) {
+        toast({
+            title: "Caregiver Hired",
+            description: `${caregiver.fullName} has already been hired.`,
+        });
+        handleCancel();
+        return;
+    }
+
     setSelectedCaregiver(caregiver);
     setSearchResults([]);
     setSearchTerm('');
@@ -155,12 +165,6 @@ export default function ManageInterviewsClient() {
       inPersonDate: undefined,
       inPersonTime: '',
     });
-
-    // Check for existing employee record first
-    const employeeRecord = allEmployees?.find(emp => emp.caregiverProfileId === caregiver.id);
-    if (employeeRecord) {
-        setExistingEmployee(employeeRecord);
-    }
 
     const interviewsRef = collection(db, 'interviews');
     const q = query(interviewsRef, where("caregiverProfileId", "==", caregiver.id));
@@ -345,6 +349,8 @@ export default function ManageInterviewsClient() {
     phoneScreenForm.reset();
     hiringForm.reset();
     setAuthUrl(null);
+    setSearchTerm('');
+    setSearchResults([]);
   }
 
   const isLoading = caregiversLoading || employeesLoading;
@@ -710,7 +716,7 @@ export default function ManageInterviewsClient() {
                     <div>
                         <h3 className="text-lg font-semibold mb-2">Interview Details</h3>
                         <div className="space-y-2 text-sm p-4 border rounded-lg bg-muted/50">
-                            <p><strong>Interview Date:</strong> {format((existingInterview.interviewDateTime as any).toDate(), 'PPP p')}</p>
+                            <p><strong>Interview Date:</strong> {(existingInterview.interviewDateTime as any)?.toDate ? format((existingInterview.interviewDateTime as any).toDate(), 'PPP p') : 'N/A'}</p>
                             <p><strong>Phone Screen Passed:</strong> {existingInterview.phoneScreenPassed}</p>
                             <p><strong>Candidate Rating:</strong> {existingInterview.candidateRating} / 5</p>
                             <p><strong>Notes:</strong> {existingInterview.interviewNotes || 'N/A'}</p>
@@ -730,9 +736,9 @@ export default function ManageInterviewsClient() {
                     <h3 className="text-lg font-semibold mb-2">Hiring Status</h3>
                     <div className="space-y-2 text-sm p-4 border rounded-lg bg-muted/50">
                         <p><strong>Hiring Manager:</strong> {existingEmployee.hiringManager}</p>
-                        <p><strong>Hire Date:</strong> {format((existingEmployee.hireDate as any).toDate(), 'PPP')}</p>
-                        <p><strong>Start Date:</strong> {format((existingEmployee.startDate as any).toDate(), 'PPP')}</p>
-                        {existingEmployee.inPersonInterviewDate && <p><strong>In-Person Interview Date:</strong> {format((existingEmployee.inPersonInterviewDate as any).toDate(), 'PPP')}</p>}
+                        <p><strong>Hire Date:</strong> {(existingEmployee.hireDate as any)?.toDate ? format((existingEmployee.hireDate as any).toDate(), 'PPP') : 'N/A'}</p>
+                        <p><strong>Start Date:</strong> {(existingEmployee.startDate as any)?.toDate ? format((existingEmployee.startDate as any).toDate(), 'PPP'): 'N/A'}</p>
+                        {existingEmployee.inPersonInterviewDate && <p><strong>In-Person Interview Date:</strong> {(existingEmployee.inPersonInterviewDate as any)?.toDate ? format((existingEmployee.inPersonInterviewDate as any).toDate(), 'PPP') : 'N/A'}</p>}
                         <p><strong>Comments:</strong> {existingEmployee.hiringComments || 'N/A'}</p>
                     </div>
                 </div>
