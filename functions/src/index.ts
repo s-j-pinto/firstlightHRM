@@ -13,6 +13,7 @@ import * as logger from "firebase-functions/logger";
 
 // Import the function from its submodule
 import { sendAppointmentEmail } from "./email-notifications";
+import { interviewInsights } from "./interview-insights";
 
 // Set global options for the functions
 setGlobalOptions({ maxInstances: 10 });
@@ -24,4 +25,4 @@ export const forceRedeploy = onRequest((request, response) => {
 });
 
 // Export the function so that Firebase can discover and deploy it
-export { sendAppointmentEmail };
+export { sendAppointmentEmail, interviewInsights };
