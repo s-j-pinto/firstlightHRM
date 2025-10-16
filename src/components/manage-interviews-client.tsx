@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useTransition, useEffect } from 'react';
@@ -416,7 +415,7 @@ export default function ManageInterviewsClient() {
         </CardContent>
       </Card>
 
-      {selectedCaregiver && (
+      {selectedCaregiver && !shouldShowHiringForm && !existingEmployee && (
         <Card>
             <CardHeader>
                 <CardTitle>Phone Screen: {selectedCaregiver.fullName}</CardTitle>
@@ -548,7 +547,11 @@ export default function ManageInterviewsClient() {
                         <div className="flex justify-end gap-4">
                             <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
                              <Button type="submit" disabled={isSubmitting}>
-                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Loader2 className="mr-2 h-4 w-4" />}
+                                {isSubmitting ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                    <UserCheck className="mr-2 h-4 w-4" />
+                                )}
                                 Save and Complete
                             </Button>
                         </div>
@@ -729,5 +732,3 @@ export default function ManageInterviewsClient() {
     </div>
   );
 }
-
-    
