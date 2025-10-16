@@ -124,9 +124,6 @@ export default function ManageInterviewsClient() {
     }
   }, [selectedCaregiver, existingInterview, hiringForm]);
 
-  const phoneScreenPassed = phoneScreenForm.watch('phoneScreenPassed');
-  const shouldShowHiringForm = existingInterview?.phoneScreenPassed === 'Yes' && !existingEmployee;
-  
   const handleSearch = () => {
     if (!searchTerm.trim() || !allCaregivers) return;
     startSearchTransition(() => {
@@ -140,6 +137,9 @@ export default function ManageInterviewsClient() {
     });
   };
 
+  const phoneScreenPassed = phoneScreenForm.watch('phoneScreenPassed');
+  const shouldShowHiringForm = existingInterview?.phoneScreenPassed === 'Yes' && !existingEmployee;
+  
   const handleSelectCaregiver = async (caregiver: CaregiverProfile) => {
     const employeeRecord = allEmployees?.find(emp => emp.caregiverProfileId === caregiver.id);
     if (employeeRecord) {
@@ -342,8 +342,7 @@ export default function ManageInterviewsClient() {
 
         toast({ title: 'Success', description: 'Caregiver has been successfully marked as hired.' });
         
-        // Update state to disable button and hide form
-        setExistingEmployee({ ...employeeData, id: docRef.id } as CaregiverEmployee);
+        setExistingEmployee({ id: docRef.id, ...employeeData } as CaregiverEmployee);
 
       } catch (error) {
         toast({
@@ -393,49 +392,48 @@ export default function ManageInterviewsClient() {
         </Alert>
       )}
 
-      {!selectedCaregiver && (
-        <Card>
-            <CardHeader>
-            <CardTitle>Search for a Caregiver</CardTitle>
-            <CardDescription>
-                Search by full name or phone number to begin the interview process.
-            </CardDescription>
-            </CardHeader>
-            <CardContent>
-            <div className="flex gap-2">
-                <Input
-                placeholder="Enter name or phone number..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                />
-                <Button onClick={handleSearch} disabled={isSearching || !searchTerm.trim()}>
-                {isSearching ? <Loader2 className="animate-spin" /> : <Search />}
-                <span className="ml-2">Search</span>
-                </Button>
-            </div>
-            {isLoading && <p className="text-sm text-muted-foreground mt-2">Loading...</p>}
-            {searchResults.length > 0 && (
-                <ul className="mt-4 border rounded-md divide-y">
-                {searchResults.map((caregiver) => (
-                    <li key={caregiver.id} className="p-2 hover:bg-muted">
-                    <button
-                        onClick={() => handleSelectCaregiver(caregiver)}
-                        className="w-full text-left flex justify-between items-center"
-                    >
-                        <div>
-                        <p className="font-semibold">{caregiver.fullName}</p>
-                        <p className="text-sm text-muted-foreground">{caregiver.email}</p>
-                        </div>
-                        <p className="text-sm">{caregiver.phone}</p>
-                    </button>
-                    </li>
-                ))}
-                </ul>
-            )}
-            </CardContent>
-        </Card>
-      )}
+      <Card>
+        <CardHeader>
+        <CardTitle>Search for a Caregiver</CardTitle>
+        <CardDescription>
+            Search by full name or phone number to begin the interview process.
+        </CardDescription>
+        </CardHeader>
+        <CardContent>
+        <div className="flex gap-2">
+            <Input
+            placeholder="Enter name or phone number..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            disabled={!!selectedCaregiver}
+            />
+            <Button onClick={handleSearch} disabled={isSearching || !searchTerm.trim() || !!selectedCaregiver}>
+            {isSearching ? <Loader2 className="animate-spin" /> : <Search />}
+            <span className="ml-2">Search</span>
+            </Button>
+        </div>
+        {(isLoading || isSearching) && <p className="text-sm text-muted-foreground mt-2">Loading...</p>}
+        {searchResults.length > 0 && (
+            <ul className="mt-4 border rounded-md divide-y">
+            {searchResults.map((caregiver) => (
+                <li key={caregiver.id} className="p-2 hover:bg-muted">
+                <button
+                    onClick={() => handleSelectCaregiver(caregiver)}
+                    className="w-full text-left flex justify-between items-center"
+                >
+                    <div>
+                    <p className="font-semibold">{caregiver.fullName}</p>
+                    <p className="text-sm text-muted-foreground">{caregiver.email}</p>
+                    </div>
+                    <p className="text-sm">{caregiver.phone}</p>
+                </button>
+                </li>
+            ))}
+            </ul>
+        )}
+        </CardContent>
+      </Card>
 
 
       {selectedCaregiver && !existingEmployee && (
@@ -718,7 +716,5 @@ export default function ManageInterviewsClient() {
     </div>
   );
 }
-
-    
 
     
