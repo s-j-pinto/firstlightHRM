@@ -8,7 +8,7 @@
  */
 
 import {setGlobalOptions} from "firebase-functions/v2";
-import {onRequest} from "firebase-functions/v2/https";
+import {onRequest} from "firebase-functions/v2/onRequest";
 import * as logger from "firebase-functions/logger";
 
 // Import the function from its submodule

@@ -4,6 +4,8 @@ import * as logger from "firebase-functions/logger";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { Timestamp } from "firebase-admin/firestore";
+import { toZonedTime, format } from "date-fns-tz";
+
 
 // Check if the app is already initialized to prevent re-initialization
 if (!getFirestore().app.name) {
@@ -11,6 +13,7 @@ if (!getFirestore().app.name) {
 }
 
 const db = getFirestore();
+const pacificTimeZone = "America/Los_Angeles";
 
 export const sendNewAppointmentEmail = onDocumentCreated("appointments/{appointmentId}", async (event) => {
   const snapshot = event.data;
@@ -43,27 +46,12 @@ export const sendNewAppointmentEmail = onDocumentCreated("appointments/{appointm
         return;
     }
 
-    const formattedStartTime = startTime.toLocaleString("en-US", {
-      timeZone: "America/Los_Angeles",
-      hour12: true,
-      hour: "numeric",
-      minute: "numeric",
-    });
+    const zonedStartTime = toZonedTime(startTime, pacificTimeZone);
+    const zonedEndTime = toZonedTime(endTime, pacificTimeZone);
 
-    const formattedEndTime = endTime.toLocaleString("en-US", {
-      timeZone: "America/Los_Angeles",
-      hour12: true,
-      hour: "numeric",
-      minute: "numeric",
-    });
-    
-    const formattedDate = startTime.toLocaleDateString("en-US", {
-        timeZone: "America/Los_Angeles",
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    });
+    const formattedStartTime = format(zonedStartTime, "h:mm a", { timeZone: pacificTimeZone });
+    const formattedEndTime = format(zonedEndTime, "h:mm a", { timeZone: pacificTimeZone });
+    const formattedDate = format(zonedStartTime, "EEEE, MMMM do, yyyy", { timeZone: pacificTimeZone });
 
 
     const email = {
