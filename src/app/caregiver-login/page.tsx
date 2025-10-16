@@ -2,6 +2,7 @@
 "use client";
 
 import { useTransition } from "react";
+import Image from "next/image";
 import { signInAnonymously } from "firebase/auth";
 import { useAuth } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
@@ -9,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { HeartHand } from "@/components/icons";
+
+const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstLight_Logo_VRT_CMYK_ICO.ico?alt=media&token=1151ccf8-5dc3-4ffd-b5aa-ca13e8b083d9";
 
 export default function CaregiverLoginPage() {
   const [isPending, startTransition] = useTransition();
@@ -41,8 +43,14 @@ export default function CaregiverLoginPage() {
     <main className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
       <Card className="w-full max-w-sm mx-auto shadow-lg text-center">
         <CardHeader>
-          <div className="mx-auto bg-accent/10 p-4 rounded-full w-fit mb-4">
-            <HeartHand className="h-10 w-10 text-accent"/>
+          <div className="mx-auto bg-accent/10 p-3 rounded-full w-fit mb-4">
+            <Image
+                src={logoUrl}
+                alt="FirstLight Home Care Logo"
+                width={48}
+                height={48}
+                className="object-contain"
+            />
           </div>
           <CardTitle className="text-2xl font-bold font-headline">Ready to Make a Difference?</CardTitle>
           <CardDescription>
