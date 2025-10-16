@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useTransition, useEffect } from 'react';
@@ -48,6 +49,7 @@ import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { useRouter } from 'next/navigation';
 import { getFunctions, httpsCallable } from 'firebase/functions';
+import { Separator } from './ui/separator';
 
 const phoneScreenSchema = z.object({
   interviewNotes: z.string().optional(),
@@ -156,6 +158,12 @@ export default function ManageInterviewsClient() {
       inPersonTime: '',
     });
 
+    // Check for existing employee record first
+    const employeeRecord = allEmployees?.find(emp => emp.caregiverProfileId === caregiver.id);
+    if (employeeRecord) {
+        setExistingEmployee(employeeRecord);
+    }
+
     const interviewsRef = collection(db, 'interviews');
     const q = query(interviewsRef, where("caregiverProfileId", "==", caregiver.id));
     
@@ -183,13 +191,6 @@ export default function ManageInterviewsClient() {
             description: "Could not fetch existing interview data. Check security rules.",
             variant: "destructive"
         });
-    }
-
-    if (allEmployees) {
-        const employeeRecord = allEmployees.find(emp => emp.caregiverProfileId === caregiver.id);
-        if (employeeRecord) {
-            setExistingEmployee(employeeRecord);
-        }
     }
   };
 
@@ -275,7 +276,8 @@ export default function ManageInterviewsClient() {
             variant: result.error ? 'destructive' : 'default',
           });
         }
-        await handleSelectCaregiver(selectedCaregiver);
+        // After submission, re-fetch the caregiver data to update the view
+        await handleSelectCaregiver(selectedCaregiver); 
       } catch (error) {
         const permissionError = new FirestorePermissionError({
           path: existingInterview ? `interviews/${interviewId}` : 'interviews',
@@ -324,8 +326,7 @@ export default function ManageInterviewsClient() {
 
         toast({ title: 'Success', description: 'Caregiver has been successfully marked as hired.' });
         
-        handleCancel();
-        router.refresh();
+        await handleSelectCaregiver(selectedCaregiver);
 
       } catch (error) {
         toast({
@@ -373,47 +374,50 @@ export default function ManageInterviewsClient() {
         </Alert>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Search for a Caregiver</CardTitle>
-          <CardDescription>
-            Search by full name or phone number to begin the interview process.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-2">
-            <Input
-              placeholder="Enter name or phone number..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            />
-            <Button onClick={handleSearch} disabled={isSearching || !searchTerm.trim()}>
-              {isSearching ? <Loader2 className="animate-spin" /> : <Search />}
-              <span className="ml-2">Search</span>
-            </Button>
-          </div>
-          {isLoading && <p className="text-sm text-muted-foreground mt-2">Loading...</p>}
-          {searchResults.length > 0 && (
-            <ul className="mt-4 border rounded-md divide-y">
-              {searchResults.map((caregiver) => (
-                <li key={caregiver.id} className="p-2 hover:bg-muted">
-                  <button
-                    onClick={() => handleSelectCaregiver(caregiver)}
-                    className="w-full text-left flex justify-between items-center"
-                  >
-                    <div>
-                      <p className="font-semibold">{caregiver.fullName}</p>
-                      <p className="text-sm text-muted-foreground">{caregiver.email}</p>
-                    </div>
-                    <p className="text-sm">{caregiver.phone}</p>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+      {!selectedCaregiver && (
+        <Card>
+            <CardHeader>
+            <CardTitle>Search for a Caregiver</CardTitle>
+            <CardDescription>
+                Search by full name or phone number to begin the interview process.
+            </CardDescription>
+            </CardHeader>
+            <CardContent>
+            <div className="flex gap-2">
+                <Input
+                placeholder="Enter name or phone number..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                />
+                <Button onClick={handleSearch} disabled={isSearching || !searchTerm.trim()}>
+                {isSearching ? <Loader2 className="animate-spin" /> : <Search />}
+                <span className="ml-2">Search</span>
+                </Button>
+            </div>
+            {isLoading && <p className="text-sm text-muted-foreground mt-2">Loading...</p>}
+            {searchResults.length > 0 && (
+                <ul className="mt-4 border rounded-md divide-y">
+                {searchResults.map((caregiver) => (
+                    <li key={caregiver.id} className="p-2 hover:bg-muted">
+                    <button
+                        onClick={() => handleSelectCaregiver(caregiver)}
+                        className="w-full text-left flex justify-between items-center"
+                    >
+                        <div>
+                        <p className="font-semibold">{caregiver.fullName}</p>
+                        <p className="text-sm text-muted-foreground">{caregiver.email}</p>
+                        </div>
+                        <p className="text-sm">{caregiver.phone}</p>
+                    </button>
+                    </li>
+                ))}
+                </ul>
+            )}
+            </CardContent>
+        </Card>
+      )}
+
 
       {selectedCaregiver && !existingEmployee && (
         <Card>
@@ -570,21 +574,6 @@ export default function ManageInterviewsClient() {
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-                <Alert variant="default">
-                    <Sparkles className="h-4 w-4" />
-                    <AlertTitle>Phone Screen Results</AlertTitle>
-                    <AlertDescription>
-                        <p className="font-semibold mt-2">Passed: {existingInterview.phoneScreenPassed}</p>
-                        <p className="mt-2 text-sm text-muted-foreground">Notes: {existingInterview.interviewNotes || 'N/A'}</p>
-                         {existingInterview.aiGeneratedInsight && (
-                            <div className='mt-4 p-3 bg-background rounded-md border'>
-                                <p className="font-semibold text-foreground">AI Insight:</p>
-                                <p className="mt-1 text-sm text-muted-foreground whitespace-pre-wrap">{existingInterview.aiGeneratedInsight}</p>
-                            </div>
-                        )}
-                    </AlertDescription>
-                </Alert>
-                
                 <Form {...hiringForm}>
                     <form onSubmit={hiringForm.handleSubmit(onHiringSubmit)} className="space-y-8 pt-4">
                         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -711,18 +700,44 @@ export default function ManageInterviewsClient() {
             <CardHeader>
                 <CardTitle className='flex items-center gap-2'>
                     <Briefcase />
-                    Hired Information: {selectedCaregiver.fullName}
+                    Hired Status: {selectedCaregiver.fullName}
                 </CardTitle>
                 <CardDescription>
-                    This caregiver has already been hired.
+                    This caregiver has already been hired. The following information is read-only.
                 </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4 text-sm">
-                <p><strong>Hiring Manager:</strong> {existingEmployee.hiringManager}</p>
-                <p><strong>Hire Date:</strong> {format((existingEmployee.hireDate as any).toDate(), 'PPP')}</p>
-                <p><strong>Start Date:</strong> {format((existingEmployee.startDate as any).toDate(), 'PPP')}</p>
-                {existingEmployee.inPersonInterviewDate && <p><strong>In-Person Interview Date:</strong> {format((existingEmployee.inPersonInterviewDate as any).toDate(), 'PPP')}</p>}
-                {existingEmployee.hiringComments && <p><strong>Comments:</strong> {existingEmployee.hiringComments}</p>}
+            <CardContent className="space-y-6">
+                {existingInterview && (
+                    <div>
+                        <h3 className="text-lg font-semibold mb-2">Interview Details</h3>
+                        <div className="space-y-2 text-sm p-4 border rounded-lg bg-muted/50">
+                            <p><strong>Interview Date:</strong> {format((existingInterview.interviewDateTime as any).toDate(), 'PPP p')}</p>
+                            <p><strong>Phone Screen Passed:</strong> {existingInterview.phoneScreenPassed}</p>
+                            <p><strong>Candidate Rating:</strong> {existingInterview.candidateRating} / 5</p>
+                            <p><strong>Notes:</strong> {existingInterview.interviewNotes || 'N/A'}</p>
+                            {existingInterview.aiGeneratedInsight && (
+                                <div className='pt-2'>
+                                    <p className="font-semibold">AI Insight:</p>
+                                    <p className="mt-1 text-muted-foreground whitespace-pre-wrap">{existingInterview.aiGeneratedInsight}</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+                
+                <Separator />
+
+                <div>
+                    <h3 className="text-lg font-semibold mb-2">Hiring Status</h3>
+                    <div className="space-y-2 text-sm p-4 border rounded-lg bg-muted/50">
+                        <p><strong>Hiring Manager:</strong> {existingEmployee.hiringManager}</p>
+                        <p><strong>Hire Date:</strong> {format((existingEmployee.hireDate as any).toDate(), 'PPP')}</p>
+                        <p><strong>Start Date:</strong> {format((existingEmployee.startDate as any).toDate(), 'PPP')}</p>
+                        {existingEmployee.inPersonInterviewDate && <p><strong>In-Person Interview Date:</strong> {format((existingEmployee.inPersonInterviewDate as any).toDate(), 'PPP')}</p>}
+                        <p><strong>Comments:</strong> {existingEmployee.hiringComments || 'N/A'}</p>
+                    </div>
+                </div>
+
                 <div className="flex justify-end gap-4 pt-4">
                     <Button type="button" variant="outline" onClick={handleCancel}>Close</Button>
                 </div>
@@ -732,3 +747,5 @@ export default function ManageInterviewsClient() {
     </div>
   );
 }
+
+    
