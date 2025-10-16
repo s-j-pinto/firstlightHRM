@@ -7,9 +7,7 @@ import { formatInTimeZone } from "date-fns-tz";
 import { Timestamp } from "firebase-admin/firestore";
 
 // Check if the app is already initialized to prevent re-initialization
-if (getFirestore().app.name === '[DEFAULT]') {
-    // Already initialized
-} else {
+if (!getFirestore().app.name) {
     initializeApp();
 }
 
