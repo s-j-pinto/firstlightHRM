@@ -78,7 +78,8 @@ export const sendAppointmentEmail = onDocumentCreated("appointments/{appointment
           <h2>Appointment Details</h2>
           <p><strong>Caregiver:</strong> ${caregiverData.fullName}</p>
           <p><strong>Date:</strong> ${formattedDate}</p>
-          <p><strong>Time:</strong> ${formattedStartTime} - ${formattedEndTime}</p>
+          <p><strong>Start Time:</strong> ${formattedStartTime}</p>
+          <p><strong>End Time:</strong> ${formattedEndTime}</p>
           
           <h2>Caregiver Profile</h2>
           <p><strong>Email:</strong> ${caregiverData.email}</p>
