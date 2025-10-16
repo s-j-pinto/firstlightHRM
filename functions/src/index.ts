@@ -12,7 +12,7 @@ import {onRequest} from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 
 // Import the function from its submodule
-import { sendAppointmentEmail } from "./email-notifications";
+import { sendNewAppointmentEmail } from "./appointment-notifier";
 import { interviewInsights } from "./interview-insights";
 
 // Set global options for the functions
@@ -20,9 +20,9 @@ setGlobalOptions({ maxInstances: 10 });
 
 // This is a simple function to force a redeployment.
 export const forceRedeploy = onRequest((request, response) => {
-    logger.info("Forcing a full and complete function redeployment now.", {structuredData: true});
+    logger.info("Deployment of all functions has been successfully forced.", {structuredData: true});
     response.send("Deployment of all functions has been successfully forced.");
 });
 
 // Export the function so that Firebase can discover and deploy it
-export { sendAppointmentEmail, interviewInsights };
+export { sendNewAppointmentEmail, interviewInsights };

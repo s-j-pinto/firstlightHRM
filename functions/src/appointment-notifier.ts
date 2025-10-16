@@ -12,7 +12,7 @@ if (!getFirestore().app.name) {
 
 const db = getFirestore();
 
-export const sendAppointmentEmail = onDocumentCreated("appointments/{appointmentId}", async (event) => {
+export const sendNewAppointmentEmail = onDocumentCreated("appointments/{appointmentId}", async (event) => {
   const snapshot = event.data;
   if (!snapshot) {
     logger.log("No data associated with the event");
@@ -72,7 +72,7 @@ export const sendAppointmentEmail = onDocumentCreated("appointments/{appointment
         subject: `[Action Required] New Phone Interview Appointment Requested with ${caregiverData.fullName || 'N/A'}`,
         html: `
           <h1>New Appointment Scheduled</h1>
-          <p>A new appointment slot has been requested with the following caregiver. Please send them a calendar invite.\n https://care-connect-360--firstlighthomecare-hrm.us-central1.hosted.app/login?redirect=/admin </p>
+          <p>A new appointment slot has been requested with the following caregiver. Please send them a calendar invite. You can manage this appointment on the <a href="https://care-connect-360--firstlighthomecare-hrm.us-central1.hosted.app/login?redirect=/admin">Admin Dashboard</a>.</p>
           
           <h2>Appointment Details</h2>
           <p><strong>Caregiver:</strong> ${caregiverData.fullName || 'N/A'}</p>
