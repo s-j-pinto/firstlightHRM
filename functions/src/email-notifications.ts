@@ -98,4 +98,3 @@ export const sendAppointmentEmail = onDocumentCreated("appointments/{appointment
     logger.error("Error sending appointment email:", error);
   }
 });
-
