@@ -533,17 +533,17 @@ export default function ManageInterviewsClient() {
                                     <CardDescription>Select a date and time for the 2.5 hour in-person interview.</CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="flex flex-col md:flex-row gap-4 items-start">
+                                    <div className="flex flex-col sm:flex-row gap-4 items-start">
                                         <FormField
                                             control={phoneScreenForm.control}
                                             name="inPersonDate"
                                             render={({ field }) => (
-                                                <FormItem className="flex flex-col w-full md:w-auto">
+                                                <FormItem className="flex flex-col flex-1">
                                                     <FormLabel>Interview Date</FormLabel>
                                                     <Popover>
                                                         <PopoverTrigger asChild>
                                                         <FormControl>
-                                                            <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={!!existingInterview}>
+                                                            <Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={!!existingInterview}>
                                                                 {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
                                                                 <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                                             </Button>
@@ -561,7 +561,7 @@ export default function ManageInterviewsClient() {
                                             control={phoneScreenForm.control}
                                             name="inPersonTime"
                                             render={({ field }) => (
-                                                <FormItem className="w-full md:w-auto">
+                                                <FormItem className="flex flex-col flex-1">
                                                     <FormLabel>Interview Time</FormLabel>
                                                     <FormControl>
                                                         <Input type="time" {...field} disabled={!!existingInterview} />
@@ -725,3 +725,5 @@ export default function ManageInterviewsClient() {
     </div>
   );
 }
+
+    
