@@ -20,8 +20,8 @@ setGlobalOptions({ maxInstances: 10 });
 
 // This is a simple function to force a redeployment.
 export const forceRedeploy = onRequest((request, response) => {
-    logger.info("Forcing function redeployment.", {structuredData: true});
-    response.send("Deployment forced.");
+    logger.info("Forcing a full and complete function redeployment now.", {structuredData: true});
+    response.send("Deployment of all functions has been successfully forced.");
 });
 
 // Export the function so that Firebase can discover and deploy it
