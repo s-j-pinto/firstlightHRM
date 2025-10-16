@@ -4,6 +4,8 @@ import * as logger from "firebase-functions/logger";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { Timestamp } from "firebase-admin/firestore";
+import { toZonedTime, format } from "date-fns-tz";
+
 
 // Check if the app is already initialized to prevent re-initialization
 if (!getFirestore().app.name) {
@@ -11,8 +13,9 @@ if (!getFirestore().app.name) {
 }
 
 const db = getFirestore();
+const pacificTimeZone = "America/Los_Angeles";
 
-export const sendAppointmentEmail = onDocumentCreated("appointments/{appointmentId}", async (event) => {
+export const sendNewAppointmentEmail = onDocumentCreated("appointments/{appointmentId}", async (event) => {
   const snapshot = event.data;
   if (!snapshot) {
     logger.log("No data associated with the event");
@@ -43,27 +46,12 @@ export const sendAppointmentEmail = onDocumentCreated("appointments/{appointment
         return;
     }
 
-    const formattedStartTime = startTime.toLocaleString("en-US", {
-      timeZone: "America/Los_Angeles",
-      hour12: true,
-      hour: "numeric",
-      minute: "numeric",
-    });
+    const zonedStartTime = toZonedTime(startTime, pacificTimeZone);
+    const zonedEndTime = toZonedTime(endTime, pacificTimeZone);
 
-    const formattedEndTime = endTime.toLocaleString("en-US", {
-      timeZone: "America/Los_Angeles",
-      hour12: true,
-      hour: "numeric",
-      minute: "numeric",
-    });
-    
-    const formattedDate = startTime.toLocaleDateString("en-US", {
-        timeZone: "America/Los_Angeles",
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    });
+    const formattedStartTime = format(zonedStartTime, "h:mm a", { timeZone: pacificTimeZone });
+    const formattedEndTime = format(zonedEndTime, "h:mm a", { timeZone: pacificTimeZone });
+    const formattedDate = format(zonedStartTime, "EEEE, MMMM do, yyyy", { timeZone: pacificTimeZone });
 
 
     const email = {
@@ -72,7 +60,7 @@ export const sendAppointmentEmail = onDocumentCreated("appointments/{appointment
         subject: `[Action Required] New Phone Interview Appointment Requested with ${caregiverData.fullName || 'N/A'}`,
         html: `
           <h1>New Appointment Scheduled</h1>
-          <p>A new appointment slot has been requested with the following caregiver. Please send them a calendar invite.\n https://care-connect-360--firstlighthomecare-hrm.us-central1.hosted.app/login?redirect=/admin </p>
+          <p>A new appointment slot has been requested with the following caregiver. Please send them a calendar invite. You can manage this appointment on the <a href="https://care-connect-360--firstlighthomecare-hrm.us-central1.hosted.app/login?redirect=/admin">Admin Dashboard</a>.</p>
           
           <h2>Appointment Details</h2>
           <p><strong>Caregiver:</strong> ${caregiverData.fullName || 'N/A'}</p>
