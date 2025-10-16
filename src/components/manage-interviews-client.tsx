@@ -10,7 +10,6 @@ import { collection, query, where, getDocs, addDoc, Timestamp } from 'firebase/f
 import { firestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import type { CaregiverProfile, Interview, CaregiverEmployee } from '@/lib/types';
 import { caregiverEmployeeSchema } from '@/lib/types';
-import { generateInterviewInsights } from '@/ai/flows/interview-insights-flow';
 import { saveInterviewAndSchedule } from '@/lib/interviews.actions';
 
 
@@ -49,6 +48,7 @@ import { format, setHours, setMinutes } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { useRouter } from 'next/navigation';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
 const phoneScreenSchema = z.object({
   interviewNotes: z.string().optional(),
@@ -192,13 +192,16 @@ export default function ManageInterviewsClient() {
 
     startAiTransition(async () => {
       try {
-        const result = await generateInterviewInsights({
+        const functions = getFunctions();
+        const generateInterviewInsights = httpsCallable(functions, 'interviewInsights');
+        const result: any = await generateInterviewInsights({
             caregiverProfile: { ...selectedCaregiver, id: selectedCaregiver.id },
             interviewNotes,
             candidateRating,
         });
-        setAiInsight(result.aiGeneratedInsight);
+        setAiInsight(result.data.aiGeneratedInsight);
       } catch (e) {
+        console.error(e);
         toast({ title: "AI Error", description: "Failed to generate AI insights.", variant: "destructive"});
       }
     });
