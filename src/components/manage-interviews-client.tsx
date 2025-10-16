@@ -180,8 +180,8 @@ export default function ManageInterviewsClient() {
             
             if(interviewData.phoneScreenPassed === 'No'){
                  toast({
-                    title: "Phone Screen Failed",
-                    description: "This candidate previously did not pass the phone screen. You can update the result.",
+                    title: "Phone Screen Previously Failed",
+                    description: "This candidate previously did not pass the phone screen. You can review and update the result.",
                     duration: 5000,
                 });
             }
@@ -456,7 +456,7 @@ export default function ManageInterviewsClient() {
                                 <FormItem>
                                     <FormLabel>Interview Notes</FormLabel>
                                     <FormControl>
-                                        <Textarea placeholder="Notes from the phone screen..." {...field} rows={6} />
+                                        <Textarea placeholder="Notes from the phone screen..." {...field} rows={6} disabled={!!existingInterview} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -476,6 +476,7 @@ export default function ManageInterviewsClient() {
                                             step={1}
                                             value={[field.value]}
                                             onValueChange={(value) => field.onChange(value[0])}
+                                            disabled={!!existingInterview}
                                         />
                                     </FormControl>
                                 </FormItem>
@@ -483,7 +484,7 @@ export default function ManageInterviewsClient() {
                         />
 
                         <div className="flex justify-center">
-                          <Button type="button" onClick={handleGenerateInsights} disabled={isAiPending}>
+                          <Button type="button" onClick={handleGenerateInsights} disabled={isAiPending || !!existingInterview}>
                             {isAiPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                             Generate AI Insights
                           </Button>
@@ -510,7 +511,7 @@ export default function ManageInterviewsClient() {
                                 <FormItem className="space-y-3">
                                     <FormLabel>Did the candidate pass the phone screen?</FormLabel>
                                     <FormControl>
-                                        <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4">
+                                        <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4" disabled={!!existingInterview}>
                                             <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="Yes" /></FormControl><FormLabel className="font-normal">Yes</FormLabel></FormItem>
                                             <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="No" /></FormControl><FormLabel className="font-normal">No</FormLabel></FormItem>
                                         </RadioGroup>
@@ -536,7 +537,7 @@ export default function ManageInterviewsClient() {
                                                 <Popover>
                                                     <PopoverTrigger asChild>
                                                     <FormControl>
-                                                        <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                        <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={!!existingInterview}>
                                                             {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
                                                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                                         </Button>
@@ -557,7 +558,7 @@ export default function ManageInterviewsClient() {
                                             <FormItem>
                                                 <FormLabel>Interview Time</FormLabel>
                                                 <FormControl>
-                                                    <Input type="time" {...field} />
+                                                    <Input type="time" {...field} disabled={!!existingInterview} />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -714,57 +715,10 @@ export default function ManageInterviewsClient() {
         </Card>
       )}
 
-      {selectedCaregiver && existingEmployee && (
-        <Card>
-            <CardHeader>
-                <CardTitle className='flex items-center gap-2'>
-                    <Briefcase />
-                    Hired Status: {selectedCaregiver.fullName}
-                </CardTitle>
-                <CardDescription>
-                    This caregiver has already been hired. The following information is read-only.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                {existingInterview && (
-                    <div>
-                        <h3 className="text-lg font-semibold mb-2">Interview Details</h3>
-                        <div className="space-y-2 text-sm p-4 border rounded-lg bg-muted/50">
-                            <p><strong>Interview Date:</strong> {(existingInterview.interviewDateTime as any)?.toDate ? format((existingInterview.interviewDateTime as any).toDate(), 'PPP p') : 'N/A'}</p>
-                            <p><strong>Phone Screen Passed:</strong> {existingInterview.phoneScreenPassed}</p>
-                            <p><strong>Candidate Rating:</strong> {existingInterview.candidateRating} / 5</p>
-                            <p><strong>Notes:</strong> {existingInterview.interviewNotes || 'N/A'}</p>
-                            {existingInterview.aiGeneratedInsight && (
-                                <div className='pt-2'>
-                                    <p className="font-semibold">AI Insight:</p>
-                                    <p className="mt-1 text-muted-foreground whitespace-pre-wrap">{existingInterview.aiGeneratedInsight}</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-                
-                <Separator />
-
-                <div>
-                    <h3 className="text-lg font-semibold mb-2">Hiring Status</h3>
-                    <div className="space-y-2 text-sm p-4 border rounded-lg bg-muted/50">
-                        <p><strong>Hiring Manager:</strong> {existingEmployee.hiringManager}</p>
-                        <p><strong>Hire Date:</strong> {(existingEmployee.hireDate as any)?.toDate ? format((existingEmployee.hireDate as any).toDate(), 'PPP') : 'N/A'}</p>
-                        <p><strong>Start Date:</strong> {(existingEmployee.startDate as any)?.toDate ? format((existingEmployee.startDate as any).toDate(), 'PPP'): 'N/A'}</p>
-                        {existingEmployee.inPersonInterviewDate && <p><strong>In-Person Interview Date:</strong> {(existingEmployee.inPersonInterviewDate as any)?.toDate ? format((existingEmployee.inPersonInterviewDate as any).toDate(), 'PPP') : 'N/A'}</p>}
-                        <p><strong>Comments:</strong> {existingEmployee.hiringComments || 'N/A'}</p>
-                    </div>
-                </div>
-
-                <div className="flex justify-end gap-4 pt-4">
-                    <Button type="button" variant="outline" onClick={handleCancel}>Close</Button>
-                </div>
-            </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
+
+    
 
     
