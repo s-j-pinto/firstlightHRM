@@ -135,7 +135,7 @@ export default function ManageInterviewsClient() {
   };
 
   const handleSelectCaregiver = async (caregiver: CaregiverProfile) => {
-    setSelectedCaregiver(caregiver);
+    setSelectedCaregiver(null); // Reset first
     setSearchResults([]);
     setSearchTerm('');
     setAiInsight(null);
@@ -158,6 +158,16 @@ export default function ManageInterviewsClient() {
         if (!querySnapshot.empty) {
             const interviewDoc = querySnapshot.docs[0];
             const interviewData = { ...interviewDoc.data(), id: interviewDoc.id } as Interview;
+            
+            if (interviewData.phoneScreenPassed === 'No') {
+                toast({
+                    title: "Hiring Not Recommended",
+                    description: `${caregiver.fullName} did not pass the initial phone screen.`,
+                    variant: "destructive",
+                });
+                return; // Stop the process here
+            }
+
             setExistingInterview(interviewData);
             phoneScreenForm.reset({
                 interviewNotes: interviewData.interviewNotes,
@@ -168,6 +178,8 @@ export default function ManageInterviewsClient() {
                 setAiInsight(interviewData.aiGeneratedInsight);
             }
         }
+        // If no existing interview, or if they passed, we can select them.
+        setSelectedCaregiver(caregiver);
     } catch (error) {
         toast({
             title: "Permission Error",
