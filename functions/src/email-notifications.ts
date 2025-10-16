@@ -43,12 +43,10 @@ export const sendAppointmentEmail = onDocumentCreated("appointments/{appointment
         return;
     }
 
-    // Format the date and time correctly in the Pacific Time Zone
     const formattedDate = formatInTimeZone(startTime, pacificTimeZone, 'EEEE, MMMM do, yyyy');
-    //const formattedStartTime = formatInTimeZone(startTime, pacificTimeZone, 'h:mm a zzz');
-    //const formattedEndTime = formatInTimeZone(endTime, pacificTimeZone, 'h:mm a zzz');
+    
     const formattedStartTime = startTime.toLocaleString("en-US", {
-      timeZone: "America/Los_Angeles", // Set the time zone to PST
+      timeZone: "America/Los_Angeles",
       hour12: true,
       year: "numeric",
       month: "numeric",
@@ -56,9 +54,10 @@ export const sendAppointmentEmail = onDocumentCreated("appointments/{appointment
       hour: "numeric",
       minute: "numeric",
       second: "numeric",
-    })
+    });
+
     const formattedEndTime = endTime.toLocaleString("en-US", {
-      timeZone: "America/Los_Angeles", // Set the time zone to PST
+      timeZone: "America/Los_Angeles",
       hour12: true,
       year: "numeric",
       month: "numeric",
@@ -66,8 +65,7 @@ export const sendAppointmentEmail = onDocumentCreated("appointments/{appointment
       hour: "numeric",
       minute: "numeric",
       second: "numeric",
-    })
-    //const formattedEndTime = formatInTimeZone(endTime, pacificTimeZone, 'h:mm a');
+    });
 
     const email = {
       to: [adminEmail],
@@ -100,3 +98,4 @@ export const sendAppointmentEmail = onDocumentCreated("appointments/{appointment
     logger.error("Error sending appointment email:", error);
   }
 });
+
