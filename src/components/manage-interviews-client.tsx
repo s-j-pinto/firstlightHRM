@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useTransition, useEffect } from 'react';
@@ -317,7 +318,7 @@ export default function ManageInterviewsClient() {
         }
 
         const colRef = collection(db, 'caregiver_employees');
-        await addDoc(colRef, employeeData).catch(serverError => {
+        const docRef = await addDoc(colRef, employeeData).catch(serverError => {
             const permissionError = new FirestorePermissionError({
                 path: 'caregiver_employees',
                 operation: 'create',
@@ -329,7 +330,8 @@ export default function ManageInterviewsClient() {
 
         toast({ title: 'Success', description: 'Caregiver has been successfully marked as hired.' });
         
-        await handleSelectCaregiver(selectedCaregiver);
+        // Update state to disable button and hide form
+        setExistingEmployee({ ...employeeData, id: docRef.id });
 
       } catch (error) {
         toast({
@@ -752,3 +754,5 @@ export default function ManageInterviewsClient() {
     </div>
   );
 }
+
+    
