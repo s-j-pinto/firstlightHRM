@@ -532,49 +532,51 @@ export default function ManageInterviewsClient() {
                                     <CardTitle>Schedule In-Person Interview</CardTitle>
                                     <CardDescription>Select a date and time for the 2.5 hour in-person interview.</CardDescription>
                                 </CardHeader>
-                                <CardContent className="grid md:grid-cols-2 gap-4">
-                                     <FormField
-                                        control={phoneScreenForm.control}
-                                        name="inPersonDate"
-                                        render={({ field }) => (
-                                            <FormItem className="flex flex-col">
-                                                <FormLabel>Interview Date</FormLabel>
-                                                <Popover>
-                                                    <PopoverTrigger asChild>
+                                <CardContent>
+                                    <div className="flex flex-col md:flex-row gap-4 items-start">
+                                        <FormField
+                                            control={phoneScreenForm.control}
+                                            name="inPersonDate"
+                                            render={({ field }) => (
+                                                <FormItem className="flex flex-col w-full md:w-auto">
+                                                    <FormLabel>Interview Date</FormLabel>
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                        <FormControl>
+                                                            <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={!!existingInterview}>
+                                                                {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                            </Button>
+                                                        </FormControl>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="w-auto p-0" align="start">
+                                                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={phoneScreenForm.control}
+                                            name="inPersonTime"
+                                            render={({ field }) => (
+                                                <FormItem className="w-full md:w-auto">
+                                                    <FormLabel>Interview Time</FormLabel>
                                                     <FormControl>
-                                                        <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={!!existingInterview}>
-                                                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                        </Button>
+                                                        <Input type="time" {...field} disabled={!!existingInterview} />
                                                     </FormControl>
-                                                    </PopoverTrigger>
-                                                    <PopoverContent className="w-auto p-0" align="start">
-                                                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                                                    </PopoverContent>
-                                                </Popover>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={phoneScreenForm.control}
-                                        name="inPersonTime"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Interview Time</FormLabel>
-                                                <FormControl>
-                                                    <Input type="time" {...field} disabled={!!existingInterview} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
                                 </CardContent>
                             </Card>
                         )}
 
                         <div className="flex justify-end gap-4">
-                            <Button type="button" variant="outline" onClick={handleCancel} disabled={!!existingInterview}>Cancel</Button>
+                            <Button type="button" variant="outline" onClick={handleCancel} disabled={isSubmitting || !!existingInterview}>Cancel</Button>
                              <Button type="submit" disabled={isSubmitting || !!existingInterview}>
                                 {isSubmitting ? (
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
