@@ -145,7 +145,8 @@ export default function ManageInterviewsClient() {
     if (employeeRecord) {
         toast({
             title: "Caregiver Hired",
-            description: `${caregiver.fullName} has already been hired.`,
+            description: `${caregiver.fullName} has already been hired. You can search for another candidate.`,
+            duration: 5000,
         });
         handleCancel();
         return;
@@ -176,6 +177,14 @@ export default function ManageInterviewsClient() {
         if (!querySnapshot.empty) {
             const interviewDoc = querySnapshot.docs[0];
             const interviewData = { ...interviewDoc.data(), id: interviewDoc.id } as Interview;
+            
+            if(interviewData.phoneScreenPassed === 'No'){
+                 toast({
+                    title: "Phone Screen Failed",
+                    description: "This candidate previously did not pass the phone screen. You can update the result.",
+                    duration: 5000,
+                });
+            }
             
             setExistingInterview(interviewData);
             phoneScreenForm.reset({
@@ -246,16 +255,21 @@ export default function ManageInterviewsClient() {
       let interviewId = existingInterview?.id;
   
       try {
+        let savedInterviewData: Interview;
         if (interviewId) {
             const docRef = doc(db, 'interviews', interviewId);
             await updateDoc(docRef, interviewDocData);
+            savedInterviewData = { ...existingInterview!, ...interviewDocData };
             toast({ title: 'Success', description: 'Phone interview results updated.' });
         } else {
             const colRef = collection(db, 'interviews');
             const docRef = await addDoc(colRef, interviewDocData);
             interviewId = docRef.id;
+            savedInterviewData = { ...interviewDocData, id: interviewId };
             toast({ title: 'Success', description: 'Phone interview results saved.' });
         }
+        
+        setExistingInterview(savedInterviewData);
   
         if (data.phoneScreenPassed === 'Yes' && data.inPersonDate && data.inPersonTime) {
           const [hours, minutes] = data.inPersonTime.split(':').map(Number);
@@ -280,8 +294,6 @@ export default function ManageInterviewsClient() {
             variant: result.error ? 'destructive' : 'default',
           });
         }
-        // After submission, re-fetch the caregiver data to update the view
-        await handleSelectCaregiver(selectedCaregiver); 
       } catch (error) {
         const permissionError = new FirestorePermissionError({
           path: existingInterview ? `interviews/${interviewId}` : 'interviews',
@@ -331,7 +343,7 @@ export default function ManageInterviewsClient() {
         toast({ title: 'Success', description: 'Caregiver has been successfully marked as hired.' });
         
         // Update state to disable button and hide form
-        setExistingEmployee({ ...employeeData, id: docRef.id });
+        setExistingEmployee({ ...employeeData, id: docRef.id } as CaregiverEmployee);
 
       } catch (error) {
         toast({
@@ -557,7 +569,7 @@ export default function ManageInterviewsClient() {
 
                         <div className="flex justify-end gap-4">
                             <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
-                             <Button type="submit" disabled={isSubmitting}>
+                             <Button type="submit" disabled={isSubmitting || !!existingInterview}>
                                 {isSubmitting ? (
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                 ) : (
@@ -691,7 +703,7 @@ export default function ManageInterviewsClient() {
                         />
                         <div className="flex justify-end gap-4">
                             <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
-                             <Button type="submit" disabled={isSubmitting}>
+                             <Button type="submit" disabled={isSubmitting || !!existingEmployee}>
                                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
                                 Complete Hiring
                             </Button>
