@@ -11,6 +11,7 @@ import { firestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermi
 import type { CaregiverProfile, Interview, CaregiverEmployee } from '@/lib/types';
 import { caregiverEmployeeSchema } from '@/lib/types';
 import { saveInterviewAndSchedule } from '@/lib/interviews.actions';
+import { getAiInterviewInsights } from '@/lib/ai.actions';
 
 
 import { Input } from '@/components/ui/input';
@@ -48,7 +49,6 @@ import { format, toDate } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { useRouter } from 'next/navigation';
-import { getFunctions, httpsCallable } from 'firebase/functions';
 import { Separator } from './ui/separator';
 import { usePathname } from 'next/navigation';
 
@@ -235,9 +235,6 @@ export default function ManageInterviewsClient() {
 
     startAiTransition(async () => {
       try {
-        const functions = getFunctions();
-        const interviewInsights = httpsCallable(functions, 'interviewInsights');
-        
         // Construct the simplified payload
         const payload = {
             fullName: selectedCaregiver.fullName,
@@ -256,11 +253,17 @@ export default function ManageInterviewsClient() {
             candidateRating,
         };
 
-        const result: any = await interviewInsights(payload);
-        setAiInsight(result.data.aiGeneratedInsight);
-      } catch (e) {
+        const result = await getAiInterviewInsights(payload);
+
+        if (result.error) {
+            throw new Error(result.error);
+        }
+
+        setAiInsight(result.aiGeneratedInsight);
+
+      } catch (e: any) {
         console.error(e);
-        toast({ title: "AI Error", description: "Failed to generate AI insights. Check the function logs for details.", variant: "destructive"});
+        toast({ title: "AI Error", description: `Failed to generate AI insights: ${e.message}`, variant: "destructive"});
       }
     });
   };
