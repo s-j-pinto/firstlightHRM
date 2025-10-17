@@ -9,19 +9,22 @@
  */
 
 import {setGlobalOptions} from "firebase-functions/v2";
-import {onRequest} from "firebase-functions/v2/onRequest";
+import {onCall} from "firebase-functions/v2/onCall";
 import * as logger from "firebase-functions/logger";
-import { onFlow } from "@genkit-ai/firebase/functions";
-import { interviewInsightsFlow } from "./interview-insights";
+import { generateInterviewInsights } from "./interview-insights";
 
 // Set global options for the functions
 setGlobalOptions({ maxInstances: 10 });
 
 // This is a simple function to force a redeployment.
-export const forceRedeploy = onRequest((request, response) => {
+export const forceRedeploy = onCall((request) => {
     logger.info("Deployment of all functions has been successfully forced.", {structuredData: true});
-    response.send("Deployment of all functions has been successfully forced.");
+    return { message: "Deployment of all functions has been successfully forced." };
 });
 
 // Export the function so that Firebase can discover and deploy it
-export const interviewInsights = onFlow(interviewInsightsFlow);
+export const interviewInsights = onCall(async (request) => {
+    // The request.data will contain the payload sent from the client.
+    // We pass it directly to our Genkit logic handler.
+    return await generateInterviewInsights(request.data);
+});
