@@ -1,7 +1,9 @@
+
 'use server';
 
 import { z } from 'zod';
 import { ai } from '@/ai/genkit';
+import { googleAI } from '@genkit-ai/google-genai';
 
 // Defines the schema for the data that will be passed into the AI prompt.
 // This ensures the data is structured correctly before being sent to the model.
@@ -35,6 +37,7 @@ const interviewAnalysisPrompt = ai.definePrompt(
     name: 'interviewAnalysisPrompt',
     input: { schema: InterviewInsightsInputSchema },
     output: { schema: InterviewInsightsOutputSchema },
+    model: googleAI.model('gemini-1.5-flash-latest'),
     prompt: `You are an expert HR assistant for a home care agency. Your task is to analyze a caregiver candidate's profile and the notes from their phone screen to provide a single, combined insight containing a summary and a hiring recommendation.
 
 Analyze the following information:
