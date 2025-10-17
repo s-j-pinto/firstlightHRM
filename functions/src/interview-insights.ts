@@ -87,6 +87,7 @@ export const interviewInsightsFlow = ai.defineFlow(
         name: 'interviewInsightsFlow',
         inputSchema: InterviewInsightsInputSchema,
         outputSchema: InterviewInsightsOutputSchema,
+        httpsCallable: true,
     },
     async (input) => {
         const { output } = await interviewAnalysisPrompt(input);
