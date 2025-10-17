@@ -109,4 +109,3 @@ export const sendNewAppointmentEmail = onDocumentCreated("appointments/{appointm
     logger.error("Error sending new appointment admin email:", error);
   }
 });
-
