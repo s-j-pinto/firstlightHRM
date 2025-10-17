@@ -56,7 +56,7 @@ const phoneScreenSchema = z.object({
   interviewNotes: z.string().optional(),
   candidateRating: z.number().min(0).max(5),
   phoneScreenPassed: z.enum(['Yes', 'No']),
-  interviewMethod: z.enum(['In-Person', 'Zoom']).optional(),
+  interviewMethod: z.enum(['In-Person', 'Google Meet']).optional(),
   inPersonDate: z.date().optional(),
   inPersonTime: z.string().optional(),
 }).superRefine((data, ctx) => {
@@ -231,7 +231,7 @@ export default function ManageInterviewsClient() {
                 interviewNotes: interviewData.interviewNotes,
                 candidateRating: interviewData.candidateRating,
                 phoneScreenPassed: interviewData.phoneScreenPassed as 'Yes' | 'No',
-                interviewMethod: interviewData.interviewType as 'In-Person' | 'Zoom' | undefined,
+                interviewMethod: interviewData.interviewType as 'In-Person' | 'Google Meet' | undefined,
                 inPersonDate: interviewDate ? toDate(interviewDate) : undefined,
                 inPersonTime: interviewDate ? format(toDate(interviewDate), 'HH:mm') : '',
             });
@@ -594,8 +594,8 @@ export default function ManageInterviewsClient() {
                                                             <FormLabel className="font-normal flex items-center gap-2"><Briefcase /> In-Person</FormLabel>
                                                         </FormItem>
                                                         <FormItem className="flex items-center space-x-3 space-y-0">
-                                                            <FormControl><RadioGroupItem value="Zoom" /></FormControl>
-                                                            <FormLabel className="font-normal flex items-center gap-2"><Video /> Zoom Video</FormLabel>
+                                                            <FormControl><RadioGroupItem value="Google Meet" /></FormControl>
+                                                            <FormLabel className="font-normal flex items-center gap-2"><Video /> Google Meet</FormLabel>
                                                         </FormItem>
                                                     </RadioGroup>
                                                 </FormControl>
@@ -799,5 +799,3 @@ export default function ManageInterviewsClient() {
     </div>
   );
 }
-
-    

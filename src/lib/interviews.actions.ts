@@ -14,32 +14,8 @@ interface SaveInterviewPayload {
   inPersonDateTime: Date;
   interviewId: string;
   aiInsight: string | null;
-  interviewType: 'In-Person' | 'Zoom';
+  interviewType: 'In-Person' | 'Google Meet';
 }
-
-/**
- * Placeholder function for Zoom integration.
- * This function should be implemented to call the Zoom API and return a meeting link.
- * @param topic The topic for the Zoom meeting.
- * @param startTime The start time for the meeting.
- * @returns {Promise<string>} The join URL for the Zoom meeting.
- */
-async function generateZoomMeetingLink(topic: string, startTime: Date): Promise<string> {
-    // ---- DEVELOPER ACTION REQUIRED ----
-    // 1. Add your Zoom Server-to-Server OAuth credentials to your environment.
-    //    ZOOM_ACCOUNT_ID, ZOOM_CLIENT_ID, ZOOM_CLIENT_SECRET
-    // 2. Implement the logic to get an access token.
-    // 3. Call the Zoom API to create a meeting.
-    //    POST /v2/users/me/meetings
-    //    Body: { topic, start_time, type: 2, ... }
-    // 4. Return the 'join_url' from the API response.
-
-    console.warn("generateZoomMeetingLink is a placeholder and does not create a real Zoom meeting.");
-    
-    // For now, return a placeholder link.
-    return "https://zoom.us/j/placeholder_link";
-}
-
 
 export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
   const { caregiverProfile, inPersonDateTime, interviewId, aiInsight, interviewType } = payload;
@@ -65,27 +41,90 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
     return { message: "Failed to save details to the interview record.", error: true };
   }
 
-  let meetingDetails = {
+  // Define details for in-person vs. Google Meet
+  let eventDetails = {
+    summary: `In-Person interview with ${caregiverProfile.fullName}`,
     location: '9650 Business Center Drive, Suite #132, Bldg #17, Rancho Cucamonga, CA 92730, PH: 909-321-4466',
     description: `Dear ${caregiverProfile.fullName},\nPlease bring the following documents to in-person Interview:\n- Driver's License,\n- Car insurance and registration,\n- Social Security card or US passport (to prove your work eligibility, If you are green card holder, bring Green card.)\n- Current negative TB-Test Copy,\n- HCA letter or number,\n- Live scan or Clearance letter if you have it,\n If you have not registered, please register on this link: https://guardian.dss.ca.gov/Applicant/ \n- CPR-First Aide proof card, Any other certification that you have.`,
-    summary: `In-Person interview with ${caregiverProfile.fullName}`,
+    conferenceData: null,
   };
 
-  if (interviewType === 'Zoom') {
-      try {
-          const zoomLink = await generateZoomMeetingLink(`Interview with ${caregiverProfile.fullName}`, inPersonDateTime);
-          meetingDetails = {
-              location: zoomLink,
-              description: `This is a confirmation for your video interview. Please join using the link below.\n\nZoom Link: ${zoomLink}`,
-              summary: `Zoom Video Meeting with ${caregiverProfile.fullName}`,
-          };
-      } catch (zoomError: any) {
-          return { message: `Failed to generate Zoom link: ${zoomError.message}`, error: true };
-      }
+  if (interviewType === 'Google Meet') {
+    eventDetails = {
+      ...eventDetails,
+      summary: `Google Meet interview with ${caregiverProfile.fullName}`,
+      location: 'Google Meet',
+      description: `This is a confirmation for your video interview. Please join using the Google Meet link.`,
+      conferenceData: {
+        createRequest: {
+          requestId: `interview-${interviewId}`,
+          conferenceSolutionKey: {
+            type: 'hangoutsMeet',
+          },
+        },
+      },
+    };
   }
 
+  // Second, attempt to send calendar invite. This will generate the Meet link.
+  let conferenceLink: string | undefined = undefined;
+  if (!clientId || !clientSecret) {
+      calendarErrorMessage = "Google API credentials are not configured. Please set them in your environment.";
+  } else {
+    const oAuth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
+    if (refreshToken) {
+        oAuth2Client.setCredentials({ refresh_token: refreshToken });
+    } else {
+        calendarAuthUrl = oAuth2Client.generateAuthUrl({
+            access_type: 'offline',
+            prompt: 'consent',
+            scope: ['https://www.googleapis.com/auth/calendar.events', 'https://www.googleapis.com/auth/calendar.events.readonly'],
+        });
+        calendarErrorMessage = "Admin authorization required for Google Calendar. A refresh token is missing.";
+    }
 
-  // Second, attempt to send the confirmation email to the caregiver.
+    if (!calendarErrorMessage) {
+        try {
+            await oAuth2Client.getAccessToken(); // Validate token
+            const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
+            const startTime = inPersonDateTime;
+            const endTime = new Date(startTime.getTime() + 2.5 * 60 * 60 * 1000);
+
+            const eventRequestBody = {
+                summary: eventDetails.summary,
+                location: eventDetails.location,
+                description: eventDetails.description,
+                start: { dateTime: startTime.toISOString(), timeZone: 'America/Los_Angeles' },
+                end: { dateTime: endTime.toISOString(), timeZone: 'America/Los_Angeles' },
+                attendees: [{ email: 'care-rc@firstlighthomecare.com' }, { email: caregiverProfile.email }],
+                reminders: { useDefault: false, overrides: [{ method: 'email', minutes: 24 * 60 }, { method: 'popup', minutes: 120 }] },
+                conferenceData: eventDetails.conferenceData,
+            };
+
+            const createdEvent = await calendar.events.insert({ 
+                calendarId: 'primary', 
+                requestBody: eventRequestBody, 
+                sendNotifications: true,
+                conferenceDataVersion: 1, // Required to get conference data back
+            });
+            
+            conferenceLink = createdEvent.data.hangoutLink;
+
+        } catch(calendarError: any) {
+            console.error('Error sending calendar invite:', calendarError);
+            if (calendarError.message.includes('invalid_grant') || calendarError.message.includes('revoked')) {
+                calendarAuthUrl = oAuth2Client.generateAuthUrl({ access_type: 'offline', prompt: 'consent', scope: ['https://www.googleapis.com/auth/calendar.events'] });
+                calendarErrorMessage = "Your Google authentication token is invalid or has expired. Please re-authorize.";
+            } else if (calendarError.response?.data?.error?.message) {
+                calendarErrorMessage = `Google API Error: ${calendarError.response.data.error.message}`;
+            } else {
+                calendarErrorMessage = `Failed to send calendar invite. Error: ${calendarError.message}`;
+            }
+        }
+    }
+  }
+  
+  // Third, send the confirmation email, now with the Meet link if available.
   try {
     const pacificTimeZone = 'America/Los_Angeles';
     const zonedStartTime = toZonedTime(inPersonDateTime, pacificTimeZone);
@@ -94,6 +133,10 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
     const formattedDate = formatInTimeZone(zonedStartTime, pacificTimeZone, 'eeee, MMMM do');
     const formattedStartTime = formatInTimeZone(zonedStartTime, pacificTimeZone, 'h:mm a');
     const formattedEndTime = formatInTimeZone(zonedEndTime, pacificTimeZone, 'h:mm a');
+
+    const locationInfo = interviewType === 'Google Meet' 
+        ? `<a href="${conferenceLink || '#'}">${conferenceLink || 'Meeting link will be in calendar invite.'}</a>` 
+        : eventDetails.location;
 
     const confirmationEmail = {
         to: [caregiverProfile.email],
@@ -105,7 +148,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
             <p>Please call or text the office if you have questions, or need to cancel or reschedule your appointment.</p>
             <br>
             <p><strong>${interviewType === 'In-Person' ? 'Office address:' : 'Meeting Link:'}</strong><br>
-            ${meetingDetails.location}</p>
+            ${locationInfo}</p>
             <br>
             ${interviewType === 'In-Person' ? `
             <p><strong>PLEASE BRING THE FOLLOWING DOCUMENTS</strong><br>
@@ -189,52 +232,8 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
     await serverDb.collection("mail").add(confirmationEmail);
   } catch (emailError) {
       console.error('[Action] CRITICAL: Error queuing confirmation email:', emailError);
-  }
-
-  // Third, proceed with calendar scheduling
-  if (!clientId || !clientSecret) {
-      calendarErrorMessage = "Google API credentials are not configured. Please set them in your environment.";
-  } else {
-    const oAuth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
-    if (refreshToken) {
-        oAuth2Client.setCredentials({ refresh_token: refreshToken });
-    } else {
-        calendarAuthUrl = oAuth2Client.generateAuthUrl({
-            access_type: 'offline',
-            prompt: 'consent',
-            scope: ['https://www.googleapis.com/auth/calendar.events'],
-        });
-        calendarErrorMessage = "Admin authorization required for Google Calendar. A refresh token is missing.";
-    }
-
-    if (!calendarErrorMessage) {
-        try {
-            await oAuth2Client.getAccessToken(); // Validate token
-            const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
-            const startTime = inPersonDateTime;
-            const endTime = new Date(startTime.getTime() + 2.5 * 60 * 60 * 1000);
-            const event = {
-                summary: meetingDetails.summary,
-                location: meetingDetails.location,
-                description: meetingDetails.description,
-                start: { dateTime: startTime.toISOString(), timeZone: 'America/Los_Angeles' },
-                end: { dateTime: endTime.toISOString(), timeZone: 'America/Los_Angeles' },
-                attendees: [{ email: 'care-rc@firstlighthomecare.com' }, { email: caregiverProfile.email }],
-                reminders: { useDefault: false, overrides: [{ method: 'email', minutes: 24 * 60 }, { method: 'popup', minutes: 120 }] },
-            };
-            await calendar.events.insert({ calendarId: 'primary', requestBody: event, sendNotifications: true });
-        } catch(calendarError: any) {
-            console.error('Error sending calendar invite:', calendarError);
-            if (calendarError.message.includes('invalid_grant') || calendarError.message.includes('revoked')) {
-                calendarAuthUrl = oAuth2Client.generateAuthUrl({ access_type: 'offline', prompt: 'consent', scope: ['https://www.googleapis.com/auth/calendar.events'] });
-                calendarErrorMessage = "Your Google authentication token is invalid or has expired. Please re-authorize.";
-            } else if (calendarError.response?.data?.error?.message) {
-                calendarErrorMessage = `Google API Error: ${calendarError.response.data.error.message}`;
-            } else {
-                calendarErrorMessage = `Failed to send calendar invite. Error: ${calendarError.message}`;
-            }
-        }
-    }
+      // Even if email fails, the calendar part might have succeeded, so we continue.
+      // We'll report calendar status below.
   }
 
   revalidatePath('/admin/manage-interviews');
@@ -245,5 +244,3 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
   
   return { message: `Next interview scheduled and confirmation email queued.`, error: false };
 }
-
-    
