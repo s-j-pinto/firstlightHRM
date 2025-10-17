@@ -54,7 +54,6 @@ Analyze the following information:
   - CNA: {{#if cna}}Yes{{else}}No{{/if}}
   - HHA: {{#if hha}}Yes{{else}}No{{/if}}
   - HCA: {{#if hca}}Yes{{else}}No{{/if}}
-- Availability is complex and not needed for this high-level summary.
 - Transportation: Has car: {{hasCar}}, Valid License: {{validLicense}}
 
 **Interviewer's Phone Screen Feedback:**
