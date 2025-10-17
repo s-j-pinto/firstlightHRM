@@ -13,7 +13,7 @@ import {onRequest} from "firebase-functions/v2/onRequest";
 import * as logger from "firebase-functions/logger";
 
 // The trigger for sendNewAppointmentEmail has been removed as this logic
-// is now handled by a Next.js server action.
+// is now handled by a Next.js server action in `src/lib/appointments.actions.ts`.
 // import { sendNewAppointmentEmail } from "./appointment-notifier";
 import { interviewInsights } from "./interview-insights";
 
