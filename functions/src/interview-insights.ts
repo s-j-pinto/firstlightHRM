@@ -4,66 +4,31 @@ import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import { z } from 'zod';
 
-const caregiverFormSchema = z.object({
-    id: z.string(),
-    uid: z.string().optional(),
-    fullName: z.string().min(2, "Full name must be at least 2 characters."),
-    email: z.string().email("Invalid email address."),
-    phone: z.string().min(10, "Phone number must be at least 10 digits."),
-    address: z.string().min(5, "Address is required."),
-    city: z.string().min(2, "City is required."),
-    state: z.string().min(2, "State is required."),
-    zip: z.string().min(5, "Zip code is required."),
-    yearsExperience: z.coerce.number().min(0, "Years of experience is required."),
-    previousRoles: z.string().optional(),
-    summary: z.string().optional(),
-    canChangeBrief: z.boolean().optional().default(false),
-    canTransfer: z.boolean().optional().default(false),
-    canPrepareMeals: z.boolean().optional().default(false),
-    canDoBedBath: z.boolean().optional().default(false),
-    canUseHoyerLift: z.boolean().optional().default(false),
-    canUseGaitBelt: z.boolean().optional().default(false),
-    canUsePurwick: z.boolean().optional().default(false),
-    canEmptyCatheter: z.boolean().optional().default(false),
-    canEmptyColostomyBag: z.boolean().optional().default(false),
-    canGiveMedication: z.boolean().optional().default(false),
-    canTakeBloodPressure: z.boolean().optional().default(false),
-    hasDementiaExperience: z.boolean().optional().default(false),
-    hasHospiceExperience: z.boolean().optional().default(false),
-    hca: z.boolean().default(false),
-    hha: z.boolean().default(false),
-    cna: z.boolean().default(false),
-    liveScan: z.boolean().default(false),
-    otherLanguages: z.string().optional(),
-    negativeTbTest: z.boolean().default(false),
-    cprFirstAid: z.boolean().default(false),
-    canWorkWithCovid: z.boolean().default(false),
-    covidVaccine: z.boolean().default(false),
-    cnaLicense: z.string().optional(),
-    otherCertifications: z.string().optional(),
-    availability: z.object({
-        monday: z.array(z.string()),
-        tuesday: z.array(z.string()),
-        wednesday: z.array(z.string()),
-        thursday: z.array(z.string()),
-        friday: z.array(z.string()),
-        saturday: z.array(z.string()),
-        sunday: z.array(z.string()),
-    }),
-    hasCar: z.enum(["yes", "no"]),
-    validLicense: z.enum(["yes", "no"]),
-});
-
-
 export const ai = genkit({
     plugins: [googleAI()],
     enableTracingAndMetrics: true,
 });
 
+// This schema is simplified to only include fields directly used in the prompt.
+// This removes the dependency on the large, shared caregiverFormSchema.
 const InterviewInsightsInputSchema = z.object({
-    caregiverProfile: caregiverFormSchema,
-    interviewNotes: z.string().describe('The notes taken by the interviewer during the phone screen.'),
-    candidateRating: z.number().min(0).max(5).describe('A 0-5 rating given by the interviewer.'),
+  // From caregiverProfile
+  fullName: z.string(),
+  yearsExperience: z.coerce.number(),
+  summary: z.string().optional(),
+  canUseHoyerLift: z.boolean().optional(),
+  hasDementiaExperience: z.boolean().optional(),
+  hasHospiceExperience: z.boolean().optional(),
+  cna: z.boolean().optional(),
+  hha: z.boolean().optional(),
+  hca: z.boolean().optional(),
+  availability: z.any(), // Keeping this simple for the prompt
+  hasCar: z.string(),
+  validLicense: z.string(),
+
+  // From the interview form
+  interviewNotes: z.string().describe('The notes taken by the interviewer during the phone screen.'),
+  candidateRating: z.number().min(0).max(5).describe('A 0-5 rating given by the interviewer.'),
 });
 
 const InterviewInsightsOutputSchema = z.object({
@@ -80,22 +45,22 @@ const interviewAnalysisPrompt = ai.definePrompt(
 Analyze the following information:
 
 **Caregiver Profile:**
-- Full Name: {{caregiverProfile.fullName}}
-- Years of Experience: {{caregiverProfile.yearsExperience}}
-- Experience Summary: {{#if caregiverProfile.summary}}{{caregiverProfile.summary}}{{else}}Not provided{{/if}}
+- Full Name: {{fullName}}
+- Years of Experience: {{yearsExperience}}
+- Experience Summary: {{#if summary}}{{summary}}{{else}}Not provided{{/if}}
 - Skills:
-  - Hoyer Lift: {{#if caregiverProfile.canUseHoyerLift}}Yes{{else}}No{{/if}}
-  - Dementia Experience: {{#if caregiverProfile.hasDementiaExperience}}Yes{{else}}No{{/if}}
-  - Hospice Experience: {{#if caregiverProfile.hasHospiceExperience}}Yes{{else}}No{{/if}}
+  - Hoyer Lift: {{#if canUseHoyerLift}}Yes{{else}}No{{/if}}
+  - Dementia Experience: {{#if hasDementiaExperience}}Yes{{else}}No{{/if}}
+  - Hospice Experience: {{#if hasHospiceExperience}}Yes{{else}}No{{/if}}
 - Certifications:
-  - CNA: {{#if caregiverProfile.cna}}Yes{{else}}No{{/if}}
-  - HHA: {{#if caregiverProfile.hha}}Yes{{else}}No{{/if}}
-  - HCA: {{#if caregiverProfile.hca}}Yes{{else}}No{{/if}}
+  - CNA: {{#if cna}}Yes{{else}}No{{/if}}
+  - HHA: {{#if hha}}Yes{{else}}No{{/if}}
+  - HCA: {{#if hca}}Yes{{else}}No{{/if}}
 - Availability:
-  {{#each caregiverProfile.availability}}
+  {{#each availability}}
   {{@key}}: {{#if this}}{{#each this}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}{{else}}Not available{{/if}}
   {{/each}}
-- Transportation: Has car: {{caregiverProfile.hasCar}}, Valid License: {{caregiverProfile.validLicense}}
+- Transportation: Has car: {{hasCar}}, Valid License: {{validLicense}}
 
 **Interviewer's Phone Screen Feedback:**
 - Rating (out of 5): {{candidateRating}}

@@ -237,15 +237,30 @@ export default function ManageInterviewsClient() {
       try {
         const functions = getFunctions();
         const interviewInsights = httpsCallable(functions, 'interviewInsights');
-        const result: any = await interviewInsights({
-            caregiverProfile: selectedCaregiver,
+        
+        // Construct the simplified payload
+        const payload = {
+            fullName: selectedCaregiver.fullName,
+            yearsExperience: selectedCaregiver.yearsExperience,
+            summary: selectedCaregiver.summary,
+            canUseHoyerLift: selectedCaregiver.canUseHoyerLift,
+            hasDementiaExperience: selectedCaregiver.hasDementiaExperience,
+            hasHospiceExperience: selectedCaregiver.hasHospiceExperience,
+            cna: selectedCaregiver.cna,
+            hha: selectedCaregiver.hha,
+            hca: selectedCaregiver.hca,
+            availability: selectedCaregiver.availability,
+            hasCar: selectedCaregiver.hasCar,
+            validLicense: selectedCaregiver.validLicense,
             interviewNotes,
             candidateRating,
-        });
+        };
+
+        const result: any = await interviewInsights(payload);
         setAiInsight(result.data.aiGeneratedInsight);
       } catch (e) {
         console.error(e);
-        toast({ title: "AI Error", description: "Failed to generate AI insights.", variant: "destructive"});
+        toast({ title: "AI Error", description: "Failed to generate AI insights. Check the function logs for details.", variant: "destructive"});
       }
     });
   };
