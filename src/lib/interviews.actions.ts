@@ -14,36 +14,79 @@ interface SaveInterviewPayload {
   inPersonDateTime: Date;
   interviewId: string;
   aiInsight: string | null;
+  interviewType: 'In-Person' | 'Zoom';
 }
 
+/**
+ * Placeholder function for Zoom integration.
+ * This function should be implemented to call the Zoom API and return a meeting link.
+ * @param topic The topic for the Zoom meeting.
+ * @param startTime The start time for the meeting.
+ * @returns {Promise<string>} The join URL for the Zoom meeting.
+ */
+async function generateZoomMeetingLink(topic: string, startTime: Date): Promise<string> {
+    // ---- DEVELOPER ACTION REQUIRED ----
+    // 1. Add your Zoom Server-to-Server OAuth credentials to your environment.
+    //    ZOOM_ACCOUNT_ID, ZOOM_CLIENT_ID, ZOOM_CLIENT_SECRET
+    // 2. Implement the logic to get an access token.
+    // 3. Call the Zoom API to create a meeting.
+    //    POST /v2/users/me/meetings
+    //    Body: { topic, start_time, type: 2, ... }
+    // 4. Return the 'join_url' from the API response.
+
+    console.warn("generateZoomMeetingLink is a placeholder and does not create a real Zoom meeting.");
+    
+    // For now, return a placeholder link.
+    return "https://zoom.us/j/placeholder_link";
+}
+
+
 export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
-  const { caregiverProfile, inPersonDateTime, interviewId, aiInsight } = payload;
+  const { caregiverProfile, inPersonDateTime, interviewId, aiInsight, interviewType } = payload;
   
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
   const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
   const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:9002/admin/settings';
 
-  let calendarSuccess = false;
   let calendarAuthUrl: string | null = null;
   let calendarErrorMessage: string | null = null;
 
-  // First, save the AI insight and interview date to the existing interview document
+  // First, save the AI insight, interview date, and type to the existing interview document
   try {
     const interviewRef = serverDb.collection('interviews').doc(interviewId);
     await interviewRef.update({ 
       aiGeneratedInsight: aiInsight || '',
       interviewDateTime: Timestamp.fromDate(inPersonDateTime),
+      interviewType: interviewType,
     });
   } catch (dbError) {
-    console.error("Error saving AI insight/date to interview:", dbError);
-    return { message: "Failed to save AI Insight or date to the interview record.", error: true };
+    console.error("Error saving interview details:", dbError);
+    return { message: "Failed to save details to the interview record.", error: true };
   }
 
+  let meetingDetails = {
+    location: '9650 Business Center Drive, Suite #132, Bldg #17, Rancho Cucamonga, CA 92730, PH: 909-321-4466',
+    description: `Dear ${caregiverProfile.fullName},\nPlease bring the following documents to in-person Interview:\n- Driver's License,\n- Car insurance and registration,\n- Social Security card or US passport (to prove your work eligibility, If you are green card holder, bring Green card.)\n- Current negative TB-Test Copy,\n- HCA letter or number,\n- Live scan or Clearance letter if you have it,\n If you have not registered, please register on this link: https://guardian.dss.ca.gov/Applicant/ \n- CPR-First Aide proof card, Any other certification that you have.`,
+    summary: `In-Person interview with ${caregiverProfile.fullName}`,
+  };
+
+  if (interviewType === 'Zoom') {
+      try {
+          const zoomLink = await generateZoomMeetingLink(`Interview with ${caregiverProfile.fullName}`, inPersonDateTime);
+          meetingDetails = {
+              location: zoomLink,
+              description: `This is a confirmation for your video interview. Please join using the link below.\n\nZoom Link: ${zoomLink}`,
+              summary: `Zoom Video Meeting with ${caregiverProfile.fullName}`,
+          };
+      } catch (zoomError: any) {
+          return { message: `Failed to generate Zoom link: ${zoomError.message}`, error: true };
+      }
+  }
+
+
   // Second, attempt to send the confirmation email to the caregiver.
-  // This is in its own try/catch to ensure it runs independently of the calendar logic.
   try {
-    console.log('[Action] Preparing to queue confirmation email.');
     const pacificTimeZone = 'America/Los_Angeles';
     const zonedStartTime = toZonedTime(inPersonDateTime, pacificTimeZone);
     const zonedEndTime = toZonedTime(new Date(inPersonDateTime.getTime() + 2.5 * 60 * 60 * 1000), pacificTimeZone);
@@ -56,18 +99,15 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
         to: [caregiverProfile.email],
         cc: ['care-rc@firstlighthomecare.com'],
         message: {
-            subject: `Interview Confirmation with FirstLight Home Care`,
+            subject: `Interview Confirmation: ${interviewType} with FirstLight Home Care`,
             html: `
-            <p>${caregiverProfile.fullName}, This is to confirm your in-person 2.5 hour interview for a HCA/Caregiver position on ${formattedDate} @ ${formattedStartTime} to ${formattedEndTime}.</p>
+            <p>${caregiverProfile.fullName}, This is to confirm your ${interviewType} 2.5 hour interview for a HCA/Caregiver position on ${formattedDate} from ${formattedStartTime} to ${formattedEndTime}.</p>
             <p>Please call or text the office if you have questions, or need to cancel or reschedule your appointment.</p>
             <br>
-            <p><strong>Office address:</strong><br>
-            FirstLight Home Care<br>
-            9650 Business Center Drive, (South West corner of Archibald and Arrow)<br>
-            Bld # 17,  Suite #132   (Executive Suites sign out front)<br>
-            Rancho Cucamonga, CA 91730<br>
-            PH: 909-321-4466</p>
+            <p><strong>${interviewType === 'In-Person' ? 'Office address:' : 'Meeting Link:'}</strong><br>
+            ${meetingDetails.location}</p>
             <br>
+            ${interviewType === 'In-Person' ? `
             <p><strong>PLEASE BRING THE FOLLOWING DOCUMENTS</strong><br>
             (Bring what you can, you can text the remainder later.)</p>
             <ul>
@@ -124,8 +164,9 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
             <p><a href="https://www.freeclinics.com/cit/ca-fontana">https://www.freeclinics.com/cit/ca-fontana</a></p>
             <p><a href="https://www.freeclinics.com/cit/ca-pomona">https://www.freeclinics.com/cit/ca-pomona</a></p>
             <p><a href="https://www.freeclinics.com/cit/ca-ontario">https://www.freeclinics.com/cit/ca-ontario</a></p>
+            ` : ''}
             <br>
-            <p>I look forward to meeting you in person.</p>
+            <p>I look forward to meeting you.</p>
             <p>--<br>
             Jacqui Wilson<br>
             Care Coordinator<br>
@@ -145,14 +186,9 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
         },
     };
     
-    console.log(`[Action] Attempting to queue confirmation email for ${caregiverProfile.email} with subject: "${confirmationEmail.message.subject}"`);
     await serverDb.collection("mail").add(confirmationEmail);
-    console.log(`[Action] Successfully queued confirmation email for ${caregiverProfile.email}`);
-
   } catch (emailError) {
       console.error('[Action] CRITICAL: Error queuing confirmation email:', emailError);
-      // We will continue to the calendar part, but we can't show a success toast for the email.
-      // The main return message will be handled by the calendar logic now.
   }
 
   // Third, proceed with calendar scheduling
@@ -178,16 +214,15 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
             const startTime = inPersonDateTime;
             const endTime = new Date(startTime.getTime() + 2.5 * 60 * 60 * 1000);
             const event = {
-                summary: `In-Person interview with ${caregiverProfile.fullName}`,
-                location: '9650 Business Center Drive, Suite #132, Bldg #17, Rancho Cucamonga, CA 92730, PH: 909-321-4466',
-                description: `Dear ${caregiverProfile.fullName},\nPlease bring the following documents to in-person Interview:\n- Driver's License,\n- Car insurance and registration,\n- Social Security card or US passport (to prove your work eligibility, If you are green card holder, bring Green card.)\n- Current negative TB-Test Copy,\n- HCA letter or number,\n- Live scan or Clearance letter if you have it,\n If you have not registered, please register on this link: https://guardian.dss.ca.gov/Applicant/ \n- CPR-First Aide proof card, Any other certification that you have.`,
+                summary: meetingDetails.summary,
+                location: meetingDetails.location,
+                description: meetingDetails.description,
                 start: { dateTime: startTime.toISOString(), timeZone: 'America/Los_Angeles' },
                 end: { dateTime: endTime.toISOString(), timeZone: 'America/Los_Angeles' },
                 attendees: [{ email: 'care-rc@firstlighthomecare.com' }, { email: caregiverProfile.email }],
                 reminders: { useDefault: false, overrides: [{ method: 'email', minutes: 24 * 60 }, { method: 'popup', minutes: 120 }] },
             };
             await calendar.events.insert({ calendarId: 'primary', requestBody: event, sendNotifications: true });
-            calendarSuccess = true;
         } catch(calendarError: any) {
             console.error('Error sending calendar invite:', calendarError);
             if (calendarError.message.includes('invalid_grant') || calendarError.message.includes('revoked')) {
@@ -208,5 +243,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
       return { message: `Email queued successfully, but calendar invite failed: ${calendarErrorMessage}`, error: true, authUrl: calendarAuthUrl };
   }
   
-  return { message: 'In-person interview scheduled and confirmation email queued.', error: false };
+  return { message: `Next interview scheduled and confirmation email queued.`, error: false };
 }
+
+    

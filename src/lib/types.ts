@@ -89,7 +89,7 @@ export const interviewSchema = z.object({
   caregiverProfileId: z.string(),
   caregiverUid: z.string().optional(),
   interviewDateTime: z.date(),
-  interviewType: z.enum(["Phone", "In-Person"]),
+  interviewType: z.enum(["Phone", "In-Person", "Zoom"]),
   interviewNotes: z.string().optional(),
   candidateRating: z.number().min(0).max(5),
   phoneScreenPassed: z.enum(["Yes", "No", "N/A"]),
@@ -110,3 +110,5 @@ export const caregiverEmployeeSchema = z.object({
 });
 
 export type CaregiverEmployee = z.infer<typeof caregiverEmployeeSchema> & { id: string };
+
+    
