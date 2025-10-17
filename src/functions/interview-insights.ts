@@ -1,10 +1,19 @@
 
-import { onCallGenkit } from "@genkit-ai/firebase/functions";
-import { genkit, ai } from 'genkit';
-import { googleAI } from '@genkit-ai/google-genai';
+'use server';
+/**
+ * @fileOverview A caregiver interview analysis AI flow.
+ *
+ * - interviewInsightsFlow - A Genkit flow that analyzes a candidate's profile and interview notes.
+ * - InterviewInsightsInputSchema - The Zod schema for the flow's input.
+ * - InterviewInsightsOutputSchema - The Zod schema for the flow's output.
+ */
+
+import { ai } from '@/ai/genkit-instance';
 import { z } from 'zod';
 
+// Zod schema for the caregiver profile data
 const caregiverFormSchema = z.object({
+    id: z.string(),
     uid: z.string().optional(),
     fullName: z.string().min(2, "Full name must be at least 2 characters."),
     email: z.string().email("Invalid email address."),
@@ -48,31 +57,24 @@ const caregiverFormSchema = z.object({
         friday: z.array(z.string()),
         saturday: z.array(z.string()),
         sunday: z.array(z.string()),
-    }).refine(val => Object.values(val).some(shifts => shifts.length > 0), {
-        message: "Please select at least one shift.",
-        path: ['sunday']
     }),
     hasCar: z.enum(["yes", "no"]),
     validLicense: z.enum(["yes", "no"]),
 });
 
-// The global 'ai' object is configured once and reused.
-genkit.configure({
-    plugins: [googleAI()],
-    logLevel: "debug",
-    enableTracingAndMetrics: true,
-});
-
-const InterviewInsightsInputSchema = z.object({
-    caregiverProfile: caregiverFormSchema.extend({ id: z.string() }),
+// Zod schema for the flow's input
+export const InterviewInsightsInputSchema = z.object({
+    caregiverProfile: caregiverFormSchema,
     interviewNotes: z.string().describe('The notes taken by the interviewer during the phone screen.'),
     candidateRating: z.number().min(0).max(5).describe('A 0-5 rating given by the interviewer.'),
 });
 
-const InterviewInsightsOutputSchema = z.object({
+// Zod schema for the flow's output
+export const InterviewInsightsOutputSchema = z.object({
     aiGeneratedInsight: z.string().describe('A concise summary of the candidate (max 200 words), followed by a clear hiring recommendation (e.g., "Recommend for in-person interview," "Proceed with caution," "Do not recommend") with a brief justification.'),
 });
 
+// Define the prompt for the AI model
 const interviewAnalysisPrompt = ai.definePrompt(
     {
       name: 'interviewAnalysisPrompt',
@@ -94,7 +96,7 @@ Analyze the following information:
   - CNA: {{#if caregiverProfile.cna}}Yes{{else}}No{{/if}}
   - HHA: {{#if caregiverProfile.hha}}Yes{{else}}No{{/if}}
   - HCA: {{#if caregiverProfile.hca}}Yes{{else}}No{{/if}}
-- Availability: 
+- Availability:
   {{#each caregiverProfile.availability}}
   {{@key}}: {{#if this}}{{#each this}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}{{else}}Not available{{/if}}
   {{/each}}
@@ -119,10 +121,10 @@ Example format:
 Recommendation: [Your recommendation and justification...]
 `,
     },
-  );
-  
+);
 
-const interviewInsightsFlow = ai.defineFlow(
+// Define the Genkit flow
+export const interviewInsightsFlow = ai.defineFlow(
     {
         name: 'interviewInsightsFlow',
         inputSchema: InterviewInsightsInputSchema,
@@ -130,8 +132,9 @@ const interviewInsightsFlow = ai.defineFlow(
     },
     async (input) => {
         const { output } = await interviewAnalysisPrompt(input);
-        return output!;
+        if (!output) {
+            throw new Error("The AI model did not return a valid output.");
+        }
+        return output;
     }
 );
-
-export const interviewInsights = onCallGenkit(interviewInsightsFlow);

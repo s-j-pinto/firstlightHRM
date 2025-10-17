@@ -236,8 +236,8 @@ export default function ManageInterviewsClient() {
     startAiTransition(async () => {
       try {
         const functions = getFunctions();
-        const generateInterviewInsights = httpsCallable(functions, 'interviewInsights');
-        const result: any = await generateInterviewInsights({
+        const interviewInsights = httpsCallable(functions, 'interviewInsights');
+        const result: any = await interviewInsights({
             caregiverProfile: selectedCaregiver,
             interviewNotes,
             candidateRating,
