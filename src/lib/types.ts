@@ -95,6 +95,7 @@ export const interviewSchema = z.object({
   phoneScreenPassed: z.enum(["Yes", "No", "N/A"]),
   aiGeneratedInsight: z.string().optional(),
   inPersonInterviewDate: z.date().optional(),
+  googleMeetLink: z.string().optional(),
 });
 
 export type Interview = z.infer<typeof interviewSchema> & { id: string };

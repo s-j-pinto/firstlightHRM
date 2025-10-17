@@ -301,44 +301,28 @@ export default function ManageInterviewsClient() {
     if (!selectedCaregiver || !db) return;
   
     startSubmitTransition(async () => {
-      const interviewDocData: Partial<Interview> = {
-        caregiverProfileId: selectedCaregiver.id,
-        caregiverUid: selectedCaregiver.uid,
-        interviewType: data.interviewMethod || 'Phone',
-        interviewNotes: data.interviewNotes,
-        candidateRating: data.candidateRating,
-        phoneScreenPassed: data.phoneScreenPassed,
-        aiGeneratedInsight: aiInsight || '',
-      };
-
-      if (data.phoneScreenPassed === 'Yes' && data.inPersonDate && data.inPersonTime) {
-        const [hours, minutes] = data.inPersonTime.split(':').map(Number);
-        const inPersonDateTime = new Date(data.inPersonDate.setHours(hours, minutes));
-        interviewDocData.interviewDateTime = Timestamp.fromDate(inPersonDateTime);
-      } else {
-        interviewDocData.interviewDateTime = Timestamp.now();
-      }
-      
       let interviewId = existingInterview?.id;
-  
-      try {
-        let savedInterviewData: Interview;
-        if (interviewId) {
-            const docRef = doc(db, 'interviews', interviewId);
-            await updateDoc(docRef, interviewDocData);
-            savedInterviewData = { ...existingInterview!, ...interviewDocData } as Interview;
-            toast({ title: 'Success', description: 'Phone interview results updated.' });
-        } else {
-            const colRef = collection(db, 'interviews');
-            const docRef = await addDoc(colRef, interviewDocData);
-            interviewId = docRef.id;
-            savedInterviewData = { ...interviewDocData, id: interviewId } as Interview;
-            toast({ title: 'Success', description: 'Phone interview results saved.' });
+      
+      // If there's no existing interview, create one first to get an ID.
+      if (!interviewId) {
+        try {
+          const tempInterviewData = {
+            caregiverProfileId: selectedCaregiver.id,
+            caregiverUid: selectedCaregiver.uid,
+            interviewDateTime: Timestamp.now(),
+            interviewType: "Phone",
+            phoneScreenPassed: "N/A",
+          };
+          const docRef = await addDoc(collection(db, 'interviews'), tempInterviewData);
+          interviewId = docRef.id;
+          setExistingInterview({ id: docRef.id, ...tempInterviewData} as Interview);
+        } catch(e) {
+            toast({ title: 'Error', description: 'Could not create initial interview record.', variant: 'destructive'});
+            return;
         }
-        
-        setExistingInterview(savedInterviewData);
+      }
   
-        if (data.phoneScreenPassed === 'Yes' && data.inPersonDate && data.inPersonTime && data.interviewMethod) {
+      if (data.phoneScreenPassed === 'Yes' && data.inPersonDate && data.inPersonTime && data.interviewMethod) {
           const [hours, minutes] = data.inPersonTime.split(':').map(Number);
           const inPersonDateTime = new Date(data.inPersonDate.setHours(hours, minutes));
   
@@ -357,23 +341,32 @@ export default function ManageInterviewsClient() {
           }
   
           toast({
-            title: result.error ? 'Calendar Error' : 'Success',
+            title: result.error ? 'Error' : 'Success',
             description: result.message,
             variant: result.error ? 'destructive' : 'default',
           });
-        }
-      } catch (error) {
-        const permissionError = new FirestorePermissionError({
-          path: existingInterview ? `interviews/${interviewId}` : 'interviews',
-          operation: existingInterview ? 'update' : 'create',
-          requestResourceData: interviewDocData,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        toast({
-          title: 'Error',
-          description: 'Could not save interview results due to permissions.',
-          variant: 'destructive',
-        });
+          
+          if (!result.error) {
+             handleCancel();
+          }
+
+      } else { // Handle 'No' or incomplete 'Yes'
+          const interviewDocData: any = {
+            caregiverProfileId: selectedCaregiver.id,
+            interviewType: 'Phone',
+            interviewNotes: data.interviewNotes,
+            candidateRating: data.candidateRating,
+            phoneScreenPassed: data.phoneScreenPassed,
+            aiGeneratedInsight: aiInsight || '',
+            interviewDateTime: Timestamp.now(),
+          };
+          try {
+            await updateDoc(doc(db, 'interviews', interviewId), interviewDocData);
+            toast({ title: 'Success', description: 'Phone interview results updated.' });
+            handleCancel();
+          } catch(e) {
+             toast({ title: 'Error', description: 'Could not update interview record.', variant: 'destructive'});
+          }
       }
     });
   };
@@ -421,6 +414,12 @@ export default function ManageInterviewsClient() {
       }
     });
   };
+
+  const handleLaunchMeet = () => {
+    if (existingInterview?.googleMeetLink) {
+        window.open(existingInterview.googleMeetLink, '_blank', 'width=800,height=600,resizable=yes,scrollbars=yes');
+    }
+  }
 
 
   const isLoading = caregiversLoading || employeesLoading;
@@ -491,7 +490,7 @@ export default function ManageInterviewsClient() {
         </Alert>
       )}
 
-      {selectedCaregiver && (
+      {selectedCaregiver && !shouldShowHiringForm && (
         <Card>
             <CardHeader>
                 <CardTitle>Phone Screen: {selectedCaregiver.fullName}</CardTitle>
@@ -648,9 +647,14 @@ export default function ManageInterviewsClient() {
                             </Card>
                         )}
 
-
                         <div className="flex justify-end gap-4">
-                            <Button type="button" variant="outline" onClick={handleCancel} disabled={isSubmitting || !!existingInterview}>Cancel</Button>
+                             {existingInterview?.interviewType === 'Google Meet' && existingInterview.googleMeetLink && (
+                                <Button type="button" variant="outline" onClick={handleLaunchMeet}>
+                                    <Video className="mr-2 h-4 w-4" />
+                                    Launch Google Meet
+                                </Button>
+                            )}
+                            <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
                              <Button type="submit" disabled={isSubmitting || !!existingInterview}>
                                 {isSubmitting ? (
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
