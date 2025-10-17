@@ -14,6 +14,8 @@ if (!getFirestore().app.name) {
 
 const db = getFirestore();
 const pacificTimeZone = "America/Los_Angeles";
+const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
+
 
 export const sendNewAppointmentEmail = onDocumentCreated("appointments/{appointmentId}", async (event) => {
   const snapshot = event.data;
@@ -55,36 +57,47 @@ export const sendNewAppointmentEmail = onDocumentCreated("appointments/{appointm
     const email = {
       to: [adminEmail],
       message: {
-        subject: `[Action Required] New Phone Interview Appointment Requested with ${caregiverData.fullName || 'N/A'}`,
+        subject: `[Action Required] New Phone Interview with ${caregiverData.fullName || 'N/A'}`,
         html: `
-          <h1>New Phone Interview Appointment</h1>
-          <p>A new phone interview has been scheduled with a caregiver candidate. Please review their details and send them a calendar invite for the selected time.</p>
-          <p>You can manage this appointment on the <a href="https://care-connect-360--firstlighthomecare-hrm.us-central1.hosted.app/login?redirect=/admin">Admin Dashboard</a>.</p>
-          
-          <h2>Appointment Details</h2>
-          <ul>
-            <li><strong>Caregiver:</strong> ${caregiverData.fullName || 'N/A'}</li>
-            <li><strong>Date:</strong> ${formattedDate}</li>
-            <li><strong>Time:</strong> ${formattedStartTime} (Pacific Time)</li>
-          </ul>
-          
-          <h2>Caregiver Snapshot</h2>
-          <ul>
-            <li><strong>Email:</strong> ${caregiverData.email}</li>
-            <li><strong>Phone:</strong> ${caregiverData.phone}</li>
-            <li><strong>Years of Experience:</strong> ${caregiverData.yearsExperience}</li>
-            <li><strong>Has Car:</strong> ${caregiverData.hasCar}</li>
-            <li><strong>Valid License:</strong> ${caregiverData.validLicense}</li>
-            <li><strong>HCA Certified:</strong> ${caregiverData.hca ? 'Yes' : 'No'}</li>
-            <li><strong>CNA Certified:</strong> ${caregiverData.cna ? 'Yes' : 'No'}</li>
-            <li><strong>Dementia Experience:</strong> ${caregiverData.hasDementiaExperience ? 'Yes' : 'No'}</li>
-            <li><strong>Hospice Experience:</strong> ${caregiverData.hasHospiceExperience ? 'Yes' : 'No'}</li>
-          </ul>
-          
-          <h3>Summary:</h3>
-          <p>${caregiverData.summary || 'Not provided'}</p>
+          <body style="font-family: sans-serif; line-height: 1.6;">
+            <div style="max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
+              <h1 style="color: #333;">New Phone Interview Scheduled</h1>
+              <p>A new phone interview has been requested by a caregiver candidate. Please review their details below and send a calendar invite from the dashboard.</p>
+              
+              <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <h2 style="margin-top: 0; color: #555;">Appointment Details</h2>
+                <p><strong>Caregiver:</strong> ${caregiverData.fullName || 'N/A'}</p>
+                <p><strong>Date:</strong> ${formattedDate}</p>
+                <p><strong>Time:</strong> ${formattedStartTime} (Pacific Time)</p>
+              </div>
 
-          <p style="margin-top: 20px;">Please proceed to the admin dashboard to view the full profile and manage the interview process.</p>
+              <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                  <h2 style="margin-top: 0; color: #555;">Caregiver Snapshot</h2>
+                  <p><strong>Email:</strong> ${caregiverData.email}</p>
+                  <p><strong>Phone:</strong> ${caregiverData.phone}</p>
+                  <p><strong>Experience:</strong> ${caregiverData.yearsExperience} years</p>
+                  <p><strong>Summary:</strong> ${caregiverData.summary || 'Not provided'}</p>
+                  <ul style="padding-left: 20px;">
+                    <li><strong>HCA Certified:</strong> ${caregiverData.hca ? 'Yes' : 'No'}</li>
+                    <li><strong>CNA Certified:</strong> ${caregiverData.cna ? 'Yes' : 'No'}</li>
+                    <li><strong>Dementia Experience:</strong> ${caregiverData.hasDementiaExperience ? 'Yes' : 'No'}</li>
+                    <li><strong>Hospice Experience:</strong> ${caregiverData.hasHospiceExperience ? 'Yes' : 'No'}</li>
+                    <li><strong>Has Car:</strong> ${caregiverData.hasCar}</li>
+                    <li><strong>Valid License:</strong> ${caregiverData.validLicense}</li>
+                  </ul>
+              </div>
+
+              <div style="text-align: center;">
+                <a href="https://care-connect-360--firstlighthomecare-hrm.us-central1.hosted.app/login?redirect=/admin" style="background-color: #E07A5F; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-size: 16px; display: inline-block;">
+                  Go to Admin Dashboard
+                </a>
+              </div>
+              
+              <div style="margin-top: 30px; text-align: center;">
+                <img src="${logoUrl}" alt="FirstLight Home Care Logo" width="200" />
+              </div>
+            </div>
+          </body>
         `,
       },
     };
