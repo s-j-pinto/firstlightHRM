@@ -64,7 +64,7 @@ Analyze the following information:
 
 **Your Task:**
 
-Generate a single string for the 'aiGeneratedInsight' field. This string should contain two parts:
+Generate a single string for the 'aiGeneratedInsight' field. This string must contain two parts:
 
 1.  **Summary:** First, write a concise professional summary of the candidate. Highlight their key strengths, potential weaknesses, and alignment with a caregiver role. The summary must be a maximum of 200 words.
 
