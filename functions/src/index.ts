@@ -11,7 +11,7 @@
 import {setGlobalOptions} from "firebase-functions/v2";
 import {onRequest} from "firebase-functions/v2/onRequest";
 import * as logger from "firebase-functions/logger";
-import { onCallGenkit } from "@genkit-ai/firebase/functions";
+import { onFlow } from "@genkit-ai/firebase/functions";
 import { interviewInsightsFlow } from "./interview-insights";
 
 // Set global options for the functions
@@ -24,4 +24,4 @@ export const forceRedeploy = onRequest((request, response) => {
 });
 
 // Export the function so that Firebase can discover and deploy it
-export const interviewInsights = onCallGenkit(interviewInsightsFlow);
+export const interviewInsights = onFlow(interviewInsightsFlow);
