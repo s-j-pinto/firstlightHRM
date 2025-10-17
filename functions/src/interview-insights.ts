@@ -1,6 +1,6 @@
+import { defineFlow, definePrompt } from 'genkit';
 import { z } from 'zod';
 import * as logger from "firebase-functions/logger";
-import { ai } from './index'; // Import the correctly configured ai instance
 
 
 // Defines the expected input from the client.
@@ -26,31 +26,13 @@ const InterviewInsightsOutputSchema = z.object({
     aiGeneratedInsight: z.string().describe('A concise summary of the candidate (max 200 words), followed by a clear hiring recommendation (e.g., "Recommend for in-person interview," "Proceed with caution," "Do not recommend") with a brief justification.'),
 });
 
-
-/**
- * This function is NOT a Cloud Function itself. It's a helper that contains
- * the Genkit logic and is called by our actual `onCall` Cloud Function.
- *
- * @param input The data passed from the client, conforming to InterviewInsightsInputSchema.
- * @returns The AI-generated insights.
- */
-export async function generateInterviewInsights(input: any) {
-    logger.info("Received request for AI insights", { structuredData: true, data: input });
-
-    // Validate the input from the client.
-    const validatedInput = InterviewInsightsInputSchema.safeParse(input);
-    if (!validatedInput.success) {
-        logger.error("Invalid input for AI insights", { structuredData: true, error: validatedInput.error.issues });
-        throw new Error("Invalid input provided.");
-    }
-    
-    // Define the prompt for the AI model.
-    const interviewAnalysisPrompt = ai.definePrompt(
-        {
-          name: 'interviewAnalysisPrompt',
-          input: { schema: InterviewInsightsInputSchema },
-          output: { schema: InterviewInsightsOutputSchema },
-          prompt: `You are an expert HR assistant for a home care agency. Your task is to analyze a caregiver candidate's profile and the notes from their phone screen to provide a single, combined insight containing a summary and a hiring recommendation.
+// Define the prompt for the AI model.
+const interviewAnalysisPrompt = definePrompt(
+    {
+      name: 'interviewAnalysisPrompt',
+      inputSchema: InterviewInsightsInputSchema,
+      outputSchema: InterviewInsightsOutputSchema,
+      prompt: `You are an expert HR assistant for a home care agency. Your task is to analyze a caregiver candidate's profile and the notes from their phone screen to provide a single, combined insight containing a summary and a hiring recommendation.
 
 Analyze the following information:
 
@@ -87,17 +69,45 @@ Example format:
 
 Recommendation: [Your recommendation and justification...]
 `,
-        },
-    );
+    },
+);
 
-    // Run the prompt with the validated input.
-    const { output } = await interviewAnalysisPrompt(validatedInput.data);
+const interviewInsightsFlow = defineFlow(
+    {
+        name: "interviewInsightsFlow",
+        inputSchema: InterviewInsightsInputSchema,
+        outputSchema: InterviewInsightsOutputSchema,
+    },
+    async (input) => {
+        const { output } = await interviewAnalysisPrompt(input);
     
-    if (!output) {
-        logger.error("The AI model did not return a valid output.");
-        throw new Error("The AI model did not return a valid output.");
+        if (!output) {
+            logger.error("The AI model did not return a valid output.");
+            throw new Error("The AI model did not return a valid output.");
+        }
+    
+        logger.info("Successfully generated AI insights.", { structuredData: true });
+        return output;
     }
+);
 
-    logger.info("Successfully generated AI insights.", { structuredData: true });
-    return output;
+
+/**
+ * This function is NOT a Cloud Function itself. It's a helper that contains
+ * the Genkit logic and is called by our actual `onCall` Cloud Function.
+ *
+ * @param input The data passed from the client, conforming to InterviewInsightsInputSchema.
+ * @returns The AI-generated insights.
+ */
+export async function generateInterviewInsights(input: any) {
+    logger.info("Received request for AI insights", { structuredData: true, data: input });
+
+    // Validate the input from the client.
+    const validatedInput = InterviewInsightsInputSchema.safeParse(input);
+    if (!validatedInput.success) {
+        logger.error("Invalid input for AI insights", { structuredData: true, error: validatedInput.error.issues });
+        throw new Error("Invalid input provided.");
+    }
+    
+    return await interviewInsightsFlow(validatedInput.data);
 }

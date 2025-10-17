@@ -15,7 +15,7 @@ import { genkit, firebase } from '@genkit-ai/firebase';
 import { googleAI } from '@genkit-ai/google-genai';
 
 // Initialize Genkit with the Firebase plugin for proper integration.
-export const ai = genkit({
+genkit({
     plugins: [firebase(), googleAI()],
     enableTracingAndMetrics: true,
 });
