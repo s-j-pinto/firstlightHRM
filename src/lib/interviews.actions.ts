@@ -54,6 +54,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
 
     const confirmationEmail = {
         to: [caregiverProfile.email],
+        cc: ['care-rc@firstlighthomecare.com'],
         message: {
             subject: `Interview Confirmation with FirstLight Home Care`,
             html: `
@@ -80,7 +81,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
                 <li>Employment history with dates and contact numbers.</li>
                 <li>DMV Driver’s Record Request Report. You can get a Driver’s Record Request online: <a href="https://www.dmv.ca.gov/portal">https://www.dmv.ca.gov/portal</a> $2 online or  $5 at DMV office.</li>
                 <li>Physical Test (HHA only)</li>
-                <li>Optional:  CPR-First Aid proof card (The Heart Association or American Red Cross have classes)</li>
+                <li>Optional:  CPR-First Aid proof card (The Heart Association or American Red Cross have classes)</li> 
                 <li>Optional:  any other health related certifications you may have.</li>
             </ul>
             <p><strong>NEW OR RENEWAL OF HCA AND LIVE SCAN PRINTS</strong></p>
@@ -209,5 +210,3 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
   
   return { message: 'In-person interview scheduled and confirmation email queued.', error: false };
 }
-
-    
