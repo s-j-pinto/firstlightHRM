@@ -238,7 +238,7 @@ export default function ManageInterviewsClient() {
         const functions = getFunctions();
         const generateInterviewInsights = httpsCallable(functions, 'interviewInsights');
         const result: any = await generateInterviewInsights({
-            caregiverProfile: { ...selectedCaregiver, id: selectedCaregiver.id },
+            caregiverProfile: selectedCaregiver,
             interviewNotes,
             candidateRating,
         });
@@ -725,5 +725,3 @@ export default function ManageInterviewsClient() {
     </div>
   );
 }
-
-    
