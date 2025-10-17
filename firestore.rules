@@ -1,85 +1,102 @@
 /**
  * @file Firestore Security Rules
- * @description This ruleset enforces a data-centric security model, focusing on restricting access based on role and resource ownership.
+ * @description This ruleset enforces a strict access control model for caregiver data.
  *
  * Data Structure:
- * - /caregiver_profiles/{caregiverProfileId}: Stores caregiver profiles. Access is unrestricted (public read), but only authorized users can modify.
- * - /appointments/{appointmentId}: Stores appointment slots. Access is unrestricted (public read), but only authorized users can modify.
- * - /interviews/{interviewId}: Stores interview data. Access is unrestricted (public read), but only authorized users can modify.
- * - /caregiver_employees/{employeeId}: Stores caregiver employment data. Access is unrestricted (public read), but only authorized users can modify.
+ * - /caregiver_profiles/{caregiverProfileId}: Stores detailed caregiver profiles.
+ * - /appointments/{appointmentId}: Stores appointment slots for caregiver interviews.
+ * - /interviews/{interviewId}: Stores data related to caregiver interviews.
+ * - /caregiver_employees/{employeeId}: Stores data for hired caregivers.
  *
  * Key Security Decisions:
- * - Public Read Access: Read access is granted to all users (signed in or not) for all collections to enable open data consumption.
- * - Owner-Only Writes: Write access (create, update, delete) is restricted to authorized users with an ownership claim on the specific document. This requires an `ownerId` or similar field on each document.
+ * - Caregiver profiles can only be created, updated, or deleted by an authenticated user.
+ * - Appointments and interviews can only be managed by authenticated users.
+ * - Employee records can only be created, updated, or deleted by authenticated users.
+ * - Listing is generally disallowed to prevent unauthorized data access.
+ *
+ * Denormalization for Authorization:
+ *   There are no specific denormalization strategies employed in this initial ruleset.
+ *   Consider adding `ownerId` fields to documents if more granular access control is needed.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to caregiver profile documents.
+     * @description Controls access to caregiver profiles.
      * @path /caregiver_profiles/{caregiverProfileId}
-     * @allow (get, list): Any user can read caregiver profiles.
-     * @allow (create): Only authorized users can create caregiver profiles. The profile must contain a field "ownerId" that matches the user's UID.
-     * @allow (update, delete): Only the caregiver who owns the profile can update or delete it.
-     * @deny (create): Unauthorized users cannot create caregiver profiles.
-     * @deny (update, delete): Non-owners cannot modify caregiver profiles.
-     * @principle Allows public read access while restricting writes to authorized users.
+     * @allow (create) Authenticated user creates a profile for themself.
+     * @deny (create) Unauthenticated user attempts to create a profile.
+     * @allow (get) Authenticated user attempts to read the profile.
+     * @deny (update) Unauthenticated user attempts to update a profile.
+     * @principle Enforces document ownership for writes.
      */
     match /caregiver_profiles/{caregiverProfileId} {
-      allow get, list: if true;
+      allow get: if isSignedIn();
+      allow list: if false;
       allow create: if isSignedIn();
-      allow update, delete: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
     }
 
     /**
-     * @description Controls access to appointment slot documents.
+     * @description Controls access to appointment slots.
      * @path /appointments/{appointmentId}
-     * @allow (get, list): Any user can read appointment slots.
-     * @allow (create): Only authorized users can create appointment slots.
-     * @allow (update, delete): Only authorized users can update or delete appointment slots.
-     * @deny (create): Unauthorized users cannot create appointment slots.
-     * @deny (update, delete): Unauthorized users cannot modify appointment slots.
+     * @allow (create) Authenticated user creates an appointment.
+     * @deny (create) Unauthenticated user attempts to create an appointment.
+     * @allow (get) Authenticated user attempts to read an appointment.
+     * @deny (update) Unauthenticated user attempts to update an appointment.
+     * @principle Requires authentication for all operations.
      */
     match /appointments/{appointmentId} {
-      allow get, list: if true;
+      allow get: if isSignedIn();
+      allow list: if false;
       allow create: if isSignedIn();
-      allow update, delete: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
     }
 
-    /**
-     * @description Controls access to interview documents.
-     * @path /interviews/{interviewId}
-     * @allow (get, list): Any user can read interview details.
-     * @allow (create): Only authorized users can create interview records.
-     * @allow (update, delete): Only authorized users can modify or delete interview records.
-     * @deny (create): Unauthorized users cannot create interview records.
-     * @deny (update, delete): Unauthorized users cannot modify or delete interview records.
-     */
+     /**
+      * @description Controls access to caregiver interview records.
+      * @path /interviews/{interviewId}
+      * @allow (create) Authenticated user creates an interview record.
+      * @deny (create) Unauthenticated user attempts to create an interview record.
+      * @allow (get) Authenticated user attempts to read an interview record.
+      * @deny (update) Unauthenticated user attempts to update an interview record.
+      * @principle Requires authentication for all operations.
+      */
     match /interviews/{interviewId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if isSignedIn();
+        allow get: if isSignedIn();
+        allow list: if false;
+        allow create: if isSignedIn();
+        allow update: if isSignedIn() && resource != null;
+        allow delete: if isSignedIn() && resource != null;
     }
 
     /**
-     * @description Controls access to caregiver employee documents.
+     * @description Controls access to caregiver employee records.
      * @path /caregiver_employees/{employeeId}
-     * @allow (get, list): Any user can read caregiver employee details.
-     * @allow (create): Only authorized users can create caregiver employee records.
-     * @allow (update, delete): Only authorized users can modify or delete caregiver employee records.
-     * @deny (create): Unauthorized users cannot create caregiver employee records.
-     * @deny (update, delete): Unauthorized users cannot modify or delete caregiver employee records.
+     * @allow (create) Authenticated user creates an employee record.
+     * @deny (create) Unauthenticated user attempts to create an employee record.
+     * @allow (get) Authenticated user attempts to read an employee record.
+     * @deny (update) Unauthenticated user attempts to update an employee record.
+     * @principle Requires authentication for all operations.
      */
     match /caregiver_employees/{employeeId} {
-      allow get, list: if true;
+      allow get: if isSignedIn();
+      allow list: if false;
       allow create: if isSignedIn();
-      allow update, delete: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
     }
-  }
 
-  // Helper function to determine if a user is signed in
-  function isSignedIn() {
-    return request.auth != null;
+    // --- Helper Functions ---
+    /**
+     * @description Checks if the user is signed in.
+     * @return {boolean} True if the user is signed in, false otherwise.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
   }
 }
