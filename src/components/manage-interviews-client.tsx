@@ -58,6 +58,23 @@ const phoneScreenSchema = z.object({
   phoneScreenPassed: z.enum(['Yes', 'No']),
   inPersonDate: z.date().optional(),
   inPersonTime: z.string().optional(),
+}).superRefine((data, ctx) => {
+    if (data.phoneScreenPassed === 'Yes') {
+        if (!data.inPersonDate) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Interview date is required.",
+                path: ["inPersonDate"],
+            });
+        }
+        if (!data.inPersonTime) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Interview time is required.",
+                path: ["inPersonTime"],
+            });
+        }
+    }
 });
 
 
@@ -743,3 +760,5 @@ export default function ManageInterviewsClient() {
     </div>
   );
 }
+
+    
