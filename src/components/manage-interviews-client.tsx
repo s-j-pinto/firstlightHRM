@@ -235,7 +235,7 @@ export default function ManageInterviewsClient() {
 
     startAiTransition(async () => {
       try {
-        // Construct the simplified payload
+        // Construct the payload matching the Zod schema
         const payload = {
             fullName: selectedCaregiver.fullName,
             yearsExperience: selectedCaregiver.yearsExperience,
