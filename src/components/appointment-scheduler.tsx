@@ -2,18 +2,20 @@
 "use client";
 
 import { useState, useTransition, useEffect, useMemo } from "react";
-import { format, parse, isBefore, set } from "date-fns";
-import { fromZonedTime, toZonedTime, formatInTimeZone } from "date-fns-tz";
+import { format, parse } from "date-fns";
+import { fromZonedTime, formatInTimeZone } from "date-fns-tz";
 import { Calendar, Clock, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { collection, addDoc, Timestamp } from "firebase/firestore";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getAvailableSlotsAction } from "@/lib/availability.actions";
 import { useToast } from "@/hooks/use-toast";
-import { firestore, useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
+import { firestore, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import type { Appointment } from "@/lib/types";
+import { createAppointmentAndSendAdminEmail } from "@/lib/appointments.actions";
+import { collection } from "firebase/firestore";
+
 
 interface AppointmentSchedulerProps {
   caregiverId: string;
@@ -51,7 +53,6 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
       appointmentsData
         .filter(appt => appt.appointmentStatus !== 'cancelled')
         .map(appt => {
-          // Convert Firestore Timestamp to JS Date, then to a specific timezone string
           const date = (appt.startTime as any).toDate();
           return formatInTimeZone(date, pacificTimeZone, "yyyy-MM-dd HH:mm");
         })
@@ -79,37 +80,18 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
     }
     
     startTransition(async () => {
-        // Parse the local time string into a Date object, specifying the intended timezone
         const appointmentDate = fromZonedTime(selectedSlot, pacificTimeZone);
+        const result = await createAppointmentAndSendAdminEmail({ caregiverId, appointmentDate });
 
-        const appointmentData = {
-            caregiverId: caregiverId,
-            startTime: Timestamp.fromDate(appointmentDate),
-            endTime: Timestamp.fromDate(new Date(appointmentDate.getTime() + 60 * 60 * 1000)), // 60 min slot
-        };
-
-        try {
-            if (!db) throw new Error("Firestore not initialized");
-            const colRef = collection(db, "appointments");
-            await addDoc(colRef, appointmentData).catch((serverError) => {
-                const permissionError = new FirestorePermissionError({
-                    path: colRef.path,
-                    operation: 'create',
-                    requestResourceData: appointmentData,
-                });
-                errorEmitter.emit('permission-error', permissionError);
-                throw serverError;
-            });
-
-            const redirectUrl = `/confirmation?time=${appointmentDate.toISOString()}`;
-            router.push(redirectUrl);
-
-        } catch (error) {
+        if (result.error) {
             toast({
                 variant: "destructive",
                 title: "Scheduling Failed",
-                description: "Could not save your appointment. Please try again.",
+                description: result.message,
             });
+        } else {
+             const redirectUrl = `/confirmation?time=${appointmentDate.toISOString()}`;
+             router.push(redirectUrl);
         }
     });
   };
