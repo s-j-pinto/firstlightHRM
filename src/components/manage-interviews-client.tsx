@@ -53,7 +53,7 @@ import { Separator } from './ui/separator';
 import { usePathname } from 'next/navigation';
 
 const phoneScreenSchema = z.object({
-  interviewNotes: z.string().optional(),
+  interviewNotes: z.string().min(1, "Interview notes are required."),
   candidateRating: z.number().min(0).max(5),
   phoneScreenPassed: z.enum(['Yes', 'No']),
   interviewMethod: z.enum(['In-Person', 'Google Meet']).optional(),
@@ -193,12 +193,7 @@ export default function ManageInterviewsClient() {
     
     const employeeRecord = allEmployees?.find(emp => emp.caregiverProfileId === caregiver.id);
     if (employeeRecord) {
-        toast({
-            title: "Caregiver Hired",
-            description: `${caregiver.fullName} has already been hired. You can search for another candidate.`,
-            duration: 5000,
-        });
-        return;
+        setExistingEmployee(employeeRecord);
     }
 
     setSelectedCaregiver(caregiver);
@@ -215,10 +210,10 @@ export default function ManageInterviewsClient() {
             const interviewDoc = querySnapshot.docs[0];
             const interviewData = { ...interviewDoc.data(), id: interviewDoc.id } as Interview;
             
-            if(interviewData.phoneScreenPassed === 'No'){
+            if(!employeeRecord && interviewData.phoneScreenPassed === 'No'){
                  toast({
                     title: "Phone Screen Previously Failed",
-                    description: "This candidate previously did not pass the phone screen. You can review and update the result.",
+                    description: "This candidate did not pass the phone screen. You may update the record if this was a mistake.",
                     duration: 5000,
                 });
             }
@@ -332,6 +327,8 @@ export default function ManageInterviewsClient() {
             interviewId: interviewId,
             aiInsight: aiInsight || '',
             interviewType: data.interviewMethod,
+            interviewNotes: data.interviewNotes || '',
+            candidateRating: data.candidateRating,
           });
   
           if (result.authUrl) {
@@ -423,6 +420,8 @@ export default function ManageInterviewsClient() {
 
 
   const isLoading = caregiversLoading || employeesLoading;
+  const isFormDisabled = !!existingInterview;
+
 
   return (
     <div className="space-y-6">
@@ -490,12 +489,12 @@ export default function ManageInterviewsClient() {
         </Alert>
       )}
 
-      {selectedCaregiver && !shouldShowHiringForm && (
+      {selectedCaregiver && !shouldShowHiringForm && !existingEmployee && (
         <Card>
             <CardHeader>
                 <CardTitle>Phone Screen: {selectedCaregiver.fullName}</CardTitle>
                 <CardDescription>
-                    {existingInterview ? "Update the results of the phone interview." : "Record the results of the phone interview."}
+                    {isFormDisabled ? "This phone screen has been completed. Review the details below." : "Record the results of the phone interview."}
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -508,7 +507,7 @@ export default function ManageInterviewsClient() {
                                 <FormItem>
                                     <FormLabel>Interview Notes</FormLabel>
                                     <FormControl>
-                                        <Textarea placeholder="Notes from the phone screen..." {...field} rows={6} disabled={!!existingInterview} />
+                                        <Textarea placeholder="Notes from the phone screen..." {...field} rows={6} disabled={isFormDisabled} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -528,7 +527,7 @@ export default function ManageInterviewsClient() {
                                             step={1}
                                             value={[field.value]}
                                             onValueChange={(value) => field.onChange(value[0])}
-                                            disabled={!!existingInterview}
+                                            disabled={isFormDisabled}
                                         />
                                     </FormControl>
                                 </FormItem>
@@ -536,7 +535,7 @@ export default function ManageInterviewsClient() {
                         />
 
                         <div className="flex justify-center">
-                          <Button type="button" onClick={handleGenerateInsights} disabled={isAiPending || !!existingInterview}>
+                          <Button type="button" onClick={handleGenerateInsights} disabled={isAiPending || isFormDisabled}>
                             {isAiPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                             Generate AI Insights
                           </Button>
@@ -563,7 +562,7 @@ export default function ManageInterviewsClient() {
                                 <FormItem className="space-y-3">
                                     <FormLabel>Did the candidate pass the phone screen?</FormLabel>
                                     <FormControl>
-                                        <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4" disabled={!!existingInterview}>
+                                        <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4" disabled={isFormDisabled}>
                                             <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="Yes" /></FormControl><FormLabel className="font-normal">Yes</FormLabel></FormItem>
                                             <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="No" /></FormControl><FormLabel className="font-normal">No</FormLabel></FormItem>
                                         </RadioGroup>
@@ -587,7 +586,7 @@ export default function ManageInterviewsClient() {
                                             <FormItem className="space-y-3">
                                                 <FormLabel>Interview Method</FormLabel>
                                                 <FormControl>
-                                                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4" disabled={!!existingInterview}>
+                                                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4" disabled={isFormDisabled}>
                                                         <FormItem className="flex items-center space-x-3 space-y-0">
                                                             <FormControl><RadioGroupItem value="In-Person" /></FormControl>
                                                             <FormLabel className="font-normal flex items-center gap-2"><Briefcase /> In-Person</FormLabel>
@@ -614,7 +613,7 @@ export default function ManageInterviewsClient() {
                                                         <Popover>
                                                             <PopoverTrigger asChild>
                                                             <FormControl>
-                                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={!!existingInterview}>
+                                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isFormDisabled}>
                                                                     {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
                                                                     <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                                                 </Button>
@@ -635,7 +634,7 @@ export default function ManageInterviewsClient() {
                                                     <FormItem className="flex flex-col flex-1">
                                                         <FormLabel>Interview Time</FormLabel>
                                                         <FormControl>
-                                                            <Input type="time" {...field} disabled={!!existingInterview} />
+                                                            <Input type="time" {...field} disabled={isFormDisabled} />
                                                         </FormControl>
                                                         <FormMessage />
                                                     </FormItem>
@@ -655,7 +654,7 @@ export default function ManageInterviewsClient() {
                                 </Button>
                             )}
                             <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
-                             <Button type="submit" disabled={isSubmitting || !!existingInterview}>
+                             <Button type="submit" disabled={isSubmitting || isFormDisabled}>
                                 {isSubmitting ? (
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                 ) : (
@@ -670,12 +669,12 @@ export default function ManageInterviewsClient() {
         </Card>
       )}
 
-      {selectedCaregiver && shouldShowHiringForm && (
+      {selectedCaregiver && (shouldShowHiringForm || existingEmployee) && (
         <Card>
             <CardHeader>
                  <CardTitle>Hiring &amp; Onboarding: {selectedCaregiver?.fullName}</CardTitle>
                 <CardDescription>
-                    The phone screen for this candidate has been completed. Enter hiring details below.
+                    {existingEmployee ? "This caregiver has been hired. Review the details below." : "The phone screen passed. Enter hiring details to complete onboarding."}
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -687,11 +686,11 @@ export default function ManageInterviewsClient() {
                                 name="inPersonInterviewDate"
                                 render={({ field }) => (
                                     <FormItem className="flex flex-col">
-                                        <FormLabel>In-Person Interview Date</FormLabel>
+                                        <FormLabel>Interview Date</FormLabel>
                                         <Popover>
                                             <PopoverTrigger asChild>
                                             <FormControl>
-                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={!!existingEmployee}>
                                                     {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
                                                     <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                                 </Button>
@@ -714,7 +713,7 @@ export default function ManageInterviewsClient() {
                                         <Popover>
                                             <PopoverTrigger asChild>
                                             <FormControl>
-                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={!!existingEmployee}>
                                                     {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
                                                     <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                                 </Button>
@@ -737,7 +736,7 @@ export default function ManageInterviewsClient() {
                                         <Popover>
                                             <PopoverTrigger asChild>
                                             <FormControl>
-                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={!!existingEmployee}>
                                                     {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
                                                     <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                                 </Button>
@@ -757,7 +756,7 @@ export default function ManageInterviewsClient() {
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Hiring Manager</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!existingEmployee}>
                                             <FormControl>
                                                 <SelectTrigger>
                                                     <SelectValue placeholder="Select a hiring manager" />
@@ -781,7 +780,7 @@ export default function ManageInterviewsClient() {
                                 <FormItem>
                                     <FormLabel>Hiring Comments</FormLabel>
                                     <FormControl>
-                                        <Textarea placeholder="Additional comments about the hiring decision..." {...field} rows={4} />
+                                        <Textarea placeholder="Additional comments about the hiring decision..." {...field} rows={4} disabled={!!existingEmployee} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -803,3 +802,5 @@ export default function ManageInterviewsClient() {
     </div>
   );
 }
+
+    

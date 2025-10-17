@@ -15,10 +15,20 @@ interface SaveInterviewPayload {
   interviewId: string;
   aiInsight: string | null;
   interviewType: 'In-Person' | 'Google Meet';
+  interviewNotes: string;
+  candidateRating: number;
 }
 
 export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
-  const { caregiverProfile, inPersonDateTime, interviewId, aiInsight, interviewType } = payload;
+  const { 
+    caregiverProfile, 
+    inPersonDateTime, 
+    interviewId, 
+    aiInsight, 
+    interviewType,
+    interviewNotes,
+    candidateRating 
+  } = payload;
   
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
@@ -117,6 +127,9 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
   try {
     const interviewRef = serverDb.collection('interviews').doc(interviewId);
     await interviewRef.update({ 
+      interviewNotes: interviewNotes,
+      candidateRating: candidateRating,
+      phoneScreenPassed: "Yes",
       aiGeneratedInsight: aiInsight || '',
       interviewDateTime: Timestamp.fromDate(inPersonDateTime),
       interviewType: interviewType,
@@ -247,3 +260,5 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
   
   return { message: `Next interview scheduled and confirmation email queued.`, error: false };
 }
+
+    
