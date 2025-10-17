@@ -3,6 +3,8 @@ import { onCallGenkit } from "@genkit-ai/firebase/functions";
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import { z } from 'zod';
+import { defineFlow, A, O } from 'genkit';
+
 
 const caregiverFormSchema = z.object({
     uid: z.string().optional(),
@@ -72,37 +74,39 @@ const InterviewInsightsOutputSchema = z.object({
     aiGeneratedInsight: z.string().describe('A concise summary of the candidate (max 200 words), followed by a clear hiring recommendation (e.g., "Recommend for in-person interview," "Proceed with caution," "Do not recommend") with a brief justification.'),
 });
 
-const interviewInsightsFlow = {
-    name: 'interviewInsightsFlow',
-    inputSchema: InterviewInsightsInputSchema,
-    outputSchema: InterviewInsightsOutputSchema,
-    async aot(input) {
+const interviewInsightsFlow = defineFlow(
+    {
+        name: 'interviewInsightsFlow',
+        inputSchema: InterviewInsightsInputSchema,
+        outputSchema: InterviewInsightsOutputSchema,
+    },
+    async (input) => {
         const prompt = `You are an expert HR assistant for a home care agency. Your task is to analyze a caregiver candidate's profile and the notes from their phone screen to provide a single, combined insight containing a summary and a hiring recommendation.
 
 Analyze the following information:
 
 **Caregiver Profile:**
-- Full Name: {{caregiverProfile.fullName}}
-- Years of Experience: {{caregiverProfile.yearsExperience}}
-- Experience Summary: {{#if caregiverProfile.summary}}{{caregiverProfile.summary}}{{else}}Not provided{{/if}}
+- Full Name: ${input.caregiverProfile.fullName}
+- Years of Experience: ${input.caregiverProfile.yearsExperience}
+- Experience Summary: ${input.caregiverProfile.summary || 'Not provided'}
 - Skills:
-  - Hoyer Lift: {{#if caregiverProfile.canUseHoyerLift}}Yes{{else}}No{{/if}}
-  - Dementia Experience: {{#if caregiverProfile.hasDementiaExperience}}Yes{{else}}No{{/if}}
-  - Hospice Experience: {{#if caregiverProfile.hasHospiceExperience}}Yes{{else}}No{{/if}}
+  - Hoyer Lift: ${input.caregiverProfile.canUseHoyerLift ? 'Yes' : 'No'}
+  - Dementia Experience: ${input.caregiverProfile.hasDementiaExperience ? 'Yes' : 'No'}
+  - Hospice Experience: ${input.caregiverProfile.hasHospiceExperience ? 'Yes' : 'No'}
 - Certifications:
-  - CNA: {{#if caregiverProfile.cna}}Yes{{else}}No{{/if}}
-  - HHA: {{#if caregiverProfile.hha}}Yes{{else}}No{{/if}}
-  - HCA: {{#if caregiverProfile.hca}}Yes{{else}}No{{/if}}
+  - CNA: ${input.caregiverProfile.cna ? 'Yes' : 'No'}
+  - HHA: ${input.caregiverProfile.hha ? 'Yes' : 'No'}
+  - HCA: ${input.caregiverProfile.hca ? 'Yes' : 'No'}
 - Availability: 
-  {{#each caregiverProfile.availability}}
-  {{@key}}: {{#if this}}{{#each this}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}{{else}}Not available{{/if}}
-  {{/each}}
-- Transportation: Has car: {{caregiverProfile.hasCar}}, Valid License: {{caregiverProfile.validLicense}}
+  ${Object.entries(input.caregiverProfile.availability).map(([day, shifts]) => {
+    return `${day}: ${Array.isArray(shifts) && shifts.length > 0 ? shifts.join(', ') : 'Not available'}`;
+  }).join('\n  ')}
+- Transportation: Has car: ${input.caregiverProfile.hasCar}, Valid License: ${input.caregiverProfile.validLicense}
 
 **Interviewer's Phone Screen Feedback:**
-- Rating (out of 5): {{candidateRating}}
+- Rating (out of 5): ${input.candidateRating}
 - Notes:
-{{{interviewNotes}}}
+${input.interviewNotes}
 
 **Your Task:**
 
@@ -120,13 +124,13 @@ Recommendation: [Your recommendation and justification...]
         const { output } = await ai.generate({
             model: 'gemini-1.5-flash',
             prompt: prompt,
-            input: input,
             output: {
                 schema: InterviewInsightsOutputSchema,
             },
         });
         return output!;
     },
-};
+);
+
 
 export const interviewInsights = onCallGenkit(interviewInsightsFlow);
