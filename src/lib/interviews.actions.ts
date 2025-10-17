@@ -41,7 +41,9 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
   }
 
   // Second, attempt to send the confirmation email to the caregiver.
+  // This is in its own try/catch to ensure it runs independently of the calendar logic.
   try {
+    console.log('[Action] Preparing to queue confirmation email.');
     const pacificTimeZone = 'America/Los_Angeles';
     const zonedStartTime = toZonedTime(inPersonDateTime, pacificTimeZone);
     const zonedEndTime = toZonedTime(new Date(inPersonDateTime.getTime() + 2.5 * 60 * 60 * 1000), pacificTimeZone);
@@ -141,13 +143,15 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
             `,
         },
     };
-
-    console.log(`[Action] Attempting to queue confirmation email for ${caregiverProfile.email}`);
+    
+    console.log(`[Action] Attempting to queue confirmation email for ${caregiverProfile.email} with subject: "${confirmationEmail.message.subject}"`);
     await serverDb.collection("mail").add(confirmationEmail);
     console.log(`[Action] Successfully queued confirmation email for ${caregiverProfile.email}`);
+
   } catch (emailError) {
-      console.error('Error queuing confirmation email:', emailError);
-      // Even if email fails, we continue to the calendar part, but we can't show a success toast for it.
+      console.error('[Action] CRITICAL: Error queuing confirmation email:', emailError);
+      // We will continue to the calendar part, but we can't show a success toast for the email.
+      // The main return message will be handled by the calendar logic now.
   }
 
   // Third, proceed with calendar scheduling
@@ -200,8 +204,10 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
   revalidatePath('/admin/manage-interviews');
   
   if (calendarErrorMessage) {
-      return { message: calendarErrorMessage, error: true, authUrl: calendarAuthUrl };
+      return { message: `Email queued successfully, but calendar invite failed: ${calendarErrorMessage}`, error: true, authUrl: calendarAuthUrl };
   }
   
   return { message: 'In-person interview scheduled and confirmation email queued.', error: false };
 }
+
+    
