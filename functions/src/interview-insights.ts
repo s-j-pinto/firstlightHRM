@@ -1,5 +1,4 @@
 
-import { onCallGenkit } from "@genkit-ai/firebase/functions";
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import { z } from 'zod';
@@ -83,7 +82,7 @@ Recommendation: [Your recommendation and justification...]
     },
 );
 
-const interviewInsightsFlow = ai.defineFlow(
+export const interviewInsightsFlow = ai.defineFlow(
     {
         name: 'interviewInsightsFlow',
         inputSchema: InterviewInsightsInputSchema,
@@ -97,5 +96,3 @@ const interviewInsightsFlow = ai.defineFlow(
         return output;
     }
 );
-
-export const interviewInsights = onCallGenkit(interviewInsightsFlow);
