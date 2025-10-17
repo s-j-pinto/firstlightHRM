@@ -1,3 +1,4 @@
+
 import { onCallGenkit } from "@genkit-ai/firebase/functions";
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
@@ -56,7 +57,6 @@ const caregiverFormSchema = z.object({
 
 export const ai = genkit({
     plugins: [googleAI()],
-    logLevel: "debug",
     enableTracingAndMetrics: true,
 });
 
