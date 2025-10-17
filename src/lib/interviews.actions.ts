@@ -197,11 +197,13 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
         },
     };
 
+    console.log(`[Action] Attempting to queue confirmation email for ${caregiverProfile.email}`);
     await serverDb.collection("mail").add(confirmationEmail);
+    console.log(`[Action] Successfully queued confirmation email for ${caregiverProfile.email}`);
 
 
     revalidatePath('/admin/manage-interviews');
-    return { message: 'In-person meeting scheduled and confirmation email sent.' };
+    return { message: 'In-person interview scheduled. Confirmation email has been queued.' };
 
   } catch(calendarError: any) {
      console.error('Error sending calendar invite:', calendarError);
