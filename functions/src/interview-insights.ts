@@ -1,15 +1,7 @@
-
-import { genkit } from 'genkit';
-import { googleAI } from '@genkit-ai/google-genai';
 import { z } from 'zod';
 import * as logger from "firebase-functions/logger";
+import { ai } from './index'; // Import the correctly configured ai instance
 
-
-// This is the primary Genkit instance.
-export const ai = genkit({
-    plugins: [googleAI()],
-    enableTracingAndMetrics: true,
-});
 
 // Defines the expected input from the client.
 const InterviewInsightsInputSchema = z.object({

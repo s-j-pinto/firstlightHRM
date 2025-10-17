@@ -1,4 +1,3 @@
-
 /**
  * Import function triggers from their respective submodules:
  *
@@ -12,6 +11,14 @@ import {setGlobalOptions} from "firebase-functions/v2";
 import {onCall} from "firebase-functions/v2/onCall";
 import * as logger from "firebase-functions/logger";
 import { generateInterviewInsights } from "./interview-insights";
+import { genkit, firebase } from '@genkit-ai/firebase';
+import { googleAI } from '@genkit-ai/google-genai';
+
+// Initialize Genkit with the Firebase plugin for proper integration.
+export const ai = genkit({
+    plugins: [firebase(), googleAI()],
+    enableTracingAndMetrics: true,
+});
 
 // Set global options for the functions
 setGlobalOptions({ maxInstances: 10 });
