@@ -164,12 +164,12 @@ export default function ManageInterviewsClient() {
             interviewId: existingInterview.id,
             inPersonInterviewDate: interviewDate,
             hireDate: new Date(),
-            hiringComments: '',
-            hiringManager: 'Lolita Pinto',
-            startDate: new Date(),
+            hiringComments: existingEmployee?.hiringComments || '',
+            hiringManager: existingEmployee?.hiringManager || 'Lolita Pinto',
+            startDate: existingEmployee ? (existingEmployee.startDate as any).toDate() : new Date(),
         });
     }
-  }, [selectedCaregiver, existingInterview, hiringForm]);
+  }, [selectedCaregiver, existingInterview, existingEmployee, hiringForm]);
 
   const handleSearch = () => {
     if (!searchTerm.trim() || !allCaregivers) return;
@@ -186,16 +186,11 @@ export default function ManageInterviewsClient() {
 
   const phoneScreenPassed = phoneScreenForm.watch('phoneScreenPassed');
   const interviewMethod = phoneScreenForm.watch('interviewMethod');
-  const shouldShowHiringForm = existingInterview?.phoneScreenPassed === 'Yes' && !existingEmployee;
+  const shouldShowHiringForm = existingInterview?.phoneScreenPassed === 'Yes' || !!existingEmployee;
   
   const handleSelectCaregiver = async (caregiver: CaregiverProfile) => {
     handleCancel(); // Reset state before selecting a new caregiver
     
-    const employeeRecord = allEmployees?.find(emp => emp.caregiverProfileId === caregiver.id);
-    if (employeeRecord) {
-        setExistingEmployee(employeeRecord);
-    }
-
     setSelectedCaregiver(caregiver);
     setSearchResults([]);
     setSearchTerm('');
@@ -209,6 +204,11 @@ export default function ManageInterviewsClient() {
         if (!querySnapshot.empty) {
             const interviewDoc = querySnapshot.docs[0];
             const interviewData = { ...interviewDoc.data(), id: interviewDoc.id } as Interview;
+            
+            const employeeRecord = allEmployees?.find(emp => emp.caregiverProfileId === caregiver.id);
+            if (employeeRecord) {
+                setExistingEmployee(employeeRecord);
+            }
             
             if(!employeeRecord && interviewData.phoneScreenPassed === 'No'){
                  toast({
@@ -489,7 +489,7 @@ export default function ManageInterviewsClient() {
         </Alert>
       )}
 
-      {selectedCaregiver && !shouldShowHiringForm && !existingEmployee && (
+      {selectedCaregiver && !shouldShowHiringForm && (
         <Card>
             <CardHeader>
                 <CardTitle>Phone Screen: {selectedCaregiver.fullName}</CardTitle>
@@ -647,12 +647,6 @@ export default function ManageInterviewsClient() {
                         )}
 
                         <div className="flex justify-end gap-4">
-                             {existingInterview?.interviewType === 'Google Meet' && existingInterview.googleMeetLink && (
-                                <Button type="button" variant="outline" onClick={handleLaunchMeet}>
-                                    <Video className="mr-2 h-4 w-4" />
-                                    Launch Google Meet
-                                </Button>
-                            )}
                             <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
                              <Button type="submit" disabled={isSubmitting || isFormDisabled}>
                                 {isSubmitting ? (
@@ -669,7 +663,7 @@ export default function ManageInterviewsClient() {
         </Card>
       )}
 
-      {selectedCaregiver && (shouldShowHiringForm || existingEmployee) && (
+      {selectedCaregiver && shouldShowHiringForm && (
         <Card>
             <CardHeader>
                  <CardTitle>Hiring &amp; Onboarding: {selectedCaregiver?.fullName}</CardTitle>
@@ -756,7 +750,7 @@ export default function ManageInterviewsClient() {
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Hiring Manager</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!existingEmployee}>
+                                        <Select onValueChange={field.onChange} value={field.value} disabled={!!existingEmployee}>
                                             <FormControl>
                                                 <SelectTrigger>
                                                     <SelectValue placeholder="Select a hiring manager" />
@@ -787,6 +781,12 @@ export default function ManageInterviewsClient() {
                             )}
                         />
                         <div className="flex justify-end gap-4">
+                            {existingInterview?.interviewType === 'Google Meet' && existingInterview.googleMeetLink && (
+                                <Button type="button" variant="outline" onClick={handleLaunchMeet}>
+                                    <Video className="mr-2 h-4 w-4" />
+                                    Launch Google Meet
+                                </Button>
+                            )}
                             <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
                              <Button type="submit" disabled={isSubmitting || !!existingEmployee}>
                                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
