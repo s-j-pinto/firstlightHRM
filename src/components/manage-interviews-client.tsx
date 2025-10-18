@@ -144,7 +144,13 @@ export default function ManageInterviewsClient() {
     setExistingInterview(null);
     setExistingEmployee(null);
     setAiInsight(null);
-    phoneScreenForm.reset();
+    phoneScreenForm.reset({
+      interviewNotes: '',
+      candidateRating: 3,
+      phoneScreenPassed: 'No',
+      inPersonDate: undefined,
+      inPersonTime: '',
+    });
     hiringForm.reset();
     setAuthUrl(null);
     setSearchTerm('');
@@ -489,7 +495,7 @@ export default function ManageInterviewsClient() {
         </Alert>
       )}
 
-      {selectedCaregiver && !shouldShowHiringForm && (
+      {selectedCaregiver && (
         <Card>
             <CardHeader>
                 <CardTitle>Phone Screen: {selectedCaregiver.fullName}</CardTitle>
@@ -803,4 +809,5 @@ export default function ManageInterviewsClient() {
   );
 }
 
+    
     
