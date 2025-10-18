@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo, useTransition, useEffect } from 'react';
@@ -313,6 +314,9 @@ export default function ManageInterviewsClient() {
             interviewDateTime: Timestamp.now(),
             interviewType: "Phone",
             phoneScreenPassed: "N/A",
+            interviewNotes: data.interviewNotes,
+            candidateRating: data.candidateRating,
+            aiGeneratedInsight: aiInsight || '',
           };
           const docRef = await addDoc(collection(db, 'interviews'), tempInterviewData);
           interviewId = docRef.id;
@@ -653,7 +657,7 @@ export default function ManageInterviewsClient() {
                         )}
 
                         <div className="flex justify-end gap-4">
-                            <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
+                            <Button type="button" variant="outline" onClick={handleCancel} disabled={isFormDisabled}>Cancel</Button>
                              <Button type="submit" disabled={isSubmitting || isFormDisabled}>
                                 {isSubmitting ? (
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -809,5 +813,6 @@ export default function ManageInterviewsClient() {
   );
 }
 
+    
     
     
