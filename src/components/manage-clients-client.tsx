@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useTransition, ChangeEvent } from 'react';
+import { useState, useTransition, ChangeEvent, useMemo } from 'react';
 import Papa from 'papaparse';
 import { useForm } from 'react-hook-form';
 import { collection, query, where } from 'firebase/firestore';
@@ -24,11 +24,18 @@ export default function ManageClientsClient() {
 
   const clientsRef = useMemoFirebase(() => {
     if (!db) return null;
-    const activeClientsQuery = query(collection(db, "clients"), where("status", "==", "ACTIVE"));
-    return activeClientsQuery;
+    // DIAGNOSTIC STEP: Removed where("status", "==", "ACTIVE") to test security rule interaction.
+    const clientsQuery = query(collection(db, "clients"));
+    return clientsQuery;
   }, [db]);
 
-  const { data: clients, isLoading: clientsLoading } = useCollection<Client>(clientsRef);
+  const { data: allClients, isLoading: clientsLoading } = useCollection<Client>(clientsRef);
+
+  const clients = useMemo(() => {
+    if (!allClients) return [];
+    return allClients.filter(client => client.status === 'ACTIVE');
+  }, [allClients]);
+
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
