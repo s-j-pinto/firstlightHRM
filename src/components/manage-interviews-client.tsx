@@ -470,7 +470,9 @@ export default function ManageInterviewsClient() {
         {(isLoading || isSearching) && <p className="text-sm text-muted-foreground mt-2">Loading...</p>}
         {searchResults.length > 0 && (
             <ul className="mt-4 border rounded-md divide-y">
-            {searchResults.map((caregiver) => (
+            {searchResults.map((caregiver) => {
+              const createdAt = (caregiver.createdAt as any)?.toDate();
+              return (
                 <li key={caregiver.id} className="p-2 hover:bg-muted">
                 <button
                     onClick={() => handleSelectCaregiver(caregiver)}
@@ -480,10 +482,14 @@ export default function ManageInterviewsClient() {
                     <p className="font-semibold">{caregiver.fullName}</p>
                     <p className="text-sm text-muted-foreground">{caregiver.email}</p>
                     </div>
-                    <p className="text-sm">{caregiver.phone}</p>
+                    <div className='text-right'>
+                      <p className="text-sm">{caregiver.phone}</p>
+                      {createdAt && <p className="text-xs text-muted-foreground">Applied: {format(createdAt, "PPp")}</p>}
+                    </div>
                 </button>
                 </li>
-            ))}
+              )
+            })}
             </ul>
         )}
         </CardContent>

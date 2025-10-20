@@ -3,6 +3,7 @@ import { z } from "zod";
 
 export const generalInfoSchema = z.object({
   uid: z.string().optional(),
+  createdAt: z.date().optional(),
   fullName: z.string().min(2, "Full name must be at least 2 characters."),
   email: z.string().email("Invalid email address."),
   phone: z.string().min(10, "Phone number must be at least 10 digits."),
@@ -97,6 +98,7 @@ export const interviewSchema = z.object({
   aiGeneratedInsight: z.string().optional(),
   inPersonInterviewDate: z.date().optional(),
   googleMeetLink: z.string().optional(),
+  createdAt: z.date().optional(),
 });
 
 export type Interview = z.infer<typeof interviewSchema> & { id: string };
