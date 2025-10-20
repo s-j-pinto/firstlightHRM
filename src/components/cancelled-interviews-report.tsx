@@ -114,9 +114,9 @@ export default function CancelledInterviewsReport() {
             <div>
                  <CardTitle className="flex items-center">
                     <CalendarX2 className="mr-2 h-5 w-5 text-accent" />
-                    Cancelled Interviews
+                    Cancelled Phone Screen Appointments
                 </CardTitle>
-                <p className="text-muted-foreground text-sm mt-1">Review appointments that have been cancelled.</p>
+                <p className="text-muted-foreground text-sm mt-1">Review phone screen appointments that have been cancelled.</p>
             </div>
             <div className="flex gap-2">
                 <Select value={timeFrame} onValueChange={setTimeFrame}>
