@@ -1,11 +1,45 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Default to denying all access
-    match /{document=**} {
-      allow read, write: if false;
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return request.auth.token.isAdmin == true;
+    }
+
+    match /caregiver_profiles/{profileId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /appointments/{appointmentId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /interviews/{interviewId} {
+      allow get: if isSignedIn();
+      allow list: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
+    }
+    match /caregiver_employees/{employeeId} {
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn();
+    }
+    match /clients/{clientId} {
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn();
     }
   }
 }
+
