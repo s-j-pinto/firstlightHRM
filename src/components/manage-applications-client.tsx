@@ -10,6 +10,7 @@ import { firestore, useCollection, useMemoFirebase } from "@/firebase";
 import type { CaregiverProfile } from "@/lib/types";
 import { generalInfoSchema } from "@/lib/types";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { format } from "date-fns";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -63,7 +64,7 @@ export default function ManageApplicationsClient() {
       const results = allCaregivers.filter(
         (caregiver) =>
           caregiver.fullName.toLowerCase().includes(lowercasedTerm) ||
-          caregiver.phone.includes(searchTerm)
+          (caregiver.phone && caregiver.phone.includes(searchTerm))
       );
       setSearchResults(results);
     });
@@ -149,22 +150,28 @@ export default function ManageApplicationsClient() {
           )}
           {searchResults.length > 0 && (
             <ul className="mt-4 border rounded-md divide-y">
-              {searchResults.map((caregiver) => (
-                <li key={caregiver.id} className="p-2 hover:bg-muted">
-                  <button
-                    onClick={() => handleSelectCaregiver(caregiver)}
-                    className="w-full text-left flex justify-between items-center"
-                  >
-                    <div>
-                      <p className="font-semibold">{caregiver.fullName}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {caregiver.email}
-                      </p>
-                    </div>
-                    <p className="text-sm">{caregiver.phone}</p>
-                  </button>
-                </li>
-              ))}
+              {searchResults.map((caregiver) => {
+                const createdAt = (caregiver.createdAt as any)?.toDate();
+                return (
+                  <li key={caregiver.id} className="p-2 hover:bg-muted">
+                    <button
+                      onClick={() => handleSelectCaregiver(caregiver)}
+                      className="w-full text-left flex justify-between items-center"
+                    >
+                      <div>
+                        <p className="font-semibold">{caregiver.fullName}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {caregiver.email}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm">{caregiver.phone}</p>
+                        {createdAt && <p className="text-xs text-muted-foreground">Applied: {format(createdAt, "PPp")}</p>}
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </CardContent>
