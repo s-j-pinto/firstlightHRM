@@ -1,99 +1,47 @@
-/**
- * @file Firestore Security Rules
- * @description This ruleset enforces a strict data-siloed model, where caregiver profiles, appointments, interviews and hiring details are created and managed independently, without any ownership constraints.
- *
- * Data Structure:
- * - `/caregiver_profiles/{caregiverProfileId}`: Stores caregiver profile information.
- * - `/appointments/{appointmentId}`: Stores appointment slots for interviews.
- * - `/interviews/{interviewId}`: Stores details of an interview conducted with a caregiver.
- * - `/caregiver_employees/{employeeId}`: Stores hiring and employment details for caregivers.
- *
- * Key Security Decisions:
- * - All collections are independently accessible, lacking explicit ownership or role-based access control.
- * - Listing is disabled for all collections.
- */
+
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    /**
-     * @description Manages caregiver profiles, allowing creation, updates, and deletions of caregiver information.
-     * @path /caregiver_profiles/{caregiverProfileId}
-     * @allow (create) Authenticated user can create a caregiver profile.
-     * @deny (create) Unauthenticated user attempts to create a profile.
-     * @allow (update) Authenticated user can update a caregiver profile.
-     * @deny (update) Unauthenticated user attempts to update a profile.
-     * @allow (delete) Authenticated user can delete a caregiver profile.
-     * @deny (delete) Unauthenticated user attempts to delete a profile.
-     * @principle Allows any authenticated user to read, write, and delete any caregiver profile.
-     */
-    match /caregiver_profiles/{caregiverProfileId} {
-      allow get: if true;
-      allow list: if false;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+    // By default, deny all access.
+    match /{document=**} {
+      allow read, write: if false;
     }
 
-    /**
-     * @description Manages interview appointment slots.
-     * @path /appointments/{appointmentId}
-     * @allow (create) Authenticated user can create an appointment.
-     * @deny (create) Unauthenticated user attempts to create an appointment.
-     * @allow (update) Authenticated user can update an appointment.
-     * @deny (update) Unauthenticated user attempts to update an appointment.
-     * @allow (delete) Authenticated user can delete an appointment.
-     * @deny (delete) Unauthenticated user attempts to delete an appointment.
-     * @principle Open access for authenticated users to create, update, and delete appointments.
-     */
+    // Allow authenticated users to read/write to these specific collections.
+    // This is a more secure starting point than allowing access to everything.
+    match /caregiver_profiles/{profileId} {
+      // Allow anonymous users (applicants) to create their profile.
+      allow create: if request.auth.token.firebase.sign_in_provider == 'anonymous';
+      // Allow authenticated admins to read and update.
+      allow read, update: if request.auth.uid != null && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
     match /appointments/{appointmentId} {
-      allow get: if true;
-      allow list: if false;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+       // Allow anonymous users to create appointments.
+      allow create: if request.auth.token.firebase.sign_in_provider == 'anonymous';
+       // Allow admins to manage appointments.
+      allow read, update, delete: if request.auth.uid != null && request.auth.token.firebase.sign_in_provider != 'anonymous';
     }
 
-    /**
-     * @description Manages interview records.
-     * @path /interviews/{interviewId}
-     * @allow (create) Authenticated user can create a interview.
-     * @deny (create) Unauthenticated user attempts to create a interview.
-     * @allow (update) Authenticated user can update a interview.
-     * @deny (update) Unauthenticated user attempts to update a interview.
-     * @allow (delete) Authenticated user can delete a interview.
-     * @deny (delete) Unauthenticated user attempts to delete a interview.
-     * @principle Open access for authenticated users to create, update, and delete interviews.
-     */
     match /interviews/{interviewId} {
-      allow get: if true;
-      allow list: if false;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+      // Only admins can manage interviews.
+      allow read, create, update, delete: if request.auth.uid != null && request.auth.token.firebase.sign_in_provider != 'anonymous';
     }
 
-   /**
-    * @description Manages caregiver employment records.
-    * @path /caregiver_employees/{employeeId}
-    * @allow (create) Authenticated user can create an employee record.
-    * @deny (create) Unauthenticated user attempts to create an employee record.
-    * @allow (update) Authenticated user can update an employee record.
-    * @deny (update) Unauthenticated user attempts to update an employee record.
-    * @allow (delete) Authenticated user can delete an employee record.
-    * @deny (delete) Unauthenticated user attempts to delete an employee record.
-    * @principle Open access for authenticated users to create, update, and delete caregiver employment records.
-    */
     match /caregiver_employees/{employeeId} {
-      allow get: if true;
-      allow list: if false;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+       // Only admins can manage employee records.
+      allow read, create, update, delete: if request.auth.uid != null && request.auth.token.firebase.sign_in_provider != 'anonymous';
     }
 
-    function isSignedIn() {
-      return request.auth != null;
+    match /clients/{clientId} {
+       // Only admins can manage clients.
+      allow read, create, update, delete: if request.auth.uid != null && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+    
+    match /settings/{settingId} {
+       // Only admins can manage settings.
+      allow read, write: if request.auth.uid != null && request.auth.token.firebase.sign_in_provider != 'anonymous';
     }
   }
 }
