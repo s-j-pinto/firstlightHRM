@@ -62,20 +62,25 @@ export function useDoc<T = any>(
 
     // Capture the docRef for this effect run to avoid closure issues.
     const docRef = memoizedDocRef;
+    console.log(`[useDoc] Subscribing to path: ${docRef.path}`);
+
 
     const unsubscribe = onSnapshot(
       docRef,
       (snapshot: DocumentSnapshot<DocumentData>) => {
+        console.log(`[useDoc] Received snapshot for path: ${docRef.path}`);
         if (snapshot.exists()) {
           setData({ ...(snapshot.data() as T), id: snapshot.id });
         } else {
           // Document does not exist
+          console.warn(`[useDoc] Document does not exist at path: ${docRef.path}`);
           setData(null);
         }
         setError(null); // Clear any previous error on successful snapshot (even if doc doesn't exist)
         setIsLoading(false);
       },
       (error: FirestoreError) => {
+        console.error(`[useDoc] Error on path: ${docRef.path}`, error);
         const contextualError = new FirestorePermissionError({
           operation: 'get',
           path: docRef.path, // Use the stable, captured docRef
