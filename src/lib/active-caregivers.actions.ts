@@ -42,7 +42,7 @@ export async function processActiveCaregiverUpload(data: Record<string, any>[]) 
       incomingCaregiverKeys.add(emailKey);
       const existingCaregiver = existingCaregivers.get(emailKey);
 
-      const caregiverData: Omit<ActiveCaregiver, 'id' | 'createdAt'> = {
+      const caregiverData: Omit<ActiveCaregiver, 'id' | 'createdAt' | 'lastUpdatedAt'> = {
         'Name': row['Name'] || '',
         'D.O.B.': row['D.O.B.'] || '',
         'Address': row['Address'] || '',
@@ -57,17 +57,16 @@ export async function processActiveCaregiverUpload(data: Record<string, any>[]) 
         'Caregiver Lic': row['Caregiver Lic'] || '',
         'PIN': row['PIN'] || '',
         status: 'ACTIVE',
-        lastUpdatedAt: now,
       };
 
       if (existingCaregiver) {
-        // Update existing caregiver
+        // Update existing caregiver, only setting lastUpdatedAt
         const docRef = caregiversCollection.doc(existingCaregiver.id);
-        batch.update(docRef, caregiverData);
+        batch.update(docRef, { ...caregiverData, lastUpdatedAt: now });
       } else {
-        // Create new caregiver
+        // Create new caregiver, setting both createdAt and lastUpdatedAt
         const docRef = caregiversCollection.doc(); // Firestore auto-generates ID
-        batch.set(docRef, { ...caregiverData, createdAt: now });
+        batch.set(docRef, { ...caregiverData, createdAt: now, lastUpdatedAt: now });
       }
 
       operations++;
