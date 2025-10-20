@@ -42,14 +42,16 @@ export default function CandidateStatusReport() {
   const { data: interviewsData, isLoading: interviewsLoading } = useCollection<Interview>(interviewsRef);
 
   const employeesRef = useMemoFirebase(() => collection(firestore, 'caregiver_employees'), []);
-  const { data: employeesData, isLoading: employeesLoading } = useCollection<CaregiverEmployee>(employeesRef);
+  const { data: allEmployees, isLoading: employeesLoading } = useCollection<CaregiverEmployee>(employeesRef);
 
   const reportData = useMemo(() => {
-    if (!caregiversData || !appointmentsData || !interviewsData || !employeesData) return [];
+    // The critical change is to handle cases where collections might be null during loading or if they don't exist yet.
+    if (!caregiversData || !appointmentsData || !interviewsData) return [];
 
     const appointmentsMap = new Map(appointmentsData.map(a => [a.caregiverId, a]));
     const interviewsMap = new Map(interviewsData.map(i => [i.caregiverProfileId, i]));
-    const employeesSet = new Set(employeesData.map(e => e.caregiverProfileId));
+    // Handle the case where `allEmployees` is null or empty because the collection doesn't exist.
+    const employeesSet = new Set(allEmployees ? allEmployees.map(e => e.caregiverProfileId) : []);
 
     const data: CandidateReportData[] = caregiversData.map(cg => {
       const appointment = appointmentsMap.get(cg.id);
@@ -73,7 +75,7 @@ export default function CandidateStatusReport() {
 
     return data.sort((a,b) => (b.appliedDate?.getTime() || 0) - (a.appliedDate?.getTime() || 0));
 
-  }, [caregiversData, appointmentsData, interviewsData, employeesData]);
+  }, [caregiversData, appointmentsData, interviewsData, allEmployees]);
 
   const handleExport = () => {
     let csvContent = "data:text/csv;charset=utf-8,";
@@ -197,3 +199,5 @@ export default function CandidateStatusReport() {
     </Card>
   );
 }
+
+    
