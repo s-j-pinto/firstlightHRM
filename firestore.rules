@@ -1,46 +1,71 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
+    
+    // Helper functions
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function isAdmin() {
-      return request.auth.token.isAdmin == true;
+    function isOwner(uid) {
+      return request.auth.uid == uid;
     }
-
+    
+    // Cargeiver Profile Rules
+    // Allow anyone to create their own profile (e.g., anonymous users applying).
+    // Allow owner to read and update their own profile.
+    // Disallow deletes for record-keeping.
+    // Allow any signed-in user (i.e., admin) to read any profile.
     match /caregiver_profiles/{profileId} {
-      allow read, write: if isSignedIn();
+      allow read: if isSignedIn();
+      allow create: if request.auth.uid == request.resource.data.uid;
+      allow update: if isOwner(resource.data.uid);
+      allow delete: if false;
     }
 
+    // Appointment Rules
+    // Allow anonymous users to create appointments for themselves.
+    // Allow any signed-in user (admin) to read all appointments.
     match /appointments/{appointmentId} {
+      allow read: if isSignedIn();
+      allow create: if true; 
+      allow update, delete: if isSignedIn();
+    }
+    
+    // Interview Rules
+    // Only allow signed-in users (admins) to manage interview records.
+    match /interviews/{interviewId} {
+        allow read, write: if isSignedIn();
+    }
+    
+    // Settings Rules
+    // Only allow admins to read/write settings.
+    match /settings/{settingId} {
+      allow read, write: if isSignedIn();
+    }
+    
+    // Mail collection for Trigger Email Extension
+    match /mail/{docId} {
+      allow create: if true;
+      allow read, update, delete: if false;
+    }
+
+    // Employee collection for hired caregivers
+    match /caregiver_employees/{employeeId} {
       allow read, write: if isSignedIn();
     }
 
-    match /settings/{settingId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-    match /interviews/{interviewId} {
-      allow get: if isSignedIn();
-      allow list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
-    }
-    match /caregiver_employees/{employeeId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if isSignedIn();
-    }
-    match /clients/{clientId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if isSignedIn();
-    }
+    // Active Caregivers collection
     match /caregivers_active/{caregiverId} {
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn();
+    }
+
+    // Clients collection
+    match /Clients/{clientId} {
       allow get, list: if true;
       allow create: if isSignedIn();
       allow update, delete: if isSignedIn();

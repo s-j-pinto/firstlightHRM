@@ -156,6 +156,27 @@
         "lastUpdatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["Name", "Email", "status"]
+    },
+    "Client": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Client",
+      "type": "object",
+      "description": "Represents a client's information.",
+      "properties": {
+        "Client Name": { "type": "string" },
+        "DOB": { "type": "string" },
+        "Address": { "type": "string" },
+        "Apt/Unit": { "type": "string" },
+        "City": { "type": "string" },
+        "Zip": { "type": "string" },
+        "Mobile": { "type": "string" },
+        "ContactName": { "type": "string" },
+        "ContactMobile": { "type": "string" },
+        "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastUpdatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["Client Name", "Address", "City", "Zip", "Mobile", "status"]
     }
   },
   "auth": {
@@ -184,6 +205,10 @@
     "/caregivers_active/{caregiverId}": {
       "schema": { "$ref": "#/entities/ActiveCaregiver" },
       "description": "Stores active caregiver information from an external system."
+    },
+    "/Clients/{clientId}": {
+      "schema": { "$ref": "#/entities/Client" },
+      "description": "Stores client information from an external system."
     }
   }
 }
