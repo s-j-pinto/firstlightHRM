@@ -14,6 +14,7 @@ const getEmailKey = (row: Record<string, any>): string | null => {
 };
 
 export async function processActiveCaregiverUpload(data: Record<string, any>[]) {
+  console.log(`[Action Start] processActiveCaregiverUpload received ${data.length} rows.`);
   const firestore = serverDb;
   const caregiversCollection = firestore.collection('caregivers_active');
   const now = Timestamp.now();
@@ -22,6 +23,7 @@ export async function processActiveCaregiverUpload(data: Record<string, any>[]) 
 
   try {
     // 1. Get all existing active caregivers from Firestore
+    console.log('[Action] Fetching existing caregivers from Firestore...');
     const snapshot = await caregiversCollection.get();
     const existingCaregivers = new Map<string, { id: string; data: ActiveCaregiver }>();
     snapshot.forEach(doc => {
@@ -31,18 +33,24 @@ export async function processActiveCaregiverUpload(data: Record<string, any>[]) 
         existingCaregivers.set(key, { id: doc.id, data: docData });
       }
     });
+    console.log(`[Action] Found ${existingCaregivers.size} existing caregivers.`);
 
     const incomingCaregiverKeys = new Set<string>();
 
     // 2. Iterate through uploaded data to update or create caregivers
+    console.log('[Action] Processing uploaded CSV data...');
     for (const row of data) {
       const emailKey = getEmailKey(row);
-      if (!emailKey) continue; // Skip rows without an email
+      if (!emailKey) {
+        console.warn('[Action] Skipping row due to missing email:', row);
+        continue;
+      }
+      console.log(`[Action] Processing row for email: ${emailKey}`);
 
       incomingCaregiverKeys.add(emailKey);
       const existingCaregiver = existingCaregivers.get(emailKey);
 
-      const caregiverData: Omit<ActiveCaregiver, 'id' | 'createdAt' | 'lastUpdatedAt'> = {
+      const caregiverData: Omit<ActiveCaregiver, 'id' | 'createdAt' | 'lastUpdatedAt'> & { lastUpdatedAt: Timestamp } = {
         'Name': row['Name'] || '',
         'D.O.B.': row['D.O.B.'] || '',
         'Address': row['Address'] || '',
@@ -57,49 +65,66 @@ export async function processActiveCaregiverUpload(data: Record<string, any>[]) 
         'Caregiver Lic': row['Caregiver Lic'] || '',
         'PIN': row['PIN'] || '',
         status: 'ACTIVE',
+        lastUpdatedAt: now,
       };
 
       if (existingCaregiver) {
-        // Update existing caregiver, only setting lastUpdatedAt
+        // Update existing caregiver
+        console.log(`[Action] Updating existing caregiver: ${emailKey}`);
         const docRef = caregiversCollection.doc(existingCaregiver.id);
-        batch.update(docRef, { ...caregiverData, lastUpdatedAt: now });
+        batch.update(docRef, caregiverData);
       } else {
-        // Create new caregiver, setting both createdAt and lastUpdatedAt
+        // Create new caregiver
+        console.log(`[Action] Creating new caregiver: ${emailKey}`);
         const docRef = caregiversCollection.doc(); // Firestore auto-generates ID
-        batch.set(docRef, { ...caregiverData, createdAt: now, lastUpdatedAt: now });
+        batch.set(docRef, { ...caregiverData, createdAt: now });
       }
 
       operations++;
       if (operations >= 499) { // Firestore batch limit is 500
+        console.log(`[Action] Committing batch of ${operations} operations...`);
         await batch.commit();
         batch = firestore.batch();
         operations = 0;
+        console.log('[Action] Batch committed. New batch created.');
       }
     }
 
     // 3. Mark caregivers not in the uploaded file as INACTIVE
+    console.log('[Action] Checking for caregivers to mark as INACTIVE...');
     for (const [key, caregiver] of existingCaregivers.entries()) {
       if (!incomingCaregiverKeys.has(key) && caregiver.data.status === 'ACTIVE') {
+        console.log(`[Action] Marking caregiver as INACTIVE: ${key}`);
         const docRef = caregiversCollection.doc(caregiver.id);
         batch.update(docRef, { status: 'INACTIVE', lastUpdatedAt: now });
         operations++;
         if (operations >= 499) {
+          console.log(`[Action] Committing batch of ${operations} operations (inactivation)...`);
           await batch.commit();
           batch = firestore.batch();
           operations = 0;
+          console.log('[Action] Batch committed. New batch created.');
         }
       }
     }
 
     // 4. Commit any remaining operations
     if (operations > 0) {
+      console.log(`[Action] Committing final batch of ${operations} operations...`);
       await batch.commit();
+      console.log('[Action] Final batch committed.');
     }
 
+    console.log('[Action] Revalidating path /admin/manage-active-caregivers');
     revalidatePath('/admin/manage-active-caregivers');
+    
+    console.log('[Action Success] Active caregiver data processed successfully.');
     return { message: 'Active caregiver data processed successfully.' };
   } catch (error) {
-    console.error('Error processing active caregiver upload:', error);
+    console.error('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+    console.error('[Action Error] Error processing active caregiver upload:', error);
+    console.error('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+    
     // Ensure a generic but helpful message is returned on failure.
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
     return { message: `An error occurred: ${errorMessage}`, error: true };
