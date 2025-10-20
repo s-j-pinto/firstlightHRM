@@ -6,9 +6,10 @@ import { serverDb } from '@/firebase/server-init';
 import { WriteBatch, Timestamp } from 'firebase-admin/firestore';
 import type { ActiveCaregiver } from './types';
 
-// Helper to create a unique key for each caregiver row from the CSV
+// Helper to create a unique key for each caregiver row.
+// It now checks for both 'Email' (from CSV) and 'email' (from Firestore).
 const getEmailKey = (row: Record<string, any>): string | null => {
-  const email = (row['Email'] || '').trim().toLowerCase();
+  const email = (row['Email'] || row['email'] || '').trim().toLowerCase();
   return email || null;
 };
 
@@ -100,6 +101,8 @@ export async function processActiveCaregiverUpload(data: Record<string, any>[]) 
     return { message: 'Active caregiver data processed successfully.' };
   } catch (error) {
     console.error('Error processing active caregiver upload:', error);
-    return { message: `An error occurred: ${error}`, error: true };
+    // Ensure a generic but helpful message is returned on failure.
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+    return { message: `An error occurred: ${errorMessage}`, error: true };
   }
 }
