@@ -50,7 +50,6 @@ import { format, toDate } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { useRouter } from 'next/navigation';
-import { Separator } from './ui/separator';
 import { usePathname } from 'next/navigation';
 
 const phoneScreenSchema = z.object({
@@ -106,7 +105,6 @@ export default function ManageInterviewsClient() {
   const [isSubmitting, startSubmitTransition] = useTransition();
 
   const { toast } = useToast();
-  const router = useRouter();
   const db = firestore;
   const pathname = usePathname();
 
@@ -137,6 +135,7 @@ export default function ManageInterviewsClient() {
       hiringComments: '',
       hiringManager: 'Lolita Pinto',
       startDate: new Date(),
+      teletrackPin: '',
     }
   });
 
@@ -152,7 +151,16 @@ export default function ManageInterviewsClient() {
       inPersonDate: undefined,
       inPersonTime: '',
     });
-    hiringForm.reset();
+    hiringForm.reset({
+        caregiverProfileId: '',
+        interviewId: '',
+        inPersonInterviewDate: undefined,
+        hireDate: new Date(),
+        hiringComments: '',
+        hiringManager: 'Lolita Pinto',
+        startDate: new Date(),
+        teletrackPin: '',
+    });
     setAuthUrl(null);
     setSearchTerm('');
     setSearchResults([]);
@@ -170,10 +178,11 @@ export default function ManageInterviewsClient() {
             caregiverProfileId: selectedCaregiver.id,
             interviewId: existingInterview.id,
             inPersonInterviewDate: interviewDate,
-            hireDate: new Date(),
+            hireDate: existingEmployee ? (existingEmployee.hireDate as any).toDate() : new Date(),
             hiringComments: existingEmployee?.hiringComments || '',
             hiringManager: existingEmployee?.hiringManager || 'Lolita Pinto',
             startDate: existingEmployee ? (existingEmployee.startDate as any).toDate() : new Date(),
+            teletrackPin: existingEmployee?.teletrackPin || '',
         });
     }
   }, [selectedCaregiver, existingInterview, existingEmployee, hiringForm]);
@@ -230,9 +239,9 @@ export default function ManageInterviewsClient() {
             const interviewDate = (interviewData.interviewDateTime as any)?.toDate();
 
             phoneScreenForm.reset({
-                interviewNotes: interviewData.interviewNotes,
-                candidateRating: interviewData.candidateRating,
-                phoneScreenPassed: interviewData.phoneScreenPassed as 'Yes' | 'No',
+                interviewNotes: interviewData.interviewNotes || '',
+                candidateRating: interviewData.candidateRating || 3,
+                phoneScreenPassed: interviewData.phoneScreenPassed as 'Yes' | 'No' || 'No',
                 interviewMethod: interviewData.interviewType as 'In-Person' | 'Google Meet' | undefined,
                 inPersonDate: interviewDate ? toDate(interviewDate) : undefined,
                 inPersonTime: interviewDate ? format(toDate(interviewDate), 'HH:mm') : '',
@@ -266,7 +275,6 @@ export default function ManageInterviewsClient() {
 
     startAiTransition(async () => {
       try {
-        // Construct the payload matching the Zod schema
         const payload = {
             fullName: selectedCaregiver.fullName,
             yearsExperience: selectedCaregiver.yearsExperience,
@@ -305,7 +313,6 @@ export default function ManageInterviewsClient() {
     startSubmitTransition(async () => {
       let interviewId = existingInterview?.id;
       
-      // If there's no existing interview, create one first to get an ID.
       if (!interviewId) {
         try {
           const tempInterviewData = {
@@ -337,7 +344,7 @@ export default function ManageInterviewsClient() {
             interviewId: interviewId,
             aiInsight: aiInsight || '',
             interviewType: data.interviewMethod,
-            interviewNotes: data.interviewNotes || '',
+            interviewNotes: data.interviewNotes,
             candidateRating: data.candidateRating,
           });
   
@@ -357,7 +364,7 @@ export default function ManageInterviewsClient() {
              handleCancel();
           }
 
-      } else { // Handle 'No' or incomplete 'Yes'
+      } else { 
           const interviewDocData: any = {
             caregiverProfileId: selectedCaregiver.id,
             interviewType: 'Phone',
@@ -365,7 +372,7 @@ export default function ManageInterviewsClient() {
             candidateRating: data.candidateRating,
             phoneScreenPassed: data.phoneScreenPassed,
             aiGeneratedInsight: aiInsight || '',
-            interviewDateTime: Timestamp.now(),
+            interviewDateTime: existingInterview?.id ? existingInterview.interviewDateTime : Timestamp.now(),
           };
           try {
             await updateDoc(doc(db, 'interviews', interviewId), interviewDocData);
@@ -390,27 +397,31 @@ export default function ManageInterviewsClient() {
           hiringComments: data.hiringComments,
           hireDate: Timestamp.fromDate(data.hireDate),
           startDate: Timestamp.fromDate(data.startDate),
-          createdAt: Timestamp.now(),
+          teletrackPin: data.teletrackPin,
+          createdAt: existingEmployee?.id ? undefined : Timestamp.now(),
         };
 
         if (data.inPersonInterviewDate) {
           employeeData.inPersonInterviewDate = Timestamp.fromDate(data.inPersonInterviewDate);
         }
 
-        const colRef = collection(db, 'caregiver_employees');
-        const docRef = await addDoc(colRef, employeeData).catch(serverError => {
-            const permissionError = new FirestorePermissionError({
-                path: 'caregiver_employees',
-                operation: 'create',
-                requestResourceData: employeeData
-            });
-            errorEmitter.emit('permission-error', permissionError);
-            throw serverError;
-        });
-
-        toast({ title: 'Success', description: 'Caregiver has been successfully marked as hired.' });
-        
-        setExistingEmployee({ id: docRef.id, ...employeeData } as CaregiverEmployee);
+        if (existingEmployee?.id) {
+          await updateDoc(doc(db, 'caregiver_employees', existingEmployee.id), employeeData);
+          toast({ title: 'Success', description: 'Employee record has been updated.' });
+        } else {
+          const colRef = collection(db, 'caregiver_employees');
+          const docRef = await addDoc(colRef, employeeData).catch(serverError => {
+              const permissionError = new FirestorePermissionError({
+                  path: 'caregiver_employees',
+                  operation: 'create',
+                  requestResourceData: employeeData
+              });
+              errorEmitter.emit('permission-error', permissionError);
+              throw serverError;
+          });
+          setExistingEmployee({ id: docRef.id, ...employeeData } as CaregiverEmployee);
+          toast({ title: 'Success', description: 'Caregiver has been successfully marked as hired.' });
+        }
 
       } catch (error) {
         toast({
@@ -678,7 +689,7 @@ export default function ManageInterviewsClient() {
             <CardHeader>
                  <CardTitle>Hiring &amp; Onboarding: {selectedCaregiver?.fullName}</CardTitle>
                 <CardDescription>
-                    {existingEmployee ? "This caregiver has been hired. Review the details below." : "The phone screen passed. Enter hiring details to complete onboarding."}
+                    {existingEmployee ? "This caregiver has been hired. Review or update the details below." : "The candidate has passed the interview stage. Enter hiring details to complete onboarding."}
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -694,8 +705,8 @@ export default function ManageInterviewsClient() {
                                         <Popover>
                                             <PopoverTrigger asChild>
                                             <FormControl>
-                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={!!existingEmployee}>
-                                                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={true}>
+                                                    {field.value ? format(field.value, "PPP") : <span>N/A</span>}
                                                     <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                                 </Button>
                                             </FormControl>
@@ -776,6 +787,19 @@ export default function ManageInterviewsClient() {
                                     </FormItem>
                                 )}
                             />
+                            <FormField
+                                control={hiringForm.control}
+                                name="teletrackPin"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>TeleTrack PIN</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="Enter PIN" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                         </div>
                         <FormField
                             control={hiringForm.control}
@@ -784,7 +808,7 @@ export default function ManageInterviewsClient() {
                                 <FormItem>
                                     <FormLabel>Hiring Comments</FormLabel>
                                     <FormControl>
-                                        <Textarea placeholder="Additional comments about the hiring decision..." {...field} rows={4} disabled={!!existingEmployee} />
+                                        <Textarea placeholder="Additional comments about the hiring decision..." {...field} rows={4} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -798,9 +822,9 @@ export default function ManageInterviewsClient() {
                                 </Button>
                             )}
                             <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
-                             <Button type="submit" disabled={isSubmitting || !!existingEmployee}>
+                             <Button type="submit" disabled={isSubmitting}>
                                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
-                                Complete Hiring
+                                {existingEmployee ? 'Update Record' : 'Complete Hiring'}
                             </Button>
                         </div>
                     </form>
@@ -812,7 +836,3 @@ export default function ManageInterviewsClient() {
     </div>
   );
 }
-
-    
-    
-    

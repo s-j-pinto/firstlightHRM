@@ -108,6 +108,7 @@ export const caregiverEmployeeSchema = z.object({
   hiringComments: z.string().optional(),
   hiringManager: z.string(),
   startDate: z.coerce.date(),
+  teletrackPin: z.string().min(1, 'TeleTrack PIN is required.'),
 });
 
 export type CaregiverEmployee = z.infer<typeof caregiverEmployeeSchema> & { id: string };
