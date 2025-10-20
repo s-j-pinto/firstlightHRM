@@ -24,19 +24,11 @@ export default function ManageClientsClient() {
 
   const clientsRef = useMemoFirebase(() => {
     if (!db) return null;
-    // DIAGNOSTIC STEP: Removed where("status", "==", "ACTIVE") to test security rule interaction.
-    const clientsQuery = query(collection(db, "clients"));
+    const clientsQuery = query(collection(db, "clients"), where("status", "==", "ACTIVE"));
     return clientsQuery;
   }, [db]);
 
-  const { data: allClients, isLoading: clientsLoading } = useCollection<Client>(clientsRef);
-
-  const clients = useMemo(() => {
-    if (!allClients) return [];
-    // Perform client-side filtering as a diagnostic step
-    return allClients.filter(client => client.status === 'ACTIVE');
-  }, [allClients]);
-
+  const { data: clients, isLoading: clientsLoading } = useCollection<Client>(clientsRef);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
