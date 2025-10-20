@@ -4,6 +4,9 @@
 import { useState, useTransition, ChangeEvent } from 'react';
 import Papa from 'papaparse';
 import { processActiveCaregiverUpload } from '@/lib/active-caregivers.actions';
+import { useCollection, useMemoFirebase, firestore } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import type { ActiveCaregiver } from '@/lib/types';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -17,6 +20,9 @@ export default function ManageActiveCaregiversClient() {
   const [isUploading, startUploadTransition] = useTransition();
   const { toast } = useToast();
 
+  const caregiversRef = useMemoFirebase(() => collection(firestore, 'caregivers_active'), [firestore]);
+  const { data: activeCaregivers, isLoading: caregiversLoading } = useCollection<ActiveCaregiver>(caregiversRef);
+
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       setFile(e.target.files[0]);
@@ -29,7 +35,7 @@ export default function ManageActiveCaregiversClient() {
       return;
     }
 
-    startUploadTransition(() => {
+    startUploadTransition(async () => {
       Papa.parse(file, {
         header: true,
         skipEmptyLines: true,
@@ -69,8 +75,7 @@ export default function ManageActiveCaregiversClient() {
         <CardHeader>
           <CardTitle>Upload Active Caregiver Data</CardTitle>
           <CardDescription>
-            Upload a CSV file with caregiver information. The "Email" column is required as a unique identifier.
-            This action will add all caregivers from the file as new records.
+            Upload a CSV file to add new caregiver records. This process will create new entries for all caregivers in the file.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -86,6 +91,42 @@ export default function ManageActiveCaregiversClient() {
           </div>
         </CardContent>
       </Card>
+
+      <div className="mt-8">
+        <h2 className="text-2xl font-bold tracking-tight font-headline mb-4">Current Active Caregivers</h2>
+        {caregiversLoading ? (
+            <div className="flex justify-center items-center h-40">
+                <Loader2 className="h-8 w-8 animate-spin text-accent" />
+                <p className="ml-4 text-muted-foreground">Loading caregivers...</p>
+            </div>
+        ) : activeCaregivers && activeCaregivers.length > 0 ? (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {activeCaregivers.map((caregiver) => (
+                    <Card key={caregiver.id}>
+                        <CardHeader>
+                            <CardTitle>{caregiver.Name}</CardTitle>
+                            <CardDescription>{caregiver.Email}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-2 text-sm">
+                            <p><strong>D.O.B:</strong> {caregiver['D.O.B.'] || 'N/A'}</p>
+                            <p><strong>Address:</strong> {`${caregiver.Address || ''} ${caregiver.Apt || ''}`.trim()}</p>
+                            <p><strong>Location:</strong> {`${caregiver.City || ''}, ${caregiver.State || ''} ${caregiver.Zip || ''}`.trim()}</p>
+                            <p><strong>Mobile:</strong> {caregiver.Mobile || 'N/A'}</p>
+                            <p><strong>Hire Date:</strong> {caregiver['Hire Date'] || 'N/A'}</p>
+                            <p><strong>Driver's License:</strong> {caregiver['Drivers Lic'] || 'N/A'}</p>
+                            <p><strong>Caregiver License:</strong> {caregiver['Caregiver Lic'] || 'N/A'}</p>
+                            <p><strong>PIN:</strong> {caregiver.PIN || 'N/A'}</p>
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
+        ) : (
+            <div className="text-center py-16 border-dashed border-2 rounded-lg">
+                <h3 className="text-lg font-medium text-gray-900">No Active Caregivers Found</h3>
+                <p className="mt-1 text-sm text-muted-foreground">Upload a CSV file to add active caregivers.</p>
+            </div>
+        )}
+      </div>
     </div>
   );
 }
