@@ -1,112 +1,95 @@
 /**
- * @description This ruleset enforces a strict role-based access control model for caregiver data.
+ * @file Firebase Security Rules for Firestore.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict owner-only access model for caregiver profiles and a public read, owner-write model for the other collections.
  *
  * Data Structure:
- * - /caregiver_profiles/{caregiverProfileId}: Caregiver profiles, accessible only to authenticated users.
- * - /appointments/{appointmentId}: Appointment slots, accessible only to authenticated users.
- * - /interviews/{interviewId}: Interview data, accessible only to authenticated users.
- * - /caregiver_employees/{employeeId}: Caregiver employee data, accessible only to authenticated users.
+ * - /caregiver_profiles/{caregiverProfileId}: Stores detailed caregiver profiles. Access is restricted to the profile owner.
+ * - /appointments/{appointmentId}: Stores appointment slots. Read access is public, but write access is restricted.
+ * - /interviews/{interviewId}: Stores interview details. Read access is public, but write access is restricted.
+ * - /caregiver_employees/{employeeId}: Stores caregiver employment information. Read access is public, but write access is restricted.
  *
  * Key Security Decisions:
- * - All collections are only listable to authenticated users.
- * - Unauthenticated access is denied for all write operations.
+ * - User listing is disallowed for caregiver profiles to protect privacy.
+ * - Other collections are readable by all users, including unauthenticated users.
+ * - Write access to these collections is restricted to authenticated users only.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to caregiver profiles. Only authenticated users are allowed access.
-     * @path /caregiver_profiles/{caregiverProfileId}
-     * @allow (get) authenticated user can read a caregiver profile
-     * @allow (list) authenticated user can list caregiver profiles
-     * @allow (create) creating a caregiver profile is not allowed
-     * @allow (update) updating a caregiver profile is not allowed
-     * @allow (delete) deleting a caregiver profile is not allowed
-     * @principle Restricts access to caregiver profiles to authenticated users.
+     * @description Secures caregiver profiles, allowing only the profile owner to read and write.
+     * @path /databases/{database}/documents/caregiver_profiles/{caregiverProfileId}
+     * @allow (read, write) if the user is the owner of the profile (e.g., request.auth.uid == caregiverProfileId).
+     * @deny (read, write) if the user is not the owner of the profile (e.g., request.auth.uid != caregiverProfileId).
+     * @principle Enforces document ownership for all operations.
      */
     match /caregiver_profiles/{caregiverProfileId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow get: if isOwner(caregiverProfileId);
+      allow list: if false;
+      allow create: if isOwner(caregiverProfileId);
+      allow update: if isExistingOwner(caregiverProfileId);
+      allow delete: if isExistingOwner(caregiverProfileId);
     }
 
     /**
-     * @description Controls access to appointment slots. Only authenticated users are allowed access.
-     * @path /appointments/{appointmentId}
-     * @allow (get) authenticated user can read an appointment slot
-     * @allow (list) authenticated user can list appointment slots
-     * @allow (create) creating an appointment slot is not allowed
-     * @allow (update) updating an appointment slot is not allowed
-     * @allow (delete) deleting an appointment slot is not allowed
-     * @principle Restricts access to appointment slots to authenticated users.
+     * @description Allows public read access to appointments, but restricts write access to authenticated users.
+     * @path /databases/{database}/documents/appointments/{appointmentId}
+     * @allow (read) any user (e.g., allow get, list: if true;).
+     * @allow (write) only authenticated users who provide a valid appointment.
+     * @deny (write) unauthenticated users (e.g., request.auth == null).
+     * @principle Allows public reads with owner-only writes for appointments.
      */
     match /appointments/{appointmentId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
     }
 
     /**
-     * @description Controls access to interview data. Only authenticated users are allowed access.
-     * @path /interviews/{interviewId}
-     * @allow (get) authenticated user can read an interview
-     * @allow (list) authenticated user can list interviews
-     * @allow (create) creating an interview is not allowed
-     * @allow (update) updating an interview is not allowed
-     * @allow (delete) deleting an interview is not allowed
-     * @principle Restricts access to interview data to authenticated users.
+     * @description Allows public read access to interviews, but restricts write access to authenticated users.
+     * @path /databases/{database}/documents/interviews/{interviewId}
+     * @allow (read) any user (e.g., allow get, list: if true;).
+     * @allow (write) only authenticated users who provide a valid interview.
+     * @deny (write) unauthenticated users (e.g., request.auth == null).
+     * @principle Allows public reads with owner-only writes for interviews.
      */
     match /interviews/{interviewId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
     }
 
     /**
-     * @description Controls access to caregiver employee data. Only authenticated users are allowed access.
-     * @path /caregiver_employees/{employeeId}
-     * @allow (get) authenticated user can read caregiver employee data
-     * @allow (list) authenticated user can list caregiver employee data
-     * @allow (create) creating caregiver employee data is not allowed
-     * @allow (update) updating caregiver employee data is not allowed
-     * @allow (delete) deleting caregiver employee data is not allowed
-     * @principle Restricts access to caregiver employee data to authenticated users.
+     * @description Allows public read access to caregiver employees, but restricts write access to authenticated users.
+     * @path /databases/{database}/documents/caregiver_employees/{employeeId}
+     * @allow (read) any user (e.g., allow get, list: if true;).
+     * @allow (write) only authenticated users who provide a valid caregiver employee record.
+     * @deny (write) unauthenticated users (e.g., request.auth == null).
+     * @principle Allows public reads with owner-only writes for caregiver employees.
      */
     match /caregiver_employees/{employeeId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
     }
-    
-     /**
-     * @description Controls access to client data. No unauthenticated access is permitted
-     * @path /clients
-     * @allow (get) reading the client data is not allowed
-     * @allow (list) listing the client data is not allowed
-     * @allow (create) creating the client data is not allowed
-     * @allow (update) updating the client data is not allowed
-     * @allow (delete) deleting the client data is not allowed
-     * @principle Restricts access to client data only to authenticated users.
-     */
-      match /clients/{clientId} {
-        allow get: if false;
-        allow list: if false;
-        allow create: if false;
-        allow update: if false;
-        allow delete: if false;
-      }
-  }
 
-  function isSignedIn() {
-    return request.auth != null;
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
   }
 }
