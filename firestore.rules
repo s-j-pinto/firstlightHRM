@@ -1,100 +1,75 @@
 /**
  * @file Firestore Security Rules
- * @description This ruleset enforces a strict security model where only authenticated users can access data.
- *   It focuses on securing caregiver profiles, appointments, interviews, and caregiver employee data.
+ * @description This ruleset enforces a security model where data access is generally restricted and requires authentication.
  *
  * Data Structure:
- * - /caregiver_profiles/{caregiverProfileId}: Stores caregiver profile information.
- * - /appointments/{appointmentId}: Stores appointment slots for interviews.
- * - /interviews/{interviewId}: Stores interview details.
- * - /caregiver_employees/{employeeId}: Stores caregiver employee data.
+ * - /caregiver_profiles/{caregiverProfileId}: Stores caregiver profile information. Access is unrestricted.
+ * - /appointments/{appointmentId}: Stores appointment slots. Access is unrestricted.
+ * - /interviews/{interviewId}: Stores interview details. Access is unrestricted.
+ * - /caregiver_employees/{employeeId}: Stores caregiver employment information. Access is unrestricted.
  *
  * Key Security Decisions:
- * - All write operations are restricted to authenticated users.
- * - No user-generated content is publicly readable (no `allow get, list: if true`).
+ * - All collections allow public reads (get, list).
+ * - All write operations (create, update, delete) are denied by default and require further authorization logic to be added.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to caregiver profiles. Only authenticated users can create, update, or delete profiles.
+     * @description Allows public reads for caregiver profiles. All write operations are currently denied.
      * @path /caregiver_profiles/{caregiverProfileId}
-     * @allow (create) Authenticated user creates a caregiver profile.
-     * @deny (create) Unauthenticated user attempts to create a caregiver profile.
-     * @allow (update) Authenticated user updates a caregiver profile.
-     * @deny (update) Unauthenticated user attempts to update a caregiver profile.
-     * @allow (delete) Authenticated user deletes a caregiver profile.
-     * @deny (delete) Unauthenticated user attempts to delete a caregiver profile.
-     * @principle Enforces authentication for all write operations.
+     * @allow (get, list) - Any user can read caregiver profiles.
+     * @deny (create, update, delete) - All create, update, and delete operations are denied.
+     * @principle Allows public read access to profiles while restricting modifications.
      */
     match /caregiver_profiles/{caregiverProfileId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+      allow get, list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
 
     /**
-     * @description Controls access to appointment slots. Only authenticated users can create, update, or delete appointments.
+     * @description Allows public reads for appointments. All write operations are currently denied.
      * @path /appointments/{appointmentId}
-     * @allow (create) Authenticated user creates an appointment.
-     * @deny (create) Unauthenticated user attempts to create an appointment.
-     * @allow (update) Authenticated user updates an appointment.
-     * @deny (update) Unauthenticated user attempts to update an appointment.
-     * @allow (delete) Authenticated user deletes an appointment.
-     * @deny (delete) Unauthenticated user attempts to delete an appointment.
-     * @principle Enforces authentication for all write operations.
+     * @allow (get, list) - Any user can read appointments.
+     * @deny (create, update, delete) - All create, update, and delete operations are denied.
+     * @principle Allows public read access to appointments while restricting modifications.
      */
     match /appointments/{appointmentId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+      allow get, list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
 
     /**
-     * @description Controls access to interview records. Only authenticated users can create, update, or delete interviews.
+     * @description Allows public reads for interviews. All write operations are currently denied.
      * @path /interviews/{interviewId}
-     * @allow (create) Authenticated user creates an interview record.
-     * @deny (create) Unauthenticated user attempts to create an interview record.
-     * @allow (update) Authenticated user updates an interview record.
-     * @deny (update) Unauthenticated user attempts to update an interview record.
-     * @allow (delete) Authenticated user deletes an interview record.
-     * @deny (delete) Unauthenticated user attempts to delete an interview record.
-     * @principle Enforces authentication for all write operations.
+     * @allow (get, list) - Any user can read interview data.
+     * @deny (create, update, delete) - All create, update, and delete operations are denied.
+     * @principle Allows public read access to interviews while restricting modifications.
      */
     match /interviews/{interviewId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+        allow get, list: if true;
+        allow create: if false;
+        allow update: if false;
+        allow delete: if false;
     }
 
     /**
-     * @description Controls access to caregiver employee records. Only authenticated users can create, update, or delete employee records.
+     * @description Allows public reads for caregiver employee data. All write operations are currently denied.
      * @path /caregiver_employees/{employeeId}
-     * @allow (create) Authenticated user creates a caregiver employee record.
-     * @deny (create) Unauthenticated user attempts to create a caregiver employee record.
-     * @allow (update) Authenticated user updates a caregiver employee record.
-     * @deny (update) Unauthenticated user attempts to update a caregiver employee record.
-     * @allow (delete) Authenticated user deletes a caregiver employee record.
-     * @deny (delete) Unauthenticated user attempts to delete a caregiver employee record.
-     * @principle Enforces authentication for all write operations.
+     * @allow (get, list) - Any user can read caregiver employee data.
+     * @deny (create, update, delete) - All create, update, and delete operations are denied.
+     * @principle Allows public read access to caregiver employee data while restricting modifications.
      */
     match /caregiver_employees/{employeeId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
-    }
-
-    function isSignedIn() {
-      return request.auth != null;
+      allow get, list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
   }
 }
