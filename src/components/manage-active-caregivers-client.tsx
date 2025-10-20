@@ -70,7 +70,7 @@ export default function ManageActiveCaregiversClient() {
           <CardTitle>Upload Active Caregiver Data</CardTitle>
           <CardDescription>
             Upload a CSV file with caregiver information. The "Email" column is required as a unique identifier.
-            Existing caregivers will be updated, new ones will be added, and any caregivers not in the file will be marked as INACTIVE.
+            This action will add all caregivers from the file as new records.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -80,8 +80,8 @@ export default function ManageActiveCaregiversClient() {
                 <Input id="caregiver-file-upload" type="file" accept=".csv" onChange={handleFileChange} />
             </div>
             <Button onClick={handleUpload} disabled={isUploading || !file}>
-              {isUploading ? <Loader2 className="animate-spin" /> : <Upload />}
-              <span className="ml-2">Upload File</span>
+              {isUploading ? <Loader2 className="animate-spin mr-2" /> : <Upload className="mr-2" />}
+              Upload File
             </Button>
           </div>
         </CardContent>
