@@ -2,9 +2,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { format, subDays, subMonths, subQuarters, subYears, startOfDay } from "date-fns";
+import { format } from "date-fns";
 import { collection } from "firebase/firestore";
-import { Loader2, FileText, ClipboardList, Check, X, CalendarCheck, CalendarX, UserCheck } from "lucide-react";
+import { Loader2, FileText, ClipboardList, CalendarCheck, CalendarX, UserCheck } from "lucide-react";
 import { firestore, useCollection, useMemoFirebase } from "@/firebase";
 
 import type { Appointment, CaregiverProfile, Interview, CaregiverEmployee } from "@/lib/types";
@@ -17,13 +17,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 
@@ -39,8 +32,6 @@ interface CandidateReportData {
 }
 
 export default function CandidateStatusReport() {
-  const [timeFrame, setTimeFrame] = useState("last_month");
-
   const caregiversRef = useMemoFirebase(() => collection(firestore, 'caregiver_profiles'), []);
   const { data: caregiversData, isLoading: caregiversLoading } = useCollection<CaregiverProfile>(caregiversRef);
 
@@ -55,37 +46,12 @@ export default function CandidateStatusReport() {
 
   const reportData = useMemo(() => {
     if (!caregiversData || !appointmentsData || !interviewsData || !employeesData) return [];
-    
-    const now = new Date();
-    let startDate: Date;
-
-    switch (timeFrame) {
-      case "last_week":
-        startDate = subDays(now, 7);
-        break;
-      case "last_quarter":
-        startDate = subQuarters(now, 1);
-        break;
-      case "last_year":
-        startDate = subYears(now, 1);
-        break;
-      case "last_month":
-      default:
-        startDate = subMonths(now, 1);
-        break;
-    }
-    const startOfFilterDate = startOfDay(startDate);
-
-    const filteredCaregivers = caregiversData.filter(cg => {
-        const appliedDate = (cg.createdAt as any)?.toDate();
-        return appliedDate && appliedDate >= startOfFilterDate;
-    });
 
     const appointmentsMap = new Map(appointmentsData.map(a => [a.caregiverId, a]));
     const interviewsMap = new Map(interviewsData.map(i => [i.caregiverProfileId, i]));
     const employeesSet = new Set(employeesData.map(e => e.caregiverProfileId));
 
-    const data: CandidateReportData[] = filteredCaregivers.map(cg => {
+    const data: CandidateReportData[] = caregiversData.map(cg => {
       const appointment = appointmentsMap.get(cg.id);
       const interview = interviewsMap.get(cg.id);
       
@@ -107,7 +73,7 @@ export default function CandidateStatusReport() {
 
     return data.sort((a,b) => (b.appliedDate?.getTime() || 0) - (a.appliedDate?.getTime() || 0));
 
-  }, [caregiversData, appointmentsData, interviewsData, employeesData, timeFrame]);
+  }, [caregiversData, appointmentsData, interviewsData, employeesData]);
 
   const handleExport = () => {
     let csvContent = "data:text/csv;charset=utf-8,";
@@ -128,7 +94,7 @@ export default function CandidateStatusReport() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `candidate-status-report-${timeFrame}.csv`);
+    link.setAttribute("download", `candidate-status-report-all-time.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -150,17 +116,6 @@ export default function CandidateStatusReport() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Select value={timeFrame} onValueChange={setTimeFrame}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Select time frame" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="last_week">Last 7 Days</SelectItem>
-                <SelectItem value="last_month">Last 30 Days</SelectItem>
-                <SelectItem value="last_quarter">Last Quarter</SelectItem>
-                <SelectItem value="last_year">Last Year</SelectItem>
-              </SelectContent>
-            </Select>
             <Button variant="outline" onClick={handleExport} disabled={reportData.length === 0}>
               <FileText className="mr-2 h-4 w-4" />
               Export
@@ -178,7 +133,7 @@ export default function CandidateStatusReport() {
           <div className="text-center py-12 border-dashed border-2 rounded-lg">
             <ClipboardList className="mx-auto h-12 w-12 text-muted-foreground" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">No Candidates Found</h3>
-            <p className="mt-1 text-sm text-muted-foreground">There are no candidates who applied in the selected time frame.</p>
+            <p className="mt-1 text-sm text-muted-foreground">There are no candidates who have applied yet.</p>
           </div>
         ) : (
           <Table>
