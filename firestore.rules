@@ -1,75 +1,112 @@
 /**
- * @file Firestore Security Rules
- * @description This ruleset enforces a security model where data access is generally restricted and requires authentication.
+ * @description This ruleset enforces a strict role-based access control model for caregiver data.
  *
  * Data Structure:
- * - /caregiver_profiles/{caregiverProfileId}: Stores caregiver profile information. Access is unrestricted.
- * - /appointments/{appointmentId}: Stores appointment slots. Access is unrestricted.
- * - /interviews/{interviewId}: Stores interview details. Access is unrestricted.
- * - /caregiver_employees/{employeeId}: Stores caregiver employment information. Access is unrestricted.
+ * - /caregiver_profiles/{caregiverProfileId}: Caregiver profiles, accessible only to authenticated users.
+ * - /appointments/{appointmentId}: Appointment slots, accessible only to authenticated users.
+ * - /interviews/{interviewId}: Interview data, accessible only to authenticated users.
+ * - /caregiver_employees/{employeeId}: Caregiver employee data, accessible only to authenticated users.
  *
  * Key Security Decisions:
- * - All collections allow public reads (get, list).
- * - All write operations (create, update, delete) are denied by default and require further authorization logic to be added.
+ * - All collections are only listable to authenticated users.
+ * - Unauthenticated access is denied for all write operations.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows public reads for caregiver profiles. All write operations are currently denied.
+     * @description Controls access to caregiver profiles. Only authenticated users are allowed access.
      * @path /caregiver_profiles/{caregiverProfileId}
-     * @allow (get, list) - Any user can read caregiver profiles.
-     * @deny (create, update, delete) - All create, update, and delete operations are denied.
-     * @principle Allows public read access to profiles while restricting modifications.
+     * @allow (get) authenticated user can read a caregiver profile
+     * @allow (list) authenticated user can list caregiver profiles
+     * @allow (create) creating a caregiver profile is not allowed
+     * @allow (update) updating a caregiver profile is not allowed
+     * @allow (delete) deleting a caregiver profile is not allowed
+     * @principle Restricts access to caregiver profiles to authenticated users.
      */
     match /caregiver_profiles/{caregiverProfileId} {
-      allow get, list: if true;
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
       allow create: if false;
       allow update: if false;
       allow delete: if false;
     }
 
     /**
-     * @description Allows public reads for appointments. All write operations are currently denied.
+     * @description Controls access to appointment slots. Only authenticated users are allowed access.
      * @path /appointments/{appointmentId}
-     * @allow (get, list) - Any user can read appointments.
-     * @deny (create, update, delete) - All create, update, and delete operations are denied.
-     * @principle Allows public read access to appointments while restricting modifications.
+     * @allow (get) authenticated user can read an appointment slot
+     * @allow (list) authenticated user can list appointment slots
+     * @allow (create) creating an appointment slot is not allowed
+     * @allow (update) updating an appointment slot is not allowed
+     * @allow (delete) deleting an appointment slot is not allowed
+     * @principle Restricts access to appointment slots to authenticated users.
      */
     match /appointments/{appointmentId} {
-      allow get, list: if true;
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
       allow create: if false;
       allow update: if false;
       allow delete: if false;
     }
 
     /**
-     * @description Allows public reads for interviews. All write operations are currently denied.
+     * @description Controls access to interview data. Only authenticated users are allowed access.
      * @path /interviews/{interviewId}
-     * @allow (get, list) - Any user can read interview data.
-     * @deny (create, update, delete) - All create, update, and delete operations are denied.
-     * @principle Allows public read access to interviews while restricting modifications.
+     * @allow (get) authenticated user can read an interview
+     * @allow (list) authenticated user can list interviews
+     * @allow (create) creating an interview is not allowed
+     * @allow (update) updating an interview is not allowed
+     * @allow (delete) deleting an interview is not allowed
+     * @principle Restricts access to interview data to authenticated users.
      */
     match /interviews/{interviewId} {
-        allow get, list: if true;
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Controls access to caregiver employee data. Only authenticated users are allowed access.
+     * @path /caregiver_employees/{employeeId}
+     * @allow (get) authenticated user can read caregiver employee data
+     * @allow (list) authenticated user can list caregiver employee data
+     * @allow (create) creating caregiver employee data is not allowed
+     * @allow (update) updating caregiver employee data is not allowed
+     * @allow (delete) deleting caregiver employee data is not allowed
+     * @principle Restricts access to caregiver employee data to authenticated users.
+     */
+    match /caregiver_employees/{employeeId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+    
+     /**
+     * @description Controls access to client data. No unauthenticated access is permitted
+     * @path /clients
+     * @allow (get) reading the client data is not allowed
+     * @allow (list) listing the client data is not allowed
+     * @allow (create) creating the client data is not allowed
+     * @allow (update) updating the client data is not allowed
+     * @allow (delete) deleting the client data is not allowed
+     * @principle Restricts access to client data only to authenticated users.
+     */
+      match /clients/{clientId} {
+        allow get: if false;
+        allow list: if false;
         allow create: if false;
         allow update: if false;
         allow delete: if false;
-    }
+      }
+  }
 
-    /**
-     * @description Allows public reads for caregiver employee data. All write operations are currently denied.
-     * @path /caregiver_employees/{employeeId}
-     * @allow (get, list) - Any user can read caregiver employee data.
-     * @deny (create, update, delete) - All create, update, and delete operations are denied.
-     * @principle Allows public read access to caregiver employee data while restricting modifications.
-     */
-    match /caregiver_employees/{employeeId} {
-      allow get, list: if true;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
-    }
+  function isSignedIn() {
+    return request.auth != null;
   }
 }
