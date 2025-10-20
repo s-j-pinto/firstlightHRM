@@ -49,6 +49,7 @@ import { EditAppointment } from "@/components/edit-appointment";
 type AppointmentWithCaregiver = Appointment & { caregiver?: CaregiverProfile };
 
 const groupAppointmentsByDay = (appointments: AppointmentWithCaregiver[]) => {
+  if (!appointments) return {};
   return appointments.reduce((acc, appointment) => {
     const dateStr = format(appointment.startTime, "yyyy-MM-dd");
     if (!acc[dateStr]) {
@@ -143,8 +144,9 @@ export default function AdminDashboard() {
     });
   };
 
+  const safeAppointments = appointments || [];
   const groupedAppointments = groupAppointmentsByDay(
-    appointments.sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
+    safeAppointments.sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
   );
   
   const isLoading = appointmentsLoading || caregiversLoading;
@@ -327,3 +329,5 @@ export default function AdminDashboard() {
     </div>
   );
 }
+
+    
