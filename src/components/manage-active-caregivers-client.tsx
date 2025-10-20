@@ -23,8 +23,8 @@ export default function ManageActiveCaregiversClient() {
 
   const caregiversRef = useMemoFirebase(() => {
     if (!db) return null;
-    const caregiversQuery = query(collection(db, "caregivers_active"), where("status", "==", "ACTIVE"));
-    return caregiversQuery;
+    // This query will only run if the collection exists.
+    return query(collection(db, "caregivers_active"), where("status", "==", "ACTIVE"));
   }, [db]);
 
   const { data: activeCaregivers, isLoading: caregiversLoading } = useCollection<ActiveCaregiver>(caregiversRef);
@@ -75,6 +75,8 @@ export default function ManageActiveCaregiversClient() {
     });
   };
 
+  const caregiversToDisplay = activeCaregivers ?? [];
+
   return (
     <div className="space-y-6">
       <Card>
@@ -110,9 +112,9 @@ export default function ManageActiveCaregiversClient() {
                     <Loader2 className="h-8 w-8 animate-spin text-accent" />
                     <p className="ml-4 text-muted-foreground">Loading caregivers...</p>
                 </div>
-            ) : activeCaregivers && activeCaregivers.length > 0 ? (
+            ) : caregiversToDisplay.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {activeCaregivers.map(cg => (
+                    {caregiversToDisplay.map(cg => (
                         <Card key={cg.id} className="shadow-sm">
                             <CardHeader>
                                 <CardTitle className="flex items-center text-xl">
@@ -133,7 +135,7 @@ export default function ManageActiveCaregiversClient() {
                     ))}
                 </div>
             ) : (
-                <p className="text-center text-muted-foreground py-8">No active caregivers found.</p>
+                <p className="text-center text-muted-foreground py-8">No active caregivers found. Upload a CSV file to get started.</p>
             )}
         </CardContent>
       </Card>
