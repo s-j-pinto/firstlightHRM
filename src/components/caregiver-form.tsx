@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useForm, type FieldNames } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
-import { addDoc, collection } from "firebase/firestore";
+import { addDoc, collection, Timestamp } from "firebase/firestore";
 import { useFirestore, useUser, errorEmitter, FirestorePermissionError } from "@/firebase";
 import {
   Briefcase,
@@ -182,7 +182,7 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
       throw new Error("Firestore is not initialized");
     }
     const colRef = collection(db, "caregiver_profiles");
-    const docRef = await addDoc(colRef, { ...data, uid: user?.uid }).catch((serverError) => {
+    const docRef = await addDoc(colRef, { ...data, uid: user?.uid, createdAt: Timestamp.now() }).catch((serverError) => {
       const permissionError = new FirestorePermissionError({
         path: colRef.path,
         operation: "create",
