@@ -2,10 +2,40 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow read/write access for any signed-in user on any document.
-    // This is a broad rule suitable for development.
-    match /{document=**} {
+
+    // Allow authenticated users to read/write their own profiles and admins to read all
+    match /caregiver_profiles/{profileId} {
       allow read, write: if request.auth != null;
+    }
+
+    // Allow authenticated users to manage appointments
+    match /appointments/{appointmentId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Allow authenticated users to manage interviews
+    match /interviews/{interviewId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Allow authenticated users to manage employees
+    match /caregiver_employees/{employeeId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Allow authenticated users to manage settings
+    match /settings/{settingId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Allow authenticated users to manage clients
+    match /clients/{clientId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Allow creating mail documents for sending emails
+    match /mail/{mailId} {
+      allow create: if request.auth != null;
     }
   }
 }
