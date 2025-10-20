@@ -33,6 +33,7 @@ export default function ManageClientsClient() {
 
   const clients = useMemo(() => {
     if (!allClients) return [];
+    // Perform client-side filtering as a diagnostic step
     return allClients.filter(client => client.status === 'ACTIVE');
   }, [allClients]);
 
