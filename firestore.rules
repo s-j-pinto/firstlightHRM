@@ -1,46 +1,11 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Allow public read for settings, but only admins can write.
-    // This is a common pattern for app configuration.
-    match /settings/{setting} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-    
-    // Caregiver profiles can be created by anyone (anonymous users), 
-    // but only read/updated by authenticated admins.
-    match /caregiver_profiles/{profileId} {
-      allow create: if true;
-      allow read, update, delete: if request.auth != null;
-    }
-
-    // Appointments can be created by anyone, but only managed by admins.
-    match /appointments/{appointmentId} {
-      allow create: if true;
-      allow read, update, delete: if request.auth != null;
-    }
-    
-    // All other collections should only be accessible by authenticated admin users.
-    match /interviews/{interviewId} {
+    // Allow read/write access for any signed-in user on any document.
+    // This is a broad rule suitable for development.
+    match /{document=**} {
       allow read, write: if request.auth != null;
-    }
-    
-    match /caregiver_employees/{employeeId} {
-      allow read, write: if request.auth != null;
-    }
-    
-    match /clients/{clientId} {
-      allow read, write: if request.auth != null;
-    }
-
-    // Rules for the 'firestore-send-email' extension collection
-    match /mail/{emailId} {
-      allow create: if true; // Anyone can trigger an email
-      allow read, update, delete: if request.auth != null; // Only admins can manage the queue
     }
   }
 }
