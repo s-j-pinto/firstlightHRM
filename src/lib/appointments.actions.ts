@@ -19,6 +19,7 @@ export async function createAppointmentAndSendAdminEmail({caregiverId, appointme
             caregiverId: caregiverId,
             startTime: appointmentDate,
             endTime: new Date(appointmentDate.getTime() + 60 * 60 * 1000), // 60 min slot
+            createdAt: new Date(),
         };
         await firestore.collection('appointments').add(appointmentData);
 
