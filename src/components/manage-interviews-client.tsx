@@ -324,6 +324,7 @@ export default function ManageInterviewsClient() {
             interviewNotes: data.interviewNotes,
             candidateRating: data.candidateRating,
             aiGeneratedInsight: aiInsight || '',
+            createdAt: Timestamp.now(),
           };
           const docRef = await addDoc(collection(db, 'interviews'), tempInterviewData);
           interviewId = docRef.id;
@@ -836,3 +837,4 @@ export default function ManageInterviewsClient() {
     </div>
   );
 }
+
