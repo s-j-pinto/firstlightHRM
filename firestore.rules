@@ -40,6 +40,10 @@ service cloud.firestore {
       allow create: if isSignedIn();
       allow update, delete: if isSignedIn();
     }
+    match /caregivers_active/{caregiverId} {
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn();
+    }
   }
 }
-
