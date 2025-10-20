@@ -115,3 +115,20 @@ export const caregiverEmployeeSchema = z.object({
 });
 
 export type CaregiverEmployee = z.infer<typeof caregiverEmployeeSchema> & { id: string };
+
+export const clientSchema = z.object({
+  "Client Name": z.string(),
+  "DOB": z.string().optional(),
+  "Address": z.string(),
+  "Apt/Unit": z.string().optional(),
+  "City": z.string(),
+  "Zip": z.string(),
+  "Mobile": z.string(),
+  "ContactName": z.string().optional(),
+  "ContactMobile": z.string().optional(),
+  status: z.enum(["ACTIVE", "INACTIVE"]),
+  createdAt: z.any(),
+  lastUpdatedAt: z.any(),
+});
+
+export type Client = z.infer<typeof clientSchema> & { id: string };
