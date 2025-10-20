@@ -131,6 +131,31 @@
         "startDate",
         "teletrackPin"
       ]
+    },
+    "ActiveCaregiver": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ActiveCaregiver",
+      "type": "object",
+      "description": "Represents an active caregiver's information, typically from an external system.",
+      "properties": {
+        "Name": { "type": "string" },
+        "D.O.B.": { "type": "string" },
+        "Address": { "type": "string" },
+        "Apt": { "type": "string" },
+        "City": { "type": "string" },
+        "State": { "type": "string" },
+        "Zip": { "type": "string" },
+        "Mobile": { "type": "string" },
+        "Hire Date": { "type": "string" },
+        "Email": { "type": "string", "format": "email" },
+        "Drivers Lic": { "type": "string" },
+        "Caregiver Lic": { "type": "string" },
+        "PIN": { "type": "string" },
+        "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastUpdatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["Name", "Email", "status"]
     }
   },
   "auth": {
@@ -155,6 +180,10 @@
     "/caregiver_employees/{employeeId}": {
       "schema": { "$ref": "#/entities/CaregiverEmployee" },
       "description": "Stores hiring and employment details for caregivers."
+    },
+    "/caregivers_active/{caregiverId}": {
+      "schema": { "$ref": "#/entities/ActiveCaregiver" },
+      "description": "Stores active caregiver information from an external system."
     }
   }
 }

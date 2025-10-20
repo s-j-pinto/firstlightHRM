@@ -132,3 +132,24 @@ export const clientSchema = z.object({
 });
 
 export type Client = z.infer<typeof clientSchema> & { id: string };
+
+export const activeCaregiverSchema = z.object({
+  "Name": z.string(),
+  "D.O.B.": z.string().optional(),
+  "Address": z.string().optional(),
+  "Apt": z.string().optional(),
+  "City": z.string().optional(),
+  "State": z.string().optional(),
+  "Zip": z.string().optional(),
+  "Mobile": z.string().optional(),
+  "Hire Date": z.string().optional(),
+  "Email": z.string().email(),
+  "Drivers Lic": z.string().optional(),
+  "Caregiver Lic": z.string().optional(),
+  "PIN": z.string().optional(),
+  status: z.enum(["ACTIVE", "INACTIVE"]),
+  createdAt: z.any(),
+  lastUpdatedAt: z.any(),
+});
+
+export type ActiveCaregiver = z.infer<typeof activeCaregiverSchema> & { id: string };
