@@ -1,5 +1,6 @@
 
 import CancelledInterviewsReport from "@/components/cancelled-interviews-report";
+import CandidateStatusReport from "@/components/candidate-status-report";
 
 export default function ReportsPage() {
   return (
@@ -8,7 +9,8 @@ export default function ReportsPage() {
       <p className="text-muted-foreground">
         Analyze trends and historical data.
       </p>
-      <div className="mt-6">
+      <div className="mt-6 space-y-8">
+        <CandidateStatusReport />
         <CancelledInterviewsReport />
       </div>
     </div>
