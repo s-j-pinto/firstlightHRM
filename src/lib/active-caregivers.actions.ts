@@ -6,24 +6,37 @@ import { serverDb } from '@/firebase/server-init';
 import { WriteBatch, Timestamp } from 'firebase-admin/firestore';
 
 export async function processActiveCaregiverUpload(data: Record<string, any>[]) {
-  console.log(`[Action Start] processActiveCaregiverUpload (simple insert) received ${data.length} rows.`);
+  console.log(`[Action Start] processActiveCaregiverUpload received ${data.length} rows.`);
   const firestore = serverDb;
   const caregiversCollection = firestore.collection('caregivers_active');
   const now = Timestamp.now();
-  let batch: WriteBatch = firestore.batch();
-  let operations = 0;
-  let successfulInserts = 0;
 
   try {
+    // 1. Fetch all existing active caregivers and map them by email.
+    const existingCaregiversSnap = await caregiversCollection.where('status', '==', 'ACTIVE').get();
+    const existingCaregiversMap = new Map<string, { id: string, data: any }>();
+    existingCaregiversSnap.forEach(doc => {
+      const docData = doc.data();
+      const email = (docData.Email || '').trim().toLowerCase();
+      if (email) {
+        existingCaregiversMap.set(email, { id: doc.id, data: docData });
+      }
+    });
+    console.log(`[Action] Found ${existingCaregiversMap.size} existing active caregivers.`);
+
+    let batch: WriteBatch = firestore.batch();
+    let operations = 0;
+    let createdCount = 0;
+    let updatedCount = 0;
+
+    // 2. Process the uploaded CSV data.
     for (const row of data) {
-      // Basic validation for an email to use as an identifier, though we aren't checking for duplicates.
       const email = (row['Email'] || row['email'] || '').trim().toLowerCase();
       if (!email) {
         console.warn('[Action] Skipping row due to missing email:', row);
         continue;
       }
-
-      // Prepare the data for the new document.
+      
       const caregiverData = {
         'Name': row['Name'] || '',
         'D.O.B.': row['D.O.B.'] || '',
@@ -40,16 +53,25 @@ export async function processActiveCaregiverUpload(data: Record<string, any>[]) 
         'PIN': row['PIN'] || '',
         status: 'ACTIVE',
         lastUpdatedAt: now,
-        createdAt: now,
       };
 
-      // Create a new document reference for each row.
-      const docRef = caregiversCollection.doc();
-      batch.set(docRef, caregiverData);
-      operations++;
-      successfulInserts++;
+      const existingCaregiver = existingCaregiversMap.get(email);
 
-      // Commit the batch every 499 operations to stay under Firestore limits.
+      if (existingCaregiver) {
+        // Update existing caregiver
+        const docRef = caregiversCollection.doc(existingCaregiver.id);
+        batch.update(docRef, caregiverData);
+        updatedCount++;
+        // Remove from map so we know it was processed.
+        existingCaregiversMap.delete(email);
+      } else {
+        // Create new caregiver
+        const docRef = caregiversCollection.doc();
+        batch.set(docRef, { ...caregiverData, createdAt: now });
+        createdCount++;
+      }
+
+      operations++;
       if (operations >= 499) {
         await batch.commit();
         batch = firestore.batch();
@@ -57,17 +79,32 @@ export async function processActiveCaregiverUpload(data: Record<string, any>[]) 
       }
     }
 
-    // Commit any remaining operations in the last batch.
+    // 3. Deactivate caregivers who were not in the CSV.
+    for (const [email, { id }] of existingCaregiversMap.entries()) {
+      console.log(`[Action] Deactivating caregiver not in CSV: ${email}`);
+      const docRef = caregiversCollection.doc(id);
+      batch.update(docRef, { status: 'INACTIVE', lastUpdatedAt: now });
+      operations++;
+       if (operations >= 499) {
+        await batch.commit();
+        batch = firestore.batch();
+        operations = 0;
+      }
+    }
+    const deactivatedCount = existingCaregiversMap.size;
+
+    // 4. Commit any remaining operations.
     if (operations > 0) {
       await batch.commit();
     }
 
-    console.log(`[Action Success] Successfully inserted ${successfulInserts} documents.`);
+    const message = `Upload complete. Created: ${createdCount}, Updated: ${updatedCount}, Deactivated: ${deactivatedCount}.`;
+    console.log(`[Action Success] ${message}`);
     revalidatePath('/admin/manage-active-caregivers');
-    return { message: `Upload successful. ${successfulInserts} new caregiver records were created.` };
+    return { message: message };
 
   } catch (error: any) {
-    console.error('[Action Error] Critical error during simple insert:', error);
+    console.error('[Action Error] Critical error during upload process:', error);
     return { message: `An error occurred during the upload: ${error.message}`, error: true };
   }
 }
