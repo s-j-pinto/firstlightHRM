@@ -1,72 +1,9 @@
-/**
- * @file Firestore Security Rules
- * @description This ruleset enforces a role-based access control model.
- *
- * Data Structure:
- * - /caregiver_profiles/{caregiverProfileId}: Caregiver profiles, accessible to authenticated users.
- * - /appointments/{appointmentId}: Appointment slots, accessible to authenticated users.
- * - /interviews/{interviewId}: Interview data, accessible to authenticated users.
- * - /caregiver_employees/{employeeId}: Caregiver employee data, accessible to authenticated users.
- *
- * Key Security Decisions:
- * - All collections are accessible to authenticated users.
- * - Data validation is not enforced in this prototyping phase, focusing on authorization.
- */
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    /**
-     * @description Manages access to caregiver profiles. All authenticated users can read and write profiles.
-     * @path /caregiver_profiles/{caregiverProfileId}
-     * @allow (create) - Authenticated user creates a caregiver profile.
-     * @deny (create) - Unauthenticated user attempts to create a profile.
-     * @principle Allows any authenticated user to create, read, update, and delete caregiver profiles.
-     */
-    match /caregiver_profiles/{caregiverProfileId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
+    match /{document=**} {
+      allow read, write: if true;
     }
-
-    /**
-     * @description Manages access to appointment slots. All authenticated users can read and write appointment slots.
-     * @path /appointments/{appointmentId}
-     * @allow (create) - Authenticated user creates an appointment slot.
-     * @deny (create) - Unauthenticated user attempts to create an appointment slot.
-     * @principle Allows any authenticated user to create, read, update, and delete appointment slots.
-     */
-    match /appointments/{appointmentId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
-    }
-
-    /**
-     * @description Manages access to interview data. All authenticated users can read and write interview data.
-     * @path /interviews/{interviewId}
-     * @allow (create) - Authenticated user creates interview data.
-     * @deny (create) - Unauthenticated user attempts to create interview data.
-     * @principle Allows any authenticated user to create, read, update, and delete interview data.
-     */
-    match /interviews/{interviewId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
-    }
-
-    /**
-     * @description Manages access to caregiver employee data. All authenticated users can read and write caregiver employee data.
-     * @path /caregiver_employees/{employeeId}
-     * @allow (create) - Authenticated user creates caregiver employee data.
-     * @deny (create) - Unauthenticated user attempts to create caregiver employee data.
-     * @principle Allows any authenticated user to create, read, update, and delete caregiver employee data.
-     */
-    match /caregiver_employees/{employeeId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
-    }
-  }
-
-  // Helper function to determine if a user is signed in.
-  function isSignedIn() {
-    return request.auth != null;
   }
 }
