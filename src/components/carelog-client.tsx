@@ -8,7 +8,7 @@ import { collection, query, where } from "firebase/firestore";
 import { CareLogGroup, Client } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { saveCareLog } from "@/lib/carelog.actions";
-import { Loader2, Users, AlertCircle, Camera, CheckCircle, Upload } from "lucide-react";
+import { Loader2, Users, AlertCircle, Camera, CheckCircle, Upload, Trash2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
