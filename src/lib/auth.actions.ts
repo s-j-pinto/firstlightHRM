@@ -68,6 +68,7 @@ export async function loginActiveCaregiver(email: string, pin: string) {
 
   } catch (error: any) {
     console.error("[Login Action] Error in loginActiveCaregiver action:", error);
-    return { error: "An unexpected server error occurred." };
+    // Return the specific error message for debugging
+    return { error: `An unexpected server error occurred: ${error.message}` };
   }
 }
