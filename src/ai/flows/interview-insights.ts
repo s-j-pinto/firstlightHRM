@@ -23,12 +23,25 @@ const InterviewInsightsInputSchema = z.object({
   interviewNotes: z.string(),
   candidateRating: z.number().min(0).max(5),
 });
+export type InterviewInsightsInput = z.infer<typeof InterviewInsightsInputSchema>;
+
 
 // Defines the schema for the expected output from the AI model.
 // This tells the model how to structure its response.
 const InterviewInsightsOutputSchema = z.object({
   aiGeneratedInsight: z.string().describe('A concise summary of the candidate (max 200 words), followed by a clear hiring recommendation (e.g., "Recommend for in-person interview," "Proceed with caution," "Do not recommend") with a brief justification.'),
 });
+export type InterviewInsightsOutput = z.infer<typeof InterviewInsightsOutputSchema>;
+
+/**
+ * A server action that wraps the Genkit flow for use on the client.
+ * @param input - The candidate and interview data.
+ * @returns The structured output from the AI model.
+ */
+export async function generateInterviewInsights(input: InterviewInsightsInput): Promise<InterviewInsightsOutput> {
+  return generateInterviewInsightsFlow(input);
+}
+
 
 // Defines the prompt template that will be sent to the AI model.
 // It uses Handlebars syntax `{{...}}` to insert the input data.
@@ -37,7 +50,7 @@ const interviewAnalysisPrompt = ai.definePrompt(
     name: 'interviewAnalysisPrompt',
     input: { schema: InterviewInsightsInputSchema },
     output: { schema: InterviewInsightsOutputSchema },
-    model: googleAI.model('gemini-2.5-flash'),
+    model: googleAI.model('gemini-1.5-flash'),
     prompt: `You are an expert HR assistant for a home care agency. Your task is to analyze a caregiver candidate's profile and the notes from their phone screen to provide a single, combined insight containing a summary and a hiring recommendation.
 
 Analyze the following information:
@@ -78,7 +91,7 @@ Recommendation: [Your recommendation and justification...]
 );
 
 // Defines the Genkit flow, which orchestrates the call to the AI prompt.
-export const generateInterviewInsightsFlow = ai.defineFlow(
+const generateInterviewInsightsFlow = ai.defineFlow(
   {
     name: "generateInterviewInsightsFlow",
     inputSchema: InterviewInsightsInputSchema,

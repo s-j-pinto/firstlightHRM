@@ -1,4 +1,6 @@
 
+'use server';
+
 import admin from 'firebase-admin';
 
 // IMPORTANT: This file is for server-side use only.
@@ -11,9 +13,10 @@ const initializeServerApp = () => {
 
     console.log("[Firebase Admin] Attempting to initialize...");
 
-    // Check if running in a Google Cloud environment (like App Hosting) where ADC are available.
-    if (process.env.GCP_PROJECT) {
-        console.log("[Firebase Admin] Google Cloud environment detected. Initializing with Application Default Credentials.");
+    // process.env.NODE_ENV is a reliable way to check for production in Next.js/App Hosting
+    // GCP_PROJECT is also a good indicator of a Google Cloud environment.
+    if (process.env.NODE_ENV === 'production' || process.env.GCP_PROJECT) {
+        console.log("[Firebase Admin] Production environment detected. Initializing with Application Default Credentials.");
         try {
             const app = admin.initializeApp();
             console.log("[Firebase Admin] SDK initialized successfully in production.");
@@ -24,9 +27,9 @@ const initializeServerApp = () => {
         }
     } else {
         // Fallback for local development using a service account file.
-        console.log("[Firebase Admin] Local environment detected. Attempting to initialize with service-account.json.");
+        console.log("[Firebase Admin] Local development environment detected. Attempting to initialize with service-account.json.");
         try {
-            // This 'require' is inside the 'else' block, so it only runs locally.
+            // This 'require' is now safely inside the 'else' block, so it only runs locally.
             const serviceAccount = require('../../service-account.json');
             const app = admin.initializeApp({
                 credential: admin.credential.cert(serviceAccount)
@@ -36,9 +39,9 @@ const initializeServerApp = () => {
         } catch (e: any) {
             console.error("[Firebase Admin] CRITICAL: Failed to initialize for local development.", e);
             if (e.code === 'MODULE_NOT_FOUND') {
-                 throw new Error("Could not initialize Firebase Admin SDK for local development. The 'service-account.json' file was not found. Please ensure it is in the root directory.");
+                 throw new Error("Could not initialize Firebase Admin SDK for local development. The 'service-account.json' file was not found in the root directory. Please add it to continue local development.");
             }
-            throw new Error(`Could not initialize Firebase Admin SDK. Error: ${e.message}`);
+            throw new Error(`Could not initialize Firebase Admin SDK for local development. Error: ${e.message}`);
         }
     }
 }

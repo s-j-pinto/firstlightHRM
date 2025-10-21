@@ -1,6 +1,7 @@
+
 'use server';
 
-import { generateInterviewInsightsFlow } from '@/ai/flows/interview-insights';
+import { generateInterviewInsights, InterviewInsightsInput } from '@/ai/flows/interview-insights';
 import { extractCareLogData as extractCareLogDataFlow } from '@/ai/flows/extract-carelog-flow';
 import type { ExtractCareLogInput, ExtractCareLogOutput } from '@/ai/flows/extract-carelog-flow';
 
@@ -14,9 +15,9 @@ import type { ExtractCareLogInput, ExtractCareLogOutput } from '@/ai/flows/extra
  * @param payload - The data for the candidate and interview.
  * @returns An object containing the AI-generated insight.
  */
-export async function getAiInterviewInsights(payload: any) {
+export async function getAiInterviewInsights(payload: InterviewInsightsInput) {
   try {
-    const result = await generateInterviewInsightsFlow(payload);
+    const result = await generateInterviewInsights(payload);
     return { aiGeneratedInsight: result.aiGeneratedInsight };
   } catch (e: any) {
     console.error("Error in getAiInterviewInsights Server Action:", e);
