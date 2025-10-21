@@ -43,10 +43,9 @@ export async function loginActiveCaregiver(email: string, pin: string) {
     const displayName = caregiverData['Name'];
     console.log(`[Login Action] Credentials verified for UID: ${uid}. DisplayName: ${displayName}`);
 
-    /*
-    // Temporarily disabled to prevent production crashes due to IAM permissions.
+    
     // This code attempts to sync the caregiver's name and email with Firebase Auth.
-    // To re-enable, the App Hosting service account needs the 'Service Usage Consumer' role.
+    // If it fails due to IAM permissions in production, it will be skipped and logged.
     try {
         console.log(`[Login Action] Updating Firebase Auth user for UID: ${uid}`);
         await serverAuth.updateUser(uid, {
@@ -64,12 +63,12 @@ export async function loginActiveCaregiver(email: string, pin: string) {
             });
             console.log(`[Login Action] Successfully created new Auth user.`);
         } else {
-            // Re-throw other auth errors to be caught by the outer catch block
-            console.error(`[Login Action] Error updating/creating Auth user:`, error);
-            throw error;
+            // Log other auth errors but do not re-throw, to allow token creation to proceed.
+            // This commonly happens in production if IAM permissions are missing.
+            console.error(`[Login Action] A non-critical error occurred while updating/creating the Auth user, proceeding with token generation. Error:`, error.message);
         }
     }
-    */
+    
 
     // Create a custom token for the client to sign in with
     console.log(`[Login Action] Creating custom token for UID: ${uid}`);
