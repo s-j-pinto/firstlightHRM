@@ -20,6 +20,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { doc, setDoc } from "firebase/firestore";
 import { useFirestore, useFirebase, useMemoFirebase } from "@/firebase";
 import { useDoc } from "@/firebase/firestore/use-doc";
+import { CareLogGroupAdmin } from "./carelog-group-admin";
 
 type SettingsFormValues = {
   sunday_slots: string;
@@ -151,6 +152,8 @@ export default function AdminSettings() {
             </div>
           </CardContent>
         </Card>
+
+        <CareLogGroupAdmin />
 
         <Card>
             <CardHeader>

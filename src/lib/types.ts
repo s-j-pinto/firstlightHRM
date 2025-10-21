@@ -146,10 +146,20 @@ export const activeCaregiverSchema = z.object({
   "Email": z.string().email(),
   "Drivers Lic": z.string().optional(),
   "Caregiver Lic": z.string().optional(),
-  "PIN": z.string().optional(),
+  "TTiD-PIN": z.string().optional(),
   status: z.enum(["ACTIVE", "INACTIVE"]),
   createdAt: z.any(),
   lastUpdatedAt: z.any(),
 });
 
 export type ActiveCaregiver = z.infer<typeof activeCaregiverSchema> & { id: string };
+
+export const careLogGroupSchema = z.object({
+  clientId: z.string(),
+  clientName: z.string(),
+  caregiverIds: z.array(z.string()),
+  createdAt: z.any(),
+  lastUpdatedAt: z.any(),
+});
+
+export type CareLogGroup = z.infer<typeof careLogGroupSchema> & { id: string };

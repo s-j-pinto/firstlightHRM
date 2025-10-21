@@ -177,6 +177,20 @@
         "lastUpdatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["Client Name", "Address", "City", "Zip", "Mobile", "status"]
+    },
+    "CareLogGroup": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CareLogGroup",
+      "type": "object",
+      "description": "A group that links a client to one or more active caregivers.",
+      "properties": {
+        "clientId": { "type": "string", "description": "The document ID of the linked client from the 'Clients' collection." },
+        "clientName": { "type": "string", "description": "The name of the linked client, stored for easy display." },
+        "caregiverIds": { "type": "array", "items": { "type": "string" }, "description": "An array of document IDs for the linked caregivers from the 'caregivers_active' collection." },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastUpdatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["clientId", "clientName", "caregiverIds", "createdAt", "lastUpdatedAt"]
     }
   },
   "auth": {
@@ -209,6 +223,10 @@
     "/Clients/{clientId}": {
       "schema": { "$ref": "#/entities/Client" },
       "description": "Stores client information from an external system."
+    },
+    "/carelog_groups/{groupId}": {
+      "schema": { "$ref": "#/entities/CareLogGroup" },
+      "description": "Stores groups linking clients to their assigned active caregivers."
     }
   }
 }
