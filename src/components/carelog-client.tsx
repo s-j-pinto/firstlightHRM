@@ -2,14 +2,12 @@
 "use client";
 
 import { useState, useMemo, useTransition, useRef, useEffect } from "react";
-import { useUser } from "@/firebase";
-import { firestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where, orderBy } from "firebase/firestore";
+import { useUser, firestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
+import { collection, query, where, orderBy, addDoc, Timestamp } from "firebase/firestore";
 import { CareLogGroup, Client, CareLog } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { saveCareLog } from "@/lib/carelog.actions";
 import { extractCareLogData } from "@/ai/flows/extract-carelog-flow";
-import { Loader2, Users, AlertCircle, Camera, CheckCircle, Upload, Trash2, FileText, Clock } from "lucide-react";
+import { Loader2, Users, Camera, Trash2, FileText, Clock, Upload } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import Image from "next/image";
 import { format } from "date-fns";
+import { careLogSchema } from "@/lib/types";
 
 export default function CareLogClient() {
   const { user, isUserLoading } = useUser();
@@ -33,14 +32,12 @@ export default function CareLogClient() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Fetch CareLog groups where the current user is a member
   const careLogGroupsRef = useMemoFirebase(
     () => user ? query(collection(firestore, 'carelog_groups'), where('caregiverIds', 'array-contains', user.uid)) : null,
     [user]
   );
   const { data: careLogGroups, isLoading: groupsLoading } = useCollection<CareLogGroup>(careLogGroupsRef);
 
-  // Fetch all care logs for the selected group, sorted by shift date
   const careLogsRef = useMemoFirebase(
     () => selectedGroup ? query(collection(firestore, 'carelogs'), where('careLogGroupId', '==', selectedGroup.id), orderBy('shiftDateTime', 'desc')) : null,
     [selectedGroup]
@@ -58,7 +55,6 @@ export default function CareLogClient() {
   const handleGroupSelect = (groupId: string) => {
     const group = careLogGroups?.find(g => g.id === groupId) || null;
     setSelectedGroup(group);
-    // Reset form state when group changes
     setLogNotes("");
     setScannedImage(null);
     setShowCamera(false);
@@ -106,7 +102,6 @@ export default function CareLogClient() {
             const dataUrl = canvas.toDataURL('image/jpeg');
             setScannedImage(dataUrl);
 
-            // Start AI extraction
             startExtractTransition(async () => {
                 try {
                     const result = await extractCareLogData({ imageDataUri: dataUrl });
@@ -126,7 +121,6 @@ export default function CareLogClient() {
             });
         }
         setShowCamera(false);
-        // Stop the camera stream
         const stream = video.srcObject as MediaStream;
         stream.getTracks().forEach(track => track.stop());
     }
@@ -134,12 +128,12 @@ export default function CareLogClient() {
 
   const handleSubmitLog = () => {
     if (!selectedGroup || !user) {
-        toast({ title: "Error", description: "Please select a client group first.", variant: "destructive"});
-        return;
+      toast({ title: "Error", description: "Please select a client group first.", variant: "destructive" });
+      return;
     }
     if (!logNotes && !scannedImage) {
-        toast({ title: "Error", description: "Please enter notes or scan a document.", variant: "destructive"});
-        return;
+      toast({ title: "Error", description: "Please enter notes or scan a document.", variant: "destructive" });
+      return;
     }
     if (scannedImage && !shiftDateTime) {
       toast({ title: "Error", description: "Shift date and time are required when submitting a scan.", variant: "destructive" });
@@ -147,24 +141,44 @@ export default function CareLogClient() {
     }
 
     startSubmitTransition(async () => {
-        const payload = {
-            careLogGroupId: selectedGroup.id,
-            caregiverId: user.uid,
-            caregiverName: user.displayName || user.email || 'Unknown Caregiver',
-            logNotes: logNotes,
-            logImages: scannedImage ? [scannedImage] : [],
-            shiftDateTime: shiftDateTime || new Date().toISOString(),
-        };
+      const logData = {
+        careLogGroupId: selectedGroup.id,
+        caregiverId: user.uid,
+        caregiverName: user.displayName || user.email || 'Unknown Caregiver',
+        logNotes: logNotes,
+        logImages: scannedImage ? [scannedImage] : [],
+        shiftDateTime: shiftDateTime ? Timestamp.fromDate(new Date(shiftDateTime)) : Timestamp.now(),
+        createdAt: Timestamp.now(),
+        lastUpdatedAt: Timestamp.now(),
+      };
+      
+      const validation = careLogSchema.safeParse(logData);
 
-        const result = await saveCareLog(payload);
-
-        if (result.error) {
-            toast({ title: "Submission Failed", description: result.message, variant: "destructive"});
-        } else {
-            toast({ title: "Success", description: "Your care log has been submitted."});
-            // Reset form
-            handleGroupSelect(selectedGroup.id); // Re-select to clear form but keep group
-        }
+      if (!validation.success) {
+          toast({
+              title: "Validation Error",
+              description: validation.error.errors.map(e => e.message).join(', '),
+              variant: "destructive"
+          });
+          return;
+      }
+      
+      const colRef = collection(firestore, "carelogs");
+      
+      addDoc(colRef, validation.data).then(() => {
+          toast({ title: "Success", description: "Your care log has been submitted."});
+          // Reset form on success
+          handleGroupSelect(selectedGroup.id);
+      }).catch(serverError => {
+          // This is where we create and emit the contextual error
+          const permissionError = new FirestorePermissionError({
+            path: colRef.path,
+            operation: "create",
+            requestResourceData: validation.data,
+          });
+          errorEmitter.emit("permission-error", permissionError);
+          // We don't need a toast here because the global error boundary will show the error.
+      });
     });
   };
 

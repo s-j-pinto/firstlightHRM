@@ -7,43 +7,19 @@ import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { careLogSchema } from './types';
 
-// Omit server-generated fields for the payload
-const careLogPayloadSchema = careLogSchema.omit({
-  createdAt: true,
-  lastUpdatedAt: true,
-});
+// This file is now primarily for revalidation, as the write operation
+// has been moved to the client to enable better error handling.
 
-type CareLogPayload = z.infer<typeof careLogPayloadSchema>;
+export async function revalidateCareLog() {
+  revalidatePath('/caregiver/carelog-dashboard');
+}
 
-export async function saveCareLog(payload: CareLogPayload) {
-  const validation = careLogPayloadSchema.safeParse(payload);
-  if (!validation.success) {
-    console.error("CareLog validation error:", validation.error.issues);
-    return { message: `Invalid data provided: ${validation.error.issues.map(i => i.message).join(', ')}`, error: true };
-  }
-
-  const { careLogGroupId, caregiverId, caregiverName, logNotes, logImages, shiftDateTime } = validation.data;
-  const firestore = serverDb;
-
-  try {
-    const logData = {
-      careLogGroupId,
-      caregiverId,
-      caregiverName,
-      logNotes,
-      logImages: logImages || [],
-      shiftDateTime: shiftDateTime ? Timestamp.fromDate(new Date(shiftDateTime)) : Timestamp.now(),
-      createdAt: Timestamp.now(),
-      lastUpdatedAt: Timestamp.now(),
-    };
-
-    await firestore.collection('carelogs').add(logData);
-
-    revalidatePath('/caregiver/carelog-dashboard');
-    return { message: "Care log submitted successfully." };
-
-  } catch (error: any) {
-    console.error("Error saving CareLog:", error);
-    return { message: `An error occurred: ${error.message}`, error: true };
-  }
+/**
+ * @deprecated This function is deprecated. The logic has been moved to the client-side
+ * in `carelog-client.tsx` to implement improved, contextual error handling for
+ * Firestore security rules. This server action may be removed in a future version.
+ */
+export async function saveCareLog(payload: any) {
+  console.error("DEPRECATED: saveCareLog server action was called. This logic has moved to the client.");
+  return { message: "This function is deprecated. Please use the client-side submission.", error: true };
 }
