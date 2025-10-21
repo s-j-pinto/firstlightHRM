@@ -52,7 +52,7 @@ export async function processActiveCaregiverUpload(data: Record<string, any>[]) 
         'Email': email,
         'Drivers Lic': row['Drivers Lic'] || '',
         'Caregiver Lic': row['Caregiver Lic'] || '',
-        'TTiD-PIN': row['TTid-PIN'] || '',
+        'TTiD-PIN': row['TTiD-PIN'] || '',
         status: 'ACTIVE',
         lastUpdatedAt: now,
       };
