@@ -1,6 +1,8 @@
 'use server';
 
 import { generateInterviewInsightsFlow } from '@/ai/flows/interview-insights';
+import { extractCareLogData as extractCareLogDataFlow } from '@/ai/flows/extract-carelog-flow';
+import type { ExtractCareLogInput, ExtractCareLogOutput } from '@/ai/flows/extract-carelog-flow';
 
 /**
  * Server Action to generate AI insights for a caregiver interview.
@@ -20,5 +22,21 @@ export async function getAiInterviewInsights(payload: any) {
     console.error("Error in getAiInterviewInsights Server Action:", e);
     // Propagate a clear error message to the client.
     return { error: `An error occurred while generating AI insights: ${e.message}` };
+  }
+}
+
+/**
+ * Server Action to extract text and data from a care log image.
+ *
+ * @param payload - The image data to process.
+ * @returns An object containing the extracted text and shift date/time.
+ */
+export async function extractCareLogData(payload: ExtractCareLogInput): Promise<ExtractCareLogOutput | { error: string }> {
+  try {
+    const result = await extractCareLogDataFlow(payload);
+    return result;
+  } catch (e: any) {
+    console.error("Error in extractCareLogData Server Action:", e);
+    return { error: `An error occurred while processing the image: ${e.message}` };
   }
 }

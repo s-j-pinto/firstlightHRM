@@ -18,10 +18,11 @@ type CareLogPayload = z.infer<typeof careLogPayloadSchema>;
 export async function saveCareLog(payload: CareLogPayload) {
   const validation = careLogPayloadSchema.safeParse(payload);
   if (!validation.success) {
-    return { message: "Invalid data provided.", error: true };
+    console.error("CareLog validation error:", validation.error.issues);
+    return { message: `Invalid data provided: ${validation.error.issues.map(i => i.message).join(', ')}`, error: true };
   }
 
-  const { careLogGroupId, caregiverId, caregiverName, logNotes, logImages } = validation.data;
+  const { careLogGroupId, caregiverId, caregiverName, logNotes, logImages, shiftDateTime } = validation.data;
   const firestore = serverDb;
 
   try {
@@ -31,6 +32,7 @@ export async function saveCareLog(payload: CareLogPayload) {
       caregiverName,
       logNotes,
       logImages: logImages || [],
+      shiftDateTime: shiftDateTime ? Timestamp.fromDate(new Date(shiftDateTime)) : Timestamp.now(),
       createdAt: Timestamp.now(),
       lastUpdatedAt: Timestamp.now(),
     };

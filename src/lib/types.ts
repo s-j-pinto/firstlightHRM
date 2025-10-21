@@ -168,6 +168,7 @@ export const careLogSchema = z.object({
   careLogGroupId: z.string(),
   caregiverId: z.string(),
   caregiverName: z.string(),
+  shiftDateTime: z.any().optional(),
   logNotes: z.string(),
   logImages: z.array(z.string()).optional(), // Array of data URIs
   createdAt: z.any(),
