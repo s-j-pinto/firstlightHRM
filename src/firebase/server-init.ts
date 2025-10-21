@@ -11,20 +11,32 @@ const initializeServerApp = () => {
 
     console.log("[Firebase Admin] Attempting to initialize...");
 
-    try {
-        // This logic is now simplified to ALWAYS use the service account file for local dev.
-        // For production App Hosting, environment variables would be used instead.
-        const serviceAccount = require('../../service-account.json');
-        console.log("[Firebase Admin] Initializing with service-account.json.");
-        const app = admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount)
-        });
-        console.log("[Firebase Admin] SDK initialized successfully with service account file.");
-        return app;
-    } catch (e: any) {
-        console.error("[Firebase Admin] CRITICAL: Failed to initialize Firebase Admin SDK with service-account.json.", e);
-        // This throws an error that will be caught by the server action and reported to the user.
-        throw new Error(`Could not initialize Firebase Admin SDK. Make sure the service-account.json file is correctly placed and formatted. Error: ${e.message}`);
+    // Check if running in a Google Cloud environment (like App Hosting)
+    if (process.env.GCP_PROJECT) {
+        console.log("[Firebase Admin] Google Cloud environment detected. Initializing with Application Default Credentials.");
+        try {
+            const app = admin.initializeApp();
+            console.log("[Firebase Admin] SDK initialized successfully in production.");
+            return app;
+        } catch (e: any) {
+            console.error("[Firebase Admin] CRITICAL: Failed to initialize in production environment.", e);
+            // In a production environment, if this fails, we should throw to stop the process.
+            throw new Error(`Could not initialize Firebase Admin SDK in production: ${e.message}`);
+        }
+    } else {
+        // Fallback for local development
+        console.log("[Firebase Admin] Local environment detected. Attempting to initialize with service-account.json.");
+        try {
+            const serviceAccount = require('../../service-account.json');
+            const app = admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount)
+            });
+            console.log("[Firebase Admin] SDK initialized successfully for local development.");
+            return app;
+        } catch (e: any) {
+            console.error("[Firebase Admin] CRITICAL: Failed to initialize for local development.", e);
+            throw new Error(`Could not initialize Firebase Admin SDK. Make sure 'service-account.json' exists and is valid. Error: ${e.message}`);
+        }
     }
 }
 
