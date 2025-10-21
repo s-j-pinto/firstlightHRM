@@ -28,6 +28,7 @@ export default function CareLogClient() {
   const [scannedImage, setScannedImage] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [shiftDateTime, setShiftDateTime] = useState<string | null>(null);
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -80,25 +81,33 @@ export default function CareLogClient() {
 
   useEffect(() => {
     if (showCamera) {
-      async function getCameraPermission() {
-          if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-              try {
-                  const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-                  if (videoRef.current) {
-                      videoRef.current.srcObject = stream;
-                  }
-              } catch (error) {
-                  console.error("Error accessing camera:", error);
-                  toast({
-                      variant: "destructive",
-                      title: "Camera access denied",
-                      description: "Please enable camera permissions in your browser settings.",
-                  });
-                  setShowCamera(false);
-              }
+      const getCameraPermission = async () => {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          setHasCameraPermission(true);
+
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
           }
-      }
+        } catch (error) {
+          console.error('Error accessing camera:', error);
+          setHasCameraPermission(false);
+          toast({
+            variant: 'destructive',
+            title: 'Camera Access Denied',
+            description: 'Please enable camera permissions in your browser settings to use this app.',
+          });
+        }
+      };
+
       getCameraPermission();
+    } else {
+        // Stop camera stream when not showing
+        if (videoRef.current && videoRef.current.srcObject) {
+            const stream = videoRef.current.srcObject as MediaStream;
+            stream.getTracks().forEach(track => track.stop());
+            videoRef.current.srcObject = null;
+        }
     }
   }, [showCamera, toast]);
 
@@ -154,30 +163,43 @@ export default function CareLogClient() {
       
       // If date wasn't extracted from image, try extracting from text notes.
       if (!finalShiftDateTime && logNotes) {
-        try {
-          const result = await extractCareLogData({ textContent: logNotes });
-          finalShiftDateTime = result.shiftDateTime;
-          // Keep original notes, but update the time
-          toast({
-            title: "Shift Time Extracted",
-            description: "AI found a date/time in your notes.",
-          });
-        } catch (e: any) {
-          toast({
-            title: "Date Extraction Failed",
-            description: "Could not find a date/time in the notes. Using current time.",
-            variant: "destructive",
-          });
-        }
+        startExtractTransition(async () => {
+            try {
+              const result = await extractCareLogData({ textContent: logNotes });
+              finalShiftDateTime = result.shiftDateTime;
+              toast({
+                title: "Shift Time Extracted",
+                description: "AI found a date/time in your notes.",
+              });
+              // Now submit with the extracted time
+              submitLog(finalShiftDateTime, finalLogNotes);
+            } catch (e: any) {
+              toast({
+                title: "Date Extraction Failed",
+                description: "Could not find a date/time in the notes. Using current time.",
+                variant: "destructive",
+              });
+              // Submit with the current time
+              submitLog(null, finalLogNotes);
+            }
+        });
+      } else {
+          // Submit immediately if we already have a time or there are no notes to parse
+          submitLog(finalShiftDateTime, finalLogNotes);
       }
+    });
+  };
 
-      const logData = {
+  const submitLog = (submitShiftTime: string | null, submitLogNotes: string) => {
+     if (!selectedGroup || !user) return;
+     
+     const logData = {
         careLogGroupId: selectedGroup.id,
         caregiverId: user.uid,
         caregiverName: user.displayName || user.email || 'Unknown Caregiver',
-        logNotes: finalLogNotes,
+        logNotes: submitLogNotes,
         logImages: scannedImage ? [scannedImage] : [],
-        shiftDateTime: finalShiftDateTime ? Timestamp.fromDate(new Date(finalShiftDateTime)) : Timestamp.now(),
+        shiftDateTime: submitShiftTime ? Timestamp.fromDate(new Date(submitShiftTime)) : Timestamp.now(),
         createdAt: Timestamp.now(),
         lastUpdatedAt: Timestamp.now(),
       };
@@ -207,8 +229,7 @@ export default function CareLogClient() {
           });
           errorEmitter.emit("permission-error", permissionError);
       });
-    });
-  };
+  }
 
   const isLoading = isUserLoading || groupsLoading || clientsLoading;
 
@@ -265,9 +286,17 @@ export default function CareLogClient() {
                   {showCamera ? (
                       <div className="space-y-4">
                           <video ref={videoRef} className="w-full aspect-video rounded-md bg-black" autoPlay playsInline muted />
-                          <canvas ref={canvasRef} className="hidden" />
+                           <canvas ref={canvasRef} className="hidden" />
+                          {hasCameraPermission === false && (
+                              <Alert variant="destructive">
+                                  <AlertTitle>Camera Access Required</AlertTitle>
+                                  <AlertDescription>
+                                  Please allow camera access in your browser settings to use this feature.
+                                  </AlertDescription>
+                              </Alert>
+                          )}
                           <div className="flex justify-center gap-4">
-                              <Button onClick={handleCapture}><Camera className="mr-2" /> Capture Image</Button>
+                              <Button onClick={handleCapture} disabled={hasCameraPermission === false}><Camera className="mr-2" /> Capture Image</Button>
                               <Button variant="outline" onClick={() => setShowCamera(false)}>Cancel</Button>
                           </div>
                       </div>
@@ -321,7 +350,7 @@ export default function CareLogClient() {
 
                   <div className="flex justify-end pt-4">
                       <Button onClick={handleSubmitLog} disabled={isSubmitting || isExtracting}>
-                          {isSubmitting ? (
+                          {isSubmitting || isExtracting ? (
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           ) : (
                               <Upload className="mr-2 h-4 w-4" />
@@ -381,3 +410,5 @@ export default function CareLogClient() {
     </div>
   );
 }
+
+    
