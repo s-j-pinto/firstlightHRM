@@ -115,7 +115,7 @@ export default function ManageActiveCaregiversClient() {
                             <p><strong>Hire Date:</strong> {caregiver['Hire Date'] || 'N/A'}</p>
                             <p><strong>Driver's License:</strong> {caregiver['Drivers Lic'] || 'N/A'}</p>
                             <p><strong>Caregiver License:</strong> {caregiver['Caregiver Lic'] || 'N/A'}</p>
-                            <p><strong>PIN:</strong> {caregiver.PIN || 'N/A'}</p>
+                            <p><strong>TTiD/PIN:</strong> {caregiver.PIN || 'N/A'}</p>
                         </CardContent>
                     </Card>
                 ))}
