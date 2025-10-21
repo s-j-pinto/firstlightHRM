@@ -20,9 +20,6 @@
 # production
 /build
 
-# misc
-.DS_Store
-*.pem
 
 # debug
 npm-debug.log*
@@ -47,6 +44,18 @@ firestore-debug.log
 /firebase/config.ts
 /src/firebase/service-account.json
 service-account.json
+.firebase/
 
 # env
 .env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# misc
+.DS_Store
+*.pem
+*.key
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
