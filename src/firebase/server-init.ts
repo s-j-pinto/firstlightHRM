@@ -1,6 +1,4 @@
 
-'use server';
-
 import admin from 'firebase-admin';
 
 // IMPORTANT: This file is for server-side use only.
