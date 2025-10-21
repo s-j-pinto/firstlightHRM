@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useTransition, useRef, useEffect } from "react";
 import { useUser, firestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
-import { collection, query, where, orderBy, addDoc, Timestamp } from "firebase/firestore";
+import { collection, query, where, addDoc, Timestamp } from "firebase/firestore";
 import { CareLogGroup, Client, CareLog } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { extractCareLogData } from "@/ai/flows/extract-carelog-flow";
@@ -39,7 +39,7 @@ export default function CareLogClient() {
   const { data: careLogGroups, isLoading: groupsLoading } = useCollection<CareLogGroup>(careLogGroupsRef);
 
   const careLogsRef = useMemoFirebase(
-    () => selectedGroup ? query(collection(firestore, 'carelogs'), where('careLogGroupId', '==', selectedGroup.id), orderBy('shiftDateTime', 'desc')) : null,
+    () => selectedGroup ? query(collection(firestore, 'carelogs'), where('careLogGroupId', '==', selectedGroup.id)) : null,
     [selectedGroup]
   );
   const { data: careLogs, isLoading: logsLoading } = useCollection<CareLog>(careLogsRef);
@@ -343,3 +343,5 @@ export default function CareLogClient() {
     </div>
   );
 }
+
+    
