@@ -22,17 +22,20 @@ export async function loginActiveCaregiver(email: string, pin: string) {
     const snapshot = await query.get();
 
     if (snapshot.empty) {
+      console.log(`[Login Action] No active caregiver found for email: ${normalizedEmail}`);
       return { error: "Invalid credentials or inactive account." };
     }
 
     const caregiverDoc = snapshot.docs[0];
     const caregiverData = caregiverDoc.data();
 
-    // Verify the PIN
-    if (caregiverData['TTiD-PIN'] !== pin) {
-      return { error: "Invalid credentials or inactive account." };
+    // Ensure the PIN field exists and compare as strings to avoid type issues.
+    const storedPin = caregiverData['TTiD-PIN'];
+    if (storedPin === undefined || String(storedPin).trim() !== String(pin).trim()) {
+        console.log(`[Login Action] PIN mismatch for ${normalizedEmail}. Stored: '${storedPin}', Provided: '${pin}'`);
+        return { error: "Invalid credentials or inactive account." };
     }
-
+    
     const uid = caregiverDoc.id;
     const displayName = caregiverData['Name'];
 
@@ -42,6 +45,7 @@ export async function loginActiveCaregiver(email: string, pin: string) {
             email: normalizedEmail,
             displayName: displayName,
         });
+        console.log(`[Login Action] Updated Firebase Auth user for UID: ${uid}`);
     } catch (error: any) {
         if (error.code === 'auth/user-not-found') {
             await serverAuth.createUser({
@@ -49,18 +53,21 @@ export async function loginActiveCaregiver(email: string, pin: string) {
                 email: normalizedEmail,
                 displayName: displayName,
             });
+            console.log(`[Login Action] Created new Firebase Auth user for UID: ${uid}`);
         } else {
-            throw error; // Re-throw other errors
+            // Re-throw other auth errors to be caught by the outer catch block
+            throw error;
         }
     }
 
     // Create a custom token for the client to sign in with
     const customToken = await serverAuth.createCustomToken(uid);
+    console.log(`[Login Action] Successfully generated custom token for UID: ${uid}`);
 
     return { token: customToken };
 
   } catch (error: any) {
-    console.error("Error in loginActiveCaregiver action:", error);
+    console.error("[Login Action] Error in loginActiveCaregiver action:", error);
     return { error: "An unexpected server error occurred." };
   }
 }
