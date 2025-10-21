@@ -3,12 +3,15 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { signOut } from "firebase/auth";
-import { Loader2, LogOut } from "lucide-react";
+import { Loader2, LogOut, LayoutDashboard, FileText } from "lucide-react";
+import Image from "next/image";
 
 import { useUser, useAuth } from "@/firebase";
 import { Button } from "@/components/ui/button";
+
+const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
 
 export default function CaregiverLayout({
   children,
@@ -18,6 +21,7 @@ export default function CaregiverLayout({
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   const handleSignOut = async () => {
     await signOut(auth);
@@ -26,9 +30,12 @@ export default function CaregiverLayout({
 
   useEffect(() => {
     if (!isUserLoading && !user) {
-      router.replace("/caregiver-login");
+      // Allow access to applicant and active caregiver login pages
+      if (pathname !== '/caregiver-login' && pathname !== '/active-caregiver-login') {
+         router.replace("/active-caregiver-login");
+      }
     }
-  }, [isUserLoading, user, router]);
+  }, [isUserLoading, user, router, pathname]);
 
 
   if (isUserLoading || !user) {
@@ -39,28 +46,46 @@ export default function CaregiverLayout({
     );
   }
 
+  const isApplicant = user.isAnonymous;
+
   return (
     <div className="flex min-h-screen w-full flex-col">
       <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 z-50">
         <nav className="hidden flex-col gap-6 text-lg font-medium md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6">
           <Link
-            href="/"
+            href={isApplicant ? "/" : "/caregiver/carelog-dashboard"}
             className="flex items-center gap-2 text-lg font-semibold md:text-base"
           >
-            <span className="font-bold">Caregiver Connect</span>
-            <span className="text-muted-foreground font-normal">My Dashboard</span>
+             <Image 
+              src={logoUrl}
+              alt="FirstLight Home Care Logo"
+              width={180}
+              height={30}
+              priority
+              className="object-contain"
+            />
           </Link>
-          <Link
-            href="/caregiver/dashboard"
-            className="text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Dashboard
-          </Link>
+          {isApplicant ? (
+             <Link
+              href="/"
+              className="text-muted-foreground transition-colors hover:text-foreground"
+            >
+              My Application
+            </Link>
+          ) : (
+            <Link
+              href="/caregiver/carelog-dashboard"
+              className="text-muted-foreground transition-colors hover:text-foreground flex items-center gap-2"
+            >
+              <FileText className="h-4 w-4"/>
+              Care Log Dashboard
+            </Link>
+          )}
         </nav>
         <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
             <div className="ml-auto flex-1 sm:flex-initial flex items-center gap-4">
                 <span className="text-sm text-muted-foreground hidden sm:inline-block">
-                    {user.email}
+                    {user.displayName || user.email}
                 </span>
                 <Button variant="outline" size="sm" onClick={handleSignOut}>
                     <LogOut className="mr-2 h-4 w-4" />

@@ -191,6 +191,22 @@
         "lastUpdatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["clientId", "clientName", "caregiverIds", "createdAt", "lastUpdatedAt"]
+    },
+    "CareLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CareLog",
+      "type": "object",
+      "description": "Stores a single care log entry from a caregiver for a specific client group.",
+      "properties": {
+        "careLogGroupId": { "type": "string", "description": "The document ID of the linked CareLogGroup." },
+        "caregiverId": { "type": "string", "description": "The UID of the caregiver who submitted the log." },
+        "caregiverName": { "type": "string", "description": "The name of the caregiver who submitted the log." },
+        "logNotes": { "type": "string", "description": "The text notes for the care log." },
+        "logImages": { "type": "array", "items": { "type": "string", "contentEncoding": "base64" }, "description": "An array of data URIs for scanned log images." },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastUpdatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["careLogGroupId", "caregiverId", "caregiverName", "logNotes", "createdAt", "lastUpdatedAt"]
     }
   },
   "auth": {
@@ -227,6 +243,10 @@
     "/carelog_groups/{groupId}": {
       "schema": { "$ref": "#/entities/CareLogGroup" },
       "description": "Stores groups linking clients to their assigned active caregivers."
+    },
+    "/carelogs/{logId}": {
+      "schema": { "$ref": "#/entities/CareLog" },
+      "description": "Stores individual care log entries submitted by caregivers."
     }
   }
 }

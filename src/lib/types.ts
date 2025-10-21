@@ -163,3 +163,15 @@ export const careLogGroupSchema = z.object({
 });
 
 export type CareLogGroup = z.infer<typeof careLogGroupSchema> & { id: string };
+
+export const careLogSchema = z.object({
+  careLogGroupId: z.string(),
+  caregiverId: z.string(),
+  caregiverName: z.string(),
+  logNotes: z.string(),
+  logImages: z.array(z.string()).optional(), // Array of data URIs
+  createdAt: z.any(),
+  lastUpdatedAt: z.any(),
+});
+
+export type CareLog = z.infer<typeof careLogSchema> & { id: string };

@@ -70,5 +70,10 @@ service cloud.firestore {
       allow create: if isSignedIn();
       allow update, delete: if isSignedIn();
     }
+    match /carelog_groups/{carelogId} {
+      allow get, list: if true;
+      allow create: if true;
+      allow update, delete: if isSignedIn();
+    }
   }
 }
