@@ -1,10 +1,11 @@
+
 "use client";
 
 import { useMemo, useState } from 'react';
 import { collection } from 'firebase/firestore';
 import { firestore, useCollection, useMemoFirebase } from '@/firebase';
 import { CaregiverProfile, Interview, CaregiverEmployee } from '@/lib/types';
-import { Loader2, User, Phone, Calendar, Check, X, FileText, Search } from 'lucide-react';
+import { Loader2, User, Phone, Calendar, Check, X, FileText, Search, Star } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
 
@@ -49,7 +50,7 @@ const getStatus = (
         }
     }
 
-    return { status: 'Applied' };
+    return { status: 'Applied', interview };
 };
 
 
@@ -141,6 +142,8 @@ export default function CandidateStatusReport() {
                     <TableHeader>
                         <TableRow>
                             <TableHead>Candidate</TableHead>
+                            <TableHead>Phone</TableHead>
+                            <TableHead>Rating</TableHead>
                             <TableHead>Application Date</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Next Step</TableHead>
@@ -149,7 +152,7 @@ export default function CandidateStatusReport() {
                     <TableBody>
                         {filteredCandidates.length === 0 ? (
                              <TableRow>
-                                <TableCell colSpan={4} className="h-24 text-center">
+                                <TableCell colSpan={6} className="h-24 text-center">
                                     No candidates found.
                                 </TableCell>
                             </TableRow>
@@ -159,6 +162,17 @@ export default function CandidateStatusReport() {
                                     <TableCell>
                                         <div className="font-medium">{candidate.fullName}</div>
                                         <div className="text-sm text-muted-foreground">{candidate.email}</div>
+                                    </TableCell>
+                                    <TableCell>{candidate.phone}</TableCell>
+                                    <TableCell>
+                                        {candidate.interview?.candidateRating !== undefined ? (
+                                            <div className="flex items-center">
+                                                <Star className="w-4 h-4 text-yellow-400 mr-1" />
+                                                {candidate.interview.candidateRating} / 5
+                                            </div>
+                                        ) : (
+                                            'N/A'
+                                        )}
                                     </TableCell>
                                     <TableCell>
                                         {candidate.createdAt ? format((candidate.createdAt as any).toDate(), 'PP') : 'N/A'}
