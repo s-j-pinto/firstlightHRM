@@ -25,7 +25,7 @@ export type ExtractCareLogInput = z.infer<typeof ExtractCareLogInputSchema>;
 
 // Defines the schema for the expected output from the AI model.
 const ExtractCareLogOutputSchema = z.object({
-  shiftDateTime: z.string().format('date-time').describe(
+  shiftDateTime: z.string().datetime().describe(
     "The exact start date and time of the shift, extracted from the notes. " +
     "This must be in a valid ISO 8601 format (e.g., '2024-07-29T14:30:00Z'). " +
     "If no date or time can be found, use the current date and time."
