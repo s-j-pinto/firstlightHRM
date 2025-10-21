@@ -1,79 +1,176 @@
-
+/**
+ * @fileoverview Firestore Security Rules for Prototyping.
+ *
+ * Core Philosophy:
+ * This ruleset prioritizes secure authorization while permitting flexible data shapes
+ * for rapid prototyping. It enforces a strict owner-only access model for user-specific
+ * data and allows public read access where appropriate, with restricted writes.
+ *
+ * Data Structure:
+ * The data is organized into top-level collections such as `caregiver_profiles`,
+ * `appointments`, `interviews`, `caregiver_employees`, `caregivers_active`,
+ * `Clients`, `carelog_groups`, and `carelogs`.
+ *
+ * Key Security Decisions:
+ * - Listing users or their profiles is disallowed to prevent information disclosure.
+ * - Read-only collections are handled via `allow get, list: if true;`.
+ * - All write operations are protected by authorization checks to prevent unauthorized data modification.
+ * - Where possible, ownership is validated both on document creation and updates to prevent privilege escalation.
+ *
+ * Denormalization for Authorization:
+ *  None.
+ *
+ * Structural Segregation:
+ *  None.
+ */
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper functions
-    function isSignedIn() {
-      return request.auth != null;
+
+    /**
+     * @description Manages caregiver profiles, allowing owners to read and write their own data.
+     * @path /caregiver_profiles/{caregiverProfileId}
+     * @allow (create) - Authenticated user creates their own profile with matching ID.
+     * @allow (get, update, delete) - Authenticated user reads, updates, or deletes their own profile.
+     * @deny (create) - Unauthenticated user attempts to create a profile.
+     * @deny (update, delete) - Authenticated user attempts to modify someone else's profile.
+     * @principle Enforces document ownership for writes.
+     */
+    match /caregiver_profiles/{caregiverProfileId} {
+      allow get: if isSignedIn() && isOwner(caregiverProfileId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(caregiverProfileId);
+      allow update: if isSignedIn() && isExistingOwner(caregiverProfileId);
+      allow delete: if isSignedIn() && isExistingOwner(caregiverProfileId);
     }
 
-    function isOwner(uid) {
-      return request.auth.uid == uid;
-    }
-    
-    // Cargeiver Profile Rules
-    // Allow anyone to create their own profile (e.g., anonymous users applying).
-    // Allow owner to read and update their own profile.
-    // Disallow deletes for record-keeping.
-    // Allow any signed-in user (i.e., admin) to read any profile.
-    match /caregiver_profiles/{profileId} {
-      allow read: if isSignedIn();
-      allow create: if request.auth.uid == request.resource.data.uid;
-      allow update: if isOwner(resource.data.uid);
+    /**
+     * @description Manages appointment slots.
+     * @path /appointments/{appointmentId}
+     * @allow (get, list) - Anyone can view available appointment slots.
+     * @deny (create, update, delete) - No one can create, update, or delete appointment slots through the client.
+     * @principle Public read, owner-only writes (currently disabled).
+     */
+    match /appointments/{appointmentId} {
+      allow get, list: if true;
+      allow create: if false;
+      allow update: if false;
       allow delete: if false;
     }
 
-    // Appointment Rules
-    // Allow anonymous users to create appointments for themselves.
-    // Allow any signed-in user (admin) to read all appointments.
-    match /appointments/{appointmentId} {
-      allow read: if isSignedIn();
-      allow create: if true; 
-      allow update, delete: if isSignedIn();
-    }
-    
-    // Interview Rules
-    // Only allow signed-in users (admins) to manage interview records.
+    /**
+     * @description Manages interview details.
+     * @path /interviews/{interviewId}
+     * @allow (get, list) - Anyone can read interview details.
+     * @deny (create, update, delete) - No one can create, update, or delete interview details through the client.
+     * @principle Public read, owner-only writes (currently disabled).
+     */
     match /interviews/{interviewId} {
-        allow read, write: if isSignedIn();
-    }
-    
-    // Settings Rules
-    // Only allow admins to read/write settings.
-    match /settings/{settingId} {
-      allow read, write: if isSignedIn();
-    }
-    
-    // Mail collection for Trigger Email Extension
-    match /mail/{docId} {
-      allow create: if true;
-      allow read, update, delete: if false;
+      allow get, list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
 
-    // Employee collection for hired caregivers
+    /**
+     * @description Manages caregiver employee data.
+     * @path /caregiver_employees/{employeeId}
+     * @allow (get, list) - Anyone can read caregiver employee data.
+     * @deny (create, update, delete) - No one can create, update, or delete caregiver employee data through the client.
+     * @principle Public read, owner-only writes (currently disabled).
+     */
     match /caregiver_employees/{employeeId} {
-      allow read, write: if isSignedIn();
+      allow get, list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
 
-    // Active Caregivers collection
+    /**
+     * @description Stores active caregiver information.
+     * @path /caregivers_active/{caregiverId}
+     * @allow (get, list) - Anyone can read active caregiver data.
+     * @deny (create, update, delete) - No one can create, update, or delete active caregiver data through the client.
+     * @principle Public read, owner-only writes (currently disabled).
+     */
     match /caregivers_active/{caregiverId} {
       allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if isSignedIn();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+        /**
+     * @description Secures the active caregiver login information.
+     * @path /active-caregiver-login
+     * @allow get: if false;
+     * @allow list: if false;
+     * @allow create: if false;
+     * @allow update: if false;
+     * @allow delete: if false;
+     * @principle Owner-only access with read restrictions.
+     */
+    match /active-caregiver-login {
+      allow get: if false;
+      allow list: if false;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
 
-    // Clients collection
+    /**
+     * @description Stores client information.
+     * @path /Clients/{clientId}
+     * @allow (get, list) - Anyone can read client data.
+     * @deny (create, update, delete) - No one can create, update, or delete client data through the client.
+     * @principle Public read, owner-only writes (currently disabled).
+     */
     match /Clients/{clientId} {
       allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if isSignedIn();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
-    match /carelog_groups/{carelogId} {
+
+    /**
+     * @description Stores groups linking clients to their assigned active caregivers.
+     * @path /carelog_groups/{groupId}
+     * @allow (get, list) - Anyone can read carelog group data.
+     * @deny (create, update, delete) - No one can create, update, or delete carelog group data through the client.
+     * @principle Public read, owner-only writes (currently disabled).
+     */
+    match /carelog_groups/{groupId} {
       allow get, list: if true;
-      allow create: if true;
-      allow update, delete: if isSignedIn();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
+
+    /**
+     * @description Stores individual care log entries submitted by caregivers.
+     * @path /carelogs/{logId}
+     * @allow (get, list) - Anyone can read carelog data.
+     * @deny (create, update, delete) - No one can create, update, or delete carelog data through the client.
+     * @principle Public read, owner-only writes (currently disabled).
+     */
+    match /carelogs/{logId} {
+      allow get, list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+  }
+
+  // Helper functions
+  function isSignedIn() {
+    return request.auth != null;
+  }
+
+  function isOwner(userId) {
+    return request.auth.uid == userId;
+  }
+
+  function isExistingOwner(userId) {
+    return isOwner(userId) && resource != null;
   }
 }
