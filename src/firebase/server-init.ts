@@ -11,8 +11,29 @@ const initializeServerApp = () => {
 
     console.log("[Firebase Admin] Attempting to initialize...");
 
+    // In a deployed App Hosting environment, application default credentials are automatically available.
+    // For local development, we check for a service-account.json file.
+    if (process.env.NODE_ENV !== 'production') {
+        try {
+            // This is for local development.
+            const serviceAccount = require('../../service-account.json');
+            console.log("[Firebase Admin] Initializing with service-account.json for local development.");
+            const app = admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount)
+            });
+            return app;
+        } catch (e: any) {
+             if (e.code === 'MODULE_NOT_FOUND') {
+                console.warn("[Firebase Admin] service-account.json not found. This is expected in production but will fail in local development if server-side auth is needed. Trying default credentials...");
+            } else {
+                console.error("[Firebase Admin] Error reading service-account.json:", e);
+            }
+        }
+    }
+    
+    // This will be used in the deployed App Hosting environment.
     try {
-        // Use application default credentials which are available in App Hosting.
+        console.log("[Firebase Admin] Initializing with Application Default Credentials for production.");
         const app = admin.initializeApp({
             credential: admin.credential.applicationDefault(),
         });
