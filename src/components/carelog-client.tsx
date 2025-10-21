@@ -7,7 +7,7 @@ import { collection, query, where, addDoc, Timestamp } from "firebase/firestore"
 import { CareLogGroup, Client, CareLog } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { extractCareLogData } from "@/ai/flows/extract-carelog-flow";
-import { Loader2, Users, Camera, Trash2, FileText, Clock, Upload } from "lucide-react";
+import { Loader2, Users, Camera, Trash2, FileText, Clock, Upload, Info } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -42,7 +42,20 @@ export default function CareLogClient() {
     () => selectedGroup ? query(collection(firestore, 'carelogs'), where('careLogGroupId', '==', selectedGroup.id)) : null,
     [selectedGroup]
   );
-  const { data: careLogs, isLoading: logsLoading } = useCollection<CareLog>(careLogsRef);
+  const { data: careLogsData, isLoading: logsLoading } = useCollection<CareLog>(careLogsRef);
+  
+  const careLogs = useMemo(() => {
+    if (!careLogsData) return [];
+    // Firestore Timestamps need to be converted to JS Dates for sorting
+    const logsWithDates = careLogsData.map(log => ({
+      ...log,
+      shiftDateTimeJS: log.shiftDateTime ? (log.shiftDateTime as any).toDate() : new Date(0)
+    }));
+    // Sort by the JS Date
+    logsWithDates.sort((a, b) => b.shiftDateTimeJS.getTime() - a.shiftDateTimeJS.getTime());
+    return logsWithDates;
+  }, [careLogsData]);
+
 
   const clientsRef = useMemoFirebase(() => collection(firestore, 'Clients'), []);
   const { data: clients, isLoading: clientsLoading } = useCollection<Client>(clientsRef);
@@ -89,7 +102,6 @@ export default function CareLogClient() {
     }
   }, [showCamera, toast]);
 
-
   const handleCapture = () => {
     if (videoRef.current && canvasRef.current) {
         const video = videoRef.current;
@@ -135,19 +147,37 @@ export default function CareLogClient() {
       toast({ title: "Error", description: "Please enter notes or scan a document.", variant: "destructive" });
       return;
     }
-    if (scannedImage && !shiftDateTime) {
-      toast({ title: "Error", description: "Shift date and time are required when submitting a scan.", variant: "destructive" });
-      return;
-    }
 
     startSubmitTransition(async () => {
+      let finalShiftDateTime = shiftDateTime;
+      let finalLogNotes = logNotes;
+      
+      // If date wasn't extracted from image, try extracting from text notes.
+      if (!finalShiftDateTime && logNotes) {
+        try {
+          const result = await extractCareLogData({ textContent: logNotes });
+          finalShiftDateTime = result.shiftDateTime;
+          // Keep original notes, but update the time
+          toast({
+            title: "Shift Time Extracted",
+            description: "AI found a date/time in your notes.",
+          });
+        } catch (e: any) {
+          toast({
+            title: "Date Extraction Failed",
+            description: "Could not find a date/time in the notes. Using current time.",
+            variant: "destructive",
+          });
+        }
+      }
+
       const logData = {
         careLogGroupId: selectedGroup.id,
         caregiverId: user.uid,
         caregiverName: user.displayName || user.email || 'Unknown Caregiver',
-        logNotes: logNotes,
+        logNotes: finalLogNotes,
         logImages: scannedImage ? [scannedImage] : [],
-        shiftDateTime: shiftDateTime ? Timestamp.fromDate(new Date(shiftDateTime)) : Timestamp.now(),
+        shiftDateTime: finalShiftDateTime ? Timestamp.fromDate(new Date(finalShiftDateTime)) : Timestamp.now(),
         createdAt: Timestamp.now(),
         lastUpdatedAt: Timestamp.now(),
       };
@@ -170,14 +200,12 @@ export default function CareLogClient() {
           // Reset form on success
           handleGroupSelect(selectedGroup.id);
       }).catch(serverError => {
-          // This is where we create and emit the contextual error
           const permissionError = new FirestorePermissionError({
             path: colRef.path,
             operation: "create",
             requestResourceData: validation.data,
           });
           errorEmitter.emit("permission-error", permissionError);
-          // We don't need a toast here because the global error boundary will show the error.
       });
     });
   };
@@ -274,10 +302,20 @@ export default function CareLogClient() {
                                   </Button>
                               </div>
                           )}
-                          
-                          <Button onClick={handleScanClick} variant="outline" disabled={isExtracting}>
-                              <Camera className="mr-2" /> Scan Written Log
-                          </Button>
+                           
+                           <div className="flex flex-wrap gap-4 items-center">
+                              <Button onClick={handleScanClick} variant="outline" disabled={isExtracting}>
+                                  <Camera className="mr-2" /> Scan Written Log
+                              </Button>
+                               <Alert variant="default" className="flex-1 min-w-[280px]">
+                                <Info className="h-4 w-4"/>
+                                <AlertTitle className="text-xs">How it works</AlertTitle>
+                                <AlertDescription className="text-xs">
+                                  If you don't scan a log, the AI will try to find a date and time from your typed notes upon submission.
+                                </AlertDescription>
+                              </Alert>
+                           </div>
+
                       </div>
                   )}
 
@@ -343,5 +381,3 @@ export default function CareLogClient() {
     </div>
   );
 }
-
-    
