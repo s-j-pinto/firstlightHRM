@@ -13,7 +13,7 @@ export async function processActiveCaregiverUpload(data: Record<string, any>[]) 
 
   try {
     // 1. Fetch all existing active caregivers and map them by email.
-    const existingCaregiversSnap = await caregiversCollection.where('status', '==', 'ACTIVE').get();
+    const existingCaregiversSnap = await caregiversCollection.get();
     const existingCaregiversMap = new Map<string, { id: string, data: any }>();
     existingCaregiversSnap.forEach(doc => {
       const docData = doc.data();
@@ -28,6 +28,7 @@ export async function processActiveCaregiverUpload(data: Record<string, any>[]) 
     let operations = 0;
     let createdCount = 0;
     let updatedCount = 0;
+    const processedEmails = new Set<string>();
 
     // 2. Process the uploaded CSV data.
     for (const row of data) {
@@ -36,6 +37,7 @@ export async function processActiveCaregiverUpload(data: Record<string, any>[]) 
         console.warn('[Action] Skipping row due to missing email:', row);
         continue;
       }
+      processedEmails.add(email);
       
       const caregiverData = {
         'Name': row['Name'] || '',
@@ -50,7 +52,7 @@ export async function processActiveCaregiverUpload(data: Record<string, any>[]) 
         'Email': email,
         'Drivers Lic': row['Drivers Lic'] || '',
         'Caregiver Lic': row['Caregiver Lic'] || '',
-        'PIN': row['PIN'] || '',
+        'TTiD-PIN': row['TTid-PIN'] || '',
         status: 'ACTIVE',
         lastUpdatedAt: now,
       };
@@ -62,8 +64,6 @@ export async function processActiveCaregiverUpload(data: Record<string, any>[]) 
         const docRef = caregiversCollection.doc(existingCaregiver.id);
         batch.update(docRef, caregiverData);
         updatedCount++;
-        // Remove from map so we know it was processed.
-        existingCaregiversMap.delete(email);
       } else {
         // Create new caregiver
         const docRef = caregiversCollection.doc();
@@ -80,18 +80,21 @@ export async function processActiveCaregiverUpload(data: Record<string, any>[]) 
     }
 
     // 3. Deactivate caregivers who were not in the CSV.
-    for (const [email, { id }] of existingCaregiversMap.entries()) {
-      console.log(`[Action] Deactivating caregiver not in CSV: ${email}`);
-      const docRef = caregiversCollection.doc(id);
-      batch.update(docRef, { status: 'INACTIVE', lastUpdatedAt: now });
-      operations++;
-       if (operations >= 499) {
-        await batch.commit();
-        batch = firestore.batch();
-        operations = 0;
-      }
+    let deactivatedCount = 0;
+    for (const [email, { id, data }] of existingCaregiversMap.entries()) {
+        if (!processedEmails.has(email) && data.status === 'ACTIVE') {
+            console.log(`[Action] Deactivating caregiver not in CSV: ${email}`);
+            const docRef = caregiversCollection.doc(id);
+            batch.update(docRef, { status: 'INACTIVE', lastUpdatedAt: now });
+            deactivatedCount++;
+            operations++;
+            if (operations >= 499) {
+                await batch.commit();
+                batch = firestore.batch();
+                operations = 0;
+            }
+        }
     }
-    const deactivatedCount = existingCaregiversMap.size;
 
     // 4. Commit any remaining operations.
     if (operations > 0) {

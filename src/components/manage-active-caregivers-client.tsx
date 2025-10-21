@@ -75,7 +75,7 @@ export default function ManageActiveCaregiversClient() {
         <CardHeader>
           <CardTitle>Upload Active Caregiver Data</CardTitle>
           <CardDescription>
-            Upload a CSV file to add new caregiver records. This process will create new entries for all caregivers in the file.
+            Upload a CSV file to add or update caregiver records. This process will sync the database with your file, deactivating caregivers not present in the upload.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -101,7 +101,7 @@ export default function ManageActiveCaregiversClient() {
             </div>
         ) : activeCaregivers && activeCaregivers.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {activeCaregivers.map((caregiver) => (
+                {activeCaregivers.filter(c => c.status === 'ACTIVE').map((caregiver) => (
                     <Card key={caregiver.id}>
                         <CardHeader>
                             <CardTitle>{caregiver.Name}</CardTitle>
@@ -115,7 +115,7 @@ export default function ManageActiveCaregiversClient() {
                             <p><strong>Hire Date:</strong> {caregiver['Hire Date'] || 'N/A'}</p>
                             <p><strong>Driver's License:</strong> {caregiver['Drivers Lic'] || 'N/A'}</p>
                             <p><strong>Caregiver License:</strong> {caregiver['Caregiver Lic'] || 'N/A'}</p>
-                            <p><strong>TTiD/PIN:</strong> {caregiver.PIN || 'N/A'}</p>
+                            <p><strong>TTid-PIN:</strong> {caregiver['TTiD-PIN'] || 'N/A'}</p>
                         </CardContent>
                     </Card>
                 ))}
