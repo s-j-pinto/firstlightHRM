@@ -32,7 +32,7 @@ export async function loginActiveCaregiver(email: string, pin: string) {
     // Ensure the PIN field exists and compare as strings to avoid type issues.
     const storedPin = caregiverData['TTiD-PIN'];
     if (storedPin === undefined || String(storedPin).trim() !== String(pin).trim()) {
-        console.log(`[Login Action] PIN mismatch for ${normalizedEmail}. Stored: '${storedPin}', Provided: '${pin}'`);
+        console.log(`[Login Action] PIN mismatch for ${normalizedEmail}.`);
         return { error: "Invalid credentials or inactive account." };
     }
     

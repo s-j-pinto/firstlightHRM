@@ -6,17 +6,15 @@ import admin from 'firebase-admin';
 const initializeServerApp = () => {
     // Check if the app is already initialized to prevent errors in hot-reloading environments
     if (admin.apps.length > 0 && admin.apps[0]) {
-        console.log("[Firebase Admin] SDK already initialized.");
         return admin.apps[0];
     }
 
-    const projectId = process.env.GCLOUD_PROJECT || "firstlighthomecare-hrm";
-    console.log(`[Firebase Admin] Attempting to initialize for project: ${projectId}`);
+    console.log("[Firebase Admin] Attempting to initialize...");
 
     try {
-        console.log("[Firebase Admin] Initializing with project ID...");
+        // Use application default credentials which are available in App Hosting.
         const app = admin.initializeApp({
-            projectId: projectId,
+            credential: admin.credential.applicationDefault(),
         });
         console.log("[Firebase Admin] SDK initialized successfully.");
         return app;
