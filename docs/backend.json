@@ -150,7 +150,7 @@
         "Email": { "type": "string", "format": "email" },
         "Drivers Lic": { "type": "string" },
         "Caregiver Lic": { "type": "string" },
-        "PIN": { "type": "string" },
+        "TTiD-PIN": { "type": "string" },
         "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE"] },
         "createdAt": { "type": "string", "format": "date-time" },
         "lastUpdatedAt": { "type": "string", "format": "date-time" }
