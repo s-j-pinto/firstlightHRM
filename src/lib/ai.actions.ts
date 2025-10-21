@@ -3,7 +3,7 @@
 
 import { generateInterviewInsights, InterviewInsightsInput } from '@/ai/flows/interview-insights';
 import { extractCareLogData as extractCareLogDataFlow } from '@/ai/flows/extract-carelog-flow';
-import type { ExtractCareLogInput, ExtractCareLogOutput } from '@/ai/flows/extract-carelog-flow';
+import type { ExtractCareLogInput, ExtractCareLogOutput } from '@/lib/types';
 
 /**
  * Server Action to generate AI insights for a caregiver interview.

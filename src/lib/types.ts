@@ -176,3 +176,30 @@ export const careLogSchema = z.object({
 });
 
 export type CareLog = z.infer<typeof careLogSchema> & { id: string };
+
+
+// Defines the schema for the data that will be passed into the AI prompt.
+// It accepts either an image data URI or plain text content.
+export const ExtractCareLogInputSchema = z.object({
+  imageDataUri: z.string().describe(
+    "A photo of a handwritten care log, as a data URI that must include a " +
+    "MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+  ).optional(),
+  textContent: z.string().describe(
+    "The plain text content of a care log note."
+  ).optional(),
+}).refine(data => data.imageDataUri || data.textContent, {
+  message: 'Either imageDataUri or textContent must be provided.',
+});
+export type ExtractCareLogInput = z.infer<typeof ExtractCareLogInputSchema>;
+
+// Defines the schema for the expected output from the AI model.
+export const ExtractCareLogOutputSchema = z.object({
+  shiftDateTime: z.string().datetime().describe(
+    "The exact start date and time of the shift, extracted from the notes. " +
+    "This must be in a valid ISO 8601 format (e.g., '2024-07-29T14:30:00Z'). " +
+    "If no date or time can be found, use the current date and time."
+  ),
+  extractedText: z.string().describe('The full, raw text extracted from the provided content.'),
+});
+export type ExtractCareLogOutput = z.infer<typeof ExtractCareLogOutputSchema>;
