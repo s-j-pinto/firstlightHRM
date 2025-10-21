@@ -6,6 +6,7 @@ import { firestore, useCollection, useMemoFirebase } from '@/firebase';
 import { CaregiverProfile, Interview, CaregiverEmployee } from '@/lib/types';
 import { Loader2, User, Phone, Calendar, Check, X, FileText, Search } from 'lucide-react';
 import { format } from 'date-fns';
+import { cn } from "@/lib/utils";
 
 import {
   Table,
