@@ -31,16 +31,12 @@ const careLogPrompt = ai.definePrompt({
   name: 'careLogPrompt',
   input: { schema: ExtractCareLogInputSchema },
   output: { schema: ExtractCareLogOutputSchema },
-  model: googleAI.model('gemini-1.5-flash'),
-  prompt: `You are an expert at reading documents and extracting structured information.
-Your task is to analyze the attached content, which is from a caregiver's shift log.
-
-Your tasks are:
-1.  Read all the text from the provided content (it could be an image or plain text).
-2.  From the text, identify the date and start time of the shift. This is the most important piece of information.
-3.  Format the identified date and time into a single, valid ISO 8601 timestamp for the 'shiftDateTime' field. Assume the current year if it's not specified. If you absolutely cannot find a date or time, use the current date and time.
-4.  Provide the complete, unedited transcription of all the text you can read from the content in the 'extractedText' field. If the input was plain text, return it as is.
-
+  model: googleAI.model('gemini-2.5-flash-lite'),
+  prompt: `You are an expert at reading and transcribing handwritten notes.
+    
+  Analyze the following image and transcribe the text you see as accurately as possible.
+  Maintain the original line breaks if possible. If the image does not contain any discernible text, return an empty string.
+  
 {{#if imageDataUri}}
 Image of the care log:
 {{media url=imageDataUri}}
