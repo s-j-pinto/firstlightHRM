@@ -7,10 +7,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
+import { version } from '../../../package.json';
 
 import { useAuth } from "@/firebase";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
@@ -102,6 +103,9 @@ function LoginPageContent() {
             </form>
           </Form>
         </CardContent>
+        <CardFooter className="flex justify-center text-xs text-muted-foreground pt-4">
+          v{version}
+        </CardFooter>
       </Card>
     </main>
   );
