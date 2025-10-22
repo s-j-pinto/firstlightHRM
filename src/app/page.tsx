@@ -21,7 +21,7 @@ function JourneyManager() {
   };
 
   return (
-    <main className="flex-1">
+    <div className="flex-1">
       <div className="container relative">
         {step === 'schedule' && caregiverId && caregiverName && caregiverEmail && caregiverPhone ? (
           <AppointmentScheduler 
@@ -34,7 +34,7 @@ function JourneyManager() {
           <CaregiverForm onSuccess={handleFormSuccess} />
         )}
       </div>
-    </main>
+    </div>
   );
 }
 
