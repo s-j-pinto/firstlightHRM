@@ -204,34 +204,28 @@ export function CareLogGroupAdmin() {
               <FormField
                 control={form.control}
                 name="caregiverEmails"
-                render={() => (
+                render={({ field }) => (
                   <FormItem>
                     <FormLabel>Active Caregivers</FormLabel>
                     <ScrollArea className="h-64 w-full rounded-md border p-4">
                       <div className="space-y-2">
                         {activeCaregivers.map(cg => (
-                          <FormField
+                           <FormItem
                             key={cg.id}
-                            control={form.control}
-                            name="caregiverEmails"
-                            render={({ field }) => {
-                              return (
-                                <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={field.value?.includes(cg.Email)}
-                                      onCheckedChange={checked => {
-                                        return checked
-                                          ? field.onChange([...(field.value || []), cg.Email])
-                                          : field.onChange(field.value?.filter(email => email !== cg.Email));
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <FormLabel className="font-normal">{cg.Name} ({cg.Email})</FormLabel>
-                                </FormItem>
-                              );
-                            }}
-                          />
+                            className="flex flex-row items-center space-x-3 space-y-0"
+                          >
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value?.includes(cg.Email)}
+                                onCheckedChange={checked => {
+                                  return checked
+                                    ? field.onChange([...(field.value || []), cg.Email])
+                                    : field.onChange(field.value?.filter(email => email !== cg.Email));
+                                }}
+                              />
+                            </FormControl>
+                            <FormLabel className="font-normal">{cg.Name} ({cg.Email})</FormLabel>
+                          </FormItem>
                         ))}
                       </div>
                     </ScrollArea>
@@ -255,5 +249,3 @@ export function CareLogGroupAdmin() {
     </Card>
   );
 }
-
-    
