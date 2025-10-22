@@ -37,7 +37,7 @@ export function AppHeader() {
   return (
     <header className="bg-background/80 backdrop-blur-sm sticky top-0 z-40 w-full border-b">
       <div className="container flex h-16 items-center">
-        <Link href="/" className="flex items-center space-x-2">
+        <Link href={isAdminRoute ? "/admin" : "/"} className="flex items-center space-x-2">
           <Image 
             src={logoUrl}
             alt="FirstLight Home Care Logo"
@@ -74,7 +74,7 @@ export function AppHeader() {
                 </Link>
                </>
             )}
-            {!user && !isUserLoading && !pathname.endsWith('/login') && !pathname.startsWith('/caregiver-login') && (
+            {!user && !isUserLoading && !pathname.endsWith('/login') && !pathname.startsWith('/caregiver-login') && !pathname.startsWith('/active-caregiver-login') && (
               <Button asChild variant="ghost">
                 <Link href="/caregiver-login">
                   <LogIn className="mr-2" />
