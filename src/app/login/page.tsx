@@ -8,6 +8,7 @@ import { z } from "zod";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { version } from '../../../package.json';
+import Image from "next/image";
 
 import { useAuth } from "@/firebase";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,9 @@ const loginSchema = z.object({
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
+
+const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstLight_Logo_VRT_CMYK_ICO.ico?alt=media&token=1151ccf8-5dc3-4ffd-b5aa-ca13e8b083d9";
+
 
 function LoginPageContent() {
   const [isPending, startTransition] = useTransition();
@@ -59,7 +63,14 @@ function LoginPageContent() {
   return (
     <main className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
       <Card className="w-full max-w-sm mx-auto shadow-lg">
-        <CardHeader>
+        <CardHeader className="text-center">
+            <Image
+                src={logoUrl}
+                alt="FirstLight Home Care Logo"
+                width={64}
+                height={64}
+                className="object-contain mx-auto mb-4"
+            />
           <CardTitle className="text-2xl font-bold font-headline">Admin Login</CardTitle>
           <CardDescription>
             Enter your credentials to access the admin dashboard.
