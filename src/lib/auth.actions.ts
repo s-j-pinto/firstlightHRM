@@ -44,8 +44,10 @@ export async function loginActiveCaregiver(email: string, pin: string) {
     console.log(`[Login Action] Credentials verified for UID: ${uid}. DisplayName: ${displayName}`);
 
     // This code attempts to sync the caregiver's name and email with Firebase Auth.
+    // It is wrapped in a try/catch to handle potential permission errors in production
+    // without crashing the entire login flow.
     try {
-        console.log(`[Login Action] Updating Firebase Auth user for UID: ${uid}`);
+        console.log(`[Login Action] Attempting to update Firebase Auth user for UID: ${uid}`);
         await serverAuth.updateUser(uid, {
             email: normalizedEmail,
             displayName: displayName,
@@ -61,8 +63,8 @@ export async function loginActiveCaregiver(email: string, pin: string) {
             });
             console.log(`[Login Action] Successfully created new Auth user.`);
         } else {
-            console.error(`[Login Action] An error occurred while updating/creating the Auth user. Error:`, error.message);
-            throw error;
+            // Log other errors (like permission denied) but don't block token creation
+            console.warn(`[Login Action] A non-critical error occurred while syncing the Auth user. This may be a permissions issue. Error:`, error.message);
         }
     }
 
@@ -76,6 +78,10 @@ export async function loginActiveCaregiver(email: string, pin: string) {
   } catch (error: any) {
     console.error("[Login Action] Error in loginActiveCaregiver action:", error);
     // Return the specific error message for debugging
-    return { error: `An unexpected server error occurred: ${error.message}` };
+    let errorMessage = `An unexpected server error occurred: ${error.message}`;
+    if (error.code === 'auth/internal-error' && error.message.includes('PERMISSION_DENIED')) {
+      errorMessage = `An unexpected server error occurred: ${error.message}; Please refer to https://firebase.google.com/docs/auth/admin/create-custom-tokens for more details on how to use and troubleshoot this feature.`
+    }
+    return { error: errorMessage };
   }
 }
