@@ -16,3 +16,5 @@ env:
     secret: GOOGLE_REFRESH_TOKEN
   - variable: GEMINI_API_KEY
     secret: GEMINI_API_KEY
+  - variable: ADMIN_EMAIL
+    secret: NEXT_PUBLIC_ADMIN_EMAIL
