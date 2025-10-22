@@ -18,7 +18,6 @@ export function AppHeader() {
   const auth = useAuth();
   
   const isAdminRoute = pathname.startsWith('/admin');
-  const isCaregiverRoute = pathname.startsWith('/caregiver');
 
   const handleSignOut = async () => {
     await signOut(auth);
@@ -28,11 +27,6 @@ export function AppHeader() {
         router.push("/");
     }
   };
-
-  // The CaregiverLayout provides its own header, so we hide the global one on those routes.
-  if (isCaregiverRoute) {
-    return null;
-  }
 
   return (
     <header className="bg-background/80 backdrop-blur-sm sticky top-0 z-40 w-full border-b">

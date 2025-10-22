@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
 import { useUser } from "@/firebase";
+import { AppHeader } from "@/components/header";
 
 export default function AdminLayout({
   children,
@@ -33,6 +34,7 @@ export default function AdminLayout({
 
   return (
     <div className="flex min-h-screen w-full flex-col">
+      <AppHeader />
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
         {children}
       </main>
