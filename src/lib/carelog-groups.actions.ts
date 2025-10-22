@@ -8,16 +8,16 @@ import { Timestamp } from 'firebase-admin/firestore';
 interface CareLogGroupPayload {
   groupId?: string;
   clientId: string;
-  caregiverIds: string[];
+  caregiverEmails: string[];
 }
 
 export async function saveCareLogGroup(payload: CareLogGroupPayload) {
-  const { groupId, clientId, caregiverIds } = payload;
+  const { groupId, clientId, caregiverEmails } = payload;
 
   if (!clientId) {
     return { message: "Client must be selected.", error: true };
   }
-  if (!caregiverIds || caregiverIds.length === 0) {
+  if (!caregiverEmails || caregiverEmails.length === 0) {
     return { message: "At least one caregiver must be selected.", error: true };
   }
 
@@ -33,7 +33,7 @@ export async function saveCareLogGroup(payload: CareLogGroupPayload) {
     const groupData = {
       clientId,
       clientName,
-      caregiverIds,
+      caregiverEmails,
       lastUpdatedAt: Timestamp.now(),
     };
 
@@ -71,3 +71,5 @@ export async function deleteCareLogGroup(groupId: string) {
     return { message: `An error occurred while deleting the group: ${error.message}`, error: true };
   }
 }
+
+    

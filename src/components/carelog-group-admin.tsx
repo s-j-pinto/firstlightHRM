@@ -25,7 +25,7 @@ import { Loader2, PlusCircle, Trash2, Edit, X, Users } from "lucide-react";
 const careLogGroupSchema = z.object({
   groupId: z.string().optional(),
   clientId: z.string().min(1, "A client must be selected."),
-  caregiverIds: z.array(z.string()).min(1, "At least one caregiver must be selected."),
+  caregiverEmails: z.array(z.string().email()).min(1, "At least one caregiver must be selected."),
 });
 
 type CareLogGroupFormData = z.infer<typeof careLogGroupSchema>;
@@ -46,20 +46,20 @@ export function CareLogGroupAdmin() {
   const { data: careLogGroups, isLoading: groupsLoading } = useCollection<CareLogGroup>(careLogGroupsRef);
 
   const activeClients = useMemo(() => clients?.filter(c => c.status === 'ACTIVE') || [], [clients]);
-  const activeCaregivers = useMemo(() => caregivers?.filter(c => c.status === 'ACTIVE') || [], [caregivers]);
+  const activeCaregivers = useMemo(() => caregivers?.filter(c => c.status === 'ACTIVE' && c.Email) || [], [caregivers]);
 
   const form = useForm<CareLogGroupFormData>({
     resolver: zodResolver(careLogGroupSchema),
     defaultValues: {
       groupId: undefined,
       clientId: "",
-      caregiverIds: [],
+      caregiverEmails: [],
     },
   });
 
-  const caregiversMap = useMemo(() => {
+  const caregiversByEmailMap = useMemo(() => {
     if (!caregivers) return new Map();
-    return new Map(caregivers.map(cg => [cg.id, cg.Name]));
+    return new Map(caregivers.map(cg => [cg.Email, cg.Name]));
   }, [caregivers]);
 
   const handleOpenModal = (group: CareLogGroup | null) => {
@@ -68,13 +68,13 @@ export function CareLogGroupAdmin() {
       form.reset({
         groupId: group.id,
         clientId: group.clientId,
-        caregiverIds: group.caregiverIds,
+        caregiverEmails: group.caregiverEmails,
       });
     } else {
       form.reset({
         groupId: undefined,
         clientId: "",
-        caregiverIds: [],
+        caregiverEmails: [],
       });
     }
     setIsModalOpen(true);
@@ -133,8 +133,8 @@ export function CareLogGroupAdmin() {
                   <div className="flex-1 mb-4 sm:mb-0">
                     <h3 className="font-semibold text-lg flex items-center gap-2"><Users className="text-accent" />{group.clientName}</h3>
                     <div className="flex flex-wrap gap-2 mt-2">
-                        {group.caregiverIds.map(id => (
-                            <Badge key={id} variant="secondary">{caregiversMap.get(id) || 'Unknown'}</Badge>
+                        {group.caregiverEmails.map(email => (
+                            <Badge key={email} variant="secondary">{caregiversByEmailMap.get(email) || email}</Badge>
                         ))}
                     </div>
                   </div>
@@ -203,7 +203,7 @@ export function CareLogGroupAdmin() {
               />
               <FormField
                 control={form.control}
-                name="caregiverIds"
+                name="caregiverEmails"
                 render={() => (
                   <FormItem>
                     <FormLabel>Active Caregivers</FormLabel>
@@ -213,21 +213,21 @@ export function CareLogGroupAdmin() {
                           <FormField
                             key={cg.id}
                             control={form.control}
-                            name="caregiverIds"
+                            name="caregiverEmails"
                             render={({ field }) => {
                               return (
                                 <FormItem className="flex flex-row items-center space-x-3 space-y-0">
                                   <FormControl>
                                     <Checkbox
-                                      checked={field.value?.includes(cg.id)}
+                                      checked={field.value?.includes(cg.Email)}
                                       onCheckedChange={checked => {
                                         return checked
-                                          ? field.onChange([...(field.value || []), cg.id])
-                                          : field.onChange(field.value?.filter(id => id !== cg.id));
+                                          ? field.onChange([...(field.value || []), cg.Email])
+                                          : field.onChange(field.value?.filter(email => email !== cg.Email));
                                       }}
                                     />
                                   </FormControl>
-                                  <FormLabel className="font-normal">{cg.Name}</FormLabel>
+                                  <FormLabel className="font-normal">{cg.Name} ({cg.Email})</FormLabel>
                                 </FormItem>
                               );
                             }}
@@ -255,3 +255,5 @@ export function CareLogGroupAdmin() {
     </Card>
   );
 }
+
+    

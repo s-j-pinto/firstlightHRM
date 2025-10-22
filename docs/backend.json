@@ -186,11 +186,11 @@
       "properties": {
         "clientId": { "type": "string", "description": "The document ID of the linked client from the 'Clients' collection." },
         "clientName": { "type": "string", "description": "The name of the linked client, stored for easy display." },
-        "caregiverIds": { "type": "array", "items": { "type": "string" }, "description": "An array of document IDs for the linked caregivers from the 'caregivers_active' collection." },
+        "caregiverEmails": { "type": "array", "items": { "type": "string", "format": "email" }, "description": "An array of emails for the linked caregivers from the 'caregivers_active' collection." },
         "createdAt": { "type": "string", "format": "date-time" },
         "lastUpdatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["clientId", "clientName", "caregiverIds", "createdAt", "lastUpdatedAt"]
+      "required": ["clientId", "clientName", "caregiverEmails", "createdAt", "lastUpdatedAt"]
     },
     "CareLog": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -251,3 +251,5 @@
     }
   }
 }
+
+    

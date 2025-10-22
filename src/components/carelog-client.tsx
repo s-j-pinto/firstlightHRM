@@ -34,7 +34,7 @@ export default function CareLogClient() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const careLogGroupsRef = useMemoFirebase(
-    () => user ? query(collection(firestore, 'carelog_groups'), where('caregiverIds', 'array-contains', user.uid)) : null,
+    () => user?.email ? query(collection(firestore, 'carelog_groups'), where('caregiverEmails', 'array-contains', user.email)) : null,
     [user]
   );
   const { data: careLogGroups, isLoading: groupsLoading } = useCollection<CareLogGroup>(careLogGroupsRef);
@@ -410,7 +410,5 @@ export default function CareLogClient() {
     </div>
   );
 }
-
-    
 
     
