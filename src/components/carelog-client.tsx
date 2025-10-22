@@ -191,11 +191,11 @@ export default function CareLogClient() {
   };
 
   const submitLog = (submitShiftTime: string | null, submitLogNotes: string) => {
-     if (!selectedGroup || !user) return;
+     if (!selectedGroup || !user || !user.email) return;
      
      const logData = {
         careLogGroupId: selectedGroup.id,
-        caregiverId: user.uid,
+        caregiverId: user.email,
         caregiverName: user.displayName || user.email || 'Unknown Caregiver',
         logNotes: submitLogNotes,
         logImages: scannedImage ? [scannedImage] : [],

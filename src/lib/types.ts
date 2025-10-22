@@ -157,7 +157,7 @@ export type ActiveCaregiver = z.infer<typeof activeCaregiverSchema> & { id: stri
 export const careLogGroupSchema = z.object({
   clientId: z.string(),
   clientName: z.string(),
-  caregiverIds: z.array(z.string()),
+  caregiverEmails: z.array(z.string().email()),
   createdAt: z.any(),
   lastUpdatedAt: z.any(),
 });
@@ -166,7 +166,7 @@ export type CareLogGroup = z.infer<typeof careLogGroupSchema> & { id: string };
 
 export const careLogSchema = z.object({
   careLogGroupId: z.string(),
-  caregiverId: z.string(),
+  caregiverId: z.string().email("Caregiver ID must be a valid email."),
   caregiverName: z.string(),
   shiftDateTime: z.any().optional(),
   logNotes: z.string(),
@@ -203,3 +203,5 @@ export const ExtractCareLogOutputSchema = z.object({
   extractedText: z.string().describe('The full, raw text extracted from the provided content.'),
 });
 export type ExtractCareLogOutput = z.infer<typeof ExtractCareLogOutputSchema>;
+
+    

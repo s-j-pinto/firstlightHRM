@@ -199,7 +199,7 @@
       "description": "Stores a single care log entry from a caregiver for a specific client group.",
       "properties": {
         "careLogGroupId": { "type": "string", "description": "The document ID of the linked CareLogGroup." },
-        "caregiverId": { "type": "string", "description": "The UID of the caregiver who submitted the log." },
+        "caregiverId": { "type": "string", "format": "email", "description": "The email of the caregiver who submitted the log." },
         "caregiverName": { "type": "string", "description": "The name of the caregiver who submitted the log." },
         "shiftDateTime": { "type": "string", "format": "date-time", "description": "The date and time of the shift, extracted from the log notes." },
         "logNotes": { "type": "string", "description": "The text notes for the care log, either manually entered or extracted from an image." },
