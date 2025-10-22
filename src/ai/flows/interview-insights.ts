@@ -50,7 +50,7 @@ const interviewAnalysisPrompt = ai.definePrompt(
     name: 'interviewAnalysisPrompt',
     input: { schema: InterviewInsightsInputSchema },
     output: { schema: InterviewInsightsOutputSchema },
-    model: googleAI.model('gemini-1.5-flash'),
+    model: googleAI.model('gemini-2.5-flash'),
     prompt: `You are an expert HR assistant for a home care agency. Your task is to analyze a caregiver candidate's profile and the notes from their phone screen to provide a single, combined insight containing a summary and a hiring recommendation.
 
 Analyze the following information:
