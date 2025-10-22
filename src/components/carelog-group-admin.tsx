@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo, useTransition } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { collection } from "firebase/firestore";
 import { firestore, useCollection, useMemoFirebase } from "@/firebase";
@@ -68,7 +68,7 @@ export function CareLogGroupAdmin() {
       form.reset({
         groupId: group.id,
         clientId: group.clientId,
-        caregiverEmails: group.caregiverEmails,
+        caregiverEmails: group.caregiverEmails || [],
       });
     } else {
       form.reset({
@@ -133,7 +133,7 @@ export function CareLogGroupAdmin() {
                   <div className="flex-1 mb-4 sm:mb-0">
                     <h3 className="font-semibold text-lg flex items-center gap-2"><Users className="text-accent" />{group.clientName}</h3>
                     <div className="flex flex-wrap gap-2 mt-2">
-                        {group.caregiverEmails.map(email => (
+                        {Array.isArray(group.caregiverEmails) && group.caregiverEmails.map(email => (
                             <Badge key={email} variant="secondary">{caregiversByEmailMap.get(email) || email}</Badge>
                         ))}
                     </div>
