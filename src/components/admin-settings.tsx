@@ -112,8 +112,8 @@ export default function AdminSettings() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
-      <div className="grid gap-8">
+    <div className="grid gap-8">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
         <Card>
           <CardHeader>
             <CardTitle>Interview Availability</CardTitle>
@@ -152,8 +152,6 @@ export default function AdminSettings() {
             </div>
           </CardContent>
         </Card>
-
-        <CareLogGroupAdmin />
 
         <Card>
             <CardHeader>
@@ -211,7 +209,8 @@ export default function AdminSettings() {
             Save Settings
           </Button>
         </div>
-      </div>
-    </form>
+      </form>
+      <CareLogGroupAdmin />
+    </div>
   );
 }
