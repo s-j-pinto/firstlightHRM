@@ -25,15 +25,12 @@ export default function CaregiverLayout({
 
   const handleSignOut = async () => {
     await signOut(auth);
-    router.push("/");
+    router.push("/active-caregiver-login");
   };
 
   useEffect(() => {
     if (!isUserLoading && !user) {
-      // Allow access to applicant and active caregiver login pages
-      if (pathname !== '/caregiver-login' && pathname !== '/active-caregiver-login') {
-         router.replace("/active-caregiver-login");
-      }
+      router.replace("/active-caregiver-login");
     }
   }, [isUserLoading, user, router, pathname]);
 
