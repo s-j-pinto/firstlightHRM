@@ -148,46 +148,36 @@ export default function CareLogClient() {
   };
 
   const handleSubmitLog = () => {
-    if (!selectedGroup || !user) {
-      toast({ title: "Error", description: "Please select a client group first.", variant: "destructive" });
-      return;
-    }
-    if (!logNotes && !scannedImage) {
-      toast({ title: "Error", description: "Please enter notes or scan a document.", variant: "destructive" });
-      return;
-    }
-
-    startSubmitTransition(async () => {
-      let finalShiftDateTime = shiftDateTime;
-      let finalLogNotes = logNotes;
-      
-      // If date wasn't extracted from image, try extracting from text notes.
-      if (!finalShiftDateTime && logNotes) {
-        startExtractTransition(async () => {
-            try {
-              const result = await extractCareLogData({ textContent: logNotes });
-              finalShiftDateTime = result.shiftDateTime;
-              toast({
-                title: "Shift Time Extracted",
-                description: "AI found a date/time in your notes.",
-              });
-              // Now submit with the extracted time
-              submitLog(finalShiftDateTime, finalLogNotes);
-            } catch (e: any) {
-              toast({
-                title: "Date Extraction Failed",
-                description: "Could not find a date/time in the notes. Using current time.",
-                variant: "destructive",
-              });
-              // Submit with the current time
-              submitLog(null, finalLogNotes);
-            }
-        });
-      } else {
-          // Submit immediately if we already have a time or there are no notes to parse
-          submitLog(finalShiftDateTime, finalLogNotes);
+      if (!selectedGroup || !user) {
+          toast({ title: "Error", description: "Please select a client group first.", variant: "destructive" });
+          return;
       }
-    });
+      if (!logNotes && !scannedImage) {
+          toast({ title: "Error", description: "Please enter notes or scan a document.", variant: "destructive" });
+          return;
+      }
+
+      startSubmitTransition(async () => {
+          let finalShiftDateTime = shiftDateTime;
+
+          // If no date was extracted from an image, try to get it from the text content.
+          if (!finalShiftDateTime && logNotes) {
+              try {
+                  const result = await extractCareLogData({ textContent: logNotes });
+                  finalShiftDateTime = result.shiftDateTime;
+                  toast({
+                      title: "Shift Time Extracted",
+                      description: "AI found a date/time in your notes.",
+                  });
+              } catch (e: any) {
+                  console.warn("Could not find a date in notes, will use current time.", e.message);
+                  // Proceed with a null dateTime, which will be handled by submitLog
+              }
+          }
+
+          // Now, submit the log with whatever dateTime we ended up with.
+          submitLog(finalShiftDateTime, logNotes);
+      });
   };
 
   const submitLog = (submitShiftTime: string | null, submitLogNotes: string) => {
@@ -410,5 +400,3 @@ export default function CareLogClient() {
     </div>
   );
 }
-
-    
