@@ -15,6 +15,7 @@ export function AppHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, isUserLoading } = useUser();
+  const auth = useAuth();
   
   const isAdminRoute = pathname.startsWith('/admin');
 
