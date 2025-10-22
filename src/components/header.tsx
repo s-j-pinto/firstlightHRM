@@ -15,9 +15,13 @@ export function AppHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, isUserLoading } = useUser();
-  const auth = useAuth();
   
   const isAdminRoute = pathname.startsWith('/admin');
+
+  // Hide the global header on caregiver routes, as that layout has its own
+  if (pathname.startsWith('/caregiver')) {
+    return null;
+  }
 
   const handleSignOut = async () => {
     await signOut(auth);
