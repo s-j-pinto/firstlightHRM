@@ -12,8 +12,8 @@ export async function processActiveCaregiverUpload(data: Record<string, any>[]) 
   const now = Timestamp.now();
 
   try {
-    // 1. Fetch all existing active caregivers and map them by email.
-    const existingCaregiversSnap = await caregiversCollection.get();
+    // 1. Fetch only ACTIVE caregivers to correctly determine who needs deactivation.
+    const existingCaregiversSnap = await caregiversCollection.where('status', '==', 'ACTIVE').get();
     const existingCaregiversMap = new Map<string, { id: string, data: any }>();
     existingCaregiversSnap.forEach(doc => {
       const docData = doc.data();
@@ -41,7 +41,7 @@ export async function processActiveCaregiverUpload(data: Record<string, any>[]) 
       
       const caregiverData = {
         'Name': row['Name'] || '',
-        'dob': row['D.O.B.'] || '',
+        'dob': row['dob'] || '',
         'Address': row['Address'] || '',
         'Apt': row['Apt'] || '',
         'City': row['City'] || '',
@@ -60,15 +60,29 @@ export async function processActiveCaregiverUpload(data: Record<string, any>[]) 
       const existingCaregiver = existingCaregiversMap.get(email);
 
       if (existingCaregiver) {
-        // Update existing caregiver
+        // Update existing active caregiver
         const docRef = caregiversCollection.doc(existingCaregiver.id);
         batch.update(docRef, caregiverData);
         updatedCount++;
+        // Remove from map so we know who is left to deactivate
+        existingCaregiversMap.delete(email);
       } else {
-        // Create new caregiver
-        const docRef = caregiversCollection.doc();
-        batch.set(docRef, { ...caregiverData, createdAt: now });
-        createdCount++;
+        // This could be a new caregiver, or an inactive one being reactivated.
+        // To handle both cases, we query by email.
+        const query = caregiversCollection.where('Email', '==', email).limit(1);
+        const snapshot = await query.get();
+
+        if (snapshot.empty) {
+            // This is a completely new caregiver.
+            const docRef = caregiversCollection.doc();
+            batch.set(docRef, { ...caregiverData, createdAt: now });
+            createdCount++;
+        } else {
+            // This caregiver exists but was inactive. Reactivate and update them.
+            const docRef = snapshot.docs[0].ref;
+            batch.update(docRef, caregiverData);
+            updatedCount++;
+        }
       }
 
       operations++;
@@ -79,20 +93,18 @@ export async function processActiveCaregiverUpload(data: Record<string, any>[]) 
       }
     }
 
-    // 3. Deactivate caregivers who were not in the CSV.
+    // 3. Any caregivers left in the map were active but not in the CSV. Deactivate them.
     let deactivatedCount = 0;
-    for (const [email, { id, data }] of existingCaregiversMap.entries()) {
-        if (!processedEmails.has(email) && data.status === 'ACTIVE') {
-            console.log(`[Action] Deactivating caregiver not in CSV: ${email}`);
-            const docRef = caregiversCollection.doc(id);
-            batch.update(docRef, { status: 'INACTIVE', lastUpdatedAt: now });
-            deactivatedCount++;
-            operations++;
-            if (operations >= 499) {
-                await batch.commit();
-                batch = firestore.batch();
-                operations = 0;
-            }
+    for (const [email, { id }] of existingCaregiversMap.entries()) {
+        console.log(`[Action] Deactivating caregiver not in CSV: ${email}`);
+        const docRef = caregiversCollection.doc(id);
+        batch.update(docRef, { status: 'INACTIVE', lastUpdatedAt: now });
+        deactivatedCount++;
+        operations++;
+        if (operations >= 499) {
+            await batch.commit();
+            batch = firestore.batch();
+            operations = 0;
         }
     }
 
