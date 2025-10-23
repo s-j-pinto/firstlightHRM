@@ -32,12 +32,30 @@ export default function CareLogClient() {
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  
+  const clientsRef = useMemoFirebase(() => collection(firestore, 'Clients'), []);
+  const { data: clients, isLoading: clientsLoading } = useCollection<Client>(clientsRef);
 
-  const careLogGroupsRef = useMemoFirebase(
+  const clientsMap = useMemo(() => {
+    if (!clients) return new Map();
+    return new Map(clients.map(c => [c.id, c]));
+  }, [clients]);
+
+  const careLogGroupsQueryRef = useMemoFirebase(
     () => user?.email ? query(collection(firestore, 'carelog_groups'), where('caregiverEmails', 'array-contains', user.email)) : null,
     [user]
   );
-  const { data: careLogGroups, isLoading: groupsLoading } = useCollection<CareLogGroup>(careLogGroupsRef);
+  const { data: allCareLogGroups, isLoading: groupsLoading } = useCollection<CareLogGroup>(careLogGroupsQueryRef);
+
+  const careLogGroups = useMemo(() => {
+    if (!allCareLogGroups || !clientsMap) return [];
+    // Filter groups to only include those where the client is active.
+    return allCareLogGroups.filter(group => {
+        const client = clientsMap.get(group.clientId);
+        return client && client.status === 'ACTIVE';
+    });
+  }, [allCareLogGroups, clientsMap]);
+
 
   const careLogsRef = useMemoFirebase(
     () => selectedGroup ? query(collection(firestore, 'carelogs'), where('careLogGroupId', '==', selectedGroup.id)) : null,
@@ -56,15 +74,6 @@ export default function CareLogClient() {
     logsWithDates.sort((a, b) => b.shiftDateTimeJS.getTime() - a.shiftDateTimeJS.getTime());
     return logsWithDates;
   }, [careLogsData]);
-
-
-  const clientsRef = useMemoFirebase(() => collection(firestore, 'Clients'), []);
-  const { data: clients, isLoading: clientsLoading } = useCollection<Client>(clientsRef);
-
-  const clientsMap = useMemo(() => {
-    if (!clients) return new Map();
-    return new Map(clients.map(c => [c.id, c]));
-  }, [clients]);
 
   const handleGroupSelect = (groupId: string) => {
     const group = careLogGroups?.find(g => g.id === groupId) || null;
@@ -257,7 +266,7 @@ export default function CareLogClient() {
                     <Users className="h-4 w-4" />
                     <AlertTitle>No Assigned Clients</AlertTitle>
                     <AlertDescription>
-                        You are not currently assigned to any client care groups. Please contact your administrator.
+                        You are not currently assigned to any active client care groups. Please contact your administrator.
                     </AlertDescription>
                 </Alert>
             )}
@@ -400,3 +409,5 @@ export default function CareLogClient() {
     </div>
   );
 }
+
+    

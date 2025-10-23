@@ -20,7 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, PlusCircle, Trash2, Edit, X, Users } from "lucide-react";
+import { Loader2, PlusCircle, Trash2, Edit, X, Users, AlertTriangle } from "lucide-react";
 
 const careLogGroupSchema = z.object({
   groupId: z.string().optional(),
@@ -38,6 +38,11 @@ export function CareLogGroupAdmin() {
 
   const clientsRef = useMemoFirebase(() => collection(firestore, 'Clients'), [firestore]);
   const { data: clients, isLoading: clientsLoading } = useCollection<Client>(clientsRef);
+  
+  const clientsMap = useMemo(() => {
+    if (!clients) return new Map();
+    return new Map(clients.map(c => [c.id, c]));
+  }, [clients]);
 
   const activeCaregiversRef = useMemoFirebase(() => collection(firestore, 'caregivers_active'), [firestore]);
   const { data: caregivers, isLoading: caregiversLoading } = useCollection<ActiveCaregiver>(activeCaregiversRef);
@@ -128,39 +133,50 @@ export function CareLogGroupAdmin() {
         ) : (
           <div className="space-y-4">
             {careLogGroups && careLogGroups.length > 0 ? (
-              careLogGroups.map(group => (
-                <Card key={group.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4">
-                  <div className="flex-1 mb-4 sm:mb-0">
-                    <h3 className="font-semibold text-lg flex items-center gap-2"><Users className="text-accent" />{group.clientName}</h3>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                        {Array.isArray(group.caregiverEmails) && group.caregiverEmails.map(email => (
-                            <Badge key={email} variant="secondary">{caregiversByEmailMap.get(email) || email}</Badge>
-                        ))}
+              careLogGroups.map(group => {
+                const client = clientsMap.get(group.clientId);
+                const isClientInactive = client?.status === 'INACTIVE';
+                
+                return (
+                  <Card key={group.id} className={cn("flex flex-col sm:flex-row justify-between items-start sm:items-center p-4", isClientInactive && "bg-destructive/10 border-destructive/50")}>
+                    <div className="flex-1 mb-4 sm:mb-0">
+                      <h3 className="font-semibold text-lg flex items-center gap-2">
+                          <Users className={cn(isClientInactive ? "text-destructive" : "text-accent")} />
+                          {group.clientName}
+                          {isClientInactive && (
+                              <Badge variant="destructive">INACTIVE CLIENT</Badge>
+                          )}
+                      </h3>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                          {Array.isArray(group.caregiverEmails) && group.caregiverEmails.map(email => (
+                              <Badge key={email} variant="secondary">{caregiversByEmailMap.get(email) || email}</Badge>
+                          ))}
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex gap-2 shrink-0">
-                    <Button variant="outline" size="icon" onClick={() => handleOpenModal(group)}><Edit className="h-4 w-4" /></Button>
-                    <Dialog>
-                        <DialogTrigger asChild>
-                            <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>Are you sure?</DialogTitle>
-                                <DialogDescription>This will permanently delete the group for {group.clientName}. This action cannot be undone.</DialogDescription>
-                            </DialogHeader>
-                            <DialogFooter>
-                                <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
-                                <Button variant="destructive" onClick={() => handleDelete(group.id)} disabled={isPending}>
-                                    {isPending && <Loader2 className="animate-spin mr-2"/>}
-                                    Delete
-                                </Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
-                  </div>
-                </Card>
-              ))
+                    <div className="flex gap-2 shrink-0">
+                      <Button variant="outline" size="icon" onClick={() => handleOpenModal(group)}><Edit className="h-4 w-4" /></Button>
+                      <Dialog>
+                          <DialogTrigger asChild>
+                              <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                              <DialogHeader>
+                                  <DialogTitle>Are you sure?</DialogTitle>
+                                  <DialogDescription>This will permanently delete the group for {group.clientName}. This action cannot be undone.</DialogDescription>
+                              </DialogHeader>
+                              <DialogFooter>
+                                  <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
+                                  <Button variant="destructive" onClick={() => handleDelete(group.id)} disabled={isPending}>
+                                      {isPending && <Loader2 className="animate-spin mr-2"/>}
+                                      Delete
+                                  </Button>
+                              </DialogFooter>
+                          </DialogContent>
+                      </Dialog>
+                    </div>
+                  </Card>
+                );
+              })
             ) : (
               <div className="text-center py-10 border-dashed border-2 rounded-lg">
                 <h3 className="text-lg font-medium text-gray-900">No CareLog Groups Found</h3>
@@ -249,3 +265,5 @@ export function CareLogGroupAdmin() {
     </Card>
   );
 }
+
+    
