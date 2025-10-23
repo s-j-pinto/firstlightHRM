@@ -6,10 +6,12 @@ import { serverDb } from '@/firebase/server-init';
 import { WriteBatch, Timestamp } from 'firebase-admin/firestore';
 import type { Client } from './types';
 
-function createCompositeKey(name: string, mobile: string): string {
+function createCompositeKey(name: string, mobile: string, address: string, city: string): string {
     const normalizedName = (name || '').trim().toLowerCase();
     const normalizedMobile = (mobile || '').replace(/\D/g, ''); // Remove non-digits
-    return `${normalizedName}|${normalizedMobile}`;
+    const normalizedAddress = (address || '').trim().toLowerCase();
+    const normalizedCity = (city || '').trim().toLowerCase();
+    return `${normalizedName}|${normalizedMobile}|${normalizedAddress}|${normalizedCity}`;
 }
 
 export async function processClientUpload(data: Record<string, any>[]) {
@@ -24,8 +26,8 @@ export async function processClientUpload(data: Record<string, any>[]) {
     
     existingClientsSnap.forEach(doc => {
       const docData = doc.data();
-      const key = createCompositeKey(docData['Client Name'], docData['Mobile']);
-      if (key !== '|') { // Ensure we have a valid key
+      const key = createCompositeKey(docData['Client Name'], docData['Mobile'], docData['Address'], docData['City']);
+      if (key !== '|||') { // Ensure we have a valid key
         existingClientsMap.set(key, { id: doc.id, data: docData });
       }
     });
@@ -39,19 +41,21 @@ export async function processClientUpload(data: Record<string, any>[]) {
     for (const row of data) {
       const clientName = row['Client Name'];
       const mobile = row['Mobile'];
-      const compositeKey = createCompositeKey(clientName, mobile);
+      const address = row['Address'];
+      const city = row['City'];
+      const compositeKey = createCompositeKey(clientName, mobile, address, city);
 
-      if (compositeKey === '|') {
-        console.warn('[Action] Skipping row due to missing "Client Name" or "Mobile":', row);
+      if (compositeKey === '|||') {
+        console.warn('[Action] Skipping row due to missing "Client Name", "Mobile", "Address", or "City":', row);
         continue;
       }
       
       const clientData = {
         'Client Name': clientName,
         'DOB': row['DOB'] || '',
-        'Address': row['Address'] || '',
+        'Address': address || '',
         'Apt/Unit': row['Apt/Unit'] || '',
-        'City': row['City'] || '',
+        'City': city || '',
         'Zip': row['Zip'] || '',
         'Mobile': mobile,
         'ContactName': row['ContactName'] || '',
@@ -102,6 +106,7 @@ export async function processClientUpload(data: Record<string, any>[]) {
     const message = `Upload complete. Created: ${createdCount}, Updated: ${updatedCount}, Deactivated: ${deactivatedCount}.`;
     console.log(`[Action Success] ${message}`);
     revalidatePath('/admin/manage-clients');
+    revalidatePath('/staffing-admin/manage-clients');
     return { message };
 
   } catch (error: any) {
