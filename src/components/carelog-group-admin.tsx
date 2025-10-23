@@ -45,13 +45,13 @@ export function CareLogGroupAdmin() {
   }, [clients]);
 
   const activeCaregiversRef = useMemoFirebase(() => collection(firestore, 'caregivers_active'), [firestore]);
-  const { data: caregivers, isLoading: caregiversLoading } = useCollection<ActiveCaregiver>(activeCaregiversRef);
+  const { data: allCaregiversData, isLoading: caregiversLoading } = useCollection<ActiveCaregiver>(activeCaregiversRef);
 
   const careLogGroupsRef = useMemoFirebase(() => collection(firestore, 'carelog_groups'), [firestore]);
   const { data: careLogGroups, isLoading: groupsLoading } = useCollection<CareLogGroup>(careLogGroupsRef);
 
   const activeClients = useMemo(() => clients?.filter(c => c.status === 'ACTIVE') || [], [clients]);
-  const activeCaregivers = useMemo(() => caregivers?.filter(c => c.status === 'ACTIVE' && c.Email) || [], [caregivers]);
+  const activeCaregivers = useMemo(() => allCaregiversData?.filter(c => c.status === 'ACTIVE' && c.Email) || [], [allCaregiversData]);
 
   const form = useForm<CareLogGroupFormData>({
     resolver: zodResolver(careLogGroupSchema),
@@ -62,10 +62,12 @@ export function CareLogGroupAdmin() {
     },
   });
 
-  const caregiversByEmailMap = useMemo(() => {
-    if (!caregivers) return new Map();
-    return new Map(caregivers.map(cg => [cg.Email, cg.Name]));
-  }, [caregivers]);
+  const allCaregiversByEmailMap = useMemo(() => {
+    if (!allCaregiversData) return new Map();
+    // Maps email to the full caregiver object { Name, status }
+    return new Map(allCaregiversData.map(cg => [cg.Email, { name: cg.Name, status: cg.status }]));
+  }, [allCaregiversData]);
+
 
   const handleOpenModal = (group: CareLogGroup | null) => {
     setEditingGroup(group);
@@ -148,9 +150,16 @@ export function CareLogGroupAdmin() {
                           )}
                       </h3>
                       <div className="flex flex-wrap gap-2 mt-2">
-                          {Array.isArray(group.caregiverEmails) && group.caregiverEmails.map(email => (
-                              <Badge key={email} variant="secondary">{caregiversByEmailMap.get(email) || email}</Badge>
-                          ))}
+                          {Array.isArray(group.caregiverEmails) && group.caregiverEmails.map(email => {
+                              const caregiverInfo = allCaregiversByEmailMap.get(email);
+                              const isInactive = caregiverInfo?.status === 'INACTIVE';
+                              return (
+                                <Badge key={email} variant={isInactive ? "destructive" : "secondary"} className={cn(isInactive && "line-through")}>
+                                    {caregiverInfo?.name || email}
+                                    {isInactive && ' (Inactive)'}
+                                </Badge>
+                              )
+                          })}
                       </div>
                     </div>
                     <div className="flex gap-2 shrink-0">
@@ -265,5 +274,3 @@ export function CareLogGroupAdmin() {
     </Card>
   );
 }
-
-    
