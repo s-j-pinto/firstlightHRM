@@ -54,7 +54,7 @@ export async function processClientUpload(data: Record<string, any>[]) {
         'Client Name': clientName,
         'DOB': row['DOB'] || '',
         'Address': address || '',
-        'Apt/Unit': row['Apt/Unit'] || '',
+        'aptUnit': row['Apt/Unit'] || '',
         'City': city || '',
         'Zip': row['Zip'] || '',
         'Mobile': mobile,

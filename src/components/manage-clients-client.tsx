@@ -109,7 +109,7 @@ export default function ManageClientsClient() {
                         </CardHeader>
                         <CardContent className="space-y-2 text-sm">
                             <p><strong>DOB:</strong> {client.DOB || 'N/A'}</p>
-                            <p><strong>Address:</strong> {`${client.Address || ''} ${client['Apt/Unit'] || ''}`.trim()}</p>
+                            <p><strong>Address:</strong> {`${client.Address || ''} ${client.aptUnit || ''}`.trim()}</p>
                             <p><strong>Location:</strong> {`${client.City || ''}, ${client.Zip || ''}`.trim()}</p>
                             <p><strong>Contact:</strong> {client.ContactName || 'N/A'}</p>
                             <p><strong>Contact Mobile:</strong> {client.ContactMobile || 'N/A'}</p>

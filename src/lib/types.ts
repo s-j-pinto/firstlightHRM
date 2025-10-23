@@ -120,7 +120,7 @@ export const clientSchema = z.object({
   "Client Name": z.string(),
   "DOB": z.string().optional(),
   "Address": z.string(),
-  "Apt/Unit": z.string().optional(),
+  "aptUnit": z.string().optional(),
   "City": z.string(),
   "Zip": z.string(),
   "Mobile": z.string(),
@@ -204,5 +204,3 @@ export const ExtractCareLogOutputSchema = z.object({
   extractedText: z.string().describe('The full, raw text extracted from the provided content.'),
 });
 export type ExtractCareLogOutput = z.infer<typeof ExtractCareLogOutputSchema>;
-
-    

@@ -166,7 +166,7 @@
         "Client Name": { "type": "string" },
         "DOB": { "type": "string" },
         "Address": { "type": "string" },
-        "Apt/Unit": { "type": "string" },
+        "aptUnit": { "type": "string" },
         "City": { "type": "string" },
         "Zip": { "type": "string" },
         "Mobile": { "type": "string" },
@@ -251,5 +251,3 @@
     }
   }
 }
-
-    
