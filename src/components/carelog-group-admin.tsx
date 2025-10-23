@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { collection } from "firebase/firestore";
 import { firestore, useCollection, useMemoFirebase } from "@/firebase";
 import { Client, ActiveCaregiver, CareLogGroup } from "@/lib/types";
-import { saveCareLogGroup, deleteCareLogGroup } from "@/lib/carelog-groups.actions";
+import { saveCareLogGroup, deleteCareLogGroup, reactivateCareLogGroup } from "@/lib/carelog-groups.actions";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { z } from "zod";
@@ -20,7 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, PlusCircle, Trash2, Edit, X, Users, AlertTriangle } from "lucide-react";
+import { Loader2, PlusCircle, Trash2, Edit, X, Users, AlertTriangle, RotateCw } from "lucide-react";
 
 const careLogGroupSchema = z.object({
   groupId: z.string().optional(),
@@ -110,6 +110,17 @@ export function CareLogGroupAdmin() {
     });
   };
 
+  const handleReactivate = (groupId: string) => {
+    startTransition(async () => {
+        const result = await reactivateCareLogGroup(groupId);
+        if (result.error) {
+            toast({ title: "Error", description: result.message, variant: "destructive" });
+        } else {
+            toast({ title: "Success", description: result.message });
+        }
+    });
+  };
+
   const isLoading = clientsLoading || caregiversLoading || groupsLoading;
 
   return (
@@ -164,25 +175,31 @@ export function CareLogGroupAdmin() {
                       </div>
                     </div>
                     <div className="flex gap-2 shrink-0">
-                      <Button variant="outline" size="icon" onClick={() => handleOpenModal(group)}><Edit className="h-4 w-4" /></Button>
-                      <Dialog>
-                          <DialogTrigger asChild>
-                              <Button variant="destructive" size="icon" disabled={isGroupInactive}><Trash2 className="h-4 w-4" /></Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                              <DialogHeader>
-                                  <DialogTitle>Are you sure?</DialogTitle>
-                                  <DialogDescription>This will mark the group for {group.clientName} as inactive. Caregivers will no longer be able to submit logs for this group. This action can be reversed by editing the group.</DialogDescription>
-                              </DialogHeader>
-                              <DialogFooter>
-                                  <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
-                                  <Button variant="destructive" onClick={() => handleDelete(group.id)} disabled={isPending}>
-                                      {isPending && <Loader2 className="animate-spin mr-2"/>}
-                                      Mark as Inactive
-                                  </Button>
-                              </DialogFooter>
-                          </DialogContent>
-                      </Dialog>
+                        <Button variant="outline" size="icon" onClick={() => handleOpenModal(group)}><Edit className="h-4 w-4" /></Button>
+                        {isGroupInactive ? (
+                             <Button variant="outline" size="icon" onClick={() => handleReactivate(group.id)} disabled={isPending}>
+                                <RotateCw className="h-4 w-4" />
+                            </Button>
+                        ) : (
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Are you sure?</DialogTitle>
+                                        <DialogDescription>This will mark the group for {group.clientName} as inactive. Caregivers will no longer be able to submit logs for this group. This action can be undone by reactivating the group.</DialogDescription>
+                                    </DialogHeader>
+                                    <DialogFooter>
+                                        <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
+                                        <Button variant="destructive" onClick={() => handleDelete(group.id)} disabled={isPending}>
+                                            {isPending && <Loader2 className="animate-spin mr-2"/>}
+                                            Mark as Inactive
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                        )}
                     </div>
                   </Card>
                 );

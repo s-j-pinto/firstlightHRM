@@ -77,4 +77,24 @@ export async function deleteCareLogGroup(groupId: string) {
   }
 }
 
+export async function reactivateCareLogGroup(groupId: string) {
+  if (!groupId) {
+    return { message: "Group ID is missing.", error: true };
+  }
+
+  const firestore = serverDb;
+  try {
+    const groupRef = firestore.collection('carelog_groups').doc(groupId);
+    await groupRef.update({
+        status: 'ACTIVE',
+        lastUpdatedAt: Timestamp.now(),
+    });
+
+    revalidatePath('/staffing-admin');
+    return { message: "CareLog group has been reactivated successfully." };
+  } catch (error: any) {
+    console.error("Error reactivating CareLog group:", error);
+    return { message: `An error occurred while reactivating the group: ${error.message}`, error: true };
+  }
+}
     
