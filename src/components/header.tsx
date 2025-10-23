@@ -15,7 +15,6 @@ export function AppHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, isUserLoading } = useUser();
-  const auth = useAuth();
   
   const isAdminRoute = pathname.startsWith('/admin');
   const isStaffingAdminRoute = pathname.startsWith('/staffing-admin');
@@ -72,6 +71,9 @@ export function AppHeader() {
                <>
                 <Link href="/staffing-admin" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
                     Staffing Dashboard
+                </Link>
+                <Link href="/staffing-admin/manage-active-caregivers" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
+                    Manage Active Caregivers
                 </Link>
                </>
             )}
