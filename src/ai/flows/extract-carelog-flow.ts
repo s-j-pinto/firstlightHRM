@@ -31,7 +31,7 @@ const careLogPrompt = ai.definePrompt({
   name: 'careLogPrompt',
   input: { schema: ExtractCareLogInputSchema },
   output: { schema: ExtractCareLogOutputSchema },
-  model: 'googleai/gemini-2.0-flash',
+  model: 'googleai/gemini-2.0-flash-lite',
   prompt: `You are an expert at reading and transcribing handwritten notes.
     
   Analyze the following image and transcribe the text you see as accurately as possible.
