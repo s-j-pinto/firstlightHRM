@@ -118,7 +118,7 @@ export function CareLogGroupAdmin() {
         <div className="flex justify-between items-center">
           <div>
             <CardTitle>CareLog Group Administration</CardTitle>
-            <CardDescription>Create, edit, or delete groups linking clients to caregivers.</CardDescription>
+            <CardDescription>Create, edit, or mark groups as inactive.</CardDescription>
           </div>
           <Button onClick={() => handleOpenModal(null)}>
             <PlusCircle className="mr-2" />
@@ -138,15 +138,16 @@ export function CareLogGroupAdmin() {
               careLogGroups.map(group => {
                 const client = clientsMap.get(group.clientId);
                 const isClientInactive = client?.status === 'INACTIVE';
+                const isGroupInactive = group.status === 'INACTIVE';
                 
                 return (
-                  <Card key={group.id} className={cn("flex flex-col sm:flex-row justify-between items-start sm:items-center p-4", isClientInactive && "bg-destructive/10 border-destructive/50")}>
+                  <Card key={group.id} className={cn("flex flex-col sm:flex-row justify-between items-start sm:items-center p-4", (isClientInactive || isGroupInactive) && "bg-destructive/10 border-destructive/50")}>
                     <div className="flex-1 mb-4 sm:mb-0">
                       <h3 className="font-semibold text-lg flex items-center gap-2">
-                          <Users className={cn(isClientInactive ? "text-destructive" : "text-accent")} />
+                          <Users className={cn((isClientInactive || isGroupInactive) ? "text-destructive" : "text-accent")} />
                           {group.clientName}
-                          {isClientInactive && (
-                              <Badge variant="destructive">INACTIVE CLIENT</Badge>
+                          {(isClientInactive || isGroupInactive) && (
+                              <Badge variant="destructive">{isGroupInactive ? 'GROUP INACTIVE' : 'CLIENT INACTIVE'}</Badge>
                           )}
                       </h3>
                       <div className="flex flex-wrap gap-2 mt-2">
@@ -166,18 +167,18 @@ export function CareLogGroupAdmin() {
                       <Button variant="outline" size="icon" onClick={() => handleOpenModal(group)}><Edit className="h-4 w-4" /></Button>
                       <Dialog>
                           <DialogTrigger asChild>
-                              <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>
+                              <Button variant="destructive" size="icon" disabled={isGroupInactive}><Trash2 className="h-4 w-4" /></Button>
                           </DialogTrigger>
                           <DialogContent>
                               <DialogHeader>
                                   <DialogTitle>Are you sure?</DialogTitle>
-                                  <DialogDescription>This will permanently delete the group for {group.clientName}. This action cannot be undone.</DialogDescription>
+                                  <DialogDescription>This will mark the group for {group.clientName} as inactive. Caregivers will no longer be able to submit logs for this group. This action can be reversed by editing the group.</DialogDescription>
                               </DialogHeader>
                               <DialogFooter>
                                   <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
                                   <Button variant="destructive" onClick={() => handleDelete(group.id)} disabled={isPending}>
                                       {isPending && <Loader2 className="animate-spin mr-2"/>}
-                                      Delete
+                                      Mark as Inactive
                                   </Button>
                               </DialogFooter>
                           </DialogContent>

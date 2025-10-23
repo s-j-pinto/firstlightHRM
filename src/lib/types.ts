@@ -158,6 +158,7 @@ export const careLogGroupSchema = z.object({
   clientId: z.string(),
   clientName: z.string(),
   caregiverEmails: z.array(z.string().email()),
+  status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
   createdAt: z.any(),
   lastUpdatedAt: z.any(),
 });

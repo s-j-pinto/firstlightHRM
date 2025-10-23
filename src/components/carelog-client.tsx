@@ -49,10 +49,12 @@ export default function CareLogClient() {
 
   const careLogGroups = useMemo(() => {
     if (!allCareLogGroups || !clientsMap) return [];
-    // Filter groups to only include those where the client is active.
+    // Filter groups to only include those where the client is active AND the group is active.
     return allCareLogGroups.filter(group => {
         const client = clientsMap.get(group.clientId);
-        return client && client.status === 'ACTIVE';
+        const isClientActive = client && client.status === 'ACTIVE';
+        const isGroupActive = !group.status || group.status === 'ACTIVE';
+        return isClientActive && isGroupActive;
     });
   }, [allCareLogGroups, clientsMap]);
 

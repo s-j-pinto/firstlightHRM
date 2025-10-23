@@ -34,6 +34,7 @@ export async function saveCareLogGroup(payload: CareLogGroupPayload) {
       clientId,
       clientName,
       caregiverEmails,
+      status: 'ACTIVE',
       lastUpdatedAt: Timestamp.now(),
     };
 
@@ -47,7 +48,7 @@ export async function saveCareLogGroup(payload: CareLogGroupPayload) {
       await groupRef.set({ ...groupData, createdAt: Timestamp.now() });
     }
 
-    revalidatePath('/admin/settings');
+    revalidatePath('/staffing-admin');
     return { message: `CareLog group for ${clientName} has been saved successfully.` };
   } catch (error: any) {
     console.error("Error saving CareLog group:", error);
@@ -62,13 +63,17 @@ export async function deleteCareLogGroup(groupId: string) {
 
   const firestore = serverDb;
   try {
-    await firestore.collection('carelog_groups').doc(groupId).delete();
+    const groupRef = firestore.collection('carelog_groups').doc(groupId);
+    await groupRef.update({
+        status: 'INACTIVE',
+        lastUpdatedAt: Timestamp.now(),
+    });
 
-    revalidatePath('/admin/settings');
-    return { message: "CareLog group has been deleted." };
+    revalidatePath('/staffing-admin');
+    return { message: "CareLog group has been marked as inactive." };
   } catch (error: any) {
-    console.error("Error deleting CareLog group:", error);
-    return { message: `An error occurred while deleting the group: ${error.message}`, error: true };
+    console.error("Error deactivating CareLog group:", error);
+    return { message: `An error occurred while deactivating the group: ${error.message}`, error: true };
   }
 }
 
