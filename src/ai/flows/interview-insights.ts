@@ -78,7 +78,7 @@ Analyze the following information:
 
 Generate a single string for the 'aiGeneratedInsight' field. This string must contain two parts:
 
-1.  **Summary:** First, write a concise professional summary of the candidate. Highlight their key strengths, potential weaknesses, and alignment with a caregiver role. The summary must be a maximum of 200 words.
+1.  **Summary:** First, write a concise professional summary of the candidate. Highlight their key strengths, potential weaknesses, and alignment with a caregiver role. The summary must be a maximum of 150 words.
 
 2.  **Recommendation:** After the summary, add two new lines (to create a blank line), then provide a clear, actionable hiring recommendation. Start this part with "Recommendation:". Choose from "Recommend for in-person interview," "Proceed with caution," or "Do not recommend." Justify your choice with 1-2 key reasons based on the provided data.
 
