@@ -46,9 +46,23 @@ function LoginPageContent() {
   const onSubmit = (data: LoginFormValues) => {
     startTransition(async () => {
       try {
-        await signInWithEmailAndPassword(auth, data.email, data.password);
-        const redirectTo = searchParams.get("redirect") || "/admin";
-        router.push(redirectTo);
+        const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
+        const user = userCredential.user;
+        const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "care-rc@firstlighthomecare.com";
+        const staffingAdminEmail = process.env.NEXT_PUBLIC_STAFFING_ADMIN_EMAIL || "admin-rc@firstlighthomecare.com";
+
+        const redirectTo = searchParams.get("redirect");
+
+        if (redirectTo) {
+            router.push(redirectTo);
+        } else if (user.email === adminEmail) {
+            router.push("/admin");
+        } else if (user.email === staffingAdminEmail) {
+            router.push("/staffing-admin");
+        } else {
+            router.push("/");
+        }
+
       } catch (error) {
         toast({
           variant: "destructive",
@@ -71,9 +85,9 @@ function LoginPageContent() {
                 height={64}
                 className="object-contain mx-auto mb-4"
             />
-          <CardTitle className="text-2xl font-bold font-headline">Admin Login</CardTitle>
+          <CardTitle className="text-2xl font-bold font-headline">Admin Portal Login</CardTitle>
           <CardDescription>
-            Enter your credentials to access the admin dashboard.
+            Enter your credentials to access your dashboard.
           </CardDescription>
         </CardHeader>
         <CardContent>

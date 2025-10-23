@@ -18,6 +18,7 @@ export function AppHeader() {
   const auth = useAuth();
   
   const isAdminRoute = pathname.startsWith('/admin');
+  const isStaffingAdminRoute = pathname.startsWith('/staffing-admin');
 
   // Hide the global header on caregiver routes, as that layout has its own
   if (pathname.startsWith('/caregiver')) {
@@ -26,7 +27,7 @@ export function AppHeader() {
 
   const handleSignOut = async () => {
     await signOut(auth);
-    if(isAdminRoute) {
+    if(isAdminRoute || isStaffingAdminRoute) {
         router.push("/login");
     } else {
         router.push("/");
@@ -59,17 +60,18 @@ export function AppHeader() {
                 <Link href="/admin/manage-applications" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
                     Manage Applications
                 </Link>
-                 <Link href="/admin/manage-active-caregivers" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
-                    Manage Active Caregivers
-                </Link>
-                 <Link href="/admin/manage-clients" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
-                    Manage Clients
-                </Link>
                 <Link href="/admin/reports" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
                     Reports
                 </Link>
                 <Link href="/admin/settings" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
                     Settings
+                </Link>
+               </>
+            )}
+             {isStaffingAdminRoute && user && (
+               <>
+                <Link href="/staffing-admin" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
+                    Staffing Dashboard
                 </Link>
                </>
             )}

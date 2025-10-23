@@ -18,3 +18,5 @@ env:
     secret: GEMINI_API_KEY
   - variable: ADMIN_EMAIL
     value: ${NEXT_PUBLIC_ADMIN_EMAIL}
+  - variable: STAFFING_ADMIN_EMAIL
+    secret: STAFFING_ADMIN_EMAIL

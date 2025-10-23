@@ -210,7 +210,6 @@ export default function AdminSettings() {
           </Button>
         </div>
       </form>
-      <CareLogGroupAdmin />
     </div>
   );
 }
