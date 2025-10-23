@@ -139,7 +139,7 @@
       "description": "Represents an active caregiver's information, typically from an external system.",
       "properties": {
         "Name": { "type": "string" },
-        "D.O.B.": { "type": "string" },
+        "dob": { "type": "string" },
         "Address": { "type": "string" },
         "Apt": { "type": "string" },
         "City": { "type": "string" },

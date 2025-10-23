@@ -41,7 +41,7 @@ export async function processActiveCaregiverUpload(data: Record<string, any>[]) 
       
       const caregiverData = {
         'Name': row['Name'] || '',
-        'D.O.B.': row['D.O.B.'] || '',
+        'dob': row['D.O.B.'] || '',
         'Address': row['Address'] || '',
         'Apt': row['Apt'] || '',
         'City': row['City'] || '',

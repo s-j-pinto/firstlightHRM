@@ -108,7 +108,7 @@ export default function ManageActiveCaregiversClient() {
                             <CardDescription>{caregiver.Email}</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-2 text-sm">
-                            <p><strong>D.O.B:</strong> {caregiver['D.O.B.'] || 'N/A'}</p>
+                            <p><strong>D.O.B:</strong> {caregiver.dob || 'N/A'}</p>
                             <p><strong>Address:</strong> {`${caregiver.Address || ''} ${caregiver.Apt || ''}`.trim()}</p>
                             <p><strong>Location:</strong> {`${caregiver.City || ''}, ${caregiver.State || ''} ${caregiver.Zip || ''}`.trim()}</p>
                             <p><strong>Mobile:</strong> {caregiver.Mobile || 'N/A'}</p>
