@@ -14,7 +14,7 @@ function StaffingAdminAuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!user || user.email !== staffingAdminEmail) {
-      router.replace(`/login?redirect=${pathname}`);
+      router.replace(`/login-form?redirect=${pathname}`);
     }
   }, [user, staffingAdminEmail, pathname, router]);
 

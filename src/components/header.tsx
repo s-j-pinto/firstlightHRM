@@ -15,6 +15,7 @@ export function AppHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, isUserLoading } = useUser();
+  
   const auth = useAuth();
   
   const isAdminRoute = pathname.startsWith('/admin');
@@ -81,7 +82,7 @@ export function AppHeader() {
                 </Link>
                </>
             )}
-            {!user && !isUserLoading && !pathname.endsWith('/login') && !pathname.startsWith('/caregiver-login') && !pathname.startsWith('/active-caregiver-login') && (
+            {!user && !isUserLoading && !pathname.endsWith('/login') && !pathname.startsWith('/login-form') && !pathname.startsWith('/caregiver-login') && !pathname.startsWith('/active-caregiver-login') && (
               <Button asChild variant="ghost">
                 <Link href="/caregiver-login">
                   <LogIn className="mr-2" />

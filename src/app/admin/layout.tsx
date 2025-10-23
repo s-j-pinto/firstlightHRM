@@ -14,7 +14,7 @@ function AdminAuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!user || user.email !== adminEmail) {
-      router.replace(`/login?redirect=${pathname}`);
+      router.replace(`/login-form?redirect=${pathname}`);
     }
   }, [user, adminEmail, pathname, router]);
 
