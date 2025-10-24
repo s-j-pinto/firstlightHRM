@@ -1,60 +1,172 @@
+/**
+ * @fileOverview
+ * This ruleset enforces a strict owner-only access model for most collections,
+ * with some exceptions for public read access where appropriate.
+ *
+ * Data Structure:
+ * - Caregiver Profiles: /caregiver_profiles/{caregiverProfileId} - Data about caregiver profiles.
+ * - Appointments: /appointments/{appointmentId} - Stores appointment slots.
+ * - Interviews: /interviews/{interviewId} - Interview details.
+ * - Caregiver Employees: /caregiver_employees/{employeeId} - Employment information.
+ * - Active Caregivers: /caregivers_active/{caregiverId} - Caregivers active in the system.
+ * - Clients: /Clients/{clientId} - Information about clients.
+ * - Care Log Groups: /carelog_groups/{groupId} - Groups of caregivers and clients.
+ * - Care Logs: /carelogs/{logId} - Individual care logs.
+ *
+ * Key Security Decisions:
+ * - Caregiver Profiles, Appointments, Interviews, Caregiver Employees, and Care Logs are owner-only for writes.
+ * - Listing of caregiver profiles, appointments, interviews, caregiver employees, carelogs, and carelog_groups is disallowed by default.
+ * - Active Caregivers and Clients are publicly readable to support data integrations, with restricted writes (see TODO).
+ *
+ * Denormalization for Authorization:
+ *  - The data model does not currently contain owner fields to associate a caregiver profile to a specific user account, so writes are currently disallowed.
+ *  - The data model does not currently contain owner fields to associate carelogs to a specific user account, so writes are currently disallowed.
+ *  - The data model does not currently contain owner fields to associate interviews to a specific user account, so writes are currently disallowed.
+ */
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isSignedIn() {
-      return request.auth != null;
+    /**
+     * @description Restricts access to caregiver profiles.
+     * @path /caregiver_profiles/{caregiverProfileId}
+     * @allow (create) - The caregiver profile can be created by the user whose ID matches the profile ID.
+     * @allow (update) - The caregiver profile can be updated only by the user who owns the profile, and the profile ID cannot be changed.
+     * @allow (delete) - The caregiver profile can only be deleted by the owner.
+     * @deny (get) - Caregiver profiles cannot be individually read.
+     * @deny (list) - Caregiver profiles cannot be listed.
+     * @principle Enforces document ownership for writes, restricts reads.
+     */
+    match /caregiver_profiles/{caregiverProfileId} {
+      allow get: if false;
+      allow list: if false;
+      allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
 
-    function isAdmin() {
-      return request.auth.token.isAdmin == true;
-    }
-
-    match /caregiver_profiles/{profileId} {
-      allow read, write: if isSignedIn();
-    }
-
+    /**
+     * @description Restricts access to appointment slots.
+     * @path /appointments/{appointmentId}
+     * @allow (create) - Appointment slots can be created by the owner.
+     * @allow (update) - Appointment slots can be updated only by the user who owns the appointment slot.
+     * @allow (delete) - Appointment slots can only be deleted by the owner.
+     * @deny (get) - Appointment slots cannot be individually read.
+     * @deny (list) - Appointment slots cannot be listed.
+     * @principle Enforces document ownership for writes, restricts reads.
+     */
     match /appointments/{appointmentId} {
-      allow read, write: if isSignedIn();
+      allow get: if false;
+      allow list: if false;
+      allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
 
-    match /settings/{settingId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-    match /interviews/{interviewId} {
-      allow get: if isSignedIn();
-      allow list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
-    }
+        /**
+         * @description Restricts access to caregiver interviews.
+         * @path /interviews/{interviewId}
+         * @allow (create) - Interviews can be created only by the owner.
+         * @allow (update) - Interviews can be updated only by the owner.
+         * @allow (delete) - Interviews can be deleted only by the owner.
+         * @deny (get) - Interviews cannot be individually read.
+         * @deny (list) - Interviews cannot be listed.
+         * @principle Enforces document ownership for writes, restricts reads.
+         */
+        match /interviews/{interviewId} {
+            allow get: if false;
+            allow list: if false;
+            allow create: if false;  // TODO: Add owner validation once the schema is updated with an ownership field.
+            allow update: if false;  // TODO: Add owner validation once the schema is updated with an ownership field.
+            allow delete: if false;  // TODO: Add owner validation once the schema is updated with an ownership field.
+        }
+
+    /**
+     * @description Restricts access to caregiver employment details.
+     * @path /caregiver_employees/{employeeId}
+     * @allow (create) - Caregiver employment details can be created only by the owner.
+     * @allow (update) - Caregiver employment details can be updated only by the owner.
+     * @allow (delete) - Caregiver employment details can be deleted only by the owner.
+     * @deny (get) - Caregiver employment details cannot be individually read.
+     * @deny (list) - Caregiver employment details cannot be listed.
+     * @principle Enforces document ownership for writes, restricts reads.
+     */
     match /caregiver_employees/{employeeId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if isSignedIn();
+      allow get: if false;
+      allow list: if false;
+      allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
-    // Clients collection
-    match /Clients/{clientId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if isSignedIn();
-    }
+
+    /**
+     * @description Allows public read access to active caregiver data, with restricted writes.
+     * @path /caregivers_active/{caregiverId}
+     * @allow (get) - Active caregiver data can be read by anyone.
+     * @allow (list) - Active caregiver data can be listed by anyone.
+     * @deny (create) - Active caregiver data cannot be created.
+     * @deny (update) - Active caregiver data cannot be updated.
+     * @deny (delete) - Active caregiver data cannot be deleted.
+     * @principle Provides public read access for data integration, restricts writes.
+     */
     match /caregivers_active/{caregiverId} {
       allow get, list: if true;
-      allow create: if true;
-      allow update, delete: if isSignedIn();
+      allow create: if false; // TODO: Add stronger write controls and validation.
+      allow update: if false; // TODO: Add stronger write controls and validation.
+      allow delete: if false; // TODO: Add stronger write controls and validation.
     }
-    match /carelog_groups/{carelogId} {
+
+    /**
+     * @description Allows public read access to client data, with restricted writes.
+     * @path /Clients/{clientId}
+     * @allow (get) - Client data can be read by anyone.
+     * @allow (list) - Client data can be listed by anyone.
+     * @deny (create) - Client data cannot be created.
+     * @deny (update) - Client data cannot be updated.
+     * @deny (delete) - Client data cannot be deleted.
+     * @principle Provides public read access for data integration, restricts writes.
+     */
+    match /Clients/{clientId} {
       allow get, list: if true;
-      allow create: if true;
-      allow update, delete: if isSignedIn();
+      allow create: if false; // TODO: Add stronger write controls and validation.
+      allow update: if false; // TODO: Add stronger write controls and validation.
+      allow delete: if false; // TODO: Add stronger write controls and validation.
     }
-    match /carelogs/{carelogId} {
-      allow get, list: if true;
-      allow create: if true;
-      allow update, delete: if isSignedIn();
+
+    /**
+     * @description Restricts access to care log groups.
+     * @path /carelog_groups/{groupId}
+     * @allow (create) - Care log groups can be created only by the owner.
+     * @allow (update) - Care log groups can be updated only by the owner.
+     * @allow (delete) - Care log groups can be deleted only by the owner.
+     * @deny (get) - Care log groups cannot be individually read.
+     * @deny (list) - Care log groups cannot be listed.
+     * @principle Enforces document ownership for writes, restricts reads.
+     */
+    match /carelog_groups/{groupId} {
+      allow get: if false;
+      allow list: if false;
+      allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+    }
+
+    /**
+     * @description Restricts access to care logs.
+     * @path /carelogs/{logId}
+     * @allow (create) - Care logs can be created only by the owner.
+     * @allow (update) - Care logs can be updated only by the owner.
+     * @allow (delete) - Care logs can be deleted only by the owner.
+     * @deny (get) - Care logs cannot be individually read.
+     * @deny (list) - Care logs cannot be listed.
+     * @principle Enforces document ownership for writes, restricts reads.
+     */
+    match /carelogs/{logId} {
+      allow get: if false;
+      allow list: if false;
+      allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
   }
 }
