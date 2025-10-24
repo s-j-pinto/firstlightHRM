@@ -56,31 +56,44 @@ const phoneScreenSchema = z.object({
   interviewNotes: z.string().min(1, "Interview notes are required."),
   candidateRating: z.number().min(0).max(5),
   phoneScreenPassed: z.enum(['Yes', 'No']),
+  
+  // New pathway selection
+  interviewPathway: z.enum(['separate', 'combined']).optional(),
+
+  // Fields for scheduling events
   interviewMethod: z.enum(['In-Person', 'Google Meet']).optional(),
-  inPersonDate: z.date().optional(),
-  inPersonTime: z.string().optional(),
+  eventDate: z.date().optional(),
+  eventTime: z.string().optional(),
+  
 }).superRefine((data, ctx) => {
     if (data.phoneScreenPassed === 'Yes') {
-        if (!data.interviewMethod) {
-            ctx.addIssue({
+        if (!data.interviewPathway) {
+             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
-                message: "Please select an interview method.",
-                path: ["interviewMethod"],
+                message: "Please select an interview pathway.",
+                path: ["interviewPathway"],
             });
         }
-        if (data.interviewMethod) {
-            if (!data.inPersonDate) {
+        if (data.interviewPathway) {
+             if (!data.interviewMethod) {
                 ctx.addIssue({
                     code: z.ZodIssueCode.custom,
-                    message: "Interview date is required.",
-                    path: ["inPersonDate"],
+                    message: "An interview method (In-Person or Google Meet) is required.",
+                    path: ["interviewMethod"],
                 });
             }
-            if (!data.inPersonTime) {
+            if (!data.eventDate) {
                 ctx.addIssue({
                     code: z.ZodIssueCode.custom,
-                    message: "Interview time is required.",
-                    path: ["inPersonTime"],
+                    message: "An event date is required.",
+                    path: ["eventDate"],
+                });
+            }
+            if (!data.eventTime) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: "An event time is required.",
+                    path: ["eventTime"],
                 });
             }
         }
@@ -120,8 +133,6 @@ export default function ManageInterviewsClient() {
       interviewNotes: '',
       candidateRating: 3,
       phoneScreenPassed: 'No',
-      inPersonDate: undefined,
-      inPersonTime: '',
     },
   });
 
@@ -148,8 +159,10 @@ export default function ManageInterviewsClient() {
       interviewNotes: '',
       candidateRating: 3,
       phoneScreenPassed: 'No',
-      inPersonDate: undefined,
-      inPersonTime: '',
+      interviewPathway: undefined,
+      interviewMethod: undefined,
+      eventDate: undefined,
+      eventTime: '',
     });
     hiringForm.reset({
         caregiverProfileId: '',
@@ -201,8 +214,14 @@ export default function ManageInterviewsClient() {
   };
 
   const phoneScreenPassed = phoneScreenForm.watch('phoneScreenPassed');
-  const interviewMethod = phoneScreenForm.watch('interviewMethod');
-  const shouldShowHiringForm = existingInterview?.phoneScreenPassed === 'Yes' || !!existingEmployee;
+  const interviewPathway = phoneScreenForm.watch('interviewPathway');
+
+  const getHiringFormVisibility = () => {
+    if (existingEmployee) return true;
+    if (existingInterview?.phoneScreenPassed === 'Yes' && existingInterview?.interviewDateTime) return true;
+    return false;
+  };
+  const shouldShowHiringForm = getHiringFormVisibility();
   
   const handleSelectCaregiver = async (caregiver: CaregiverProfile) => {
     handleCancel(); // Reset state before selecting a new caregiver
@@ -243,8 +262,8 @@ export default function ManageInterviewsClient() {
                 candidateRating: interviewData.candidateRating || 3,
                 phoneScreenPassed: interviewData.phoneScreenPassed as 'Yes' | 'No' || 'No',
                 interviewMethod: interviewData.interviewType as 'In-Person' | 'Google Meet' | undefined,
-                inPersonDate: interviewDate ? toDate(interviewDate) : undefined,
-                inPersonTime: interviewDate ? format(toDate(interviewDate), 'HH:mm') : '',
+                eventDate: interviewDate ? toDate(interviewDate) : undefined,
+                eventTime: interviewDate ? format(toDate(interviewDate), 'HH:mm') : '',
             });
 
             if(interviewData.aiGeneratedInsight) {
@@ -335,18 +354,19 @@ export default function ManageInterviewsClient() {
         }
       }
   
-      if (data.phoneScreenPassed === 'Yes' && data.inPersonDate && data.inPersonTime && data.interviewMethod) {
-          const [hours, minutes] = data.inPersonTime.split(':').map(Number);
-          const inPersonDateTime = new Date(data.inPersonDate.setHours(hours, minutes));
+      if (data.phoneScreenPassed === 'Yes' && data.eventDate && data.eventTime && data.interviewMethod && data.interviewPathway) {
+          const [hours, minutes] = data.eventTime.split(':').map(Number);
+          const eventDateTime = new Date(data.eventDate.setHours(hours, minutes));
   
           const result = await saveInterviewAndSchedule({
             caregiverProfile: selectedCaregiver,
-            inPersonDateTime: inPersonDateTime,
+            eventDateTime: eventDateTime,
             interviewId: interviewId,
             aiInsight: aiInsight || '',
             interviewType: data.interviewMethod,
             interviewNotes: data.interviewNotes,
             candidateRating: data.candidateRating,
+            pathway: data.interviewPathway,
           });
   
           if (result.authUrl) {
@@ -603,26 +623,20 @@ export default function ManageInterviewsClient() {
                         {phoneScreenPassed === 'Yes' && (
                             <Card className="bg-muted/50">
                                 <CardHeader>
-                                    <CardTitle>Schedule Next Interview</CardTitle>
-                                    <CardDescription>Select the method and time for the next interview.</CardDescription>
+                                    <CardTitle>Next Step</CardTitle>
+                                    <CardDescription>Select the hiring pathway and schedule the next event.</CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-6">
                                      <FormField
                                         control={phoneScreenForm.control}
-                                        name="interviewMethod"
+                                        name="interviewPathway"
                                         render={({ field }) => (
                                             <FormItem className="space-y-3">
-                                                <FormLabel>Interview Method</FormLabel>
+                                                <FormLabel>Interview Pathway</FormLabel>
                                                 <FormControl>
-                                                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4" disabled={isFormDisabled}>
-                                                        <FormItem className="flex items-center space-x-3 space-y-0">
-                                                            <FormControl><RadioGroupItem value="In-Person" /></FormControl>
-                                                            <FormLabel className="font-normal flex items-center gap-2"><Briefcase /> In-Person</FormLabel>
-                                                        </FormItem>
-                                                        <FormItem className="flex items-center space-x-3 space-y-0">
-                                                            <FormControl><RadioGroupItem value="Google Meet" /></FormControl>
-                                                            <FormLabel className="font-normal flex items-center gap-2"><Video /> Google Meet</FormLabel>
-                                                        </FormItem>
+                                                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-col sm:flex-row gap-4" disabled={isFormDisabled}>
+                                                        <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="separate" /></FormControl><FormLabel className="font-normal">Separate Interview & Orientation</FormLabel></FormItem>
+                                                        <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="combined" /></FormControl><FormLabel className="font-normal">Combined Interview + Orientation</FormLabel></FormItem>
                                                     </RadioGroup>
                                                 </FormControl>
                                                 <FormMessage />
@@ -630,45 +644,74 @@ export default function ManageInterviewsClient() {
                                         )}
                                     />
                                     
-                                    {interviewMethod && (
-                                         <div className="flex flex-col sm:flex-row gap-4 items-start">
+                                    {interviewPathway && (
+                                        <>
                                             <FormField
                                                 control={phoneScreenForm.control}
-                                                name="inPersonDate"
+                                                name="interviewMethod"
                                                 render={({ field }) => (
-                                                    <FormItem className="flex flex-col flex-1">
-                                                        <FormLabel>Interview Date</FormLabel>
-                                                        <Popover>
-                                                            <PopoverTrigger asChild>
-                                                            <FormControl>
-                                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isFormDisabled}>
-                                                                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                                </Button>
-                                                            </FormControl>
-                                                            </PopoverTrigger>
-                                                            <PopoverContent className="w-auto p-0" align="start">
-                                                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                                                            </PopoverContent>
-                                                        </Popover>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                            <FormField
-                                                control={phoneScreenForm.control}
-                                                name="inPersonTime"
-                                                render={({ field }) => (
-                                                    <FormItem className="flex flex-col flex-1">
-                                                        <FormLabel>Interview Time</FormLabel>
+                                                    <FormItem className="space-y-3">
+                                                        <FormLabel>Meeting Method</FormLabel>
                                                         <FormControl>
-                                                            <Input type="time" {...field} disabled={isFormDisabled} />
+                                                            <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4" disabled={isFormDisabled}>
+                                                                <FormItem className="flex items-center space-x-3 space-y-0">
+                                                                    <FormControl><RadioGroupItem value="In-Person" /></FormControl>
+                                                                    <FormLabel className="font-normal flex items-center gap-2"><Briefcase /> In-Person</FormLabel>
+                                                                </FormItem>
+                                                                <FormItem className="flex items-center space-x-3 space-y-0">
+                                                                    <FormControl><RadioGroupItem value="Google Meet" /></FormControl>
+                                                                    <FormLabel className="font-normal flex items-center gap-2"><Video /> Google Meet</FormLabel>
+                                                                </FormItem>
+                                                            </RadioGroup>
                                                         </FormControl>
                                                         <FormMessage />
                                                     </FormItem>
                                                 )}
                                             />
-                                        </div>
+                                            
+                                            <div className="flex flex-col sm:flex-row gap-4 items-start">
+                                                <FormField
+                                                    control={phoneScreenForm.control}
+                                                    name="eventDate"
+                                                    render={({ field }) => (
+                                                        <FormItem className="flex flex-col flex-1">
+                                                            <FormLabel>
+                                                                {interviewPathway === 'separate' ? 'Final Interview Date' : 'Combined Session Date'}
+                                                            </FormLabel>
+                                                            <Popover>
+                                                                <PopoverTrigger asChild>
+                                                                <FormControl>
+                                                                    <Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isFormDisabled}>
+                                                                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                                    </Button>
+                                                                </FormControl>
+                                                                </PopoverTrigger>
+                                                                <PopoverContent className="w-auto p-0" align="start">
+                                                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                                                </PopoverContent>
+                                                            </Popover>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                                <FormField
+                                                    control={phoneScreenForm.control}
+                                                    name="eventTime"
+                                                    render={({ field }) => (
+                                                        <FormItem className="flex flex-col flex-1">
+                                                            <FormLabel>
+                                                                {interviewPathway === 'separate' ? 'Final Interview Time' : 'Combined Session Time'}
+                                                            </FormLabel>
+                                                            <FormControl>
+                                                                <Input type="time" {...field} disabled={isFormDisabled} />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                            </div>
+                                        </>
                                     )}
                                 </CardContent>
                             </Card>

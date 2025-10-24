@@ -99,6 +99,9 @@ export const interviewSchema = z.object({
   inPersonInterviewDate: z.date().optional(),
   googleMeetLink: z.string().optional(),
   createdAt: z.date().optional(),
+  finalInterviewStatus: z.enum(['Passed', 'Failed', 'Pending']).optional(),
+  orientationScheduled: z.boolean().optional(),
+  orientationDateTime: z.date().optional(),
 });
 
 export type Interview = z.infer<typeof interviewSchema> & { id: string };

@@ -11,23 +11,25 @@ import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 
 interface SaveInterviewPayload {
   caregiverProfile: CaregiverProfile;
-  inPersonDateTime: Date;
+  eventDateTime: Date;
   interviewId: string;
   aiInsight: string | null;
   interviewType: 'In-Person' | 'Google Meet';
   interviewNotes: string;
   candidateRating: number;
+  pathway: 'separate' | 'combined';
 }
 
 export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
   const { 
     caregiverProfile, 
-    inPersonDateTime, 
+    eventDateTime, 
     interviewId, 
     aiInsight, 
     interviewType,
     interviewNotes,
-    candidateRating 
+    candidateRating,
+    pathway
   } = payload;
   
   try {
@@ -40,6 +42,17 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
     let calendarErrorMessage: string | null = null;
     let conferenceLink: string | undefined = undefined;
 
+    // --- Determine Event Duration and Title ---
+    let durationHours = 1; // Default for separate final interview
+    let eventTitle = `Final Interview: ${caregiverProfile.fullName}`;
+    if (pathway === 'combined') {
+        durationHours = 3;
+        eventTitle = `Interview + Orientation: ${caregiverProfile.fullName}`;
+    } else if (payload.pathway === 'separate' && payload.interviewType === 'Orientation') { // This part is for a future step
+        durationHours = 1.5;
+        eventTitle = `Orientation: ${caregiverProfile.fullName}`;
+    }
+    
     // --- Calendar Integration ---
     if (clientId && clientSecret && refreshToken) {
       const oAuth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
@@ -48,11 +61,11 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
       try {
         await oAuth2Client.getAccessToken(); // Validate token
         const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
-        const startTime = inPersonDateTime;
-        const endTime = new Date(startTime.getTime() + 2.5 * 60 * 60 * 1000);
+        const startTime = eventDateTime;
+        const endTime = new Date(startTime.getTime() + durationHours * 60 * 60 * 1000);
 
         const eventRequestBody: any = {
-            summary: `Interview: ${caregiverProfile.fullName}`,
+            summary: eventTitle,
             start: { dateTime: startTime.toISOString(), timeZone: 'America/Los_Angeles' },
             end: { dateTime: endTime.toISOString(), timeZone: 'America/Los_Angeles' },
             attendees: [{ email: 'care-rc@firstlighthomecare.com' }, { email: caregiverProfile.email }],
@@ -60,12 +73,10 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
         };
         
         if (interviewType === 'Google Meet') {
-          eventRequestBody.summary = `Google Meet interview with ${caregiverProfile.fullName}`;
           eventRequestBody.location = 'Google Meet';
           eventRequestBody.description = `This is a confirmation for your video interview. Please join using the Google Meet link.`;
           eventRequestBody.conferenceData = { createRequest: { requestId: `interview-${interviewId}`, conferenceSolutionKey: { type: 'hangoutsMeet' } } };
         } else {
-          eventRequestBody.summary = `In-Person interview with ${caregiverProfile.fullName}`;
           eventRequestBody.location = '9650 Business Center Drive, Suite #132, Bldg #17, Rancho Cucamonga, CA 92730, PH: 909-321-4466';
           eventRequestBody.description = `Dear ${caregiverProfile.fullName},\nPlease bring the following documents to in-person Interview:\n- Driver's License,\n- Car insurance and registration,\n- Social Security card or US passport (to prove your work eligibility, If you are green card holder, bring Green card.)\n- Current negative TB-Test Copy,\n- HCA letter or number,\n- Live scan or Clearance letter if you have it,\n If you have not registered, please register on this link: https://guardian.dss.ca.gov/Applicant/ \n- CPR-First Aide proof card, Any other certification that you have.`;
         }
@@ -93,14 +104,16 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
       candidateRating: candidateRating,
       phoneScreenPassed: "Yes",
       aiGeneratedInsight: aiInsight || '',
-      interviewDateTime: Timestamp.fromDate(inPersonDateTime),
+      interviewDateTime: Timestamp.fromDate(eventDateTime),
       interviewType: interviewType,
       googleMeetLink: conferenceLink || null,
+      finalInterviewStatus: pathway === 'combined' ? 'Passed' : 'Pending', // Assume combined passes interview
+      orientationScheduled: pathway === 'combined',
     });
 
     // --- Confirmation Email ---
     const pacificTimeZone = 'America/Los_Angeles';
-    const zonedStartTime = toZonedTime(inPersonDateTime, pacificTimeZone);
+    const zonedStartTime = toZonedTime(eventDateTime, pacificTimeZone);
     const formattedDate = formatInTimeZone(zonedStartTime, pacificTimeZone, 'eeee, MMMM do');
     const formattedStartTime = formatInTimeZone(zonedStartTime, pacificTimeZone, 'h:mm a');
     const locationInfo = interviewType === 'Google Meet' 
@@ -111,8 +124,8 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
         to: [caregiverProfile.email],
         cc: ['care-rc@firstlighthomecare.com'],
         message: {
-            subject: `Interview Confirmation: ${interviewType} with FirstLight Home Care`,
-            html: `<p>${caregiverProfile.fullName},</p><p>This is to confirm your ${interviewType} interview on ${formattedDate} at ${formattedStartTime}.</p>${locationInfo}<p>Thank you,</p><p>FirstLight Home Care</p>`,
+            subject: `Confirmation: ${eventTitle} with FirstLight Home Care`,
+            html: `<p>${caregiverProfile.fullName},</p><p>This is to confirm your ${interviewType} session on ${formattedDate} at ${formattedStartTime}.</p>${locationInfo}<p>Thank you,</p><p>FirstLight Home Care</p>`,
         },
     };
     await serverDb.collection("mail").add(confirmationEmail);
@@ -124,7 +137,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
         return { message: `Interview details saved and email sent, but calendar invite failed: ${calendarErrorMessage}`, error: true, authUrl: calendarAuthUrl };
     }
     
-    return { message: `Next interview scheduled and all notifications sent.` };
+    return { message: `Next event scheduled and all notifications sent.` };
 
   } catch (error: any) {
     console.error("Critical error in saveInterviewAndSchedule:", error);

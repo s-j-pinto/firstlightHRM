@@ -99,7 +99,21 @@
         "interviewNotes": { "type": "string" },
         "candidateRating": { "type": "number", "minimum": 0, "maximum": 5 },
         "phoneScreenPassed": { "type": "string", "enum": ["Yes", "No", "N/A"] },
-        "aiGeneratedInsight": { "type": "string" }
+        "aiGeneratedInsight": { "type": "string" },
+        "finalInterviewStatus": {
+          "type": "string",
+          "enum": ["Passed", "Failed", "Pending"],
+          "description": "The status of the final interview, if applicable."
+        },
+        "orientationScheduled": {
+          "type": "boolean",
+          "description": "Indicates if an orientation has been scheduled."
+        },
+        "orientationDateTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date and time of the scheduled orientation."
+        }
       },
       "required": [
         "caregiverProfileId",
