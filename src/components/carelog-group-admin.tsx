@@ -190,11 +190,9 @@ export function CareLogGroupAdmin() {
                     </div>
                     <div className="flex gap-2 shrink-0">
                         {hasCareLogs && (
-                            <Link href={`/reports/carelog/${group.id}`} target="_blank" passHref>
-                                <Button variant="outline" size="icon" title="View PDF Report" asChild>
-                                  <span>
-                                    <FileText className="h-4 w-4" />
-                                  </span>
+                            <Link href={`/reports/carelog/${group.id}`} passHref>
+                                <Button variant="outline" size="icon" title="View PDF Report">
+                                  <FileText className="h-4 w-4" />
                                 </Button>
                             </Link>
                         )}
