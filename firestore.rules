@@ -34,6 +34,7 @@ service cloud.firestore {
         allow create, read, update: if request.auth != null;
     }
     match /carelogs/{logId} {
+        allow get, list: if true;
         allow create: if request.auth != null; // Caregivers can create logs
     }
 
