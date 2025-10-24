@@ -45,7 +45,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Search, Calendar as CalendarIcon, Sparkles, UserCheck, AlertCircle, ExternalLink, Briefcase, Video, GraduationCap } from 'lucide-react';
+import { Loader2, Search, Calendar as CalendarIcon, Sparkles, UserCheck, AlertCircle, ExternalLink, Briefcase, Video, GraduationCap, Phone, Star, MessageSquare, CheckCircle, XCircle } from 'lucide-react';
 import { format, toDate } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
@@ -624,198 +624,240 @@ export default function ManageInterviewsClient() {
       {selectedCaregiver && (
         <Card>
             <CardHeader>
-                <CardTitle>Phone Screen: {selectedCaregiver.fullName}</CardTitle>
+                <CardTitle>Interview Process: {selectedCaregiver.fullName}</CardTitle>
                 <CardDescription>
                     {isPhoneScreenCompleted ? "This phone screen has been completed. Review the details below." : "Record the results of the phone interview."}
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <Form {...phoneScreenForm}>
-                    <form onSubmit={phoneScreenForm.handleSubmit(onPhoneScreenSubmit)} className="space-y-8">
-                         <FormField
-                            control={phoneScreenForm.control}
-                            name="interviewNotes"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Interview Notes</FormLabel>
-                                    <FormControl>
-                                        <Textarea placeholder="Notes from the phone screen..." {...field} rows={6} disabled={isPhoneScreenCompleted} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        <FormField
-                            control={phoneScreenForm.control}
-                            name="candidateRating"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Candidate Rating: {field.value}</FormLabel>
-                                    <FormControl>
-                                        <Slider
-                                            min={0}
-                                            max={5}
-                                            step={1}
-                                            value={[field.value]}
-                                            onValueChange={(value) => field.onChange(value[0])}
-                                            disabled={isPhoneScreenCompleted}
-                                        />
-                                    </FormControl>
-                                </FormItem>
-                            )}
-                        />
-
-                        <div className="flex justify-center">
-                          <Button type="button" onClick={handleGenerateInsights} disabled={isAiPending || isPhoneScreenCompleted}>
-                            {isAiPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                            Generate AI Insights
-                          </Button>
-                        </div>
-
-                        {isAiPending && (
-                          <p className="text-sm text-center text-muted-foreground">The AI is analyzing the profile, please wait...</p>
-                        )}
-
-                        {aiInsight && (
-                          <Alert>
-                            <Sparkles className="h-4 w-4" />
-                            <AlertTitle>AI-Generated Insight</AlertTitle>
-                            <AlertDescription className="space-y-4 mt-2 whitespace-pre-wrap">
-                               <p className='text-sm text-foreground'>{aiInsight}</p>
-                            </AlertDescription>
-                          </Alert>
-                        )}
-
-                        <FormField
-                            control={phoneScreenForm.control}
-                            name="phoneScreenPassed"
-                            render={({ field }) => (
-                                <FormItem className="space-y-3">
-                                    <FormLabel>Did the candidate pass the phone screen?</FormLabel>
-                                    <FormControl>
-                                        <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4" disabled={isPhoneScreenCompleted}>
-                                            <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="Yes" /></FormControl><FormLabel className="font-normal">Yes</FormLabel></FormItem>
-                                            <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="No" /></FormControl><FormLabel className="font-normal">No</FormLabel></FormItem>
-                                        </RadioGroup>
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        {phoneScreenPassed === 'Yes' && !isFinalInterviewPending && !existingInterview?.orientationScheduled && (
-                            <Card className="bg-muted/50">
-                                <CardHeader>
-                                    <CardTitle>Next Step</CardTitle>
-                                    <CardDescription>Select the hiring pathway and schedule the next event.</CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-6">
-                                     <FormField
-                                        control={phoneScreenForm.control}
-                                        name="interviewPathway"
-                                        render={({ field }) => (
-                                            <FormItem className="space-y-3">
-                                                <FormLabel>Interview Pathway</FormLabel>
-                                                <FormControl>
-                                                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-col sm:flex-row gap-4" disabled={isPhoneScreenCompleted}>
-                                                        <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="separate" /></FormControl><FormLabel className="font-normal">Separate Interview &amp; Orientation</FormLabel></FormItem>
-                                                        <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="combined" /></FormControl><FormLabel className="font-normal">Combined Interview + Orientation</FormLabel></FormItem>
-                                                    </RadioGroup>
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    
-                                    {interviewPathway && (
-                                        <>
-                                            {interviewPathway === 'separate' && (
-                                                <FormField
-                                                    control={phoneScreenForm.control}
-                                                    name="interviewMethod"
-                                                    render={({ field }) => (
-                                                        <FormItem className="space-y-3">
-                                                            <FormLabel>Final Interview Method</FormLabel>
-                                                            <FormControl>
-                                                                <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4" disabled={isPhoneScreenCompleted}>
-                                                                    <FormItem className="flex items-center space-x-3 space-y-0">
-                                                                        <FormControl><RadioGroupItem value="In-Person" /></FormControl>
-                                                                        <FormLabel className="font-normal flex items-center gap-2"><Briefcase /> In-Person</FormLabel>
-                                                                    </FormItem>
-                                                                    <FormItem className="flex items-center space-x-3 space-y-0">
-                                                                        <FormControl><RadioGroupItem value="Google Meet" /></FormControl>
-                                                                        <FormLabel className="font-normal flex items-center gap-2"><Video /> Google Meet</FormLabel>
-                                                                    </FormItem>
-                                                                </RadioGroup>
-                                                            </FormControl>
-                                                            <FormMessage />
-                                                        </FormItem>
-                                                    )}
-                                                />
-                                            )}
-                                            
-                                            <div className="flex flex-col sm:flex-row gap-4 items-start">
-                                                <FormField
-                                                    control={phoneScreenForm.control}
-                                                    name="eventDate"
-                                                    render={({ field }) => (
-                                                        <FormItem className="flex flex-col flex-1">
-                                                            <FormLabel>
-                                                                {interviewPathway === 'separate' ? 'Final Interview Date' : 'Combined Session Date'}
-                                                            </FormLabel>
-                                                            <Popover>
-                                                                <PopoverTrigger asChild>
-                                                                <FormControl>
-                                                                    <Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPhoneScreenCompleted}>
-                                                                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                                    </Button>
-                                                                </FormControl>
-                                                                </PopoverTrigger>
-                                                                <PopoverContent className="w-auto p-0" align="start">
-                                                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                                                                </PopoverContent>
-                                                            </Popover>
-                                                            <FormMessage />
-                                                        </FormItem>
-                                                    )}
-                                                />
-                                                <FormField
-                                                    control={phoneScreenForm.control}
-                                                    name="eventTime"
-                                                    render={({ field }) => (
-                                                        <FormItem className="flex flex-col flex-1">
-                                                            <FormLabel>
-                                                                {interviewPathway === 'separate' ? 'Final Interview Time' : 'Combined Session Time'}
-                                                            </FormLabel>
-                                                            <FormControl>
-                                                                <Input type="time" {...field} disabled={isPhoneScreenCompleted} />
-                                                            </FormControl>
-                                                            <FormMessage />
-                                                        </FormItem>
-                                                    )}
-                                                />
-                                            </div>
-                                        </>
+                {isPhoneScreenCompleted ? (
+                    <Card className="bg-muted/30">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-lg"><Phone/> Phone Screen Summary</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-2">
+                                    <span className="font-semibold">Status:</span>
+                                    {existingInterview?.phoneScreenPassed === 'Yes' ? (
+                                        <span className="flex items-center gap-1 text-green-600 font-medium"><CheckCircle className="h-4 w-4"/> Passed</span>
+                                    ) : (
+                                        <span className="flex items-center gap-1 text-red-600 font-medium"><XCircle className="h-4 w-4"/> Failed</span>
                                     )}
-                                </CardContent>
-                            </Card>
-                        )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="font-semibold">Rating:</span>
+                                    <span className="flex items-center"><Star className="w-4 h-4 text-yellow-400 mr-1" /> {existingInterview?.candidateRating} / 5</span>
+                                </div>
+                            </div>
+                            
+                            {existingInterview?.interviewNotes && (
+                                <div>
+                                    <h4 className="font-semibold flex items-center gap-2"><MessageSquare/> Notes</h4>
+                                    <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap border p-3 rounded-md bg-background/50">{existingInterview.interviewNotes}</p>
+                                </div>
+                            )}
 
-                        <div className="flex justify-end gap-4">
-                            <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
-                             <Button type="submit" disabled={isSubmitting || isPhoneScreenCompleted}>
-                                {isSubmitting ? (
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                ) : (
-                                    <UserCheck className="mr-2 h-4 w-4" />
+                            {aiInsight && (
+                                <Alert>
+                                    <Sparkles className="h-4 w-4" />
+                                    <AlertTitle>AI-Generated Insight</AlertTitle>
+                                    <AlertDescription className="space-y-4 mt-2 whitespace-pre-wrap">
+                                        <p className='text-sm text-foreground'>{aiInsight}</p>
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <Form {...phoneScreenForm}>
+                        <form onSubmit={phoneScreenForm.handleSubmit(onPhoneScreenSubmit)} className="space-y-8">
+                            <FormField
+                                control={phoneScreenForm.control}
+                                name="interviewNotes"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Interview Notes</FormLabel>
+                                        <FormControl>
+                                            <Textarea placeholder="Notes from the phone screen..." {...field} rows={6} disabled={isPhoneScreenCompleted} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
                                 )}
-                                Save and Complete
+                            />
+
+                            <FormField
+                                control={phoneScreenForm.control}
+                                name="candidateRating"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Candidate Rating: {field.value}</FormLabel>
+                                        <FormControl>
+                                            <Slider
+                                                min={0}
+                                                max={5}
+                                                step={1}
+                                                value={[field.value]}
+                                                onValueChange={(value) => field.onChange(value[0])}
+                                                disabled={isPhoneScreenCompleted}
+                                            />
+                                        </FormControl>
+                                    </FormItem>
+                                )}
+                            />
+
+                            <div className="flex justify-center">
+                            <Button type="button" onClick={handleGenerateInsights} disabled={isAiPending || isPhoneScreenCompleted}>
+                                {isAiPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                                Generate AI Insights
                             </Button>
-                        </div>
-                    </form>
-                </Form>
+                            </div>
+
+                            {isAiPending && (
+                            <p className="text-sm text-center text-muted-foreground">The AI is analyzing the profile, please wait...</p>
+                            )}
+
+                            {aiInsight && (
+                            <Alert>
+                                <Sparkles className="h-4 w-4" />
+                                <AlertTitle>AI-Generated Insight</AlertTitle>
+                                <AlertDescription className="space-y-4 mt-2 whitespace-pre-wrap">
+                                <p className='text-sm text-foreground'>{aiInsight}</p>
+                                </AlertDescription>
+                            </Alert>
+                            )}
+
+                            <FormField
+                                control={phoneScreenForm.control}
+                                name="phoneScreenPassed"
+                                render={({ field }) => (
+                                    <FormItem className="space-y-3">
+                                        <FormLabel>Did the candidate pass the phone screen?</FormLabel>
+                                        <FormControl>
+                                            <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4" disabled={isPhoneScreenCompleted}>
+                                                <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="Yes" /></FormControl><FormLabel className="font-normal">Yes</FormLabel></FormItem>
+                                                <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="No" /></FormControl><FormLabel className="font-normal">No</FormLabel></FormItem>
+                                            </RadioGroup>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            {phoneScreenPassed === 'Yes' && !isFinalInterviewPending && !existingInterview?.orientationScheduled && (
+                                <Card className="bg-muted/50">
+                                    <CardHeader>
+                                        <CardTitle>Next Step</CardTitle>
+                                        <CardDescription>Select the hiring pathway and schedule the next event.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-6">
+                                        <FormField
+                                            control={phoneScreenForm.control}
+                                            name="interviewPathway"
+                                            render={({ field }) => (
+                                                <FormItem className="space-y-3">
+                                                    <FormLabel>Interview Pathway</FormLabel>
+                                                    <FormControl>
+                                                        <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-col sm:flex-row gap-4" disabled={isPhoneScreenCompleted}>
+                                                            <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="separate" /></FormControl><FormLabel className="font-normal">Separate Interview &amp; Orientation</FormLabel></FormItem>
+                                                            <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="combined" /></FormControl><FormLabel className="font-normal">Combined Interview + Orientation</FormLabel></FormItem>
+                                                        </RadioGroup>
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        
+                                        {interviewPathway && (
+                                            <>
+                                                {interviewPathway === 'separate' && (
+                                                    <FormField
+                                                        control={phoneScreenForm.control}
+                                                        name="interviewMethod"
+                                                        render={({ field }) => (
+                                                            <FormItem className="space-y-3">
+                                                                <FormLabel>Final Interview Method</FormLabel>
+                                                                <FormControl>
+                                                                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4" disabled={isPhoneScreenCompleted}>
+                                                                        <FormItem className="flex items-center space-x-3 space-y-0">
+                                                                            <FormControl><RadioGroupItem value="In-Person" /></FormControl>
+                                                                            <FormLabel className="font-normal flex items-center gap-2"><Briefcase /> In-Person</FormLabel>
+                                                                        </FormItem>
+                                                                        <FormItem className="flex items-center space-x-3 space-y-0">
+                                                                            <FormControl><RadioGroupItem value="Google Meet" /></FormControl>
+                                                                            <FormLabel className="font-normal flex items-center gap-2"><Video /> Google Meet</FormLabel>
+                                                                        </FormItem>
+                                                                    </RadioGroup>
+                                                                </FormControl>
+                                                                <FormMessage />
+                                                            </FormItem>
+                                                        )}
+                                                    />
+                                                )}
+                                                
+                                                <div className="flex flex-col sm:flex-row gap-4 items-start">
+                                                    <FormField
+                                                        control={phoneScreenForm.control}
+                                                        name="eventDate"
+                                                        render={({ field }) => (
+                                                            <FormItem className="flex flex-col flex-1">
+                                                                <FormLabel>
+                                                                    {interviewPathway === 'separate' ? 'Final Interview Date' : 'Combined Session Date'}
+                                                                </FormLabel>
+                                                                <Popover>
+                                                                    <PopoverTrigger asChild>
+                                                                    <FormControl>
+                                                                        <Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPhoneScreenCompleted}>
+                                                                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                                        </Button>
+                                                                    </FormControl>
+                                                                    </PopoverTrigger>
+                                                                    <PopoverContent className="w-auto p-0" align="start">
+                                                                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                                                    </PopoverContent>
+                                                                </Popover>
+                                                                <FormMessage />
+                                                            </FormItem>
+                                                        )}
+                                                    />
+                                                    <FormField
+                                                        control={phoneScreenForm.control}
+                                                        name="eventTime"
+                                                        render={({ field }) => (
+                                                            <FormItem className="flex flex-col flex-1">
+                                                                <FormLabel>
+                                                                    {interviewPathway === 'separate' ? 'Final Interview Time' : 'Combined Session Time'}
+                                                                </FormLabel>
+                                                                <FormControl>
+                                                                    <Input type="time" {...field} disabled={isPhoneScreenCompleted} />
+                                                                </FormControl>
+                                                                <FormMessage />
+                                                            </FormItem>
+                                                        )}
+                                                    />
+                                                </div>
+                                            </>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            )}
+
+                            <div className="flex justify-end gap-4">
+                                <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
+                                <Button type="submit" disabled={isSubmitting || isPhoneScreenCompleted}>
+                                    {isSubmitting ? (
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <UserCheck className="mr-2 h-4 w-4" />
+                                    )}
+                                    Save and Complete
+                                </Button>
+                            </div>
+                        </form>
+                    </Form>
+                )}
             </CardContent>
         </Card>
       )}
@@ -905,7 +947,7 @@ export default function ManageInterviewsClient() {
                     <AlertDescription>
                         Status: <span className="font-semibold text-green-600">Passed</span>
                         <br />
-                        Date: {existingInterview?.interviewDateTime ? format((existingInterview.interviewDateTime as any).toDate(), 'PPPp') : 'N/A'}
+                        Date: {existingInterview?.interviewDateTime ? format((existingInterview.interviewDateTime as any).toDate(), 'PPpp') : 'N/A'}
                     </AlertDescription>
                 </Alert>
                 <Alert>
@@ -914,7 +956,7 @@ export default function ManageInterviewsClient() {
                     <AlertDescription>
                         Status: <span className="font-semibold text-green-600">Scheduled</span>
                         <br />
-                        Date: {existingInterview?.orientationDateTime ? format((existingInterview.orientationDateTime as any).toDate(), 'PPPp') : 'N/A'}
+                        Date: {existingInterview?.orientationDateTime ? format((existingInterview.orientationDateTime as any).toDate(), 'PPpp') : 'N/A'}
                     </AlertDescription>
                 </Alert>
             </CardContent>
