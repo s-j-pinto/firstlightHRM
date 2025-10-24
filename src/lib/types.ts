@@ -124,6 +124,7 @@ export const clientSchema = z.object({
   "City": z.string(),
   "Zip": z.string(),
   "Mobile": z.string(),
+  "Email": z.string().optional(),
   "ContactName": z.string().optional(),
   "ContactMobile": z.string().optional(),
   status: z.enum(["ACTIVE", "INACTIVE"]),
@@ -135,7 +136,7 @@ export type Client = z.infer<typeof clientSchema> & { id: string };
 
 export const activeCaregiverSchema = z.object({
   "Name": z.string(),
-  "D.O.B.": z.string().optional(),
+  "dob": z.string().optional(),
   "Address": z.string().optional(),
   "Apt": z.string().optional(),
   "City": z.string().optional(),

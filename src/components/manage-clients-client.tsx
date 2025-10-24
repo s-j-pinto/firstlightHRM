@@ -108,6 +108,7 @@ export default function ManageClientsClient() {
                             <CardDescription>{client.Mobile || 'No mobile'}</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-2 text-sm">
+                            <p><strong>Email:</strong> {client.Email || 'N/A'}</p>
                             <p><strong>DOB:</strong> {client.DOB || 'N/A'}</p>
                             <p><strong>Address:</strong> {`${client.Address || ''} ${client.aptUnit || ''}`.trim()}</p>
                             <p><strong>Location:</strong> {`${client.City || ''}, ${client.Zip || ''}`.trim()}</p>

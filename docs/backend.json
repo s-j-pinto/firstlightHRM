@@ -170,6 +170,7 @@
         "City": { "type": "string" },
         "Zip": { "type": "string" },
         "Mobile": { "type": "string" },
+        "Email": { "type": "string", "format": "email" },
         "ContactName": { "type": "string" },
         "ContactMobile": { "type": "string" },
         "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE"] },
