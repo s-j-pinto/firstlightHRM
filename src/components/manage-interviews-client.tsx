@@ -483,7 +483,7 @@ export default function ManageInterviewsClient() {
             
             if (!result.error) {
                 // Manually update local state to trigger hiring form visibility
-                 setExistingInterview(prev => prev ? { ...prev, orientationScheduled: true } : null);
+                 setExistingInterview(prev => prev ? { ...prev, orientationScheduled: true, orientationDateTime: eventDateTime } : null);
             }
         });
     }
@@ -546,6 +546,8 @@ export default function ManageInterviewsClient() {
   const isLoading = caregiversLoading || employeesLoading;
   const isPhoneScreenCompleted = existingInterview && existingInterview.phoneScreenPassed !== 'N/A';
   const isFinalInterviewPending = isPhoneScreenCompleted && existingInterview?.interviewPathway === 'separate' && existingInterview?.finalInterviewStatus === 'Pending';
+  const showCompletedSeparateFlowSummary = existingInterview?.interviewPathway === 'separate' && existingInterview?.finalInterviewStatus === 'Passed' && existingInterview?.orientationScheduled;
+
 
   return (
     <div className="space-y-6">
@@ -890,6 +892,35 @@ export default function ManageInterviewsClient() {
         </Card>
     )}
 
+      {showCompletedSeparateFlowSummary && (
+        <Card>
+            <CardHeader>
+                <CardTitle>Completed Steps</CardTitle>
+                <CardDescription>Summary of the completed interview and orientation for {selectedCaregiver?.fullName}.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <Alert>
+                    <Briefcase className="h-4 w-4" />
+                    <AlertTitle>Final Interview</AlertTitle>
+                    <AlertDescription>
+                        Status: <span className="font-semibold text-green-600">Passed</span>
+                        <br />
+                        Date: {existingInterview?.interviewDateTime ? format((existingInterview.interviewDateTime as any).toDate(), 'PPPp') : 'N/A'}
+                    </AlertDescription>
+                </Alert>
+                <Alert>
+                    <GraduationCap className="h-4 w-4" />
+                    <AlertTitle>Orientation</AlertTitle>
+                    <AlertDescription>
+                        Status: <span className="font-semibold text-green-600">Scheduled</span>
+                        <br />
+                        Date: {existingInterview?.orientationDateTime ? format((existingInterview.orientationDateTime as any).toDate(), 'PPPp') : 'N/A'}
+                    </AlertDescription>
+                </Alert>
+            </CardContent>
+        </Card>
+      )}
+
 
       {selectedCaregiver && shouldShowHiringForm && (
         <Card>
@@ -1045,5 +1076,7 @@ export default function ManageInterviewsClient() {
 }
 
 
+
+    
 
     
