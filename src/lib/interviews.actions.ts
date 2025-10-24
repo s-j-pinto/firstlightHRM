@@ -14,10 +14,11 @@ interface SaveInterviewPayload {
   eventDateTime: Date;
   interviewId: string;
   aiInsight: string | null;
-  interviewType: 'In-Person' | 'Google Meet';
+  interviewType: 'In-Person' | 'Google Meet' | 'Orientation';
   interviewNotes: string;
   candidateRating: number;
   pathway: 'separate' | 'combined';
+  finalInterviewStatus?: 'Passed' | 'Failed' | 'Pending';
 }
 
 export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
@@ -29,7 +30,8 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
     interviewType,
     interviewNotes,
     candidateRating,
-    pathway
+    pathway,
+    finalInterviewStatus
   } = payload;
   
   try {
@@ -43,14 +45,18 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
     let conferenceLink: string | undefined = undefined;
 
     // --- Determine Event Duration and Title ---
-    let durationHours = 1; // Default for separate final interview
-    let eventTitle = `Final Interview: ${caregiverProfile.fullName}`;
-    if (pathway === 'combined') {
-        durationHours = 3;
-        eventTitle = `Interview + Orientation: ${caregiverProfile.fullName}`;
-    } else if (payload.pathway === 'separate' && payload.interviewType === 'Orientation') { // This part is for a future step
+    let durationHours: number;
+    let eventTitle: string;
+
+    if (interviewType === 'Orientation') {
         durationHours = 1.5;
         eventTitle = `Orientation: ${caregiverProfile.fullName}`;
+    } else if (pathway === 'combined') {
+        durationHours = 3;
+        eventTitle = `Interview + Orientation: ${caregiverProfile.fullName}`;
+    } else { // separate final interview
+        durationHours = 1;
+        eventTitle = `Final Interview: ${caregiverProfile.fullName}`;
     }
     
     // --- Calendar Integration ---
@@ -99,17 +105,28 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
 
     // --- Firestore Update ---
     const interviewRef = serverDb.collection('interviews').doc(interviewId);
-    await interviewRef.update({ 
-      interviewNotes: interviewNotes,
-      candidateRating: candidateRating,
-      phoneScreenPassed: "Yes",
-      aiGeneratedInsight: aiInsight || '',
-      interviewDateTime: Timestamp.fromDate(eventDateTime),
-      interviewType: interviewType,
-      googleMeetLink: conferenceLink || null,
-      finalInterviewStatus: pathway === 'combined' ? 'Passed' : 'Pending', // Assume combined passes interview
-      orientationScheduled: pathway === 'combined',
-    });
+    
+    const updateData: { [key: string]: any } = {
+        interviewNotes,
+        candidateRating,
+        phoneScreenPassed: "Yes",
+        aiGeneratedInsight: aiInsight || '',
+        interviewPathway: pathway,
+    };
+
+    if (interviewType === 'Orientation') {
+        updateData.orientationScheduled = true;
+        updateData.orientationDateTime = Timestamp.fromDate(eventDateTime);
+    } else {
+        updateData.interviewDateTime = Timestamp.fromDate(eventDateTime);
+        updateData.interviewType = interviewType;
+        updateData.googleMeetLink = conferenceLink || null;
+        updateData.finalInterviewStatus = finalInterviewStatus || (pathway === 'combined' ? 'Passed' : 'Pending');
+        updateData.orientationScheduled = pathway === 'combined';
+    }
+
+
+    await interviewRef.update(updateData);
 
     // --- Confirmation Email ---
     const pacificTimeZone = 'America/Los_Angeles';
