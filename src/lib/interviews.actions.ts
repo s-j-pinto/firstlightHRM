@@ -136,12 +136,14 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
     const pacificTimeZone = 'America/Los_Angeles';
     const zonedStartTime = toZonedTime(startTime, pacificTimeZone);
     const zonedEndTime = toZonedTime(endTime, pacificTimeZone);
+    const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
 
     const formattedDate = formatInTimeZone(zonedStartTime, pacificTimeZone, 'eeee, MMMM do');
     const formattedStartTime = formatInTimeZone(zonedStartTime, pacificTimeZone, 'h:mm a');
     const formattedEndTime = formatInTimeZone(zonedEndTime, pacificTimeZone, 'h:mm a');
 
     let emailHtml = '';
+    const inPersonDuration = interviewType === 'Orientation' ? 1.5 : 3;
 
     if (interviewType === 'Google Meet') {
         emailHtml = `<p>${caregiverProfile.fullName},</p><p>This is to confirm your video interview session on ${formattedDate} at ${formattedStartTime}.</p><p><strong>Meeting Link:</strong><br><a href="${conferenceLink || '#'}">${conferenceLink || 'Meeting link will be in calendar invite.'}</a></p><p>Thank you,</p><p>FirstLight Home Care</p>`;
@@ -149,7 +151,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
         // Use the detailed template for In-Person meetings (Combined or Orientation)
         emailHtml = `
             <p>${caregiverProfile.fullName},</p>
-            <p>This is to confirm your in-person ${durationHours} hour interview for a HCA/Caregiver position on ${formattedDate} @ ${formattedStartTime} to ${formattedEndTime}.</p>
+            <p>This is to confirm your in-person ${inPersonDuration} hour interview for a HCA/Caregiver position on ${formattedDate} @ ${formattedStartTime} to ${formattedEndTime}.</p>
             <p>Please call or text the office if you have questions, or need to cancel or reschedule your appointment.</p>
             <br>
             <p><strong>Office address:</strong><br>
@@ -227,7 +229,8 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
             <p><a href="mailto:care-rc@firstlighthomecare.com">care-rc@firstlighthomecare.com</a><br>
             <a href="http://ranchocucamonga.firstlighthomecare.com">ranchocucamonga.firstlighthomecare.com</a></p>
             <p><a href="https://www.facebook.com/FirstLightHomeCareofRanchoCucamonga">https://www.facebook.com/FirstLightHomeCareofRanchoCucamonga</a></p>
-            <p>FirstLight Home Care Logo</p>
+            <br>
+            <img src="${logoUrl}" alt="FirstLight Home Care Logo" style="width: 200px; height: auto;"/>
             <br>
             <p><small><strong>CONFIDENTIALITY NOTICE</strong><br>
             This email, including any attachments or files transmitted with it, is intended to be confidential and solely for the use of the individual or entity to whom it is addressed. If you received it in error, or if you are not the intended recipient(s), please notify the sender by reply e-mail and delete/destroy the original message and any attachments, and any copies. Any unauthorized review, use, disclosure or distribution of this e-mail or information is prohibited and may be a violation of applicable laws.</small></p>
@@ -259,3 +262,5 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
     return { message: `A critical server error occurred: ${error.message}`, error: true };
   }
 }
+
+    
