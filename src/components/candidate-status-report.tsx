@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react';
 import { collection } from 'firebase/firestore';
 import { firestore, useCollection, useMemoFirebase } from '@/firebase';
 import { CaregiverProfile, Interview, CaregiverEmployee } from '@/lib/types';
-import { Loader2, User, Phone, Calendar, Check, X, FileText, Search, Star } from 'lucide-react';
+import { Loader2, Search, Star } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
 
@@ -21,7 +21,14 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
-type CandidateStatus = 'Applied' | 'Phone Screen Failed' | 'Interview Scheduled' | 'Hired';
+type CandidateStatus = 
+  | 'Applied' 
+  | 'Phone Screen Failed' 
+  | 'Final Interview Pending'
+  | 'Final Interview Failed'
+  | 'Final Interview Passed'
+  | 'Orientation Scheduled'
+  | 'Hired';
 
 interface EnrichedCandidate extends CaregiverProfile {
   status: CandidateStatus;
@@ -37,16 +44,25 @@ const getStatus = (
     
     const employee = employeesMap.get(profileId);
     if (employee) {
-        return { status: 'Hired', employee };
+        return { status: 'Hired', employee, interview: interviewsMap.get(profileId) };
     }
 
     const interview = interviewsMap.get(profileId);
     if (interview) {
-        if (interview.phoneScreenPassed === 'Yes') {
-            return { status: 'Interview Scheduled', interview };
-        }
         if (interview.phoneScreenPassed === 'No') {
             return { status: 'Phone Screen Failed', interview };
+        }
+        if (interview.phoneScreenPassed === 'Yes') {
+            if (interview.orientationScheduled) {
+                return { status: 'Orientation Scheduled', interview };
+            }
+            if (interview.finalInterviewStatus === 'Passed') {
+                return { status: 'Final Interview Passed', interview };
+            }
+            if (interview.finalInterviewStatus === 'Failed') {
+                return { status: 'Final Interview Failed', interview };
+            }
+            return { status: 'Final Interview Pending', interview };
         }
     }
 
@@ -105,16 +121,12 @@ export default function CandidateStatusReport() {
     }
 
     const StatusBadge = ({ status }: { status: CandidateStatus }) => {
-        const variant: "default" | "secondary" | "destructive" =
-            status === 'Hired' ? 'default' :
-            status === 'Interview Scheduled' ? 'secondary' :
-            status === 'Phone Screen Failed' ? 'destructive' :
-            'outline';
-        
         const colorClass = 
             status === 'Hired' ? 'bg-green-500' :
-            status === 'Interview Scheduled' ? 'bg-blue-500' :
-            status === 'Phone Screen Failed' ? 'bg-red-500' :
+            status === 'Orientation Scheduled' ? 'bg-cyan-500' :
+            status === 'Final Interview Passed' ? 'bg-blue-500' :
+            status === 'Final Interview Pending' ? 'bg-yellow-500' :
+            status === 'Phone Screen Failed' || status === 'Final Interview Failed' ? 'bg-red-500' :
             'bg-gray-500';
 
         return <Badge className={cn("text-white", colorClass)}>{status}</Badge>;
@@ -182,12 +194,16 @@ export default function CandidateStatusReport() {
                                     </TableCell>
                                     <TableCell>
                                         {candidate.status === 'Applied' && 'Needs Phone Screen'}
-                                        {candidate.status === 'Phone Screen Failed' && 'Process Ended'}
-                                        {candidate.status === 'Interview Scheduled' && (
-                                            `Interview: ${format((candidate.interview!.interviewDateTime as any).toDate(), 'PPp')}`
+                                        {(candidate.status === 'Phone Screen Failed' || candidate.status === 'Final Interview Failed') && 'Process Ended'}
+                                        {candidate.status === 'Final Interview Pending' && candidate.interview?.interviewDateTime && (
+                                            `Final Interview: ${format((candidate.interview.interviewDateTime as any).toDate(), 'PPp')}`
                                         )}
-                                        {candidate.status === 'Hired' && (
-                                            `Hired On: ${format((candidate.employee!.hireDate as any).toDate(), 'PP')}`
+                                        {candidate.status === 'Final Interview Passed' && 'Needs Orientation'}
+                                        {candidate.status === 'Orientation Scheduled' && candidate.interview?.orientationDateTime && (
+                                            `Orientation: ${format((candidate.interview.orientationDateTime as any).toDate(), 'PPp')}`
+                                        )}
+                                        {candidate.status === 'Hired' && candidate.employee?.hireDate && (
+                                            `Hired On: ${format((candidate.employee.hireDate as any).toDate(), 'PP')}`
                                         )}
                                     </TableCell>
                                 </TableRow>
