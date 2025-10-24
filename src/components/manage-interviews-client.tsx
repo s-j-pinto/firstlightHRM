@@ -215,6 +215,17 @@ export default function ManageInterviewsClient() {
 
   const phoneScreenPassed = phoneScreenForm.watch('phoneScreenPassed');
   const interviewPathway = phoneScreenForm.watch('interviewPathway');
+  
+  // Effect to manage interview method based on pathway
+  useEffect(() => {
+    if (interviewPathway === 'combined') {
+      phoneScreenForm.setValue('interviewMethod', 'In-Person');
+    } else if (interviewPathway === 'separate') {
+      // If switching back, clear the method so user has to re-select
+      phoneScreenForm.setValue('interviewMethod', undefined);
+    }
+  }, [interviewPathway, phoneScreenForm]);
+
 
   const getHiringFormVisibility = () => {
     if (existingEmployee) return true;
@@ -646,28 +657,30 @@ export default function ManageInterviewsClient() {
                                     
                                     {interviewPathway && (
                                         <>
-                                            <FormField
-                                                control={phoneScreenForm.control}
-                                                name="interviewMethod"
-                                                render={({ field }) => (
-                                                    <FormItem className="space-y-3">
-                                                        <FormLabel>Meeting Method</FormLabel>
-                                                        <FormControl>
-                                                            <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4" disabled={isFormDisabled}>
-                                                                <FormItem className="flex items-center space-x-3 space-y-0">
-                                                                    <FormControl><RadioGroupItem value="In-Person" /></FormControl>
-                                                                    <FormLabel className="font-normal flex items-center gap-2"><Briefcase /> In-Person</FormLabel>
-                                                                </FormItem>
-                                                                <FormItem className="flex items-center space-x-3 space-y-0">
-                                                                    <FormControl><RadioGroupItem value="Google Meet" /></FormControl>
-                                                                    <FormLabel className="font-normal flex items-center gap-2"><Video /> Google Meet</FormLabel>
-                                                                </FormItem>
-                                                            </RadioGroup>
-                                                        </FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
+                                            {interviewPathway === 'separate' && (
+                                                <FormField
+                                                    control={phoneScreenForm.control}
+                                                    name="interviewMethod"
+                                                    render={({ field }) => (
+                                                        <FormItem className="space-y-3">
+                                                            <FormLabel>Final Interview Method</FormLabel>
+                                                            <FormControl>
+                                                                <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4" disabled={isFormDisabled}>
+                                                                    <FormItem className="flex items-center space-x-3 space-y-0">
+                                                                        <FormControl><RadioGroupItem value="In-Person" /></FormControl>
+                                                                        <FormLabel className="font-normal flex items-center gap-2"><Briefcase /> In-Person</FormLabel>
+                                                                    </FormItem>
+                                                                    <FormItem className="flex items-center space-x-3 space-y-0">
+                                                                        <FormControl><RadioGroupItem value="Google Meet" /></FormControl>
+                                                                        <FormLabel className="font-normal flex items-center gap-2"><Video /> Google Meet</FormLabel>
+                                                                    </FormItem>
+                                                                </RadioGroup>
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                            )}
                                             
                                             <div className="flex flex-col sm:flex-row gap-4 items-start">
                                                 <FormField
