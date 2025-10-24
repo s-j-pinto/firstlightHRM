@@ -144,7 +144,7 @@ service cloud.firestore {
      * @principle Enforces document ownership for writes, restricts reads.
      */
     match /carelog_groups/{groupId} {
-      allow get: if false;
+      allow get: if true;
       allow list: if false;
       allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
       allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
@@ -163,7 +163,7 @@ service cloud.firestore {
      */
     match /carelogs/{logId} {
       allow get: if false;
-      allow list: if false;
+      allow list: if true;
       allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
       allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
       allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
