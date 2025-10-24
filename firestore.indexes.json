@@ -1,20 +1,7 @@
 
 {
-  "indexes": [
-    {
-      "collectionGroup": "carelogs",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "careLogGroupId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "shiftDateTime",
-          "order": "DESCENDING"
-        }
-      ]
-    }
-  ],
+  "indexes": [],
   "fieldOverrides": []
 }
+
+    

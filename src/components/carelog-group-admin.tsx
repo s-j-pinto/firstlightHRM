@@ -3,11 +3,10 @@
 
 import { useState, useMemo, useTransition } from "react";
 import { useForm } from "react-hook-form";
-import Link from 'next/link';
 import { zodResolver } from "@hookform/resolvers/zod";
-import { collection, query, where } from "firebase/firestore";
+import { collection } from "firebase/firestore";
 import { firestore, useCollection, useMemoFirebase } from "@/firebase";
-import { Client, ActiveCaregiver, CareLogGroup, CareLog } from "@/lib/types";
+import { Client, ActiveCaregiver, CareLogGroup } from "@/lib/types";
 import { saveCareLogGroup, deleteCareLogGroup, reactivateCareLogGroup } from "@/lib/carelog-groups.actions";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -21,7 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, PlusCircle, Trash2, Edit, X, Users, AlertTriangle, RotateCw, FileText } from "lucide-react";
+import { Loader2, PlusCircle, Trash2, Edit, Users, RotateCw } from "lucide-react";
 
 const careLogGroupSchema = z.object({
   groupId: z.string().optional(),
@@ -50,18 +49,6 @@ export function CareLogGroupAdmin() {
 
   const careLogGroupsRef = useMemoFirebase(() => collection(firestore, 'carelog_groups'), [firestore]);
   const { data: careLogGroups, isLoading: groupsLoading } = useCollection<CareLogGroup>(careLogGroupsRef);
-
-  const allCareLogsRef = useMemoFirebase(() => collection(firestore, 'carelogs'), [firestore]);
-  const { data: allCareLogs, isLoading: logsLoading } = useCollection<CareLog>(allCareLogsRef);
-
-  const careLogsCountByGroup = useMemo(() => {
-    if (!allCareLogs) return new Map<string, number>();
-    return allCareLogs.reduce((acc, log) => {
-        acc.set(log.careLogGroupId, (acc.get(log.careLogGroupId) || 0) + 1);
-        return acc;
-    }, new Map<string, number>());
-  }, [allCareLogs]);
-
 
   const activeClients = useMemo(() => clients?.filter(c => c.status === 'ACTIVE') || [], [clients]);
   const activeCaregivers = useMemo(() => allCaregiversData?.filter(c => c.status === 'ACTIVE' && c.Email) || [], [allCaregiversData]);
@@ -134,7 +121,7 @@ export function CareLogGroupAdmin() {
     });
   };
 
-  const isLoading = clientsLoading || caregiversLoading || groupsLoading || logsLoading;
+  const isLoading = clientsLoading || caregiversLoading || groupsLoading;
 
   return (
     <Card>
@@ -163,7 +150,6 @@ export function CareLogGroupAdmin() {
                 const client = clientsMap.get(group.clientId);
                 const isClientInactive = client?.status === 'INACTIVE';
                 const isGroupInactive = group.status === 'INACTIVE';
-                const hasCareLogs = (careLogsCountByGroup.get(group.id) || 0) > 0;
                 
                 return (
                   <Card key={group.id} className={cn("flex flex-col sm:flex-row justify-between items-start sm:items-center p-4", (isClientInactive || isGroupInactive) && "bg-destructive/10 border-destructive/50")}>
@@ -189,13 +175,6 @@ export function CareLogGroupAdmin() {
                       </div>
                     </div>
                     <div className="flex gap-2 shrink-0">
-                        {hasCareLogs && (
-                            <Link href={`/reports/carelog/${group.id}`} passHref>
-                                <Button variant="outline" size="icon" title="View PDF Report">
-                                  <FileText className="h-4 w-4" />
-                                </Button>
-                            </Link>
-                        )}
                         <Button variant="outline" size="icon" onClick={() => handleOpenModal(group)}><Edit className="h-4 w-4" /></Button>
                         {isGroupInactive ? (
                              <Button variant="outline" size="icon" onClick={() => handleReactivate(group.id)} disabled={isPending}>
@@ -313,3 +292,5 @@ export function CareLogGroupAdmin() {
     </Card>
   );
 }
+
+    
