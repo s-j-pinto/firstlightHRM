@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -18,15 +17,15 @@ export default function CareLogReportPage() {
     const params = useParams();
     const groupId = params.groupId as string;
 
-    const groupRef = useMemoFirebase(() => groupId ? doc(firestore, 'carelog_groups', groupId) : null, [groupId]);
+    const groupRef = useMemoFirebase(() => (groupId && firestore ? doc(firestore, 'carelog_groups', groupId) : null), [groupId, firestore]);
     const { data: group, isLoading: groupLoading } = useDoc<CareLogGroup>(groupRef);
     
-    const clientRef = useMemoFirebase(() => (group ? doc(firestore, 'Clients', group.clientId) : null), [group]);
+    const clientRef = useMemoFirebase(() => (group && firestore ? doc(firestore, 'Clients', group.clientId) : null), [group, firestore]);
     const { data: client, isLoading: clientLoading } = useDoc<Client>(clientRef);
 
     const logsQuery = useMemoFirebase(() => 
-        groupId ? query(collection(firestore, 'carelogs'), where('careLogGroupId', '==', groupId), orderBy('shiftDateTime', 'desc')) : null, 
-    [groupId]);
+        (groupId && firestore) ? query(collection(firestore, 'carelogs'), where('careLogGroupId', '==', groupId), orderBy('shiftDateTime', 'desc')) : null, 
+    [groupId, firestore]);
     const { data: logs, isLoading: logsLoading } = useCollection<CareLog>(logsQuery);
     
     const handlePrint = () => {
@@ -124,4 +123,3 @@ export default function CareLogReportPage() {
         </div>
     );
 }
-
