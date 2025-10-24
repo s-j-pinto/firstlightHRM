@@ -135,7 +135,6 @@
         "hireDate": { "type": "string", "format": "date-time" },
         "hiringComments": { "type": "string" },
         "hiringManager": { "type": "string" },
-        "startDate": { "type": "string", "format": "date-time" },
         "teletrackPin": { "type": "string", "description": "The TeleTrack PIN for the employee." }
       },
       "required": [
@@ -143,7 +142,6 @@
         "interviewId",
         "hireDate",
         "hiringManager",
-        "startDate",
         "teletrackPin"
       ]
     },

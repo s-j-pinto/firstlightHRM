@@ -113,7 +113,6 @@ export const caregiverEmployeeSchema = z.object({
   hireDate: z.coerce.date(),
   hiringComments: z.string().optional(),
   hiringManager: z.string(),
-  startDate: z.coerce.date(),
   teletrackPin: z.string().min(1, 'TeleTrack PIN is required.'),
 });
 

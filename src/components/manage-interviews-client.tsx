@@ -154,7 +154,6 @@ export default function ManageInterviewsClient() {
       hireDate: new Date(),
       hiringComments: '',
       hiringManager: 'Lolita Pinto',
-      startDate: new Date(),
       teletrackPin: '',
     }
   });
@@ -181,7 +180,6 @@ export default function ManageInterviewsClient() {
         hireDate: new Date(),
         hiringComments: '',
         hiringManager: 'Lolita Pinto',
-        startDate: new Date(),
         teletrackPin: '',
     });
     setAuthUrl(null);
@@ -196,14 +194,15 @@ export default function ManageInterviewsClient() {
   useEffect(() => {
     if (selectedCaregiver && existingInterview) {
         const interviewDate = (existingInterview.interviewDateTime as any)?.toDate();
+        const orientationDate = existingInterview.orientationDateTime ? (existingInterview.orientationDateTime as any).toDate() : null;
+
         hiringForm.reset({
             caregiverProfileId: selectedCaregiver.id,
             interviewId: existingInterview.id,
             inPersonInterviewDate: interviewDate,
-            hireDate: existingEmployee ? (existingEmployee.hireDate as any).toDate() : new Date(),
+            hireDate: existingEmployee ? (existingEmployee.hireDate as any).toDate() : orientationDate || new Date(),
             hiringComments: existingEmployee?.hiringComments || '',
             hiringManager: existingEmployee?.hiringManager || 'Lolita Pinto',
-            startDate: existingEmployee ? (existingEmployee.startDate as any).toDate() : new Date(),
             teletrackPin: existingEmployee?.teletrackPin || '',
         });
     }
@@ -499,7 +498,6 @@ export default function ManageInterviewsClient() {
           hiringManager: data.hiringManager,
           hiringComments: data.hiringComments,
           hireDate: Timestamp.fromDate(data.hireDate),
-          startDate: Timestamp.fromDate(data.startDate),
           teletrackPin: data.teletrackPin,
           createdAt: existingEmployee?.id ? undefined : Timestamp.now(),
         };
@@ -771,7 +769,7 @@ export default function ManageInterviewsClient() {
                                         
                                         {interviewPathway && (
                                             <>
-                                                {interviewPathway === 'separate' && (
+                                                {interviewPathway === 'separate' ? (
                                                     <FormField
                                                         control={phoneScreenForm.control}
                                                         name="interviewMethod"
@@ -794,6 +792,23 @@ export default function ManageInterviewsClient() {
                                                             </FormItem>
                                                         )}
                                                     />
+                                                ) : (
+                                                     <FormField
+                                                        control={phoneScreenForm.control}
+                                                        name="interviewMethod"
+                                                        render={({ field }) => (
+                                                             <FormItem className="space-y-3">
+                                                                <FormLabel>Final Interview Method</FormLabel>
+                                                                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4" disabled={true}>
+                                                                        <FormItem className="flex items-center space-x-3 space-y-0">
+                                                                            <FormControl><RadioGroupItem value="In-Person" /></FormControl>
+                                                                            <FormLabel className="font-normal flex items-center gap-2"><Briefcase /> In-Person</FormLabel>
+                                                                        </FormItem>
+                                                                    </RadioGroup>
+                                                                <FormMessage />
+                                                            </FormItem>
+                                                        )}
+                                                     />
                                                 )}
                                                 
                                                 <div className="flex flex-col sm:flex-row gap-4 items-start">
@@ -1008,30 +1023,7 @@ export default function ManageInterviewsClient() {
                                         <Popover>
                                             <PopoverTrigger asChild>
                                             <FormControl>
-                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={!!existingEmployee}>
-                                                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                </Button>
-                                            </FormControl>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0" align="start">
-                                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} />
-                                            </PopoverContent>
-                                        </Popover>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                             <FormField
-                                control={hiringForm.control}
-                                name="startDate"
-                                render={({ field }) => (
-                                    <FormItem className="flex flex-col">
-                                        <FormLabel>Start Date</FormLabel>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                            <FormControl>
-                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={!!existingEmployee}>
+                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
                                                     {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
                                                     <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                                 </Button>
@@ -1074,7 +1066,7 @@ export default function ManageInterviewsClient() {
                                     <FormItem>
                                         <FormLabel>TeleTrack PIN</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="Enter PIN" {...field} />
+                                            <Input placeholder="Enter PIN" {...field} value={field.value || ''} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
