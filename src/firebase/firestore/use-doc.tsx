@@ -10,7 +10,6 @@ import {
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { useFirebase } from '@/firebase/provider';
 
 /** Utility type to add an 'id' field to a given type T. */
 type WithId<T> = T & { id: string };
@@ -44,13 +43,12 @@ export function useDoc<T = any>(
 ): UseDocResult<T> {
   type StateDataType = WithId<T> | null;
 
-  const { user, isUserLoading } = useFirebase();
   const [data, setData] = useState<StateDataType>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
-    if (isUserLoading || !memoizedDocRef || !user) {
+    if (!memoizedDocRef) {
       setData(null);
       setIsLoading(false);
       setError(null);
@@ -96,7 +94,7 @@ export function useDoc<T = any>(
     );
 
     return () => unsubscribe();
-  }, [memoizedDocRef, user, isUserLoading]); // Re-run if the memoizedDocRef changes.
+  }, [memoizedDocRef]); // Re-run if the memoizedDocRef changes.
 
-  return { data, isLoading: isLoading || isUserLoading, error };
+  return { data, isLoading, error };
 }
