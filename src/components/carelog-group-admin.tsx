@@ -190,11 +190,13 @@ export function CareLogGroupAdmin() {
                     </div>
                     <div className="flex gap-2 shrink-0">
                         {hasCareLogs && (
-                            <Button asChild variant="outline" size="icon" title="View PDF Report">
-                                <Link href={`/reports/carelog/${group.id}`} target="_blank">
+                            <Link href={`/reports/carelog/${group.id}`} target="_blank" passHref>
+                                <Button variant="outline" size="icon" title="View PDF Report" asChild>
+                                  <span>
                                     <FileText className="h-4 w-4" />
-                                </Link>
-                            </Button>
+                                  </span>
+                                </Button>
+                            </Link>
                         )}
                         <Button variant="outline" size="icon" onClick={() => handleOpenModal(group)}><Edit className="h-4 w-4" /></Button>
                         {isGroupInactive ? (
