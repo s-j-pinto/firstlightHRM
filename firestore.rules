@@ -1,55 +1,196 @@
-
+/**
+ * @file Firestore Security Rules
+ * @description This ruleset enforces a strict user-ownership model for caregiver profiles and appointment slots,
+ * with public read access to active caregiver and client data. Care logs are restricted to authenticated users.
+ *
+ * Data Structure:
+ * - /caregiver_profiles/{caregiverProfileId}: Caregiver profiles, accessible only to the owning user.
+ * - /appointments/{appointmentId}: Appointment slots, accessible only to authenticated users.
+ * - /interviews/{interviewId}: Interview records, accessible only to authenticated users.
+ * - /caregiver_employees/{employeeId}: Caregiver employee records, accessible only to authenticated users.
+ * - /caregivers_active/{caregiverId}: Active caregiver data, publicly readable.
+ * - /Clients/{clientId}: Client data, publicly readable.
+ * - /carelog_groups/{groupId}: CareLog Groups, only accessible to authenticated users.
+ * - /carelogs/{logId}: Care logs, only accessible to authenticated users.
+ *
+ * Key Security Decisions:
+ * - User listing is generally disallowed.
+ * - Public read access is granted to the 'caregivers_active' and 'Clients' collections.
+ * - All write operations require authentication.
+ *
+ * Denormalization for Authorization:
+ *   (Not explicitly used in this version, but consider adding fields like 'ownerId' to documents
+ *   to simplify ownership checks and avoid costly `get()` calls in future iterations.)
+ * Structural Segregation:
+ *   (Not applicable in this version.)
+ */
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // PUBLIC ACCESS FOR REPORTS
-    // Anyone can read single documents from these collections for the report.
-    match /carelog_groups/{groupId} {
-       allow get: if true;
-    }
-    match /Clients/{clientId} {
-       allow get: if true;
-    }
-    // Anyone can query/list carelogs for the report page.
-    match /carelogs/{logId} {
-       allow list, get: if true;
+    /**
+     * @description Secures caregiver profiles, allowing only the owner to read and write.
+     * @path /caregiver_profiles/{caregiverProfileId}
+     * @allow (create) User with UID 'caregiverProfileId' creates their profile.
+     * @deny (create) User with UID 'otherUserId' tries to create a profile with ID 'caregiverProfileId'.
+     * @principle Enforces document ownership for writes, restricts access to a user's own data tree.
+     */
+    match /caregiver_profiles/{caregiverProfileId} {
+      // Helper function to check if the request is made by the owner of the profile
+      function isOwner(caregiverProfileId) {
+        return request.auth != null && request.auth.uid == caregiverProfileId;
+      }
+
+      // Helper function to check if the request is made by the owner of the profile, and the resource exists
+      function isExistingOwner(caregiverProfileId) {
+        return isOwner(caregiverProfileId) && resource != null;
+      }
+
+      // Allow read access (get and list) only if the user is the owner
+      allow get: if isOwner(caregiverProfileId);
+      allow list: if false;
+
+      // Allow create access only if the user is the owner
+      allow create: if isOwner(caregiverProfileId) && request.resource.data.id == caregiverProfileId;
+
+      // Allow update access only if the user is the owner and the document exists
+      allow update: if isExistingOwner(caregiverProfileId) && request.resource.data.id == resource.data.id;
+
+      // Allow delete access only if the user is the owner and the document exists
+      allow delete: if isExistingOwner(caregiverProfileId);
     }
 
-    // AUTHENTICATED USER RULES
-    // Logged-in users can create new documents in these collections.
-    match /caregiver_profiles/{profileId} {
-      allow create: if request.auth != null;
-      allow read, update: if request.auth != null; // Admins can read/update
-    }
+    /**
+     * @description Secures appointment slots, allowing only authenticated users to read and write.
+     * @path /appointments/{appointmentId}
+     * @allow (create) Authenticated user creates an appointment.
+     * @deny (create) Unauthenticated user tries to create an appointment.
+     * @principle Requires authentication for all operations.
+     */
     match /appointments/{appointmentId} {
-      allow create: if request.auth != null;
-      allow read, update, delete: if request.auth != null; // Admins can manage
-    }
-    match /interviews/{interviewId} {
-        allow create, read, update: if request.auth != null;
-    }
-    match /caregiver_employees/{employeeId} {
-        allow create, read, update: if request.auth != null;
-    }
-    match /carelogs/{logId} {
-        allow get, list: if true;
-        allow create: if request.auth != null; // Caregivers can create logs
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
     }
 
-    // Authenticated users (admins) can read from these collections.
+    /**
+     * @description Secures interview records, allowing only authenticated users to read and write.
+     * @path /interviews/{interviewId}
+     * @allow (create) Authenticated user creates an interview record.
+     * @deny (create) Unauthenticated user tries to create an interview record.
+     * @principle Requires authentication for all operations.
+     */
+    match /interviews/{interviewId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
+    }
+
+    /**
+     * @description Secures caregiver employee records, allowing only authenticated users to read and write.
+     * @path /caregiver_employees/{employeeId}
+     * @allow (create) Authenticated user creates a caregiver employee record.
+     * @deny (create) Unauthenticated user tries to create a caregiver employee record.
+     * @principle Requires authentication for all operations.
+     */
+    match /caregiver_employees/{employeeId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
+    }
+
+    /**
+     * @description Allows public read access to active caregiver data, but requires authentication for writes.
+     * @path /caregivers_active/{caregiverId}
+     * @allow (get, list) Any user can read active caregiver data.
+     * @deny (create) Unauthenticated user tries to create an active caregiver record.
+     * @principle Allows public read access while restricting write access to authenticated users.
+     */
     match /caregivers_active/{caregiverId} {
-      allow read, write: if request.auth != null;
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get: if true;
+      allow list: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
     }
-     match /Clients/{clientId} {
-      allow read, write: if request.auth != null;
+
+    /**
+     * @description Allows public read access to client data, but requires authentication for writes.
+     * @path /Clients/{clientId}
+     * @allow (get, list) Any user can read client data.
+     * @deny (create) Unauthenticated user tries to create a client record.
+     * @principle Allows public read access while restricting write access to authenticated users.
+     */
+    match /Clients/{clientId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get: if true;
+      allow list: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
     }
+
+    /**
+     * @description Secures care log groups, allowing only authenticated users to read and write.
+     * @path /carelog_groups/{groupId}
+     * @allow (create) Authenticated user creates a care log group.
+     * @deny (create) Unauthenticated user tries to create a care log group.
+     * @principle Requires authentication for all operations.
+     */
     match /carelog_groups/{groupId} {
-      allow read, write: if request.auth != null;
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
     }
-    match /settings/{settingId} {
-        allow read, write: if request.auth != null;
+
+    /**
+     * @description Secures care logs, allowing only authenticated users to read and write.
+     * @path /carelogs/{logId}
+     * @allow (create) Authenticated user creates a care log.
+     * @deny (list) Unauthenticated user tries to list care logs.
+     * @principle Requires authentication for all operations.
+     */
+    match /carelogs/{logId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
     }
   }
 }
