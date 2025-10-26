@@ -2,7 +2,8 @@
 'use server';
 
 import { serverAuth, serverDb } from '@/firebase/server-init';
-import { CareLogGroup, Client } from './types';
+import { Client } from './types';
+import { cookies } from 'next/headers';
 
 /**
  * Verifies a client's credentials and returns a custom Firebase auth token or a list of choices.
@@ -26,7 +27,8 @@ export async function loginClient(email: string, password: string) {
     const matchingClients: (Client & { id: string })[] = [];
     snapshot.forEach(doc => {
       const clientData = doc.data() as Client;
-      if (clientData.Email && clientData.Email.toLowerCase() === normalizedEmail) {
+      const clientEmail = (clientData.Email || '').trim().toLowerCase();
+      if (clientEmail === normalizedEmail) {
         const mobileLastFour = (clientData.Mobile || '').slice(-4);
         if (mobileLastFour === password) {
           matchingClients.push({ ...clientData, id: doc.id });
@@ -53,7 +55,7 @@ export async function loginClient(email: string, password: string) {
       }
       const groupId = groupQuery.docs[0].id;
       
-      await serverAuth.setCustomUserClaims(uid, { clientId: client.id });
+      // The UID is now unique per client, and the claim confirms which client it is.
       const customToken = await serverAuth.createCustomToken(uid, { clientId: client.id });
 
       console.log(`[Client Login] Token generated for UID: ${uid}`);
@@ -64,7 +66,10 @@ export async function loginClient(email: string, password: string) {
       };
     }
 
-    const tempUid = `client_multi_${Date.now()}`;
+    // --- Multi-client scenario ---
+    // The UID needs to be consistent for the session, so we use the email.
+    // This allows us to update claims later.
+    const tempUid = `multi_user_${Buffer.from(normalizedEmail).toString('base64')}`;
     const clientChoices = matchingClients.map(c => ({
       id: c.id,
       name: c['Client Name'],
@@ -80,7 +85,6 @@ export async function loginClient(email: string, password: string) {
       redirect: '/client-dashboard' 
     };
 
-
   } catch (error: any) {
     console.error('[Client Login] A critical error occurred:', error);
     return { error: 'A server error occurred. Please try again later.' };
@@ -88,16 +92,25 @@ export async function loginClient(email: string, password: string) {
 }
 
 /**
- * Finds the care log group ID for a given client ID.
+ * Finds the care log group ID for a given client ID and adds the clientId as a custom claim.
  * @param clientId The ID of the client.
  * @returns An object with the groupId or an error.
  */
-export async function getCareLogGroupId(clientId: string) {
+export async function addClientIdClaimAndGetRedirect(clientId: string) {
     if (!clientId) {
         return { error: "Client ID is required." };
     }
 
     try {
+        const sessionCookie = cookies().get("__session")?.value || "";
+        if (!sessionCookie) {
+            return { error: "Session not found. Please log in again." };
+        }
+        const decodedIdToken = await serverAuth.verifySessionCookie(sessionCookie, true);
+        const uid = decodedIdToken.uid;
+        
+        await serverAuth.setCustomUserClaims(uid, { clientId: clientId });
+
         const careLogGroupsRef = serverDb.collection('carelog_groups');
         const groupQuery = await careLogGroupsRef.where('clientId', '==', clientId).limit(1).get();
 
@@ -108,8 +121,9 @@ export async function getCareLogGroupId(clientId: string) {
         const groupId = groupQuery.docs[0].id;
         return { groupId, redirect: `/client/reports/carelog/${groupId}` };
 
-    } catch (error: any) {
-        console.error("Error fetching care log group ID:", error);
-        return { error: "Could not retrieve the care log report." };
+    } catch (error: any)
+    {
+        console.error("Error setting claim or fetching group ID:", error);
+        return { error: "Could not set client profile or retrieve the care log report." };
     }
 }

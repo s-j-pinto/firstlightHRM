@@ -5,26 +5,15 @@ import { cookies } from "next/headers";
 
 export async function POST(request: NextRequest) {
   try {
-    const { idToken, clientId } = await request.json();
+    const { idToken } = await request.json();
 
-    if (!idToken || !clientId) {
+    if (!idToken) {
       return NextResponse.json(
-        { error: "idToken and clientId are required" },
+        { error: "idToken is required" },
         { status: 400 }
       );
     }
     
-    // Get the UID from the idToken
-    const decodedIdToken = await serverAuth.verifyIdToken(idToken);
-    const uid = decodedIdToken.uid;
-    
-    // Set the custom claim on the user
-    await serverAuth.setCustomUserClaims(uid, { clientId: clientId });
-
-    // The client SDK needs to be force-refreshed to see the claim.
-    // We can't do that from the server, but the next time the client gets a token, it will be there.
-    // For the session cookie, we can re-create it.
-
     // To ensure the claim is in the session, we revoke the old session and create a new one.
     const sessionCookieValue = cookies().get("__session")?.value;
     if (sessionCookieValue) {
@@ -34,7 +23,7 @@ export async function POST(request: NextRequest) {
         }
     }
     
-    // Create a new session cookie with the updated claims.
+    // Create a new session cookie with the updated claims from the new idToken.
     const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
     const sessionCookie = await serverAuth.createSessionCookie(idToken, { expiresIn });
 

@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { getCareLogGroupId } from '@/lib/client-auth.actions';
+import { addClientIdClaimAndGetRedirect } from '@/lib/client-auth.actions';
 import { signOut } from 'firebase/auth';
 import { useAuth } from '@/firebase';
 
@@ -39,6 +39,7 @@ export default function ClientDashboardPage() {
             const tempChoices = sessionStorage.getItem('clientChoices');
             if (tempChoices) {
                  setClientChoices(JSON.parse(tempChoices));
+                 // Clear it after reading so it's not reused on a page refresh
                  sessionStorage.removeItem('clientChoices');
             }
         }
@@ -52,27 +53,33 @@ export default function ClientDashboardPage() {
         }
 
         startRedirectTransition(async () => {
-            const result = await getCareLogGroupId(selectedClientId);
-            if (result.error || !result.redirect) {
-                toast({ title: 'Error', description: result.error || "Could not find the associated care log report.", variant: 'destructive'});
-            } else {
-                 try {
-                    const idToken = await user.getIdToken(true); // Force refresh to get latest claims
-                     const sessionUpdateResponse = await fetch('/api/auth/session/update', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ idToken, clientId: selectedClientId }),
-                    });
-                    
-                    if (!sessionUpdateResponse.ok) {
-                        throw new Error('Failed to update session.');
-                    }
+            try {
+                // Step 1: Tell the server to add the custom claim for this user
+                const result = await addClientIdClaimAndGetRedirect(selectedClientId);
+                if (result.error || !result.redirect) {
+                    throw new Error(result.error || "Could not find the associated care log report.");
+                }
 
-                    router.push(result.redirect);
-                 } catch (e) {
-                     console.error("Session update error:", e);
-                     toast({ title: 'Session Error', description: 'Could not update your session. Please log in again.', variant: 'destructive'});
-                 }
+                // Step 2: Force refresh the token on the client to get the new claim
+                const idToken = await user.getIdToken(true);
+
+                // Step 3: Update the session cookie on the server with the new token
+                const sessionUpdateResponse = await fetch('/api/auth/session/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idToken }),
+                });
+
+                if (!sessionUpdateResponse.ok) {
+                    throw new Error('Failed to update session.');
+                }
+                
+                // Step 4: Redirect to the correct page
+                router.push(result.redirect);
+
+            } catch (e: any) {
+                console.error("Client selection or session update error:", e);
+                toast({ title: 'Error', description: e.message || 'Could not update your session. Please log in again.', variant: 'destructive'});
             }
         });
     };
