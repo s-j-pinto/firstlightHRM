@@ -59,7 +59,7 @@ export async function submitCareRequest(payload: RequestCareFormValues) {
         const requestData = {
             clientId: clientId,
             clientName: clientName,
-            clientEmail: clientEmail, // Use the email fetched from Firestore
+            clientEmail: clientEmail,
             preferredDateTime: Timestamp.fromDate(preferredDateTime),
             duration: data.duration,
             reason: data.reason,
@@ -118,4 +118,31 @@ export async function submitCareRequest(payload: RequestCareFormValues) {
         }
         return { message: `An error occurred: ${error.message}`, error: true };
     }
+}
+
+export async function updateCareRequestStatus(payload: { requestId: string; status: 'reviewed' | 'scheduled' | 'denied'; adminNotes: string; }) {
+  const { requestId, status, adminNotes } = payload;
+  
+  if (!requestId || !status) {
+    return { message: "Request ID and status are required.", error: true };
+  }
+
+  const firestore = serverDb;
+
+  try {
+    const requestRef = firestore.collection('client_additional_care_requests').doc(requestId);
+    
+    await requestRef.update({
+      status: status,
+      adminNotes: adminNotes,
+      lastUpdatedAt: Timestamp.now()
+    });
+
+    revalidatePath('/staffing-admin/manage-client-requests');
+    return { message: `Request status has been updated to ${status}.` };
+
+  } catch (error: any) {
+    console.error("Error updating care request status:", error);
+    return { message: `An error occurred: ${error.message}`, error: true };
+  }
 }

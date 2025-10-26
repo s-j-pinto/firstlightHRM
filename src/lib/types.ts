@@ -181,6 +181,21 @@ export const careLogSchema = z.object({
 
 export type CareLog = z.infer<typeof careLogSchema> & { id: string };
 
+export const clientCareRequestSchema = z.object({
+    clientId: z.string(),
+    clientName: z.string(),
+    clientEmail: z.string().email(),
+    preferredDateTime: z.any(),
+    duration: z.string(),
+    reason: z.string(),
+    preferredCaregiver: z.string().optional(),
+    urgency: z.string(),
+    status: z.enum(["pending", "reviewed", "scheduled", "denied"]),
+    createdAt: z.any(),
+    adminNotes: z.string().optional(),
+});
+export type ClientCareRequest = z.infer<typeof clientCareRequestSchema> & { id: string };
+
 
 // Defines the schema for the data that will be passed into the AI prompt.
 // It accepts either an image data URI or plain text content.
