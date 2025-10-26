@@ -39,7 +39,6 @@ export async function submitCareRequest(payload: RequestCareFormValues) {
         }
         
         const clientId = decodedIdToken.clientId as string;
-        const clientEmail = decodedIdToken.email as string;
 
         const clientDoc = await firestore.collection('Clients').doc(clientId).get();
         if (!clientDoc.exists) {
@@ -47,6 +46,11 @@ export async function submitCareRequest(payload: RequestCareFormValues) {
         }
         const clientData = clientDoc.data();
         const clientName = clientData?.['Client Name'] || 'Unknown Client';
+        const clientEmail = clientData?.['Email'] || ''; // Get email directly from the client document
+
+        if (!clientEmail) {
+            return { message: "Client contact email is missing from the client profile.", error: true };
+        }
 
         const [hours, minutes] = data.preferredTime.split(':').map(Number);
         const preferredDateTime = new Date(data.preferredDate);
@@ -55,7 +59,7 @@ export async function submitCareRequest(payload: RequestCareFormValues) {
         const requestData = {
             clientId: clientId,
             clientName: clientName,
-            clientEmail: clientEmail,
+            clientEmail: clientEmail, // Use the email fetched from Firestore
             preferredDateTime: Timestamp.fromDate(preferredDateTime),
             duration: data.duration,
             reason: data.reason,
