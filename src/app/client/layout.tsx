@@ -1,10 +1,11 @@
+
 "use client";
 
 import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { signOut } from "firebase/auth";
-import { Loader2, LogOut } from "lucide-react";
+import { Loader2, LogOut, PlusCircle } from "lucide-react";
 import Image from "next/image";
 
 import { useUser, useAuth } from "@/firebase";
@@ -62,9 +63,12 @@ export default function ClientLayout({
           </Link>
         <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
             <div className="ml-auto flex-1 sm:flex-initial flex items-center gap-4">
-                <span className="text-sm text-muted-foreground hidden sm:inline-block">
-                    Client Portal
-                </span>
+                <Button asChild variant="outline">
+                  <Link href="/client/request-care">
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Request Additional Care
+                  </Link>
+                </Button>
                 <Button variant="outline" size="sm" onClick={handleSignOut}>
                     <LogOut className="mr-2 h-4 w-4" />
                     Sign Out

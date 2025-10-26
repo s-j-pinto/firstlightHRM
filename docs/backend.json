@@ -1,4 +1,5 @@
 
+
 {
   "entities": {
     "CaregiverProfile": {
@@ -222,6 +223,25 @@
         "lastUpdatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["careLogGroupId", "caregiverId", "caregiverName", "logNotes", "createdAt", "lastUpdatedAt"]
+    },
+    "ClientCareRequest": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "ClientCareRequest",
+        "type": "object",
+        "description": "Stores a request from a client for additional care hours.",
+        "properties": {
+          "clientId": { "type": "string", "description": "The document ID of the client making the request." },
+          "clientName": { "type": "string", "description": "The name of the client." },
+          "clientEmail": { "type": "string", "format": "email", "description": "The contact email of the client at the time of request." },
+          "preferredDateTime": { "type": "string", "format": "date-time", "description": "The client's preferred start date and time for the additional care." },
+          "duration": { "type": "string", "description": "The requested duration of the care (e.g., '4 hours', 'Overnight')." },
+          "reason": { "type": "string", "description": "The reason provided by the client for the request." },
+          "preferredCaregiver": { "type": "string", "description": "The name of a preferred caregiver, if any." },
+          "urgency": { "type": "string", "description": "The urgency level of the request (e.g., 'ASAP', 'Flexible')." },
+          "status": { "type": "string", "enum": ["pending", "reviewed", "scheduled", "denied"], "description": "The status of the request, managed by the admin." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when the request was created." }
+        },
+        "required": ["clientId", "clientName", "preferredDateTime", "duration", "reason", "urgency", "status", "createdAt"]
     }
   },
   "auth": {
@@ -262,6 +282,11 @@
     "/carelogs/{logId}": {
       "schema": { "$ref": "#/entities/CareLog" },
       "description": "Stores individual care log entries submitted by caregivers."
+    },
+    "/client_additional_care_requests/{requestId}": {
+      "schema": { "$ref": "#/entities/ClientCareRequest" },
+      "description": "Stores requests from clients for additional care hours."
     }
   }
 }
+
