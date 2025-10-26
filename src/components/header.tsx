@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from "next/link";
@@ -20,9 +19,11 @@ export function AppHeader() {
   
   const isAdminRoute = pathname.startsWith('/admin');
   const isStaffingAdminRoute = pathname.startsWith('/staffing-admin');
+  const isClientRoute = pathname.startsWith('/client') || pathname.startsWith('/client-dashboard') || pathname.startsWith('/reports/carelog');
+
 
   // Hide the global header on caregiver routes, as that layout has its own
-  if (pathname.startsWith('/caregiver')) {
+  if (pathname.startsWith('/caregiver') || isClientRoute) {
     return null;
   }
 
