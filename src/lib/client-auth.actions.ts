@@ -49,16 +49,21 @@ export async function loginClient(email: string, password: string) {
 
       const careLogGroupsRef = serverDb.collection('carelog_groups');
       const groupQuery = await careLogGroupsRef.where('clientId', '==', client.id).limit(1).get();
-
-      if (groupQuery.empty) {
-        return { error: 'No care log group is associated with your profile. Please contact the administrator.' };
-      }
-      const groupId = groupQuery.docs[0].id;
       
       // The UID is now unique per client, and the claim confirms which client it is.
       const customToken = await serverAuth.createCustomToken(uid, { clientId: client.id });
-
       console.log(`[Client Login] Token generated for UID: ${uid}`);
+
+      if (groupQuery.empty) {
+        // If no group, redirect to a generic client dashboard page.
+        console.log(`[Client Login] No care log group found for client ${client.id}. Redirecting to generic dashboard.`);
+        return { 
+          token: customToken,
+          redirect: `/client/dashboard` // Redirect to a generic page
+        };
+      }
+      
+      const groupId = groupQuery.docs[0].id;
 
       return { 
         token: customToken,
@@ -115,7 +120,8 @@ export async function addClientIdClaimAndGetRedirect(clientId: string) {
         const groupQuery = await careLogGroupsRef.where('clientId', '==', clientId).limit(1).get();
 
         if (groupQuery.empty) {
-            return { error: 'No care log group is associated with the selected client.' };
+            // If no group, redirect to the generic dashboard instead of returning an error
+            return { redirect: '/client/dashboard' };
         }
         
         const groupId = groupQuery.docs[0].id;
