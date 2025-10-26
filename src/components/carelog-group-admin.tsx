@@ -55,7 +55,11 @@ export function CareLogGroupAdmin() {
   const { data: allCareLogs, isLoading: logsLoading } = useCollection<CareLog>(allCareLogsRef);
 
   const activeClients = useMemo(() => clients?.filter(c => c.status === 'ACTIVE') || [], [clients]);
-  const activeCaregivers = useMemo(() => allCaregiversData?.filter(c => c.status === 'ACTIVE' && c.Email) || [], [allCaregiversData]);
+  
+  const activeCaregivers = useMemo(() => {
+    const filtered = allCaregiversData?.filter(c => c.status === 'ACTIVE' && c.Email) || [];
+    return filtered.sort((a, b) => a.Name.localeCompare(b.Name));
+  }, [allCaregiversData]);
 
   const form = useForm<CareLogGroupFormData>({
     resolver: zodResolver(careLogGroupSchema),
