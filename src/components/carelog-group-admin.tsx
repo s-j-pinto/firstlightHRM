@@ -3,10 +3,11 @@
 
 import { useState, useMemo, useTransition } from "react";
 import { useForm } from "react-hook-form";
+import Link from 'next/link';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { collection } from "firebase/firestore";
 import { firestore, useCollection, useMemoFirebase } from "@/firebase";
-import { Client, ActiveCaregiver, CareLogGroup } from "@/lib/types";
+import { Client, ActiveCaregiver, CareLogGroup, CareLog } from "@/lib/types";
 import { saveCareLogGroup, deleteCareLogGroup, reactivateCareLogGroup } from "@/lib/carelog-groups.actions";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -20,7 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, PlusCircle, Trash2, Edit, Users, RotateCw } from "lucide-react";
+import { Loader2, PlusCircle, Trash2, Edit, Users, RotateCw, FileText } from "lucide-react";
 
 const careLogGroupSchema = z.object({
   groupId: z.string().optional(),
@@ -49,6 +50,9 @@ export function CareLogGroupAdmin() {
 
   const careLogGroupsRef = useMemoFirebase(() => collection(firestore, 'carelog_groups'), [firestore]);
   const { data: careLogGroups, isLoading: groupsLoading } = useCollection<CareLogGroup>(careLogGroupsRef);
+  
+  const allCareLogsRef = useMemoFirebase(() => collection(firestore, 'carelogs'), [firestore]);
+  const { data: allCareLogs, isLoading: logsLoading } = useCollection<CareLog>(allCareLogsRef);
 
   const activeClients = useMemo(() => clients?.filter(c => c.status === 'ACTIVE') || [], [clients]);
   const activeCaregivers = useMemo(() => allCaregiversData?.filter(c => c.status === 'ACTIVE' && c.Email) || [], [allCaregiversData]);
@@ -67,6 +71,11 @@ export function CareLogGroupAdmin() {
     // Maps email to the full caregiver object { Name, status }
     return new Map(allCaregiversData.map(cg => [cg.Email, { name: cg.Name, status: cg.status }]));
   }, [allCaregiversData]);
+
+  const groupsWithLogs = useMemo(() => {
+    if (!allCareLogs) return new Set();
+    return new Set(allCareLogs.map(log => log.careLogGroupId));
+  }, [allCareLogs]);
 
 
   const handleOpenModal = (group: CareLogGroup | null) => {
@@ -121,7 +130,7 @@ export function CareLogGroupAdmin() {
     });
   };
 
-  const isLoading = clientsLoading || caregiversLoading || groupsLoading;
+  const isLoading = clientsLoading || caregiversLoading || groupsLoading || logsLoading;
 
   return (
     <Card>
@@ -175,6 +184,13 @@ export function CareLogGroupAdmin() {
                       </div>
                     </div>
                     <div className="flex gap-2 shrink-0">
+                        {groupsWithLogs.has(group.id) && (
+                            <Button asChild variant="outline" size="icon">
+                                <Link href={`/reports/carelog/${group.id}`}>
+                                    <FileText className="h-4 w-4" />
+                                </Link>
+                            </Button>
+                        )}
                         <Button variant="outline" size="icon" onClick={() => handleOpenModal(group)}><Edit className="h-4 w-4" /></Button>
                         {isGroupInactive ? (
                              <Button variant="outline" size="icon" onClick={() => handleReactivate(group.id)} disabled={isPending}>
