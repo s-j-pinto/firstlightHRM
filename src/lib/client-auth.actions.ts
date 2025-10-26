@@ -16,7 +16,6 @@ export async function loginClient(email: string, password: string) {
 
   try {
     const clientsRef = serverDb.collection('Clients');
-    // Firestore queries are case-sensitive by default. We fetch potential matches and filter in-memory.
     const snapshot = await clientsRef.where('status', '==', 'ACTIVE').get();
 
     if (snapshot.empty) {
@@ -28,7 +27,6 @@ export async function loginClient(email: string, password: string) {
     snapshot.forEach(doc => {
       const clientData = doc.data() as Client;
       if (clientData.Email && clientData.Email.toLowerCase() === normalizedEmail) {
-        // Verify password against the last 4 digits of the mobile number
         const mobileLastFour = (clientData.Mobile || '').slice(-4);
         if (mobileLastFour === password) {
           matchingClients.push({ ...clientData, id: doc.id });
@@ -41,14 +39,12 @@ export async function loginClient(email: string, password: string) {
       return { error: 'Invalid credentials. Please check your email and password.' };
     }
 
-    // If only one client matches, log them in directly.
     if (matchingClients.length === 1) {
       const client = matchingClients[0];
       const uid = `client_${client.id}`;
       
       console.log(`[Client Login] Single client found: ${client['Client Name']}. Generating token.`);
 
-      // Find the carelog group for this client
       const careLogGroupsRef = serverDb.collection('carelog_groups');
       const groupQuery = await careLogGroupsRef.where('clientId', '==', client.id).limit(1).get();
 
@@ -56,8 +52,10 @@ export async function loginClient(email: string, password: string) {
         return { error: 'No care log group is associated with your profile. Please contact the administrator.' };
       }
       const groupId = groupQuery.docs[0].id;
+      
+      await serverAuth.setCustomUserClaims(uid, { clientId: client.id });
+      const customToken = await serverAuth.createCustomToken(uid, { clientId: client.id });
 
-      const customToken = await serverAuth.createCustomToken(uid, { clientId: client.id, email: normalizedEmail });
       console.log(`[Client Login] Token generated for UID: ${uid}`);
 
       return { 
@@ -66,8 +64,6 @@ export async function loginClient(email: string, password: string) {
       };
     }
 
-    // If multiple clients match (e.g., family contact for multiple people)
-    // Create a temporary token and return choices.
     const tempUid = `client_multi_${Date.now()}`;
     const clientChoices = matchingClients.map(c => ({
       id: c.id,
@@ -76,7 +72,6 @@ export async function loginClient(email: string, password: string) {
     
     console.log(`[Client Login] Multiple clients found for ${normalizedEmail}. Returning choices.`);
 
-    // This token grants access to the selection page.
     const customToken = await serverAuth.createCustomToken(tempUid, { email: normalizedEmail });
 
     return { 

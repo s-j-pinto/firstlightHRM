@@ -46,7 +46,7 @@ export default function ClientDashboardPage() {
 
 
     const handleSelectClient = async () => {
-        if (!selectedClientId) {
+        if (!selectedClientId || !user) {
             toast({ title: 'Please select a client profile to view.', variant: 'destructive'});
             return;
         }
@@ -57,14 +57,20 @@ export default function ClientDashboardPage() {
                 toast({ title: 'Error', description: result.error || "Could not find the associated care log report.", variant: 'destructive'});
             } else {
                  try {
-                    const idToken = await user?.getIdToken(true);
-                     await fetch('/api/auth/session/update', {
+                    const idToken = await user.getIdToken(true); // Force refresh to get latest claims
+                     const sessionUpdateResponse = await fetch('/api/auth/session/update', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ idToken, clientId: selectedClientId }),
                     });
+                    
+                    if (!sessionUpdateResponse.ok) {
+                        throw new Error('Failed to update session.');
+                    }
+
                     router.push(result.redirect);
                  } catch (e) {
+                     console.error("Session update error:", e);
                      toast({ title: 'Session Error', description: 'Could not update your session. Please log in again.', variant: 'destructive'});
                  }
             }

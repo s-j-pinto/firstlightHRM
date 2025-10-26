@@ -14,7 +14,18 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Revoke previous session cookie to ensure claims are updated
+    // Get the UID from the idToken
+    const decodedIdToken = await serverAuth.verifyIdToken(idToken);
+    const uid = decodedIdToken.uid;
+    
+    // Set the custom claim on the user
+    await serverAuth.setCustomUserClaims(uid, { clientId: clientId });
+
+    // The client SDK needs to be force-refreshed to see the claim.
+    // We can't do that from the server, but the next time the client gets a token, it will be there.
+    // For the session cookie, we can re-create it.
+
+    // To ensure the claim is in the session, we revoke the old session and create a new one.
     const sessionCookieValue = cookies().get("__session")?.value;
     if (sessionCookieValue) {
         const decodedToken = await serverAuth.verifySessionCookie(sessionCookieValue).catch(() => null);
@@ -22,24 +33,10 @@ export async function POST(request: NextRequest) {
             await serverAuth.revokeRefreshTokens(decodedToken.sub);
         }
     }
-
-    // Create a new token with the updated claims
-    const decodedIdToken = await serverAuth.verifyIdToken(idToken);
-    const newCustomToken = await serverAuth.createCustomToken(decodedIdToken.uid, { clientId });
-    const newUserCredential = await fetch(
-        `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${process.env.NEXT_PUBLIC_FIREBASE_API_KEY}`,
-        {
-            method: 'POST',
-            body: JSON.stringify({ token: newCustomToken, returnSecureToken: true }),
-            headers: { 'Content-Type': 'application/json' },
-        }
-    );
-    const { idToken: newIdToken } = await newUserCredential.json();
     
-
-    // Set session expiration to 5 days.
-    const expiresIn = 60 * 60 * 24 * 5 * 1000;
-    const sessionCookie = await serverAuth.createSessionCookie(newIdToken, { expiresIn });
+    // Create a new session cookie with the updated claims.
+    const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
+    const sessionCookie = await serverAuth.createSessionCookie(idToken, { expiresIn });
 
     cookies().set("__session", sessionCookie, {
       maxAge: expiresIn,
