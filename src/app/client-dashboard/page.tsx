@@ -41,9 +41,13 @@ export default function ClientDashboardPage() {
                  setClientChoices(JSON.parse(tempChoices));
                  // Clear it after reading so it's not reused on a page refresh
                  sessionStorage.removeItem('clientChoices');
+            } else {
+                 // If no choices, it means user is authenticated but might be a single user.
+                 // Redirect to the main client dashboard.
+                 router.replace('/client/dashboard');
             }
         }
-    }, []);
+    }, [router]);
 
 
     const handleSelectClient = async () => {
@@ -84,7 +88,7 @@ export default function ClientDashboardPage() {
         });
     };
 
-    if (isUserLoading) {
+    if (isUserLoading || clientChoices.length === 0) {
         return (
             <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
                 <Loader2 className="h-12 w-12 animate-spin text-accent" />
@@ -92,22 +96,6 @@ export default function ClientDashboardPage() {
         );
     }
     
-    if (!isUserLoading && clientChoices.length === 0) {
-         return (
-             <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
-                <Card className="w-full max-w-sm text-center">
-                    <CardHeader>
-                        <CardTitle>Multiple Profiles Found</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-muted-foreground">Please log in again to select a client profile.</p>
-                        <Button onClick={handleLogoutAndLogin} className="mt-4">Go to Login</Button>
-                    </CardContent>
-                </Card>
-            </div>
-         );
-    }
-
     return (
         <main className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
             <Card className="w-full max-w-md mx-auto shadow-lg">

@@ -47,27 +47,13 @@ export async function loginClient(email: string, password: string) {
       
       console.log(`[Client Login] Single client found: ${client['Client Name']}. Generating token.`);
 
-      const careLogGroupsRef = serverDb.collection('carelog_groups');
-      const groupQuery = await careLogGroupsRef.where('clientId', '==', client.id).limit(1).get();
-      
-      // The UID is now unique per client, and the claim confirms which client it is.
+      // Correctly add the clientId as a custom claim here.
       const customToken = await serverAuth.createCustomToken(uid, { clientId: client.id });
-      console.log(`[Client Login] Token generated for UID: ${uid}`);
-
-      if (groupQuery.empty) {
-        // If no group, redirect to a generic client dashboard page.
-        console.log(`[Client Login] No care log group found for client ${client.id}. Redirecting to generic dashboard.`);
-        return { 
-          token: customToken,
-          redirect: `/client/dashboard` // Redirect to a generic page
-        };
-      }
-      
-      const groupId = groupQuery.docs[0].id;
+      console.log(`[Client Login] Token generated for UID: ${uid} with clientId claim.`);
 
       return { 
         token: customToken,
-        redirect: `/client/reports/carelog/${groupId}`
+        redirect: `/client/dashboard` // Redirect to the main client dashboard
       };
     }
 
@@ -125,7 +111,7 @@ export async function addClientIdClaimAndGetRedirect(clientId: string) {
         }
         
         const groupId = groupQuery.docs[0].id;
-        return { groupId, redirect: `/client/reports/carelog/${groupId}` };
+        return { redirect: `/client/reports/carelog/${groupId}` };
 
     } catch (error: any)
     {
