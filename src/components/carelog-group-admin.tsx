@@ -190,7 +190,7 @@ export function CareLogGroupAdmin() {
                     <div className="flex gap-2 shrink-0">
                         {groupsWithLogs.has(group.id) && (
                             <Button asChild variant="outline" size="icon">
-                                <Link href={`/reports/carelog/${group.id}`}>
+                                <Link href={`/staffing-admin/reports/carelog/${group.id}`}>
                                     <FileText className="h-4 w-4" />
                                 </Link>
                             </Button>
@@ -312,5 +312,3 @@ export function CareLogGroupAdmin() {
     </Card>
   );
 }
-
-    
