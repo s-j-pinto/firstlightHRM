@@ -55,11 +55,9 @@ export async function loginClient(email: string, password: string) {
       if (groupQuery.empty) {
         return { error: 'No care log group is associated with your profile. Please contact the administrator.' };
       }
-      const careLogGroup = groupQuery.docs[0].data() as CareLogGroup;
       const groupId = groupQuery.docs[0].id;
 
-      // Create a custom token for the client
-      const customToken = await serverAuth.createCustomToken(uid, { clientId: client.id });
+      const customToken = await serverAuth.createCustomToken(uid, { clientId: client.id, email: normalizedEmail });
       console.log(`[Client Login] Token generated for UID: ${uid}`);
 
       return { 
@@ -79,7 +77,7 @@ export async function loginClient(email: string, password: string) {
     console.log(`[Client Login] Multiple clients found for ${normalizedEmail}. Returning choices.`);
 
     // This token grants access to the selection page.
-    const customToken = await serverAuth.createCustomToken(tempUid, { clients: clientChoices.map(c => c.id) });
+    const customToken = await serverAuth.createCustomToken(tempUid, { email: normalizedEmail });
 
     return { 
       token: customToken,

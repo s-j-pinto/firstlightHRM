@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useTransition } from "react";
@@ -55,12 +56,25 @@ export default function ClientLoginPage() {
       }
 
       try {
-        await signInWithCustomToken(auth, result.token);
+        const userCredential = await signInWithCustomToken(auth, result.token);
+        const idToken = await userCredential.user.getIdToken();
+
+        // Create the session cookie by calling the API route
+        await fetch('/api/auth/session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken }),
+        });
         
         toast({
           title: "Login Successful",
           description: "Welcome! You are now being redirected.",
         });
+        
+        // Handle multi-client choice scenario
+        if (result.choices) {
+            sessionStorage.setItem('clientChoices', JSON.stringify(result.choices));
+        }
         
         // Redirect based on the server response
         if (result.redirect) {
@@ -71,7 +85,7 @@ export default function ClientLoginPage() {
         }
 
       } catch (error) {
-        console.error("Custom Token Sign-In Error:", error);
+        console.error("Custom Token Sign-In or Session Error:", error);
         toast({
           variant: "destructive",
           title: "Authentication Failed",

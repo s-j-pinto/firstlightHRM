@@ -25,6 +25,8 @@ export default function ClientLayout({
 
   const handleSignOut = async () => {
     await signOut(auth);
+    // Also clear the session cookie on the server
+    await fetch('/api/auth/session/logout', { method: 'POST' });
     router.push("/client-login");
   };
 

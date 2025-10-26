@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { getCareLogGroupId } from '@/lib/client-auth.actions';
+import { signOut } from 'firebase/auth';
+import { useAuth } from '@/firebase';
 
 interface ClientChoice {
     id: string;
@@ -19,27 +21,19 @@ interface ClientChoice {
 export default function ClientDashboardPage() {
     const { user, isUserLoading } = useUser();
     const router = useRouter();
+    const auth = useAuth();
     const { toast } = useToast();
     const [isRedirecting, startRedirectTransition] = useTransition();
 
     const [clientChoices, setClientChoices] = useState<ClientChoice[]>([]);
     const [selectedClientId, setSelectedClientId] = useState<string>('');
-
-    useEffect(() => {
-        if (!isUserLoading && user) {
-            user.getIdTokenResult().then(idTokenResult => {
-                const choices = idTokenResult.claims.clients as string[] | undefined;
-                
-                // This is a workaround since the choices are not coming through claims as expected.
-                // In a real scenario, this would be fetched securely or passed via claims.
-                // For now, we simulate what the action returns.
-                // This part of the logic is hard to implement without a live auth backend to test claims.
-                // We will assume for now the user needs to be handled.
-            });
-        }
-    }, [user, isUserLoading]);
     
-    // Placeholder effect if claims aren't working as expected during development
+    const handleLogoutAndLogin = async () => {
+        await signOut(auth);
+        await fetch('/api/auth/session/logout', { method: 'POST' });
+        router.push('/client-login');
+    };
+
     useEffect(() => {
         if (typeof window !== "undefined") {
             const tempChoices = sessionStorage.getItem('clientChoices');
@@ -62,7 +56,17 @@ export default function ClientDashboardPage() {
             if (result.error || !result.redirect) {
                 toast({ title: 'Error', description: result.error || "Could not find the associated care log report.", variant: 'destructive'});
             } else {
-                router.push(result.redirect);
+                 try {
+                    const idToken = await user?.getIdToken(true);
+                     await fetch('/api/auth/session/update', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ idToken, clientId: selectedClientId }),
+                    });
+                    router.push(result.redirect);
+                 } catch (e) {
+                     toast({ title: 'Session Error', description: 'Could not update your session. Please log in again.', variant: 'destructive'});
+                 }
             }
         });
     };
@@ -75,9 +79,7 @@ export default function ClientDashboardPage() {
         );
     }
     
-    // This is a fallback in case the user lands here without choices.
-    // This could happen if they are already logged in from a multi-client session.
-    if (clientChoices.length === 0) {
+    if (!isUserLoading && clientChoices.length === 0) {
          return (
              <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
                 <Card className="w-full max-w-sm text-center">
@@ -86,7 +88,7 @@ export default function ClientDashboardPage() {
                     </CardHeader>
                     <CardContent>
                         <p className="text-muted-foreground">Please log in again to select a client profile.</p>
-                        <Button onClick={() => router.push('/client-login')} className="mt-4">Go to Login</Button>
+                        <Button onClick={handleLogoutAndLogin} className="mt-4">Go to Login</Button>
                     </CardContent>
                 </Card>
             </div>

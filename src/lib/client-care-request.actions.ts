@@ -6,6 +6,7 @@ import { serverAuth, serverDb } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { format } from 'date-fns';
+import { cookies } from 'next/headers';
 
 const requestCareSchema = z.object({
   preferredDate: z.date(),
@@ -30,14 +31,15 @@ export async function submitCareRequest(payload: RequestCareFormValues) {
     const firestore = serverDb;
 
     try {
-        const { get } = await serverAuth.verifySessionCookie(require('next/headers').cookies().get('__session')?.value || '', true);
-        const user = await serverAuth.getUser(get.uid);
+        const sessionCookie = cookies().get("__session")?.value || "";
+        const decodedIdToken = await serverAuth.verifySessionCookie(sessionCookie, true);
 
-        if (!user || !user.customClaims || !user.customClaims.clientId) {
-             return { message: "Authentication failed or client ID not found.", error: true };
+        if (!decodedIdToken.clientId) {
+             return { message: "Authentication failed or client ID not found in session.", error: true };
         }
         
-        const clientId = user.customClaims.clientId as string;
+        const clientId = decodedIdToken.clientId as string;
+        const clientEmail = decodedIdToken.email as string;
 
         const clientDoc = await firestore.collection('Clients').doc(clientId).get();
         if (!clientDoc.exists) {
@@ -53,7 +55,7 @@ export async function submitCareRequest(payload: RequestCareFormValues) {
         const requestData = {
             clientId: clientId,
             clientName: clientName,
-            clientEmail: user.email,
+            clientEmail: clientEmail,
             preferredDateTime: Timestamp.fromDate(preferredDateTime),
             duration: data.duration,
             reason: data.reason,
@@ -81,7 +83,7 @@ export async function submitCareRequest(payload: RequestCareFormValues) {
                             <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
                                 <h2 style="margin-top: 0; color: #555;">Request Details</h2>
                                 <p><strong>Client:</strong> ${clientName}</p>
-                                <p><strong>Client Contact Email:</strong> ${user.email}</p>
+                                <p><strong>Client Contact Email:</strong> ${clientEmail}</p>
                                 <p><strong>Urgency:</strong> ${data.urgency}</p>
                                 <p><strong>Preferred Date & Time:</strong> ${formattedDate}</p>
                                 <p><strong>Requested Duration:</strong> ${data.duration}</p>
