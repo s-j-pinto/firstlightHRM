@@ -153,5 +153,18 @@ service cloud.firestore {
       allow create: if isSignedIn();
       allow update, delete: if false;
     }
+    /**
+     * @description Controls access to client_additional_care_requests. Open for all.
+     * @path /client_additional_care_requests/{requestId}
+     * @allow (get, list) - Any user can view care logs.
+     * @allow (create) - Any authenticated user can create a care log.
+     * @deny (update, delete) - No user can update or delete a care log.
+     * @principle Open read access.
+     */
+    match /client_additional_care_requests/{requestId} {
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
   }
 }
