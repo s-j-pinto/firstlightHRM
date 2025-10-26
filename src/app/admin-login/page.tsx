@@ -11,7 +11,7 @@ import { Users, Building } from "lucide-react";
 const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstLight_Logo_VRT_CMYK_ICO.ico?alt=media&token=1151ccf8-5dc3-4ffd-b5aa-ca13e8b083d9";
 
 
-export default function LoginPage() {
+export default function AdminLoginPage() {
   return (
     <main className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
       <Card className="w-full max-w-md mx-auto shadow-lg">

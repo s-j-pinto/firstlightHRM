@@ -30,7 +30,7 @@ export function AppHeader() {
   const handleSignOut = async () => {
     await signOut(auth);
     if(isAdminRoute || isStaffingAdminRoute) {
-        router.push("/login");
+        router.push("/admin-login");
     } else {
         router.push("/");
     }
@@ -83,7 +83,7 @@ export function AppHeader() {
                 </Link>
                </>
             )}
-            {!user && !isUserLoading && !pathname.endsWith('/login') && !pathname.startsWith('/login-form') && !pathname.startsWith('/caregiver-login') && !pathname.startsWith('/active-caregiver-login') && (
+            {!user && !isUserLoading && !pathname.startsWith('/admin-login') && !pathname.startsWith('/login-form') && !pathname.startsWith('/caregiver-login') && !pathname.startsWith('/active-caregiver-login') && (
               <Button asChild variant="ghost">
                 <Link href="/caregiver-login">
                   <LogIn className="mr-2" />

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useTransition } from "react";
@@ -58,7 +57,7 @@ export default function CreateAdminPage() {
           title: "Admin Created",
           description: "New admin user successfully created. You can now log in.",
         });
-        router.push("/login");
+        router.push("/admin-login");
       } catch (error: any) {
         let description = "An unexpected error occurred. Please try again.";
         if (error.code === 'auth/email-already-in-use') {
