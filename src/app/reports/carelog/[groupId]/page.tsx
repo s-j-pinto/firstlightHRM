@@ -3,7 +3,7 @@
 
 import { useParams } from 'next/navigation';
 import { useMemo } from 'react';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, doc } from 'firebase/firestore';
 import { firestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { CareLog, CareLogGroup } from '@/lib/types';
 import { format } from 'date-fns';
