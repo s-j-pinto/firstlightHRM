@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from "next/link";
@@ -19,10 +20,10 @@ export function AppHeader() {
   
   const isAdminRoute = pathname.startsWith('/admin');
   const isStaffingAdminRoute = pathname.startsWith('/staffing-admin');
-  const isClientRoute = pathname.startsWith('/client') || pathname.startsWith('/client-dashboard') || pathname.startsWith('/reports/carelog');
+  const isClientRoute = pathname.startsWith('/client');
 
 
-  // Hide the global header on caregiver routes, as that layout has its own
+  // Hide the global header on certain routes that have their own layout/header
   if (pathname.startsWith('/caregiver') || isClientRoute) {
     return null;
   }
@@ -83,7 +84,7 @@ export function AppHeader() {
                 </Link>
                </>
             )}
-            {!user && !isUserLoading && !pathname.startsWith('/admin-login') && !pathname.startsWith('/login-form') && !pathname.startsWith('/caregiver-login') && !pathname.startsWith('/active-caregiver-login') && (
+            {!user && !isUserLoading && !pathname.startsWith('/admin-login') && !pathname.startsWith('/login-form') && !pathname.startsWith('/caregiver-login') && !pathname.startsWith('/active-caregiver-login') && !pathname.startsWith('/client-login') && (
               <Button asChild variant="ghost">
                 <Link href="/caregiver-login">
                   <LogIn className="mr-2" />

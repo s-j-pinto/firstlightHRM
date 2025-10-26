@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useTransition } from 'react';
@@ -58,10 +59,10 @@ export default function ClientDashboardPage() {
 
         startRedirectTransition(async () => {
             const result = await getCareLogGroupId(selectedClientId);
-            if (result.error || !result.groupId) {
+            if (result.error || !result.redirect) {
                 toast({ title: 'Error', description: result.error || "Could not find the associated care log report.", variant: 'destructive'});
             } else {
-                router.push(`/reports/carelog/${result.groupId}`);
+                router.push(result.redirect);
             }
         });
     };

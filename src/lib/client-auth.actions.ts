@@ -1,3 +1,4 @@
+
 'use server';
 
 import { serverAuth, serverDb } from '@/firebase/server-init';
@@ -63,7 +64,7 @@ export async function loginClient(email: string, password: string) {
 
       return { 
         token: customToken,
-        redirect: `/reports/carelog/${groupId}`
+        redirect: `/client/reports/carelog/${groupId}`
       };
     }
 
@@ -112,7 +113,7 @@ export async function getCareLogGroupId(clientId: string) {
         }
         
         const groupId = groupQuery.docs[0].id;
-        return { groupId };
+        return { groupId, redirect: `/client/reports/carelog/${groupId}` };
 
     } catch (error: any) {
         console.error("Error fetching care log group ID:", error);
