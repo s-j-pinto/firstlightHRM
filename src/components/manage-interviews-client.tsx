@@ -359,24 +359,34 @@ export default function ManageInterviewsClient() {
       let interviewId = existingInterview?.id;
       
       if (!interviewId) {
-        try {
-          const tempInterviewData = {
-            caregiverProfileId: selectedCaregiver.id,
-            caregiverUid: selectedCaregiver.uid,
-            interviewType: "Phone",
-            phoneScreenPassed: "N/A",
-            interviewNotes: data.interviewNotes,
-            candidateRating: data.candidateRating,
-            aiGeneratedInsight: aiInsight || '',
-            createdAt: Timestamp.now(),
-          };
-          const docRef = await addDoc(collection(db, 'interviews'), tempInterviewData);
-          interviewId = docRef.id;
-          setExistingInterview({ id: docRef.id, ...tempInterviewData} as Interview);
-        } catch(e) {
-            toast({ title: 'Error', description: 'Could not create initial interview record.', variant: 'destructive'});
-            return;
-        }
+        const tempInterviewData = {
+          caregiverProfileId: selectedCaregiver.id,
+          caregiverUid: selectedCaregiver.uid,
+          interviewType: "Phone",
+          phoneScreenPassed: "N/A",
+          interviewNotes: data.interviewNotes,
+          candidateRating: data.candidateRating,
+          aiGeneratedInsight: aiInsight || '',
+          createdAt: Timestamp.now(),
+        };
+        const interviewsCollection = collection(db, 'interviews');
+        await addDoc(interviewsCollection, tempInterviewData)
+          .then(docRef => {
+            interviewId = docRef.id;
+            setExistingInterview({ id: docRef.id, ...tempInterviewData} as Interview);
+          })
+          .catch(serverError => {
+            const permissionError = new FirestorePermissionError({
+              path: interviewsCollection.path,
+              operation: "create",
+              requestResourceData: tempInterviewData,
+            });
+            errorEmitter.emit("permission-error", permissionError);
+            // We do not rethrow, as the emitter handles it. The function will just exit.
+            return; // Stop execution
+          });
+          
+        if (!interviewId) return; // Exit if creation failed
       }
   
       if (data.phoneScreenPassed === 'Yes' && data.eventDate && data.eventTime && data.interviewMethod && data.interviewPathway) {
@@ -420,13 +430,20 @@ export default function ManageInterviewsClient() {
             aiGeneratedInsight: aiInsight || '',
             interviewDateTime: existingInterview?.id ? existingInterview.interviewDateTime : Timestamp.now(),
           };
-          try {
-            await updateDoc(doc(db, 'interviews', interviewId), interviewDocData);
-            toast({ title: 'Success', description: 'Phone interview results updated.' });
-            handleCancel();
-          } catch(e) {
-             toast({ title: 'Error', description: 'Could not update interview record.', variant: 'destructive'});
-          }
+          const interviewDocRef = doc(db, 'interviews', interviewId);
+          updateDoc(interviewDocRef, interviewDocData)
+            .then(() => {
+                toast({ title: 'Success', description: 'Phone interview results updated.' });
+                handleCancel();
+            })
+            .catch(serverError => {
+                const permissionError = new FirestorePermissionError({
+                    path: interviewDocRef.path,
+                    operation: 'update',
+                    requestResourceData: interviewDocData,
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            });
       }
     });
   };
@@ -435,18 +452,25 @@ export default function ManageInterviewsClient() {
         if (!existingInterview) return;
 
         startSubmitTransition(async () => {
-            try {
-                await updateDoc(doc(db, 'interviews', existingInterview.id), {
-                    finalInterviewStatus: status
-                });
+            const interviewDocRef = doc(db, 'interviews', existingInterview.id);
+            const updateData = { finalInterviewStatus: status };
+            
+            updateDoc(interviewDocRef, updateData)
+              .then(() => {
                 setExistingInterview(prev => prev ? { ...prev, finalInterviewStatus: status } : null);
                 toast({ title: "Status Updated", description: `Final interview marked as ${status}.` });
                 if(status === 'Failed') {
                     handleCancel();
                 }
-            } catch (e) {
-                toast({ title: "Error", description: "Could not update interview status.", variant: "destructive" });
-            }
+              })
+              .catch(serverError => {
+                const permissionError = new FirestorePermissionError({
+                  path: interviewDocRef.path,
+                  operation: "update",
+                  requestResourceData: updateData,
+                });
+                errorEmitter.emit("permission-error", permissionError);
+              });
         });
     };
     
@@ -491,45 +515,49 @@ export default function ManageInterviewsClient() {
     if (!selectedCaregiver || !existingInterview || !db) return;
 
     startSubmitTransition(async () => {
-      try {
-        const employeeData: { [key: string]: any } = {
-          caregiverProfileId: selectedCaregiver.id,
-          interviewId: existingInterview.id,
-          hiringManager: data.hiringManager,
-          hiringComments: data.hiringComments,
-          hireDate: Timestamp.fromDate(data.hireDate),
-          teletrackPin: data.teletrackPin,
-          createdAt: existingEmployee?.id ? undefined : Timestamp.now(),
-        };
+      const employeeData: { [key: string]: any } = {
+        caregiverProfileId: selectedCaregiver.id,
+        interviewId: existingInterview.id,
+        hiringManager: data.hiringManager,
+        hiringComments: data.hiringComments,
+        hireDate: Timestamp.fromDate(data.hireDate),
+        teletrackPin: data.teletrackPin,
+        createdAt: existingEmployee?.id ? undefined : Timestamp.now(),
+      };
 
-        if (data.inPersonInterviewDate) {
-          employeeData.inPersonInterviewDate = Timestamp.fromDate(data.inPersonInterviewDate);
-        }
+      if (data.inPersonInterviewDate) {
+        employeeData.inPersonInterviewDate = Timestamp.fromDate(data.inPersonInterviewDate);
+      }
 
-        if (existingEmployee?.id) {
-          await updateDoc(doc(db, 'caregiver_employees', existingEmployee.id), employeeData);
-          toast({ title: 'Success', description: 'Employee record has been updated.' });
-        } else {
-          const colRef = collection(db, 'caregiver_employees');
-          const docRef = await addDoc(colRef, employeeData).catch(serverError => {
-              const permissionError = new FirestorePermissionError({
-                  path: 'caregiver_employees',
-                  operation: 'create',
-                  requestResourceData: employeeData
-              });
-              errorEmitter.emit('permission-error', permissionError);
-              throw serverError;
+      if (existingEmployee?.id) {
+        const employeeDocRef = doc(db, 'caregiver_employees', existingEmployee.id);
+        updateDoc(employeeDocRef, employeeData)
+          .then(() => {
+            toast({ title: 'Success', description: 'Employee record has been updated.' });
+          })
+          .catch(serverError => {
+            const permissionError = new FirestorePermissionError({
+              path: employeeDocRef.path,
+              operation: "update",
+              requestResourceData: employeeData,
+            });
+            errorEmitter.emit("permission-error", permissionError);
           });
-          setExistingEmployee({ id: docRef.id, ...employeeData } as CaregiverEmployee);
-          toast({ title: 'Success', description: 'Caregiver has been successfully marked as hired.' });
-        }
-
-      } catch (error) {
-        toast({
-          title: 'Error Saving Hiring Data',
-          description: 'An error occurred while saving. Please check permissions.',
-          variant: 'destructive',
-        });
+      } else {
+        const employeesCollection = collection(db, 'caregiver_employees');
+        addDoc(employeesCollection, employeeData)
+          .then(docRef => {
+            setExistingEmployee({ id: docRef.id, ...employeeData } as CaregiverEmployee);
+            toast({ title: 'Success', description: 'Caregiver has been successfully marked as hired.' });
+          })
+          .catch(serverError => {
+            const permissionError = new FirestorePermissionError({
+              path: employeesCollection.path,
+              operation: "create",
+              requestResourceData: employeeData,
+            });
+            errorEmitter.emit("permission-error", permissionError);
+          });
       }
     });
   };
@@ -1114,3 +1142,4 @@ export default function ManageInterviewsClient() {
     
 
     
+
