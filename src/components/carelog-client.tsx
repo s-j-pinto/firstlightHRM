@@ -73,6 +73,102 @@ const initialTemplateData = {
     logNotes: "",
 };
 
+
+const FormattedTemplateData = ({ data }: { data: any }) => {
+    if (!data) return null;
+
+    const renderSection = (title: string, items: any[], columns: { key: string, label: string }[]) => {
+        const filteredItems = items.filter(item => Object.values(item).some(val => val && val !== ''));
+        if (filteredItems.length === 0) return null;
+
+        return (
+            <div className="space-y-2">
+                <h4 className="font-semibold text-md">{title}</h4>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            {columns.map(col => <TableHead key={col.key}>{col.label}</TableHead>)}
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {filteredItems.map((item, index) => (
+                            <TableRow key={index}>
+                                {columns.map(col => <TableCell key={col.key}>{item[col.key] || '-'}</TableCell>)}
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+        );
+    };
+    
+    const renderSimpleSection = (title: string, item: any) => {
+        const entries = Object.entries(item).filter(([_, value]) => value);
+        if (entries.length === 0) return null;
+        
+        return (
+             <div className="space-y-2">
+                <h4 className="font-semibold text-md">{title}</h4>
+                <div className="p-3 bg-muted/50 rounded-md">
+                    {entries.map(([key, value]) => (
+                        <div key={key} className="grid grid-cols-2 gap-4">
+                             <span className="font-medium capitalize">{key.replace(/([A-Z])/g, ' $1')}:</span>
+                             <span>{String(value)}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        )
+    }
+
+    return (
+        <div className="space-y-6 text-sm">
+            {data.personal_care && renderSection('Personal Care', data.personal_care, [
+                { key: 'activity', label: 'Activity' },
+                { key: 'status', label: 'Status' },
+                { key: 'notes', label: 'Notes' },
+            ])}
+            {data.meals_hydration && renderSection('Meals & Hydration', data.meals_hydration, [
+                { key: 'meal', label: 'Meal' },
+                { key: 'prepared', label: 'Prepared' },
+                { key: 'eaten', label: 'Eaten' },
+                { key: 'notes', label: 'Notes' },
+            ])}
+            {data.medication_support && renderSection('Medication Support', data.medication_support, [
+                { key: 'time', label: 'Time' },
+                { key: 'medication', label: 'Medication' },
+                { key: 'assisted', label: 'Assisted' },
+                { key: 'notes', label: 'Notes' },
+            ])}
+            {data.companionship && renderSection('Companionship & Engagement', data.companionship, [
+                { key: 'activity', label: 'Activity' },
+                { key: 'duration', label: 'Duration' },
+                { key: 'response', label: 'Response' },
+            ])}
+            {data.household_tasks && renderSection('Household Tasks', data.household_tasks, [
+                { key: 'task', label: 'Task' },
+                { key: 'completed', label: 'Completed' },
+                { key: 'notes', label: 'Notes' },
+            ])}
+            {data.client_condition && renderSection('Client Condition & Observations', data.client_condition, [
+                { key: 'category', label: 'Category' },
+                { key: 'observation', label: 'Observation' },
+            ])}
+            {data.communication && renderSimpleSection('Communication & Follow-Up', data.communication)}
+
+            {data.signature?.caregiverSignature && (
+                 <div className="space-y-2">
+                    <h4 className="font-semibold text-md">Caregiver Signature</h4>
+                    <div className="p-3 bg-muted/50 rounded-md flex justify-center">
+                        <Image src={data.signature.caregiverSignature} alt="Caregiver Signature" width={200} height={100} className="object-contain" />
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+
 export default function CareLogClient() {
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
@@ -519,7 +615,7 @@ export default function CareLogClient() {
                                             <TableRow key={index}>
                                                 <TableCell>{item.meal}</TableCell>
                                                 <TableCell>
-                                                    <FormField control={control} name={`meals_hydration.${index}.prepared`} render={({field}) => (
+                                                     <FormField control={control} name={`meals_hydration.${index}.prepared`} render={({field}) => (
                                                         <FormItem>
                                                             <FormControl>
                                                                 <RadioGroup onValueChange={field.onChange} value={field.value}>
@@ -755,7 +851,9 @@ export default function CareLogClient() {
                             </CardHeader>
                             <CardContent className="space-y-4">
                               {log.logNotes && <p className="whitespace-pre-wrap text-sm">{log.logNotes}</p>}
-                              {log.templateData && <pre className="text-xs bg-muted p-2 rounded-md overflow-auto">{JSON.stringify(log.templateData, null, 2)}</pre>}
+                              
+                              {log.templateData && <FormattedTemplateData data={log.templateData} />}
+
                               {log.logImages && log.logImages.length > 0 && (
                                 <div className="flex gap-4 pt-2">
                                   {log.logImages.map((img, index) => (
@@ -781,7 +879,3 @@ export default function CareLogClient() {
     </div>
   );
 }
-
-    
-
-    
