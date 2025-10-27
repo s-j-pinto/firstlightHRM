@@ -203,6 +203,7 @@
         "clientName": { "type": "string", "description": "The name of the linked client, stored for easy display." },
         "caregiverEmails": { "type": "array", "items": { "type": "string", "format": "email" }, "description": "An array of emails for the linked caregivers from the 'caregivers_active' collection." },
         "careLogTemplateId": { "type": "string", "description": "The document ID of the linked CareLogTemplate." },
+        "clientAccessEnabled": { "type": "boolean", "description": "If true, the client associated with this group can log in to view care logs." },
         "createdAt": { "type": "string", "format": "date-time" },
         "lastUpdatedAt": { "type": "string", "format": "date-time" }
       },
@@ -315,5 +316,7 @@
   }
 }
 
+
+    
 
     

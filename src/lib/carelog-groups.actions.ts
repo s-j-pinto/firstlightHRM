@@ -10,10 +10,11 @@ interface CareLogGroupPayload {
   clientId: string;
   caregiverEmails: string[];
   careLogTemplateId?: string;
+  clientAccessEnabled?: boolean;
 }
 
 export async function saveCareLogGroup(payload: CareLogGroupPayload) {
-  const { groupId, clientId, caregiverEmails, careLogTemplateId } = payload;
+  const { groupId, clientId, caregiverEmails, careLogTemplateId, clientAccessEnabled } = payload;
 
   if (!clientId) {
     return { message: "Client must be selected.", error: true };
@@ -35,6 +36,7 @@ export async function saveCareLogGroup(payload: CareLogGroupPayload) {
       clientId,
       clientName,
       caregiverEmails,
+      clientAccessEnabled: !!clientAccessEnabled,
       status: 'ACTIVE',
       lastUpdatedAt: Timestamp.now(),
     };
@@ -135,3 +137,5 @@ export async function deleteCareLogTemplate(id: string) {
         return { message: `Error deleting template: ${e.message}`, error: true };
     }
 }
+
+    

@@ -1,183 +1,113 @@
-/**
- * @fileoverview Firestore Security Rules for Prototyping.
- *
- * Core Philosophy:
- * This ruleset prioritizes security while enabling rapid prototyping. It uses an owner-based access control model where possible, restricting data access to the owning user.
- *
- * Data Structure:
- * The database contains collections for caregiver profiles, appointments, interviews, caregiver employment details, active caregivers, clients, carelog groups and carelogs.
- *
- * Key Security Decisions:
- * - All write operations are protected by authorization checks based on authenticated user IDs.
- * - List operations are generally restricted to the owning user, unless the data is explicitly intended to be public.
- * - Data validation is minimal, focusing on relational integrity and ownership to facilitate prototyping.
- *
- * Denormalization for Authorization:
- * To simplify and optimize security rules, the following denormalization strategies are employed:
- *   - User-specific data (e.g., caregiver profiles) includes the user's UID as a field within the document itself.
- *   - Relationships between documents (e.g., care logs and care log groups) are enforced by requiring matching IDs.
- *
- * Structural Segregation:
- * This design does not implement structural segregation.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper functions
-    function isSignedIn() {
-      return request.auth != null;
+    // Utility functions to make rules more readable.
+    function isStaffingAdmin() {
+      return request.auth.token.email == resource.data.staffing_admin_email;
+    }
+    function isHrAdmin() {
+      return request.auth.token.email == resource.data.hr_admin_email;
+    }
+    function isAnyAdmin() {
+      return isStaffingAdmin() || isHrAdmin();
+    }
+    function isAnonymousUser() {
+      return request.auth.provider == 'anonymous';
+    }
+    function isActiveCaregiver() {
+      let isCaregiver = exists(/databases/$(database)/documents/caregivers_active/$(request.auth.uid));
+      let isActive = get(/databases/$(database)/documents/caregivers_active/$(request.auth.uid)).data.status == 'ACTIVE';
+      return isCaregiver && isActive;
+    }
+    function isClientUser() {
+      // A client user is identified by the presence of a 'clientId' claim.
+      return request.auth.token.clientId != null;
+    }
+    
+    // Global settings, only readable by admins.
+    match /settings/{settingId} {
+      allow read: if isAnyAdmin();
+      allow write: if isHrAdmin(); // Only HR Admin can change availability.
+    }
+    
+    // Email documents for the 'firestore-send-email' extension.
+    match /mail/{docId} {
+        allow create; // Allow anyone to queue an email.
     }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
-    }
-
-    /**
-     * @description Controls access to caregiver profiles. Caregivers can only read and write their own profiles.
-     * @path /caregiver_profiles/{caregiverProfileId}
-     * @allow (create) - Authenticated user creates their own profile with matching ID.
-     * @allow (update, delete) - Authenticated user updates/deletes their own profile with matching ID.
-     * @allow (get, list) - Authenticated user retrieves their own profile.
-     * @deny (create) - Unauthenticated user attempts to create a profile.
-     * @deny (update, delete) - Authenticated user attempts to modify someone else's profile.
-     * @principle Enforces document ownership for writes.
-     */
+    // Caregiver application profiles.
     match /caregiver_profiles/{caregiverProfileId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if isSignedIn();
-      allow update: if isExistingOwner(caregiverProfileId);
-      allow delete: if isExistingOwner(caregiverProfileId);
+      // An anonymous user can create their own profile.
+      allow create: if isAnonymousUser() && request.resource.data.uid == request.auth.uid;
+      
+      // Admins can read, update, and delete any profile.
+      allow read, update, delete: if isAnyAdmin();
     }
-
-    /**
-     * @description Controls access to appointment slots. Open for all.
-     * @path /appointments/{appointmentId}
-     * @allow (get, list) - Any user can view available appointment slots.
-     * @allow (create) - Any authenticated user can create an appointment slot.
-     * @deny (update, delete) - No user can update or delete an appointment slot.
-     * @principle Open read access.
-     */
+    
+    // Appointments for interviews.
     match /appointments/{appointmentId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if false;
+        // An anonymous user can create their own appointment.
+        allow create: if isAnonymousUser() && request.resource.data.caregiverId == request.resource.data.caregiverId;
+        
+        // Admins can manage all appointments.
+        allow read, write, delete: if isHrAdmin();
     }
-
-       /**
-     * @description Controls access to interviews. Open for all.
-     * @path /interviews/{interviewId}
-     * @allow (get, list) - Any user can view interview details.
-     * @allow (create) - Any authenticated user can create an interview record.
-     * @deny (update, delete) - No user can update or delete an interview record.
-     * @principle Open read access.
-     */
+    
+    // Interview records.
     match /interviews/{interviewId} {
-        allow get, list: if true;
-        allow create: if isSignedIn();
-        allow update, delete: if false;
+      allow read, write: if isAnyAdmin();
     }
 
-
-    /**
-     * @description Controls access to caregiver employee records. Open for all.
-     * @path /caregiver_employees/{employeeId}
-     * @allow (get, list) - Any user can view employee records.
-     * @allow (create) - Any authenticated user can create an employee record.
-     * @deny (update, delete) - No user can update or delete an employee record.
-     * @principle Open read access.
-     */
+    // Hired employee records.
     match /caregiver_employees/{employeeId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if false;
+      allow read, write: if isAnyAdmin();
     }
 
-    /**
-     * @description Controls access to active caregiver data. Open for all.
-     * @path /caregivers_active/{caregiverId}
-     * @allow (get, list) - Any user can view active caregiver information.
-     * @allow (create) - Any authenticated user can create an active caregiver record.
-     * @deny (update, delete) - No user can update or delete an active caregiver record.
-     * @principle Open read access.
-     */
+    // Active caregiver records (synced from external system).
     match /caregivers_active/{caregiverId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if false;
+      allow read: if isAnyAdmin() || isActiveCaregiver();
+      allow write: if isAnyAdmin(); // Only admins can modify this collection.
     }
 
-    /**
-     * @description Controls access to client data. Open for all.
-     * @path /Clients/{clientId}
-     * @allow (get, list) - Any user can view client information.
-     * @allow (create) - Any authenticated user can create a client record.
-     * @deny (update, delete) - No user can update or delete a client record.
-     * @principle Open read access.
-     */
+    // Client records (synced from external system).
     match /Clients/{clientId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if false;
+      allow read, write: if isAnyAdmin();
     }
 
-    /**
-     * @description Controls access to care log groups. Open for all.
-     * @path /carelog_groups/{groupId}
-     * @allow (get, list) - Any user can view care log groups.
-     * @allow (create) - Any authenticated user can create a care log group.
-     * @deny (update, delete) - No user can update or delete a care log group.
-     * @principle Open read access.
-     */
+    // Groups linking clients and caregivers.
     match /carelog_groups/{groupId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if false;
+        allow read: if isAnyAdmin() || isActiveCaregiver() || isClientUser();
+        allow write: if isStaffingAdmin();
+    }
+    
+    // Individual care log entries.
+    match /carelogs/{logId} {
+      // An active caregiver can create a log for a group they are part of.
+      allow create: if isActiveCaregiver() && 
+                      request.auth.token.email in get(/databases/$(database)/documents/carelog_groups/$(request.resource.data.careLogGroupId)).data.caregiverEmails;
+                      
+      // A client can read logs for their group IF client access is enabled for that group.
+      allow read: if (isClientUser() && 
+                     request.auth.token.clientId == get(/databases/$(database)/documents/carelog_groups/$(resource.data.careLogGroupId)).data.clientId &&
+                     get(/databases/$(database)/documents/carelog_groups/$(resource.data.careLogGroupId)).data.clientAccessEnabled == true) ||
+                    (isActiveCaregiver() && request.auth.token.email in get(/databases/$(database)/documents/carelog_groups/$(resource.data.careLogGroupId)).data.caregiverEmails) ||
+                    isStaffingAdmin();
     }
 
-    /**
-     * @description Controls access to care logs. Open for all.
-     * @path /carelogs/{logId}
-     * @allow (get, list) - Any user can view care logs.
-     * @allow (create) - Any authenticated user can create a care log.
-     * @deny (update, delete) - No user can update or delete a care log.
-     * @principle Open read access.
-     */
-    match /carelogs/{logId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if false;
-    }
-    /**
-     * @description Controls access to client_additional_care_requests. Open for all.
-     * @path /client_additional_care_requests/{requestId}
-     * @allow (get, list) - Any user can view care logs.
-     * @allow (create) - Any authenticated user can create a care log.
-     * @deny (update, delete) - No user can update or delete a care log.
-     * @principle Open read access.
-     */
-    match /client_additional_care_requests/{requestId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if false;
-    }
-  /**
-     * @description Controls access to carelog_templates. Open for all.
-     * @path /carelog_templates/{templateId}
-     * @allow (get, list) - Any user can view care logs.
-     * @allow (create) - Any authenticated user can create a carelog_templates.
-     * @deny (update, delete) - No user can update or delete a carelog_templates.
-     * @principle Open read access.
-     */
+    // Templates for structured care logs.
     match /carelog_templates/{templateId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if false;
+        allow read: if isStaffingAdmin() || isActiveCaregiver();
+        allow write: if isStaffingAdmin();
+    }
+    
+    // Requests from clients for additional care.
+    match /client_additional_care_requests/{requestId} {
+        // A client user can create their own request.
+        allow create: if isClientUser() && request.resource.data.clientId == request.auth.token.clientId;
+        
+        // Staffing admin can read and update all requests.
+        allow read, update: if isStaffingAdmin();
     }
   }
 }
+    

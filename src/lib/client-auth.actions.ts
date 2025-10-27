@@ -2,7 +2,7 @@
 'use server';
 
 import { serverAuth, serverDb } from '@/firebase/server-init';
-import { Client } from './types';
+import { Client, CareLogGroup } from './types';
 import { cookies } from 'next/headers';
 
 /**
@@ -43,6 +43,14 @@ export async function loginClient(email: string, password: string) {
 
     if (matchingClients.length === 1) {
       const client = matchingClients[0];
+      
+      // Check if access is enabled for this single client.
+      const groupsQuery = await serverDb.collection('carelog_groups').where('clientId', '==', client.id).limit(1).get();
+      if (groupsQuery.empty || !groupsQuery.docs[0].data().clientAccessEnabled) {
+          console.log(`[Client Login] Access denied for client ${client['Client Name']} because clientAccessEnabled is false or group does not exist.`);
+          return { error: "Access to the client portal has not been enabled for your account. Please contact the office." };
+      }
+      
       const uid = `client_${client.id}`;
       
       console.log(`[Client Login] Single client found: ${client['Client Name']}. Generating token.`);
@@ -58,15 +66,37 @@ export async function loginClient(email: string, password: string) {
     }
 
     // --- Multi-client scenario ---
+    // Filter the clients to only include those with portal access enabled.
+    const accessibleClients: (Client & { id: string })[] = [];
+    for (const client of matchingClients) {
+        const groupsQuery = await serverDb.collection('carelog_groups').where('clientId', '==', client.id).limit(1).get();
+        if (!groupsQuery.empty && groupsQuery.docs[0].data().clientAccessEnabled) {
+            accessibleClients.push(client);
+        }
+    }
+
+    if (accessibleClients.length === 0) {
+        console.log(`[Client Login] Multiple clients found for ${normalizedEmail}, but none have portal access enabled.`);
+        return { error: "Access to the client portal has not been enabled for your account. Please contact the office." };
+    }
+
+    // If, after filtering, only one client has access, log them in directly.
+    if (accessibleClients.length === 1) {
+        const client = accessibleClients[0];
+        const uid = `client_${client.id}`;
+        console.log(`[Client Login] Filtered to single accessible client: ${client['Client Name']}. Generating token.`);
+        const customToken = await serverAuth.createCustomToken(uid, { clientId: client.id });
+        return { token: customToken, redirect: `/client/dashboard` };
+    }
+
     // The UID needs to be consistent for the session, so we use the email.
-    // This allows us to update claims later.
     const tempUid = `multi_user_${Buffer.from(normalizedEmail).toString('base64')}`;
-    const clientChoices = matchingClients.map(c => ({
+    const clientChoices = accessibleClients.map(c => ({
       id: c.id,
       name: c['Client Name'],
     }));
     
-    console.log(`[Client Login] Multiple clients found for ${normalizedEmail}. Returning choices.`);
+    console.log(`[Client Login] Multiple accessible clients found for ${normalizedEmail}. Returning choices.`);
 
     const customToken = await serverAuth.createCustomToken(tempUid, { email: normalizedEmail });
 
@@ -119,3 +149,5 @@ export async function addClientIdClaimAndGetRedirect(clientId: string) {
         return { error: "Could not set client profile or retrieve the care log report." };
     }
 }
+
+    

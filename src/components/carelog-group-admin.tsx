@@ -21,13 +21,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, PlusCircle, Trash2, Edit, Users, RotateCw, FileText } from "lucide-react";
+import { Loader2, PlusCircle, Trash2, Edit, Users, RotateCw, FileText, ShieldCheck } from "lucide-react";
 
 const careLogGroupSchema = z.object({
   groupId: z.string().optional(),
   clientId: z.string().min(1, "A client must be selected."),
   caregiverEmails: z.array(z.string().email()).min(1, "At least one caregiver must be selected."),
   careLogTemplateId: z.string().optional(),
+  clientAccessEnabled: z.boolean().optional().default(false),
 });
 
 type CareLogGroupFormData = z.infer<typeof careLogGroupSchema>;
@@ -77,6 +78,7 @@ export function CareLogGroupAdmin() {
       clientId: "",
       caregiverEmails: [],
       careLogTemplateId: "",
+      clientAccessEnabled: false,
     },
   });
 
@@ -100,6 +102,7 @@ export function CareLogGroupAdmin() {
         clientId: group.clientId,
         caregiverEmails: group.caregiverEmails || [],
         careLogTemplateId: group.careLogTemplateId || "",
+        clientAccessEnabled: group.clientAccessEnabled || false,
       });
     } else {
       form.reset({
@@ -107,6 +110,7 @@ export function CareLogGroupAdmin() {
         clientId: "",
         caregiverEmails: [],
         careLogTemplateId: "",
+        clientAccessEnabled: false,
       });
     }
     setIsModalOpen(true);
@@ -182,6 +186,7 @@ export function CareLogGroupAdmin() {
                       <h3 className="font-semibold text-lg flex items-center gap-2">
                           <Users className={cn((isClientInactive || isGroupInactive) ? "text-destructive" : "text-accent")} />
                           {group.clientName}
+                          {group.clientAccessEnabled && <ShieldCheck className="h-5 w-5 text-green-600" title="Client Access Enabled" />}
                           {(isClientInactive || isGroupInactive) && (
                               <Badge variant="destructive">{isGroupInactive ? 'GROUP INACTIVE' : 'CLIENT INACTIVE'}</Badge>
                           )}
@@ -331,6 +336,26 @@ export function CareLogGroupAdmin() {
                   </FormItem>
                 )}
               />
+               <FormField
+                control={form.control}
+                name="clientAccessEnabled"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>
+                        Allow Client to Access CareLogs
+                      </FormLabel>
+                      <FormMessage />
+                    </div>
+                  </FormItem>
+                )}
+              />
               <DialogFooter>
                 <DialogClose asChild>
                   <Button type="button" variant="outline">Cancel</Button>
@@ -347,3 +372,5 @@ export function CareLogGroupAdmin() {
     </Card>
   );
 }
+
+    
