@@ -9,7 +9,7 @@ import { collection, query, where, addDoc, Timestamp } from "firebase/firestore"
 import { CareLogGroup, Client, CareLog, CareLogTemplate } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { extractCareLogData } from "@/ai/flows/extract-carelog-flow";
-import { Loader2, Users, Camera, Trash2, FileText, Clock, Upload, Info, Calendar as CalendarIcon, PlusCircle, MinusCircle } from "lucide-react";
+import { Loader2, Users, Camera, Trash2, FileText, Clock, Upload, Info, Calendar as CalendarIcon, PlusCircle, MinusCircle, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -29,6 +29,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { useDoc } from "@/firebase/firestore/use-doc";
 import { doc } from 'firebase/firestore';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import SignatureCanvas from 'react-signature-canvas';
 
 
 const initialTemplateData = {
@@ -91,9 +92,10 @@ export default function CareLogClient() {
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const sigPadRef = useRef<SignatureCanvas>(null);
 
   const form = useForm({ defaultValues: initialTemplateData });
-  const { control, register, handleSubmit, reset, getValues, watch } = form;
+  const { control, register, handleSubmit, reset, getValues, watch, setValue } = form;
   const logNotes = watch('logNotes');
   
   const { fields: medFields, append: appendMed, remove: removeMed } = useFieldArray({ control, name: "medication_support" });
@@ -144,6 +146,9 @@ export default function CareLogClient() {
 
   const resetFormState = () => {
     reset(initialTemplateData);
+    if (sigPadRef.current) {
+        sigPadRef.current.clear();
+    }
     setScannedImage(null);
     setShowCamera(false);
     setExtractedShiftDateTime(null);
@@ -260,6 +265,11 @@ export default function CareLogClient() {
             const endDate = set(shiftDate, { hours: endHours, minutes: endMinutes, seconds: 0, milliseconds: 0 });
             finalShiftEndDateTime = endDate.toISOString();
         }
+        
+        if (sigPadRef.current && !sigPadRef.current.isEmpty()) {
+            data.signature.caregiverSignature = sigPadRef.current.toDataURL();
+        }
+        
         submitLog(finalShiftDateTime, finalShiftEndDateTime, data);
     });
   };
@@ -306,6 +316,13 @@ export default function CareLogClient() {
           });
           errorEmitter.emit("permission-error", permissionError);
       });
+  }
+  
+  const clearSignature = () => {
+    if (sigPadRef.current) {
+        sigPadRef.current.clear();
+        setValue('signature.caregiverSignature', '');
+    }
   }
 
   const isLoading = isUserLoading || groupsLoading || clientsLoading || templateLoading;
@@ -504,25 +521,25 @@ export default function CareLogClient() {
                                                 <TableCell>
                                                     <FormField control={control} name={`meals_hydration.${index}.prepared`} render={({field}) => (
                                                         <FormItem>
-                                                        <FormControl>
-                                                        <RadioGroup onValueChange={field.onChange} value={field.value}>
-                                                            <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes" id={`${field.name}-yes`} /></FormControl><Label htmlFor={`${field.name}-yes`} className="font-normal">Yes</Label></FormItem>
-                                                            <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No" id={`${field.name}-no`} /></FormControl><Label htmlFor={`${field.name}-no`} className="font-normal">No</Label></FormItem>
-                                                        </RadioGroup>
-                                                        </FormControl>
+                                                            <FormControl>
+                                                                <RadioGroup onValueChange={field.onChange} value={field.value}>
+                                                                    <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes" id={`${field.name}-yes`} /></FormControl><Label htmlFor={`${field.name}-yes`} className="font-normal">Yes</Label></FormItem>
+                                                                    <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No" id={`${field.name}-no`} /></FormControl><Label htmlFor={`${field.name}-no`} className="font-normal">No</Label></FormItem>
+                                                                </RadioGroup>
+                                                            </FormControl>
                                                         </FormItem>
                                                     )}/>
                                                 </TableCell>
                                                 <TableCell>
                                                      <FormField control={control} name={`meals_hydration.${index}.eaten`} render={({field}) => (
                                                         <FormItem>
-                                                        <FormControl>
-                                                        <RadioGroup onValueChange={field.onChange} value={field.value}>
-                                                            <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="All" id={`${field.name}-all`}/></FormControl><Label htmlFor={`${field.name}-all`} className="font-normal">All</Label></FormItem>
-                                                            <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Half" id={`${field.name}-half`}/></FormControl><Label htmlFor={`${field.name}-half`} className="font-normal">Half</Label></FormItem>
-                                                            <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="None" id={`${field.name}-none`}/></FormControl><Label htmlFor={`${field.name}-none`} className="font-normal">None</Label></FormItem>
-                                                        </RadioGroup>
-                                                        </FormControl>
+                                                            <FormControl>
+                                                                <RadioGroup onValueChange={field.onChange} value={field.value}>
+                                                                    <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="All" id={`${field.name}-all`}/></FormControl><Label htmlFor={`${field.name}-all`} className="font-normal">All</Label></FormItem>
+                                                                    <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Half" id={`${field.name}-half`}/></FormControl><Label htmlFor={`${field.name}-half`} className="font-normal">Half</Label></FormItem>
+                                                                    <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="None" id={`${field.name}-none`}/></FormControl><Label htmlFor={`${field.name}-none`} className="font-normal">None</Label></FormItem>
+                                                                </RadioGroup>
+                                                            </FormControl>
                                                         </FormItem>
                                                     )}/>
                                                 </TableCell>
@@ -548,12 +565,12 @@ export default function CareLogClient() {
                                                 <TableCell>
                                                     <FormField control={control} name={`medication_support.${index}.assisted`} render={({field}) => (
                                                         <FormItem>
-                                                        <FormControl>
-                                                        <RadioGroup onValueChange={field.onChange} value={field.value}>
-                                                          <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes" id={`${field.name}-yes`}/></FormControl><Label htmlFor={`${field.name}-yes`} className="font-normal">Yes</Label></FormItem>
-                                                          <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No" id={`${field.name}-no`} /></FormControl><Label htmlFor={`${field.name}-no`} className="font-normal">No</Label></FormItem>
-                                                        </RadioGroup>
-                                                        </FormControl>
+                                                            <FormControl>
+                                                                <RadioGroup onValueChange={field.onChange} value={field.value}>
+                                                                    <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes" id={`${field.name}-yes`}/></FormControl><Label htmlFor={`${field.name}-yes`} className="font-normal">Yes</Label></FormItem>
+                                                                    <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No" id={`${field.name}-no`} /></FormControl><Label htmlFor={`${field.name}-no`} className="font-normal">No</Label></FormItem>
+                                                                </RadioGroup>
+                                                            </FormControl>
                                                         </FormItem>
                                                     )}/>
                                                 </TableCell>
@@ -599,12 +616,12 @@ export default function CareLogClient() {
                                                 <TableCell>
                                                     <FormField control={control} name={`household_tasks.${index}.completed`} render={({field}) => (
                                                         <FormItem>
-                                                        <FormControl>
-                                                        <RadioGroup onValueChange={field.onChange} value={field.value}>
-                                                          <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes" id={`${field.name}-yes`}/></FormControl><Label htmlFor={`${field.name}-yes`} className="font-normal">Yes</Label></FormItem>
-                                                          <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No" id={`${field.name}-no`}/></FormControl><Label htmlFor={`${field.name}-no`} className="font-normal">No</Label></FormItem>
-                                                        </RadioGroup>
-                                                        </FormControl>
+                                                            <FormControl>
+                                                                <RadioGroup onValueChange={field.onChange} value={field.value}>
+                                                                    <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes" id={`${field.name}-yes`}/></FormControl><Label htmlFor={`${field.name}-yes`} className="font-normal">Yes</Label></FormItem>
+                                                                    <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No" id={`${field.name}-no`}/></FormControl><Label htmlFor={`${field.name}-no`} className="font-normal">No</Label></FormItem>
+                                                                </RadioGroup>
+                                                            </FormControl>
                                                         </FormItem>
                                                     )}/>
                                                 </TableCell>
@@ -641,10 +658,10 @@ export default function CareLogClient() {
                                      <FormField control={control} name="communication.familyNotified" render={({field}) => (
                                         <FormItem><FormLabel>Family Notified</FormLabel>
                                         <FormControl>
-                                        <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4">
-                                          <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes" id={`${field.name}-yes`}/></FormControl><Label htmlFor={`${field.name}-yes`} className="font-normal">Yes</Label></FormItem>
-                                          <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No" id={`${field.name}-no`}/></FormControl><Label htmlFor={`${field.name}-no`} className="font-normal">No</Label></FormItem>
-                                        </RadioGroup>
+                                            <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4">
+                                                <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes" id={`${field.name}-yes`}/></FormControl><Label htmlFor={`${field.name}-yes`} className="font-normal">Yes</Label></FormItem>
+                                                <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No" id={`${field.name}-no`}/></FormControl><Label htmlFor={`${field.name}-no`} className="font-normal">No</Label></FormItem>
+                                            </RadioGroup>
                                         </FormControl>
                                         </FormItem>
                                     )}/>
@@ -652,20 +669,20 @@ export default function CareLogClient() {
                                     <FormField control={control} name="communication.officeUpdate" render={({field}) => (
                                         <FormItem><FormLabel>Office / Nurse Update</FormLabel>
                                         <FormControl>
-                                        <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4">
-                                          <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes" id={`${field.name}-office-yes`}/></FormControl><Label htmlFor={`${field.name}-office-yes`} className="font-normal">Yes</Label></FormItem>
-                                          <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No" id={`${field.name}-office-no`}/></FormControl><Label htmlFor={`${field.name}-office-no`} className="font-normal">No</Label></FormItem>
-                                        </RadioGroup>
+                                            <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4">
+                                                <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes" id={`${field.name}-office-yes`}/></FormControl><Label htmlFor={`${field.name}-office-yes`} className="font-normal">Yes</Label></FormItem>
+                                                <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No" id={`${field.name}-office-no`}/></FormControl><Label htmlFor={`${field.name}-office-no`} className="font-normal">No</Label></FormItem>
+                                            </RadioGroup>
                                         </FormControl>
                                         </FormItem>
                                     )}/>
                                     <FormField control={control} name="communication.incidentReport" render={({field}) => (
                                         <FormItem><FormLabel>Incident Report Filed</FormLabel>
                                         <FormControl>
-                                        <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4">
-                                          <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes" id={`${field.name}-incident-yes`}/></FormControl><Label htmlFor={`${field.name}-incident-yes`} className="font-normal">Yes</Label></FormItem>
-                                          <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No" id={`${field.name}-incident-no`}/></FormControl><Label htmlFor={`${field.name}-incident-no`} className="font-normal">No</Label></FormItem>
-                                        </RadioGroup>
+                                            <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4">
+                                                <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes" id={`${field.name}-incident-yes`}/></FormControl><Label htmlFor={`${field.name}-incident-yes`} className="font-normal">Yes</Label></FormItem>
+                                                <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No" id={`${field.name}-incident-no`}/></FormControl><Label htmlFor={`${field.name}-incident-no`} className="font-normal">No</Label></FormItem>
+                                            </RadioGroup>
                                         </FormControl>
                                         </FormItem>
                                     )}/>
@@ -678,7 +695,22 @@ export default function CareLogClient() {
                              <AccordionItem value="signature">
                                 <AccordionTrigger>Caregiver Signature</AccordionTrigger>
                                 <AccordionContent>
-                                    <Input placeholder="Type your full name as a signature" {...register("signature.caregiverSignature")}/>
+                                    <div className="relative w-full h-40 rounded-md border">
+                                        <SignatureCanvas
+                                            ref={sigPadRef}
+                                            penColor='black'
+                                            canvasProps={{className: 'w-full h-full'}}
+                                            onEnd={() => {
+                                                if (sigPadRef.current) {
+                                                    setValue('signature.caregiverSignature', sigPadRef.current.toDataURL());
+                                                }
+                                            }}
+                                        />
+                                    </div>
+                                    <Button type="button" variant="ghost" size="sm" onClick={clearSignature} className="mt-2">
+                                        <RefreshCw className="mr-2" />
+                                        Clear Signature
+                                    </Button>
                                 </AccordionContent>
                             </AccordionItem>
                         )}
