@@ -78,6 +78,7 @@ const FormattedTemplateData = ({ data }: { data: any }) => {
     if (!data) return null;
 
     const renderSection = (title: string, items: any[], columns: { key: string, label: string }[]) => {
+        if (!items || !Array.isArray(items)) return null;
         const filteredItems = items.filter(item => Object.values(item).some(val => val && val !== ''));
         if (filteredItems.length === 0) return null;
 
@@ -103,17 +104,18 @@ const FormattedTemplateData = ({ data }: { data: any }) => {
     };
     
     const renderSimpleSection = (title: string, item: any) => {
+        if (!item || typeof item !== 'object') return null;
         const entries = Object.entries(item).filter(([_, value]) => value);
         if (entries.length === 0) return null;
         
         return (
              <div className="space-y-2">
                 <h4 className="font-semibold text-md">{title}</h4>
-                <div className="p-3 bg-muted/50 rounded-md">
+                <div className="p-3 bg-muted/50 rounded-md grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
                     {entries.map(([key, value]) => (
-                        <div key={key} className="grid grid-cols-2 gap-4">
-                             <span className="font-medium capitalize">{key.replace(/([A-Z])/g, ' $1')}:</span>
-                             <span>{String(value)}</span>
+                        <div key={key} className="flex justify-between border-b pb-1">
+                             <span className="font-medium capitalize text-muted-foreground">{key.replace(/([A-Z])/g, ' $1')}:</span>
+                             <span className='text-right'>{String(value)}</span>
                         </div>
                     ))}
                 </div>
@@ -122,39 +124,39 @@ const FormattedTemplateData = ({ data }: { data: any }) => {
     }
 
     return (
-        <div className="space-y-6 text-sm">
-            {data.personal_care && renderSection('Personal Care', data.personal_care, [
+        <div className="space-y-6 text-sm pt-4 mt-4 border-t">
+            {renderSection('Personal Care', data.personal_care, [
                 { key: 'activity', label: 'Activity' },
                 { key: 'status', label: 'Status' },
                 { key: 'notes', label: 'Notes' },
             ])}
-            {data.meals_hydration && renderSection('Meals & Hydration', data.meals_hydration, [
+            {renderSection('Meals & Hydration', data.meals_hydration, [
                 { key: 'meal', label: 'Meal' },
                 { key: 'prepared', label: 'Prepared' },
                 { key: 'eaten', label: 'Eaten' },
                 { key: 'notes', label: 'Notes' },
             ])}
-            {data.medication_support && renderSection('Medication Support', data.medication_support, [
+            {renderSection('Medication Support', data.medication_support, [
                 { key: 'time', label: 'Time' },
                 { key: 'medication', label: 'Medication' },
                 { key: 'assisted', label: 'Assisted' },
                 { key: 'notes', label: 'Notes' },
             ])}
-            {data.companionship && renderSection('Companionship & Engagement', data.companionship, [
+            {renderSection('Companionship & Engagement', data.companionship, [
                 { key: 'activity', label: 'Activity' },
                 { key: 'duration', label: 'Duration' },
                 { key: 'response', label: 'Response' },
             ])}
-            {data.household_tasks && renderSection('Household Tasks', data.household_tasks, [
+            {renderSection('Household Tasks', data.household_tasks, [
                 { key: 'task', label: 'Task' },
                 { key: 'completed', label: 'Completed' },
                 { key: 'notes', label: 'Notes' },
             ])}
-            {data.client_condition && renderSection('Client Condition & Observations', data.client_condition, [
+            {renderSection('Client Condition & Observations', data.client_condition, [
                 { key: 'category', label: 'Category' },
                 { key: 'observation', label: 'Observation' },
             ])}
-            {data.communication && renderSimpleSection('Communication & Follow-Up', data.communication)}
+            {renderSimpleSection('Communication & Follow-Up', data.communication)}
 
             {data.signature?.caregiverSignature && (
                  <div className="space-y-2">
@@ -571,12 +573,12 @@ export default function CareLogClient() {
                                 <AccordionTrigger>Personal Care</AccordionTrigger>
                                 <AccordionContent>
                                     <Table>
-                                        <TableHeader><TableRow><TableHead>Activity</TableHead><TableHead>Status</TableHead><TableHead>Notes</TableHead></TableRow></TableHeader>
+                                        <TableHeader><TableRow><TableHead className="py-2">Activity</TableHead><TableHead className="py-2">Status</TableHead><TableHead className="py-2">Notes</TableHead></TableRow></TableHeader>
                                         <TableBody>
                                         {initialTemplateData.personal_care.map((item, index) => (
                                             <TableRow key={index}>
-                                                <TableCell>{item.activity}</TableCell>
-                                                <TableCell>
+                                                <TableCell className="py-2">{item.activity}</TableCell>
+                                                <TableCell className="py-2">
                                                     <FormField
                                                         control={control}
                                                         name={`personal_care.${index}.status`}
@@ -596,7 +598,7 @@ export default function CareLogClient() {
                                                         )}
                                                     />
                                                 </TableCell>
-                                                <TableCell><Input {...register(`personal_care.${index}.notes`)}/></TableCell>
+                                                <TableCell className="py-2"><Input {...register(`personal_care.${index}.notes`)}/></TableCell>
                                             </TableRow>
                                         ))}
                                         </TableBody>
@@ -609,16 +611,16 @@ export default function CareLogClient() {
                                 <AccordionTrigger>Meals & Hydration</AccordionTrigger>
                                 <AccordionContent>
                                     <Table>
-                                        <TableHeader><TableRow><TableHead>Meal</TableHead><TableHead>Prepared</TableHead><TableHead>Eaten</TableHead><TableHead>Notes</TableHead></TableRow></TableHeader>
+                                        <TableHeader><TableRow><TableHead className="py-2">Meal</TableHead><TableHead className="py-2">Prepared</TableHead><TableHead className="py-2">Eaten</TableHead><TableHead className="py-2">Notes</TableHead></TableRow></TableHeader>
                                         <TableBody>
                                         {initialTemplateData.meals_hydration.map((item, index) => (
                                             <TableRow key={index}>
-                                                <TableCell>{item.meal}</TableCell>
-                                                <TableCell>
+                                                <TableCell className="py-2">{item.meal}</TableCell>
+                                                <TableCell className="py-2">
                                                      <FormField control={control} name={`meals_hydration.${index}.prepared`} render={({field}) => (
                                                         <FormItem>
                                                             <FormControl>
-                                                                <RadioGroup onValueChange={field.onChange} value={field.value}>
+                                                                <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4">
                                                                     <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes" id={`${field.name}-yes`} /></FormControl><Label htmlFor={`${field.name}-yes`} className="font-normal">Yes</Label></FormItem>
                                                                     <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No" id={`${field.name}-no`} /></FormControl><Label htmlFor={`${field.name}-no`} className="font-normal">No</Label></FormItem>
                                                                 </RadioGroup>
@@ -626,11 +628,11 @@ export default function CareLogClient() {
                                                         </FormItem>
                                                     )}/>
                                                 </TableCell>
-                                                <TableCell>
+                                                <TableCell className="py-2">
                                                      <FormField control={control} name={`meals_hydration.${index}.eaten`} render={({field}) => (
                                                         <FormItem>
                                                             <FormControl>
-                                                                <RadioGroup onValueChange={field.onChange} value={field.value}>
+                                                                <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4">
                                                                     <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="All" id={`${field.name}-all`}/></FormControl><Label htmlFor={`${field.name}-all`} className="font-normal">All</Label></FormItem>
                                                                     <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Half" id={`${field.name}-half`}/></FormControl><Label htmlFor={`${field.name}-half`} className="font-normal">Half</Label></FormItem>
                                                                     <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="None" id={`${field.name}-none`}/></FormControl><Label htmlFor={`${field.name}-none`} className="font-normal">None</Label></FormItem>
@@ -639,7 +641,7 @@ export default function CareLogClient() {
                                                         </FormItem>
                                                     )}/>
                                                 </TableCell>
-                                                <TableCell><Input {...register(`meals_hydration.${index}.notes`)}/></TableCell>
+                                                <TableCell className="py-2"><Input {...register(`meals_hydration.${index}.notes`)}/></TableCell>
                                             </TableRow>
                                         ))}
                                         </TableBody>
@@ -652,17 +654,17 @@ export default function CareLogClient() {
                                 <AccordionTrigger>Medication Support</AccordionTrigger>
                                 <AccordionContent>
                                     <Table>
-                                        <TableHeader><TableRow><TableHead>Time</TableHead><TableHead>Medication</TableHead><TableHead>Assisted</TableHead><TableHead>Notes</TableHead><TableHead></TableHead></TableRow></TableHeader>
+                                        <TableHeader><TableRow><TableHead className="py-2">Time</TableHead><TableHead className="py-2">Medication</TableHead><TableHead className="py-2">Assisted</TableHead><TableHead className="py-2">Notes</TableHead><TableHead className="py-2"></TableHead></TableRow></TableHeader>
                                         <TableBody>
                                         {medFields.map((item, index) => (
                                             <TableRow key={item.id}>
-                                                <TableCell><Input type="time" {...register(`medication_support.${index}.time`)}/></TableCell>
-                                                <TableCell><Input {...register(`medication_support.${index}.medication`)}/></TableCell>
-                                                <TableCell>
+                                                <TableCell className="py-2"><Input type="time" {...register(`medication_support.${index}.time`)}/></TableCell>
+                                                <TableCell className="py-2"><Input {...register(`medication_support.${index}.medication`)}/></TableCell>
+                                                <TableCell className="py-2">
                                                     <FormField control={control} name={`medication_support.${index}.assisted`} render={({field}) => (
                                                         <FormItem>
                                                             <FormControl>
-                                                                <RadioGroup onValueChange={field.onChange} value={field.value}>
+                                                                <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4">
                                                                     <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes" id={`${field.name}-yes`}/></FormControl><Label htmlFor={`${field.name}-yes`} className="font-normal">Yes</Label></FormItem>
                                                                     <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No" id={`${field.name}-no`} /></FormControl><Label htmlFor={`${field.name}-no`} className="font-normal">No</Label></FormItem>
                                                                 </RadioGroup>
@@ -670,8 +672,8 @@ export default function CareLogClient() {
                                                         </FormItem>
                                                     )}/>
                                                 </TableCell>
-                                                <TableCell><Input {...register(`medication_support.${index}.notes`)}/></TableCell>
-                                                <TableCell><Button type="button" variant="ghost" size="icon" onClick={() => removeMed(index)}><MinusCircle className="text-destructive"/></Button></TableCell>
+                                                <TableCell className="py-2"><Input {...register(`medication_support.${index}.notes`)}/></TableCell>
+                                                <TableCell className="py-2"><Button type="button" variant="ghost" size="icon" onClick={() => removeMed(index)}><MinusCircle className="text-destructive"/></Button></TableCell>
                                             </TableRow>
                                         ))}
                                         </TableBody>
@@ -685,13 +687,13 @@ export default function CareLogClient() {
                                 <AccordionTrigger>Companionship & Mental Engagement</AccordionTrigger>
                                 <AccordionContent>
                                     <Table>
-                                        <TableHeader><TableRow><TableHead>Activity</TableHead><TableHead>Duration</TableHead><TableHead>Client Response</TableHead></TableRow></TableHeader>
+                                        <TableHeader><TableRow><TableHead className="py-2">Activity</TableHead><TableHead className="py-2">Duration</TableHead><TableHead className="py-2">Client Response</TableHead></TableRow></TableHeader>
                                         <TableBody>
                                         {initialTemplateData.companionship.map((item, index) => (
                                             <TableRow key={index}>
-                                                <TableCell>{item.activity}</TableCell>
-                                                <TableCell><Input {...register(`companionship.${index}.duration`)}/></TableCell>
-                                                <TableCell><Input {...register(`companionship.${index}.response`)}/></TableCell>
+                                                <TableCell className="py-2">{item.activity}</TableCell>
+                                                <TableCell className="py-2"><Input {...register(`companionship.${index}.duration`)}/></TableCell>
+                                                <TableCell className="py-2"><Input {...register(`companionship.${index}.response`)}/></TableCell>
                                             </TableRow>
                                         ))}
                                         </TableBody>
@@ -704,16 +706,16 @@ export default function CareLogClient() {
                                 <AccordionTrigger>Household Tasks</AccordionTrigger>
                                 <AccordionContent>
                                      <Table>
-                                        <TableHeader><TableRow><TableHead>Task</TableHead><TableHead>Completed</TableHead><TableHead>Notes</TableHead></TableRow></TableHeader>
+                                        <TableHeader><TableRow><TableHead className="py-2">Task</TableHead><TableHead className="py-2">Completed</TableHead><TableHead className="py-2">Notes</TableHead></TableRow></TableHeader>
                                         <TableBody>
                                         {initialTemplateData.household_tasks.map((item, index) => (
                                             <TableRow key={index}>
-                                                <TableCell>{item.task}</TableCell>
-                                                <TableCell>
+                                                <TableCell className="py-2">{item.task}</TableCell>
+                                                <TableCell className="py-2">
                                                     <FormField control={control} name={`household_tasks.${index}.completed`} render={({field}) => (
                                                         <FormItem>
                                                             <FormControl>
-                                                                <RadioGroup onValueChange={field.onChange} value={field.value}>
+                                                                <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4">
                                                                     <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes" id={`${field.name}-yes`}/></FormControl><Label htmlFor={`${field.name}-yes`} className="font-normal">Yes</Label></FormItem>
                                                                     <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No" id={`${field.name}-no`}/></FormControl><Label htmlFor={`${field.name}-no`} className="font-normal">No</Label></FormItem>
                                                                 </RadioGroup>
@@ -721,7 +723,7 @@ export default function CareLogClient() {
                                                         </FormItem>
                                                     )}/>
                                                 </TableCell>
-                                                <TableCell><Input {...register(`household_tasks.${index}.notes`)}/></TableCell>
+                                                <TableCell className="py-2"><Input {...register(`household_tasks.${index}.notes`)}/></TableCell>
                                             </TableRow>
                                         ))}
                                         </TableBody>
@@ -734,12 +736,12 @@ export default function CareLogClient() {
                                 <AccordionTrigger>Client Condition & Observations</AccordionTrigger>
                                 <AccordionContent>
                                     <Table>
-                                        <TableHeader><TableRow><TableHead>Category</TableHead><TableHead>Observation / Notes</TableHead></TableRow></TableHeader>
+                                        <TableHeader><TableRow><TableHead className="py-2">Category</TableHead><TableHead className="py-2">Observation / Notes</TableHead></TableRow></TableHeader>
                                         <TableBody>
                                         {initialTemplateData.client_condition.map((item, index) => (
                                             <TableRow key={index}>
-                                                <TableCell>{item.category}</TableCell>
-                                                <TableCell><Textarea {...register(`client_condition.${index}.observation`)}/></TableCell>
+                                                <TableCell className="py-2">{item.category}</TableCell>
+                                                <TableCell className="py-2"><Textarea {...register(`client_condition.${index}.observation`)}/></TableCell>
                                             </TableRow>
                                         ))}
                                         </TableBody>
