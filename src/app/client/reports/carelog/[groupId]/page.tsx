@@ -12,6 +12,104 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+
+const FormattedTemplateData = ({ data }: { data: any }) => {
+    if (!data) return null;
+
+    const renderSection = (title: string, items: any[], columns: { key: string, label: string }[]) => {
+        if (!items || !Array.isArray(items)) return null;
+        const filteredItems = items.filter(item => Object.values(item).some(val => val && val !== ''));
+        if (filteredItems.length === 0) return null;
+
+        return (
+            <div className="space-y-2">
+                <h4 className="font-semibold text-md">{title}</h4>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            {columns.map(col => <TableHead key={col.key}>{col.label}</TableHead>)}
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {filteredItems.map((item, index) => (
+                            <TableRow key={index}>
+                                {columns.map(col => <TableCell key={col.key}>{item[col.key] || '-'}</TableCell>)}
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+        );
+    };
+    
+    const renderSimpleSection = (title: string, item: any) => {
+        if (!item || typeof item !== 'object') return null;
+        const entries = Object.entries(item).filter(([_, value]) => value);
+        if (entries.length === 0) return null;
+        
+        return (
+             <div className="space-y-2">
+                <h4 className="font-semibold text-md">{title}</h4>
+                <div className="p-3 bg-muted/50 rounded-md grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                    {entries.map(([key, value]) => (
+                        <div key={key} className="flex justify-between border-b pb-1">
+                             <span className="font-medium capitalize text-muted-foreground">{key.replace(/([A-Z])/g, ' $1')}:</span>
+                             <span className='text-right'>{String(value)}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        )
+    }
+
+    return (
+        <div className="space-y-6 text-sm pt-4 mt-4 border-t">
+            {renderSection('Personal Care', data.personal_care, [
+                { key: 'activity', label: 'Activity' },
+                { key: 'status', label: 'Status' },
+                { key: 'notes', label: 'Notes' },
+            ])}
+            {renderSection('Meals & Hydration', data.meals_hydration, [
+                { key: 'meal', label: 'Meal' },
+                { key: 'prepared', label: 'Prepared' },
+                { key: 'eaten', label: 'Eaten' },
+                { key: 'notes', label: 'Notes' },
+            ])}
+            {renderSection('Medication Support', data.medication_support, [
+                { key: 'time', label: 'Time' },
+                { key: 'medication', label: 'Medication' },
+                { key: 'assisted', label: 'Assisted' },
+                { key: 'notes', label: 'Notes' },
+            ])}
+            {renderSection('Companionship & Engagement', data.companionship, [
+                { key: 'activity', label: 'Activity' },
+                { key: 'duration', label: 'Duration' },
+                { key: 'response', label: 'Response' },
+            ])}
+            {renderSection('Household Tasks', data.household_tasks, [
+                { key: 'task', label: 'Task' },
+                { key: 'completed', label: 'Completed' },
+                { key: 'notes', label: 'Notes' },
+            ])}
+            {renderSection('Client Condition & Observations', data.client_condition, [
+                { key: 'category', label: 'Category' },
+                { key: 'observation', label: 'Observation' },
+            ])}
+            {renderSimpleSection('Communication & Follow-Up', data.communication)}
+
+            {data.signature?.caregiverSignature && (
+                 <div className="space-y-2">
+                    <h4 className="font-semibold text-md">Caregiver Signature</h4>
+                    <div className="p-3 bg-muted/50 rounded-md flex justify-center">
+                        <Image src={data.signature.caregiverSignature} alt="Caregiver Signature" width={200} height={100} className="object-contain" />
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
 
 export default function CareLogReportPage() {
   const params = useParams();
@@ -96,7 +194,8 @@ export default function CareLogReportPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="whitespace-pre-wrap text-sm border-l-4 border-accent pl-4 py-2 bg-muted/50 rounded-r-md">{log.logNotes}</p>
+                  {log.logNotes && <p className="whitespace-pre-wrap text-sm border-l-4 border-accent pl-4 py-2 bg-muted/50 rounded-r-md">{log.logNotes}</p>}
+                  <FormattedTemplateData data={log.templateData} />
                    {log.logImages && log.logImages.length > 0 && (
                     <div className="mt-4">
                         <h4 className="font-semibold text-sm mb-2 flex items-center gap-2"><ImageIcon className="h-4 w-4" /> Attached Images</h4>
