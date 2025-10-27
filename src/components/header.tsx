@@ -74,7 +74,7 @@ export function AppHeader() {
              {isStaffingAdminRoute && user && (
                <>
                 <Link href="/staffing-admin" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
-                    Staffing Dashboard
+                    CareLogs Dashboard
                 </Link>
                  <Link href="/staffing-admin/manage-clients" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
                     Manage Clients
