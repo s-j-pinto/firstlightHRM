@@ -99,9 +99,13 @@ export default function ClientLoginPage() {
     <main className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
       <Card className="w-full max-w-sm mx-auto shadow-lg">
         <CardHeader className="text-center">
-            <div className="mx-auto w-fit rounded-full bg-accent/10 p-4">
-                <Users className="h-8 w-8 text-accent" />
-            </div>
+            <Image
+                src={logoUrl}
+                alt="FirstLight Home Care Logo"
+                width={64}
+                height={64}
+                className="object-contain mx-auto mb-4"
+            />
           <CardTitle className="text-2xl font-bold font-headline pt-2">Client Portal</CardTitle>
           <CardDescription>
             Access your care log reports securely.
