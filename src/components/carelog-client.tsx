@@ -7,15 +7,20 @@ import { collection, query, where, addDoc, Timestamp } from "firebase/firestore"
 import { CareLogGroup, Client, CareLog } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { extractCareLogData } from "@/ai/flows/extract-carelog-flow";
-import { Loader2, Users, Camera, Trash2, FileText, Clock, Upload, Info } from "lucide-react";
+import { Loader2, Users, Camera, Trash2, FileText, Clock, Upload, Info, Calendar as CalendarIcon } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import Image from "next/image";
-import { format } from "date-fns";
+import { format, set } from "date-fns";
 import { careLogSchema } from "@/lib/types";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Calendar } from "./ui/calendar";
+import { Input } from "./ui/input";
+import { cn } from "@/lib/utils";
+import { Label } from "./ui/label";
 
 export default function CareLogClient() {
   const { user, isUserLoading } = useUser();
@@ -27,7 +32,12 @@ export default function CareLogClient() {
   const [logNotes, setLogNotes] = useState("");
   const [scannedImage, setScannedImage] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(false);
-  const [shiftDateTime, setShiftDateTime] = useState<string | null>(null);
+  
+  const [shiftDate, setShiftDate] = useState<Date | undefined>(new Date());
+  const [startTime, setStartTime] = useState<string>('09:00');
+  const [endTime, setEndTime] = useState<string>('17:00');
+  
+  const [extractedShiftDateTime, setExtractedShiftDateTime] = useState<string | null>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -83,7 +93,10 @@ export default function CareLogClient() {
     setLogNotes("");
     setScannedImage(null);
     setShowCamera(false);
-    setShiftDateTime(null);
+    setExtractedShiftDateTime(null);
+    setShiftDate(new Date());
+    setStartTime("09:00");
+    setEndTime("17:00");
   };
 
   const handleScanClick = () => {
@@ -138,7 +151,7 @@ export default function CareLogClient() {
                 try {
                     const result = await extractCareLogData({ imageDataUri: dataUrl });
                     setLogNotes(result.extractedText);
-                    setShiftDateTime(result.shiftDateTime);
+                    setExtractedShiftDateTime(result.shiftDateTime);
                      toast({
                         title: "Text Extracted",
                         description: "AI has processed the log. Please review the details.",
@@ -159,48 +172,54 @@ export default function CareLogClient() {
   };
 
   const handleSubmitLog = () => {
-      if (!selectedGroup || !user) {
-          toast({ title: "Error", description: "Please select a client group first.", variant: "destructive" });
-          return;
-      }
-      if (!logNotes && !scannedImage) {
-          toast({ title: "Error", description: "Please enter notes or scan a document.", variant: "destructive" });
-          return;
-      }
+    if (!selectedGroup || !user) {
+        toast({ title: "Error", description: "Please select a client group first.", variant: "destructive" });
+        return;
+    }
+    if (!logNotes && !scannedImage) {
+        toast({ title: "Error", description: "Please enter notes or scan a document.", variant: "destructive" });
+        return;
+    }
 
-      startSubmitTransition(async () => {
-          let finalShiftDateTime = shiftDateTime;
+    startSubmitTransition(async () => {
+        if (scannedImage) { // If image is present, use AI-extracted time or current time.
+            let finalShiftDateTime = extractedShiftDateTime;
+            if (!finalShiftDateTime && logNotes) { // If AI failed on image, try on text
+                try {
+                    const result = await extractCareLogData({ textContent: logNotes });
+                    finalShiftDateTime = result.shiftDateTime;
+                } catch (e) {
+                    // Fallback to now
+                }
+            }
+            submitLog(finalShiftDateTime, null, logNotes);
+        } else { // Manual entry, use the form fields.
+             if (!shiftDate || !startTime || !endTime) {
+                toast({ title: "Missing Information", description: "Please provide the shift date, start time, and end time.", variant: "destructive" });
+                return;
+            }
+            const [startHours, startMinutes] = startTime.split(':').map(Number);
+            const startDate = set(shiftDate, { hours: startHours, minutes: startMinutes, seconds: 0, milliseconds: 0 });
 
-          // If no date was extracted from an image, try to get it from the text content.
-          if (!finalShiftDateTime && logNotes) {
-              try {
-                  const result = await extractCareLogData({ textContent: logNotes });
-                  finalShiftDateTime = result.shiftDateTime;
-                  toast({
-                      title: "Shift Time Extracted",
-                      description: "AI found a date/time in your notes.",
-                  });
-              } catch (e: any) {
-                  console.warn("Could not find a date in notes, will use current time.", e.message);
-                  // Proceed with a null dateTime, which will be handled by submitLog
-              }
-          }
+            const [endHours, endMinutes] = endTime.split(':').map(Number);
+            const endDate = set(shiftDate, { hours: endHours, minutes: endMinutes, seconds: 0, milliseconds: 0 });
 
-          // Now, submit the log with whatever dateTime we ended up with.
-          submitLog(finalShiftDateTime, logNotes);
-      });
+            submitLog(startDate.toISOString(), endDate.toISOString(), logNotes);
+        }
+    });
   };
-
-  const submitLog = (submitShiftTime: string | null, submitLogNotes: string) => {
+  
+  const submitLog = (startIso: string | null, endIso: string | null, notes: string) => {
      if (!selectedGroup || !user || !user.email) return;
      
      const logData = {
         careLogGroupId: selectedGroup.id,
         caregiverId: user.email,
         caregiverName: user.displayName || user.email || 'Unknown Caregiver',
-        logNotes: submitLogNotes,
+        logNotes: notes,
         logImages: scannedImage ? [scannedImage] : [],
-        shiftDateTime: submitShiftTime ? Timestamp.fromDate(new Date(submitShiftTime)) : Timestamp.now(),
+        shiftDateTime: startIso ? Timestamp.fromDate(new Date(startIso)) : Timestamp.now(),
+        shiftEndDateTime: endIso ? Timestamp.fromDate(new Date(endIso)) : null,
         createdAt: Timestamp.now(),
         lastUpdatedAt: Timestamp.now(),
       };
@@ -303,6 +322,32 @@ export default function CareLogClient() {
                       </div>
                   ) : (
                        <div className="space-y-4">
+                            {!scannedImage && (
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="shift-date">Shift Date</Label>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button id="shift-date" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !shiftDate && "text-muted-foreground")}>
+                                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                                    {shiftDate ? format(shiftDate, "PPP") : <span>Pick a date</span>}
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0">
+                                                <Calendar mode="single" selected={shiftDate} onSelect={setShiftDate} initialFocus />
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="start-time">Start Time</Label>
+                                        <Input id="start-time" type="time" value={startTime} onChange={e => setStartTime(e.target.value)} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="end-time">End Time</Label>
+                                        <Input id="end-time" type="time" value={endTime} onChange={e => setEndTime(e.target.value)} />
+                                    </div>
+                                </div>
+                            )}
                           <Textarea 
                               placeholder="Enter your shift notes here, or scan a document to have the AI fill this in."
                               value={logNotes}
@@ -314,12 +359,12 @@ export default function CareLogClient() {
                               <div className="flex items-center text-sm text-muted-foreground"><Loader2 className="animate-spin mr-2"/> AI is reading the document...</div>
                           )}
 
-                          {shiftDateTime && (
+                          {extractedShiftDateTime && (
                             <Alert>
                                 <Clock className="h-4 w-4" />
                                 <AlertTitle>Extracted Shift Time</AlertTitle>
                                 <AlertDescription>
-                                    {format(new Date(shiftDateTime), 'PPPPpp')}
+                                    {format(new Date(extractedShiftDateTime), 'PPPPpp')}
                                 </AlertDescription>
                             </Alert>
                           )}
@@ -327,7 +372,7 @@ export default function CareLogClient() {
                           {scannedImage && (
                               <div className="relative w-full max-w-sm">
                                   <Image src={scannedImage} alt="Scanned document" width={400} height={300} className="rounded-md border" />
-                                  <Button variant="destructive" size="icon" className="absolute top-2 right-2 h-8 w-8" onClick={() => { setScannedImage(null); setLogNotes(''); setShiftDateTime(null);}}>
+                                  <Button variant="destructive" size="icon" className="absolute top-2 right-2 h-8 w-8" onClick={() => { setScannedImage(null); setLogNotes(''); setExtractedShiftDateTime(null);}}>
                                       <Trash2 className="h-4 w-4" />
                                   </Button>
                               </div>
@@ -411,5 +456,3 @@ export default function CareLogClient() {
     </div>
   );
 }
-
-    

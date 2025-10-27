@@ -173,6 +173,7 @@ export const careLogSchema = z.object({
   caregiverId: z.string().email("Caregiver ID must be a valid email."),
   caregiverName: z.string(),
   shiftDateTime: z.any().optional(),
+  shiftEndDateTime: z.any().optional(),
   logNotes: z.string(),
   logImages: z.array(z.string()).optional(), // Array of data URIs
   createdAt: z.any(),
