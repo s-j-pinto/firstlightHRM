@@ -39,10 +39,10 @@ export async function saveCareLogGroup(payload: CareLogGroupPayload) {
       lastUpdatedAt: Timestamp.now(),
     };
 
-    if (careLogTemplateId) {
+    if (careLogTemplateId && careLogTemplateId !== 'none') {
         groupData.careLogTemplateId = careLogTemplateId;
     } else {
-        groupData.careLogTemplateId = null; // Ensure it's explicitly removed if empty
+        groupData.careLogTemplateId = null; // Ensure it's explicitly set to null if empty or "none"
     }
 
 
@@ -135,5 +135,3 @@ export async function deleteCareLogTemplate(id: string) {
         return { message: `Error deleting template: ${e.message}`, error: true };
     }
 }
-
-    

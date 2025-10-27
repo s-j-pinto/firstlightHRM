@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useMemo, useTransition } from "react";
@@ -283,14 +282,14 @@ export function CareLogGroupAdmin() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>CareLog Template</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a template (optional)" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="none">None</SelectItem>
                         {templates?.map(template => (
                           <SelectItem key={template.id} value={template.id}>{template.name}</SelectItem>
                         ))}
