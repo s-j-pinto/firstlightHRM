@@ -372,5 +372,3 @@ export function CareLogGroupAdmin() {
     </Card>
   );
 }
-
-    
