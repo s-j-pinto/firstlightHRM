@@ -1,20 +1,30 @@
 
+"use client";
+
+import { useState } from 'react';
 import { CareLogGroupAdmin } from '@/components/carelog-group-admin';
+import { CareLogTemplateAdmin } from '@/components/carelog-template-admin';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function StaffingAdminPage() {
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight font-headline">
-          CareLog Group Administration
-        </h1>
-        <p className="text-muted-foreground">
-          Create, edit, or delete groups linking clients to caregivers.
-        </p>
+    <Tabs defaultValue="groups">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="groups">Manage Groups</TabsTrigger>
+        <TabsTrigger value="templates">Manage Templates</TabsTrigger>
+      </TabsList>
+      <TabsContent value="groups">
         <div className="mt-6">
-            <CareLogGroupAdmin />
+          <CareLogGroupAdmin />
         </div>
-      </div>
-    </div>
+      </TabsContent>
+      <TabsContent value="templates">
+        <div className="mt-6">
+            <CareLogTemplateAdmin />
+        </div>
+      </TabsContent>
+    </Tabs>
   );
 }
+
+    

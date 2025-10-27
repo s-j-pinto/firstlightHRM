@@ -202,6 +202,7 @@
         "clientId": { "type": "string", "description": "The document ID of the linked client from the 'Clients' collection." },
         "clientName": { "type": "string", "description": "The name of the linked client, stored for easy display." },
         "caregiverEmails": { "type": "array", "items": { "type": "string", "format": "email" }, "description": "An array of emails for the linked caregivers from the 'caregivers_active' collection." },
+        "careLogTemplateId": { "type": "string", "description": "The document ID of the linked CareLogTemplate." },
         "createdAt": { "type": "string", "format": "date-time" },
         "lastUpdatedAt": { "type": "string", "format": "date-time" }
       },
@@ -219,11 +220,12 @@
         "shiftDateTime": { "type": "string", "format": "date-time", "description": "The start date and time of the shift." },
         "shiftEndDateTime": { "type": "string", "format": "date-time", "description": "The end date and time of the shift." },
         "logNotes": { "type": "string", "description": "The text notes for the care log, either manually entered or extracted from an image." },
+        "templateData": { "type": "object", "description": "Structured data from a filled-out CareLog template." },
         "logImages": { "type": "array", "items": { "type": "string", "contentEncoding": "base64" }, "description": "An array of data URIs for scanned log images." },
         "createdAt": { "type": "string", "format": "date-time" },
         "lastUpdatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["careLogGroupId", "caregiverId", "caregiverName", "logNotes", "createdAt", "lastUpdatedAt"]
+      "required": ["careLogGroupId", "caregiverId", "caregiverName", "createdAt", "lastUpdatedAt"]
     },
     "ClientCareRequest": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -243,6 +245,24 @@
           "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when the request was created." }
         },
         "required": ["clientId", "clientName", "preferredDateTime", "duration", "reason", "urgency", "status", "createdAt"]
+    },
+    "CareLogTemplate": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "CareLogTemplate",
+        "type": "object",
+        "description": "Defines a reusable template for structured CareLog entries.",
+        "properties": {
+            "name": { "type": "string", "description": "The name of the template." },
+            "description": { "type": "string", "description": "A brief description of the template's purpose." },
+            "subsections": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "An array of subsection keys to include in this template."
+            },
+            "createdAt": { "type": "string", "format": "date-time" },
+            "lastUpdatedAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["name", "subsections", "createdAt", "lastUpdatedAt"]
     }
   },
   "auth": {
@@ -287,6 +307,13 @@
     "/client_additional_care_requests/{requestId}": {
       "schema": { "$ref": "#/entities/ClientCareRequest" },
       "description": "Stores requests from clients for additional care hours."
+    },
+    "/carelog_templates/{templateId}": {
+      "schema": { "$ref": "#/entities/CareLogTemplate" },
+      "description": "Stores reusable templates for structured CareLog entries."
     }
   }
 }
+
+
+    

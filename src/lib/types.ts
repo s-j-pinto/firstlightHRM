@@ -1,4 +1,5 @@
 
+
 import { z } from "zod";
 
 export const generalInfoSchema = z.object({
@@ -157,10 +158,18 @@ export const activeCaregiverSchema = z.object({
 
 export type ActiveCaregiver = z.infer<typeof activeCaregiverSchema> & { id: string };
 
+export const careLogTemplateSchema = z.object({
+  name: z.string().min(3, "Template name must be at least 3 characters."),
+  description: z.string().optional(),
+  subsections: z.array(z.string()).min(1, "At least one subsection must be selected."),
+});
+export type CareLogTemplate = z.infer<typeof careLogTemplateSchema> & { id: string, createdAt: any, lastUpdatedAt: any };
+
 export const careLogGroupSchema = z.object({
   clientId: z.string(),
   clientName: z.string(),
   caregiverEmails: z.array(z.string().email()),
+  careLogTemplateId: z.string().optional(),
   status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
   createdAt: z.any(),
   lastUpdatedAt: z.any(),
@@ -174,10 +183,14 @@ export const careLogSchema = z.object({
   caregiverName: z.string(),
   shiftDateTime: z.any().optional(),
   shiftEndDateTime: z.any().optional(),
-  logNotes: z.string(),
+  logNotes: z.string().optional(),
+  templateData: z.any().optional(),
   logImages: z.array(z.string()).optional(), // Array of data URIs
   createdAt: z.any(),
   lastUpdatedAt: z.any(),
+}).refine(data => data.logNotes || data.templateData, {
+  message: "Either log notes or template data must be provided.",
+  path: ["logNotes"],
 });
 
 export type CareLog = z.infer<typeof careLogSchema> & { id: string };
@@ -223,3 +236,5 @@ export const ExtractCareLogOutputSchema = z.object({
   extractedText: z.string().describe('The full, raw text extracted from the provided content.'),
 });
 export type ExtractCareLogOutput = z.infer<typeof ExtractCareLogOutputSchema>;
+
+    

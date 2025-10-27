@@ -9,10 +9,11 @@ interface CareLogGroupPayload {
   groupId?: string;
   clientId: string;
   caregiverEmails: string[];
+  careLogTemplateId?: string;
 }
 
 export async function saveCareLogGroup(payload: CareLogGroupPayload) {
-  const { groupId, clientId, caregiverEmails } = payload;
+  const { groupId, clientId, caregiverEmails, careLogTemplateId } = payload;
 
   if (!clientId) {
     return { message: "Client must be selected.", error: true };
@@ -30,13 +31,20 @@ export async function saveCareLogGroup(payload: CareLogGroupPayload) {
     }
     const clientName = clientDoc.data()?.['Client Name'] || 'Unknown Client';
 
-    const groupData = {
+    const groupData: { [key: string]: any } = {
       clientId,
       clientName,
       caregiverEmails,
       status: 'ACTIVE',
       lastUpdatedAt: Timestamp.now(),
     };
+
+    if (careLogTemplateId) {
+        groupData.careLogTemplateId = careLogTemplateId;
+    } else {
+        groupData.careLogTemplateId = null; // Ensure it's explicitly removed if empty
+    }
+
 
     if (groupId) {
       // Update existing group
@@ -97,4 +105,35 @@ export async function reactivateCareLogGroup(groupId: string) {
     return { message: `An error occurred while reactivating the group: ${error.message}`, error: true };
   }
 }
+
+export async function saveCareLogTemplate(template: any) {
+    const { id, ...data } = template;
+    const firestore = serverDb;
+    const now = Timestamp.now();
+    try {
+        if (id) {
+            const docRef = firestore.collection('carelog_templates').doc(id);
+            await docRef.update({ ...data, lastUpdatedAt: now });
+        } else {
+            const docRef = firestore.collection('carelog_templates').doc();
+            await docRef.set({ ...data, createdAt: now, lastUpdatedAt: now });
+        }
+        revalidatePath('/staffing-admin');
+        return { message: 'Template saved successfully.' };
+    } catch (e: any) {
+        return { message: `Error saving template: ${e.message}`, error: true };
+    }
+}
+
+export async function deleteCareLogTemplate(id: string) {
+    const firestore = serverDb;
+    try {
+        await firestore.collection('carelog_templates').doc(id).delete();
+        revalidatePath('/staffing-admin');
+        return { message: 'Template deleted successfully.' };
+    } catch (e: any) {
+        return { message: `Error deleting template: ${e.message}`, error: true };
+    }
+}
+
     

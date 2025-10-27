@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo, useTransition } from "react";
@@ -7,7 +8,7 @@ import Link from 'next/link';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { collection } from "firebase/firestore";
 import { firestore, useCollection, useMemoFirebase } from "@/firebase";
-import { Client, ActiveCaregiver, CareLogGroup, CareLog } from "@/lib/types";
+import { Client, ActiveCaregiver, CareLogGroup, CareLog, CareLogTemplate } from "@/lib/types";
 import { saveCareLogGroup, deleteCareLogGroup, reactivateCareLogGroup } from "@/lib/carelog-groups.actions";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,7 @@ const careLogGroupSchema = z.object({
   groupId: z.string().optional(),
   clientId: z.string().min(1, "A client must be selected."),
   caregiverEmails: z.array(z.string().email()).min(1, "At least one caregiver must be selected."),
+  careLogTemplateId: z.string().optional(),
 });
 
 type CareLogGroupFormData = z.infer<typeof careLogGroupSchema>;
@@ -51,6 +53,9 @@ export function CareLogGroupAdmin() {
   const careLogGroupsRef = useMemoFirebase(() => collection(firestore, 'carelog_groups'), [firestore]);
   const { data: careLogGroups, isLoading: groupsLoading } = useCollection<CareLogGroup>(careLogGroupsRef);
   
+  const templatesRef = useMemoFirebase(() => collection(firestore, 'carelog_templates'), [firestore]);
+  const { data: templates, isLoading: templatesLoading } = useCollection<CareLogTemplate>(templatesRef);
+  
   const allCareLogsRef = useMemoFirebase(() => collection(firestore, 'carelogs'), [firestore]);
   const { data: allCareLogs, isLoading: logsLoading } = useCollection<CareLog>(allCareLogsRef);
 
@@ -72,6 +77,7 @@ export function CareLogGroupAdmin() {
       groupId: undefined,
       clientId: "",
       caregiverEmails: [],
+      careLogTemplateId: "",
     },
   });
 
@@ -94,12 +100,14 @@ export function CareLogGroupAdmin() {
         groupId: group.id,
         clientId: group.clientId,
         caregiverEmails: group.caregiverEmails || [],
+        careLogTemplateId: group.careLogTemplateId || "",
       });
     } else {
       form.reset({
         groupId: undefined,
         clientId: "",
         caregiverEmails: [],
+        careLogTemplateId: "",
       });
     }
     setIsModalOpen(true);
@@ -139,7 +147,7 @@ export function CareLogGroupAdmin() {
     });
   };
 
-  const isLoading = clientsLoading || caregiversLoading || groupsLoading || logsLoading;
+  const isLoading = clientsLoading || caregiversLoading || groupsLoading || logsLoading || templatesLoading;
 
   return (
     <Card>
@@ -271,6 +279,29 @@ export function CareLogGroupAdmin() {
               />
               <FormField
                 control={form.control}
+                name="careLogTemplateId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>CareLog Template</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a template (optional)" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="">None</SelectItem>
+                        {templates?.map(template => (
+                          <SelectItem key={template.id} value={template.id}>{template.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
                 name="caregiverEmails"
                 render={({ field }) => (
                   <FormItem>
@@ -317,3 +348,5 @@ export function CareLogGroupAdmin() {
     </Card>
   );
 }
+
+    
