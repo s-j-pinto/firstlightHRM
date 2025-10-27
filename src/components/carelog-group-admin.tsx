@@ -61,6 +61,11 @@ export function CareLogGroupAdmin() {
     return filtered.sort((a, b) => a.Name.localeCompare(b.Name));
   }, [allCaregiversData]);
 
+  const sortedCareLogGroups = useMemo(() => {
+    if (!careLogGroups) return [];
+    return [...careLogGroups].sort((a, b) => a.clientName.localeCompare(b.clientName));
+  }, [careLogGroups]);
+
   const form = useForm<CareLogGroupFormData>({
     resolver: zodResolver(careLogGroupSchema),
     defaultValues: {
@@ -158,8 +163,8 @@ export function CareLogGroupAdmin() {
           </div>
         ) : (
           <div className="space-y-4">
-            {careLogGroups && careLogGroups.length > 0 ? (
-              careLogGroups.map(group => {
+            {sortedCareLogGroups && sortedCareLogGroups.length > 0 ? (
+              sortedCareLogGroups.map(group => {
                 const client = clientsMap.get(group.clientId);
                 const isClientInactive = client?.status === 'INACTIVE';
                 const isGroupInactive = group.status === 'INACTIVE';
