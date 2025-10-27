@@ -9,7 +9,7 @@ import { collection, query, where, addDoc, Timestamp } from "firebase/firestore"
 import { CareLogGroup, Client, CareLog, CareLogTemplate } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { extractCareLogData } from "@/ai/flows/extract-carelog-flow";
-import { Loader2, Users, Camera, Trash2, FileText, Clock, Upload, Info, Calendar as CalendarIcon, PlusCircle, MinusCircle, RefreshCw } from "lucide-react";
+import { Loader2, Users, Camera, Trash2, FileText, Clock, Upload, Info, Calendar as CalendarIcon, PlusCircle, MinusCircle, RefreshCw, Bath, Shirt, PersonStanding, Dumbbell, UserCog, Utensils, GlassWater, Pill, MessageSquare, BookOpen, Puzzle, Sun, Sparkles as HouseSparkles, Trash, Shirt as Laundry, Utensils as MealPrep, ShoppingCart, Smile, Droplet, Stethoscope, HeartPulse, ShieldAlert, AlertTriangle, Speaker, Notebook, Signature } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -34,39 +34,39 @@ import SignatureCanvas from 'react-signature-canvas';
 
 const initialTemplateData = {
     personal_care: [
-        { activity: 'Bathing / Hygiene', status: '', notes: '' },
-        { activity: 'Dressing / Grooming', status: '', notes: '' },
-        { activity: 'Toileting / Incontinence', status: '', notes: '' },
-        { activity: 'Mobility / Transfers', status: '', notes: '' },
-        { activity: 'Exercise / Physical Therapy', status: '', notes: '' },
+        { activity: 'Bathing / Hygiene', icon: Bath, status: '', notes: '' },
+        { activity: 'Dressing / Grooming', icon: Shirt, status: '', notes: '' },
+        { activity: 'Toileting / Incontinence', icon: PersonStanding, status: '', notes: '' },
+        { activity: 'Mobility / Transfers', icon: UserCog, status: '', notes: '' },
+        { activity: 'Exercise / Physical Therapy', icon: Dumbbell, status: '', notes: '' },
     ],
     meals_hydration: [
-        { meal: 'Breakfast', prepared: '', eaten: '', notes: '' },
-        { meal: 'Lunch', prepared: '', eaten: '', notes: '' },
-        { meal: 'Dinner', prepared: '', eaten: '', notes: '' },
-        { meal: 'Fluids Intake', prepared: '', eaten: '', notes: '' },
+        { meal: 'Breakfast', icon: Utensils, prepared: '', eaten: '', notes: '' },
+        { meal: 'Lunch', icon: Utensils, prepared: '', eaten: '', notes: '' },
+        { meal: 'Dinner', icon: Utensils, prepared: '', eaten: '', notes: '' },
+        { meal: 'Fluids Intake', icon: GlassWater, prepared: '', eaten: '', notes: '' },
     ],
     medication_support: [{ time: '', medication: '', assisted: '', notes: '' }],
     companionship: [
-        { activity: 'Conversation', duration: '', response: '' },
-        { activity: 'Reading / Music / TV', duration: '', response: '' },
-        { activity: 'Games / Activities', duration: '', response: '' },
-        { activity: 'Outdoor Time', duration: '', response: '' },
+        { activity: 'Conversation', icon: MessageSquare, duration: '', response: '' },
+        { activity: 'Reading / Music / TV', icon: BookOpen, duration: '', response: '' },
+        { activity: 'Games / Activities', icon: Puzzle, duration: '', response: '' },
+        { activity: 'Outdoor Time', icon: Sun, duration: '', response: '' },
     ],
     household_tasks: [
-        { task: 'Light Cleaning', completed: '', notes: '' },
-        { task: 'Laundry', completed: '', notes: '' },
-        { task: 'Meal Preparation', completed: '', notes: '' },
-        { task: 'Errands / Shopping', completed: '', notes: '' },
+        { task: 'Light Cleaning', icon: HouseSparkles, completed: '', notes: '' },
+        { task: 'Laundry', icon: Laundry, completed: '', notes: '' },
+        { task: 'Meal Preparation', icon: MealPrep, completed: '', notes: '' },
+        { task: 'Errands / Shopping', icon: ShoppingCart, completed: '', notes: '' },
     ],
     client_condition: [
-        { category: 'Mood / Behavior', observation: '' },
-        { category: 'Appetite', observation: '' },
-        { category: 'Sleep', observation: '' },
-        { category: 'Mobility / Balance', observation: '' },
-        { category: 'Skin Integrity', observation: '' },
-        { category: 'Pain or Discomfort', observation: '' },
-        { category: 'Other Health Concerns', observation: '' },
+        { category: 'Mood / Behavior', icon: Smile, observation: '' },
+        { category: 'Appetite', icon: Utensils, observation: '' },
+        { category: 'Sleep', icon: Clock, observation: '' },
+        { category: 'Mobility / Balance', icon: UserCog, observation: '' },
+        { category: 'Skin Integrity', icon: Droplet, observation: '' },
+        { category: 'Pain or Discomfort', icon: Stethoscope, observation: '' },
+        { category: 'Other Health Concerns', icon: HeartPulse, observation: '' },
     ],
     communication: { familyNotified: '', familyReason: '', officeUpdate: '', incidentReport: '', incidentDescription: '', suppliesNeeded: '' },
     signature: { caregiverSignature: '' },
@@ -577,7 +577,7 @@ export default function CareLogClient() {
                                         <TableBody>
                                         {initialTemplateData.personal_care.map((item, index) => (
                                             <TableRow key={index}>
-                                                <TableCell className="py-2">{item.activity}</TableCell>
+                                                <TableCell className="py-2 flex items-center gap-2"><item.icon className="h-4 w-4 text-muted-foreground" /> {item.activity}</TableCell>
                                                 <TableCell className="py-2">
                                                     <FormField
                                                         control={control}
@@ -615,7 +615,7 @@ export default function CareLogClient() {
                                         <TableBody>
                                         {initialTemplateData.meals_hydration.map((item, index) => (
                                             <TableRow key={index}>
-                                                <TableCell className="py-2">{item.meal}</TableCell>
+                                                <TableCell className="py-2 flex items-center gap-2"><item.icon className="h-4 w-4 text-muted-foreground" />{item.meal}</TableCell>
                                                 <TableCell className="py-2">
                                                      <FormField control={control} name={`meals_hydration.${index}.prepared`} render={({field}) => (
                                                         <FormItem>
@@ -691,7 +691,7 @@ export default function CareLogClient() {
                                         <TableBody>
                                         {initialTemplateData.companionship.map((item, index) => (
                                             <TableRow key={index}>
-                                                <TableCell className="py-2">{item.activity}</TableCell>
+                                                <TableCell className="py-2 flex items-center gap-2"><item.icon className="h-4 w-4 text-muted-foreground" />{item.activity}</TableCell>
                                                 <TableCell className="py-2"><Input {...register(`companionship.${index}.duration`)}/></TableCell>
                                                 <TableCell className="py-2"><Input {...register(`companionship.${index}.response`)}/></TableCell>
                                             </TableRow>
@@ -710,7 +710,7 @@ export default function CareLogClient() {
                                         <TableBody>
                                         {initialTemplateData.household_tasks.map((item, index) => (
                                             <TableRow key={index}>
-                                                <TableCell className="py-2">{item.task}</TableCell>
+                                                <TableCell className="py-2 flex items-center gap-2"><item.icon className="h-4 w-4 text-muted-foreground" />{item.task}</TableCell>
                                                 <TableCell className="py-2">
                                                     <FormField control={control} name={`household_tasks.${index}.completed`} render={({field}) => (
                                                         <FormItem>
@@ -740,7 +740,7 @@ export default function CareLogClient() {
                                         <TableBody>
                                         {initialTemplateData.client_condition.map((item, index) => (
                                             <TableRow key={index}>
-                                                <TableCell className="py-2">{item.category}</TableCell>
+                                                <TableCell className="py-2 flex items-center gap-2"><item.icon className="h-4 w-4 text-muted-foreground" />{item.category}</TableCell>
                                                 <TableCell className="py-2"><Textarea {...register(`client_condition.${index}.observation`)}/></TableCell>
                                             </TableRow>
                                         ))}
