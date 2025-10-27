@@ -348,5 +348,3 @@ export function CareLogGroupAdmin() {
     </Card>
   );
 }
-
-    
