@@ -170,6 +170,7 @@ export const careLogGroupSchema = z.object({
   clientName: z.string(),
   caregiverEmails: z.array(z.string().email()),
   careLogTemplateId: z.string().optional(),
+  clientAccessEnabled: z.boolean().default(false),
   status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
   createdAt: z.any(),
   lastUpdatedAt: z.any(),
@@ -237,4 +238,29 @@ export const ExtractCareLogOutputSchema = z.object({
 });
 export type ExtractCareLogOutput = z.infer<typeof ExtractCareLogOutputSchema>;
 
+// Schema for a single field within the generated form.
+export const GeneratedFieldSchema = z.object({
+  fieldName: z.string().describe("A unique, camelCase name for the form field, derived from the label (e.g., 'fullName', 'emailAddress')."),
+  fieldType: z.enum(['text', 'email', 'tel', 'date', 'number', 'textarea', 'checkbox', 'radio', 'select'])
+    .describe("The most appropriate HTML input type for this field."),
+  label: z.string().describe("The user-visible label for the form field as it appears in the PDF."),
+  options: z.array(z.string()).optional().describe("An array of string options, only for 'radio' or 'select' field types."),
+  required: z.boolean().describe("True if the field appears to be mandatory (e.g., marked with an asterisk or is a standard required field like 'email')."),
+});
+export type GeneratedField = z.infer<typeof GeneratedFieldSchema>;
+
+// Schema for the flow's input, which is a PDF file encoded as a data URI.
+export const GenerateFormInputSchema = z.object({
+  pdfDataUri: z.string().describe(
+    "The PDF file to be analyzed, as a data URI that must include a 'data:application/pdf;base64,' prefix."
+  ),
+});
+export type GenerateFormInput = z.infer<typeof GenerateFormInputSchema>;
+
+// Schema for the flow's output, defining the entire form structure.
+export const GenerateFormOutputSchema = z.object({
+  formName: z.string().describe("A concise and appropriate name for the entire form, derived from the PDF's title or content (e.g., 'Client Intake Form')."),
+  fields: z.array(GeneratedFieldSchema).describe("An array of all the form fields identified in the PDF."),
+});
+export type GenerateFormOutput = z.infer<typeof GenerateFormOutputSchema>;
     
