@@ -21,7 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, PlusCircle, Trash2, Edit, Users, RotateCw, FileText, ShieldCheck } from "lucide-react";
+import { Loader2, PlusCircle, Trash2, Edit, Users, RotateCw, FileText, Flag } from "lucide-react";
 
 const careLogGroupSchema = z.object({
   groupId: z.string().optional(),
@@ -186,7 +186,7 @@ export function CareLogGroupAdmin() {
                       <h3 className="font-semibold text-lg flex items-center gap-2">
                           <Users className={cn((isClientInactive || isGroupInactive) ? "text-destructive" : "text-accent")} />
                           {group.clientName}
-                          {group.clientAccessEnabled && <ShieldCheck className="h-5 w-5 text-green-600" title="Client Access Enabled" />}
+                          {group.clientAccessEnabled && <Flag className="h-5 w-5 text-orange-500" title="Client Access Enabled" />}
                           {(isClientInactive || isGroupInactive) && (
                               <Badge variant="destructive">{isGroupInactive ? 'GROUP INACTIVE' : 'CLIENT INACTIVE'}</Badge>
                           )}
@@ -287,7 +287,7 @@ export function CareLogGroupAdmin() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>CareLog Template</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                    <Select onValueChange={field.onChange} value={field.value || "none"}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a template (optional)" />
