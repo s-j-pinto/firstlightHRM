@@ -231,7 +231,7 @@ export default function AdminDashboard() {
                       <div className="flex flex-wrap gap-2">
                         {appointment.preferredTimes.map((time, index) => (
                           <Badge key={index} variant={appointment.startTime.getTime() === time.getTime() ? 'default' : 'secondary'}>
-                            {format(time, 'h:mm a')}
+                            {format(time, 'PPp')}
                           </Badge>
                         ))}
                       </div>

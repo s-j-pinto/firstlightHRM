@@ -31,7 +31,7 @@ type CancelledAppointment = Appointment & {
 export default function CancelledInterviewsReport() {
   const appointmentsRef = useMemoFirebase(() => 
     query(collection(firestore, 'appointments'), where('appointmentStatus', '==', 'cancelled')),
-    [firestore]
+    []
   );
   const { data: appointments, isLoading: appointmentsLoading } = useCollection<Appointment>(appointmentsRef);
 
