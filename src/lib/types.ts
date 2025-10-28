@@ -249,7 +249,7 @@ export const GeneratedFieldSchema = z.object({
 });
 export type GeneratedField = z.infer<typeof GeneratedFieldSchema>;
 
-// Schema for the flow's input, which is a PDF file encoded as a data URI.
+// Schema for the PDF form generation flow.
 export const GenerateFormInputSchema = z.object({
   pdfDataUri: z.string().describe(
     "The PDF file to be analyzed, as a data URI that must include a 'data:application/pdf;base64,' prefix."
@@ -257,10 +257,19 @@ export const GenerateFormInputSchema = z.object({
 });
 export type GenerateFormInput = z.infer<typeof GenerateFormInputSchema>;
 
-// Schema for the flow's output, defining the entire form structure.
+const GeneratedColumnSchema = z.object({
+  fields: z.array(GeneratedFieldSchema).describe("An array of one or more fields that appear in this column."),
+});
+
+const GeneratedRowSchema = z.object({
+  columns: z.array(GeneratedColumnSchema).describe("An array of columns for this row. A row with one column spans the full width. Multiple columns will be laid out side-by-side."),
+});
+
 export const GenerateFormOutputSchema = z.object({
   formName: z.string().describe("A concise and appropriate name for the entire form, derived from the PDF's title or content (e.g., 'Client Intake Form')."),
-  fields: z.array(GeneratedFieldSchema).describe("An array of all the form fields identified in the PDF."),
+  rows: z.array(GeneratedRowSchema).describe("An array of row objects that define the form's layout."),
 });
-export type GenerateFormOutput = z.infer<typeof GenerateFormOutputSchema>;
+export type GeneratedForm = z.infer<typeof GenerateFormOutputSchema>;
+export type GeneratedRow = z.infer<typeof GeneratedRowSchema>;
+export type GeneratedColumn = z.infer<typeof GeneratedColumnSchema>;
     

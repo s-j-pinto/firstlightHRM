@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, UploadCloud, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateFormFromPdf } from "@/lib/form-generator.actions";
-import { type GeneratedField } from "@/lib/types";
+import { type GeneratedField, type GeneratedForm } from "@/lib/types";
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,13 +17,155 @@ import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+
+
+const DynamicFormRenderer = ({ formDefinition }: { formDefinition: GeneratedForm }) => {
+  const allFields = formDefinition.rows.flatMap(row => row.columns.flatMap(col => col.fields));
+
+  const dynamicSchema = z.object(
+    allFields.reduce((schema, field) => {
+      let fieldSchema: z.ZodTypeAny;
+
+      switch (field.fieldType) {
+        case 'checkbox':
+          fieldSchema = field.required ? z.literal(true, { errorMap: () => ({ message: "This checkbox must be checked." }) }) : z.boolean();
+          break;
+        case 'email':
+          fieldSchema = z.string().email({ message: "Invalid email address." });
+          break;
+        case 'tel':
+          fieldSchema = z.string().min(10, { message: "Phone number seems too short." });
+          break;
+        default:
+          fieldSchema = z.string();
+      }
+
+      if (field.required && field.fieldType !== 'checkbox') {
+        fieldSchema = fieldSchema.min(1, { message: `${field.label} is required.` });
+      }
+
+      schema[field.fieldName] = fieldSchema;
+      return schema;
+    }, {} as Record<string, z.ZodTypeAny>)
+  );
+
+  const form = useForm({
+    resolver: zodResolver(dynamicSchema),
+    defaultValues: allFields.reduce((values, field) => {
+      values[field.fieldName] = field.fieldType === 'checkbox' ? false : '';
+      return values;
+    }, {} as Record<string, any>),
+  });
+
+  const { toast } = useToast();
+  function onSubmit(data: any) {
+    toast({
+      title: "Form Submitted!",
+      description: (
+        <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
+          <code className="text-white">{JSON.stringify(data, null, 2)}</code>
+        </pre>
+      ),
+    });
+  }
+  
+  const renderField = (field: GeneratedField) => {
+     return (
+       <FormField
+        key={field.fieldName}
+        control={form.control}
+        name={field.fieldName}
+        render={({ field: formField }) => {
+            let inputComponent;
+            switch (field.fieldType) {
+                case 'textarea':
+                    inputComponent = <Textarea placeholder={`Enter ${field.label.toLowerCase()}`} {...formField} />;
+                    break;
+                case 'checkbox':
+                    return (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 py-2">
+                        <FormControl>
+                            <Checkbox checked={formField.value} onCheckedChange={formField.onChange} />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                            <FormLabel>{field.label}</FormLabel>
+                        </div>
+                        </FormItem>
+                    );
+                case 'radio':
+                    inputComponent = (
+                         <RadioGroup onValueChange={formField.onChange} defaultValue={formField.value} className="flex gap-4">
+                            {field.options?.map(option => (
+                                <FormItem key={option} className="flex items-center space-x-3 space-y-0">
+                                    <FormControl><RadioGroupItem value={option} /></FormControl>
+                                    <FormLabel className="font-normal">{option}</FormLabel>
+                                </FormItem>
+                            ))}
+                        </RadioGroup>
+                    );
+                    break;
+                case 'select':
+                    inputComponent = (
+                        <Select onValueChange={formField.onChange} defaultValue={formField.value}>
+                        <FormControl>
+                            <SelectTrigger><SelectValue placeholder={`Select ${field.label.toLowerCase()}`} /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            {field.options?.map(option => <SelectItem key={option} value={option}>{option}</SelectItem>)}
+                        </SelectContent>
+                        </Select>
+                    );
+                    break;
+                default:
+                    inputComponent = <Input type={field.fieldType} placeholder={`Enter ${field.label.toLowerCase()}`} {...formField} />;
+                    break;
+            }
+
+            return (
+                <FormItem>
+                    <FormLabel>{field.label}</FormLabel>
+                    <FormControl>{inputComponent}</FormControl>
+                    <FormMessage />
+                </FormItem>
+            );
+        }}
+      />
+     )
+  }
+
+  return (
+    <Card className="mt-6">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2"><FileText /> {formDefinition.formName}</CardTitle>
+        <CardDescription>This form was dynamically generated by AI to match the layout of your PDF.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            {formDefinition.rows.map((row, rowIndex) => (
+                <div key={rowIndex} className={`grid gap-6`} style={{ gridTemplateColumns: `repeat(${row.columns.length}, minmax(0, 1fr))` }}>
+                    {row.columns.map((column, colIndex) => (
+                        <div key={colIndex} className="space-y-6">
+                            {column.fields.map(field => renderField(field))}
+                        </div>
+                    ))}
+                </div>
+            ))}
+            <Button type="submit">Submit Generated Form</Button>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
+  );
+};
 
 
 export default function PdfFormGenerator() {
   const [file, setFile] = useState<File | null>(null);
-  const [generatedFields, setGeneratedFields] = useState<GeneratedField[]>([]);
-  const [formName, setFormName] = useState<string | null>(null);
+  const [generatedForm, setGeneratedForm] = useState<GeneratedForm | null>(null);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
@@ -31,8 +173,7 @@ export default function PdfFormGenerator() {
     const selectedFile = event.target.files?.[0];
     if (selectedFile && selectedFile.type === "application/pdf") {
       setFile(selectedFile);
-      setGeneratedFields([]); // Reset on new file selection
-      setFormName(null);
+      setGeneratedForm(null); // Reset on new file selection
     } else {
       toast({
         title: "Invalid File Type",
@@ -65,12 +206,11 @@ export default function PdfFormGenerator() {
             throw new Error(result.error);
           }
           
-          if (result.formName && result.fields) {
-            setFormName(result.formName);
-            setGeneratedFields(result.fields);
+          if (result.formName && result.rows) {
+            setGeneratedForm(result);
             toast({
               title: "Form Generated Successfully",
-              description: `AI has created a form with ${result.fields.length} fields.`,
+              description: `AI has created a form that matches the PDF layout.`,
             });
           } else {
              throw new Error("The AI did not return a valid form structure.");
@@ -86,115 +226,6 @@ export default function PdfFormGenerator() {
     });
   };
 
-  const DynamicForm = ({ fields, formName }: { fields: GeneratedField[], formName: string }) => {
-    // Dynamically create a Zod schema from the generated fields
-    const dynamicSchema = z.object(
-      fields.reduce((schema, field) => {
-        let fieldSchema: z.ZodTypeAny;
-        switch (field.fieldType) {
-          case 'checkbox':
-            fieldSchema = field.required ? z.literal(true, { errorMap: () => ({ message: "This checkbox must be checked." }) }) : z.boolean();
-            break;
-          case 'email':
-            fieldSchema = z.string().email({ message: "Invalid email address." });
-            break;
-          case 'tel':
-            fieldSchema = z.string().min(10, { message: "Phone number seems too short." });
-            break;
-          default:
-            fieldSchema = z.string();
-        }
-        if (field.required && field.fieldType !== 'checkbox') {
-          fieldSchema = fieldSchema.min(1, { message: `${field.label} is required.` });
-        }
-        
-        schema[field.fieldName] = fieldSchema;
-        return schema;
-      }, {} as Record<string, z.ZodTypeAny>)
-    );
-
-    const form = useForm({
-      resolver: zodResolver(dynamicSchema),
-    });
-
-    function onSubmit(data: any) {
-      toast({
-        title: "Form Submitted!",
-        description: (
-          <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-            <code className="text-white">{JSON.stringify(data, null, 2)}</code>
-          </pre>
-        ),
-      });
-    }
-
-    return (
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><FileText /> {formName}</CardTitle>
-          <CardDescription>This form was dynamically generated by AI from your PDF.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {fields.map((field) => (
-                <FormField
-                  key={field.fieldName}
-                  control={form.control}
-                  name={field.fieldName}
-                  render={({ field: formField }) => {
-                    let inputComponent;
-                    switch (field.fieldType) {
-                      case 'textarea':
-                        inputComponent = <Textarea placeholder={`Enter ${field.label.toLowerCase()}`} {...formField} />;
-                        break;
-                      case 'checkbox':
-                        inputComponent = (
-                           <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                            <FormControl>
-                              <Checkbox checked={formField.value} onCheckedChange={formField.onChange} />
-                            </FormControl>
-                             <div className="space-y-1 leading-none">
-                              <FormLabel>{field.label}</FormLabel>
-                            </div>
-                           </FormItem>
-                        );
-                        // Checkbox has its own label structure
-                        return inputComponent;
-                      case 'select':
-                        inputComponent = (
-                           <Select onValueChange={formField.onChange} defaultValue={formField.value}>
-                            <FormControl>
-                              <SelectTrigger><SelectValue placeholder={`Select ${field.label.toLowerCase()}`} /></SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {field.options?.map(option => <SelectItem key={option} value={option}>{option}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                        );
-                        break;
-                      default:
-                        inputComponent = <Input type={field.fieldType} placeholder={`Enter ${field.label.toLowerCase()}`} {...formField} />;
-                        break;
-                    }
-
-                    return (
-                      <FormItem>
-                        <FormLabel>{field.label}</FormLabel>
-                        <FormControl>{inputComponent}</FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    );
-                  }}
-                />
-              ))}
-              <Button type="submit">Submit Generated Form</Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
-    );
-  };
 
   return (
     <>
@@ -202,7 +233,7 @@ export default function PdfFormGenerator() {
         <CardHeader>
           <CardTitle>Generate Form from PDF</CardTitle>
           <CardDescription>
-            Upload a PDF document, and the AI will analyze it to generate a corresponding web form.
+            Upload a PDF document, and the AI will analyze it to generate a corresponding web form that visually matches the PDF.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -221,8 +252,8 @@ export default function PdfFormGenerator() {
         </CardContent>
       </Card>
 
-      {generatedFields.length > 0 && formName && (
-        <DynamicForm fields={generatedFields} formName={formName} />
+      {generatedForm && (
+        <DynamicFormRenderer formDefinition={generatedForm} />
       )}
     </>
   );

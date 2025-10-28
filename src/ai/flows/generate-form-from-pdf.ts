@@ -33,18 +33,24 @@ const formGenerationPrompt = ai.definePrompt({
   input: { schema: GenerateFormInputSchema },
   output: { schema: GenerateFormOutputSchema },
   model: 'googleai/gemini-2.0-flash',
-  prompt: `You are an expert AI assistant specialized in converting PDF documents into structured JSON data suitable for generating HTML forms.
+  prompt: `You are an expert AI assistant specialized in converting PDF documents into structured JSON data suitable for generating responsive HTML forms that visually mimic the PDF layout.
 
-Your task is to analyze the provided PDF file and identify all the interactive form fields within it. This includes text inputs, email fields, phone numbers, text areas, checkboxes, radio button groups, and select/dropdown menus.
+Your task is to analyze the provided PDF file and identify all the interactive form fields, including their layout in rows and columns.
 
-For each field you identify, you must extract the following information:
-1.  **fieldName**: Create a unique, programmatic, camelCase name for the field based on its label. For example, 'Full Name' becomes 'fullName'.
-2.  **fieldType**: Determine the most semantically correct HTML input type. Use 'email' for emails, 'tel' for phone numbers, 'date' for dates, 'textarea' for large multi-line text boxes, and 'text' for general single-line inputs.
-3.  **label**: The exact user-visible text label associated with the field.
+For each field, extract the following information:
+1.  **fieldName**: A unique, programmatic, camelCase name (e.g., 'fullName').
+2.  **fieldType**: The most semantically correct HTML input type. Use 'email' for emails, 'tel' for phones, 'date' for dates, 'textarea' for large multi-line boxes, and 'text' for general single-line inputs.
+3.  **label**: The exact user-visible text label for the field.
 4.  **options**: If the field is a 'select' or 'radio' group, provide an array of the available string options.
-5.  **required**: Analyze the field and its context to determine if it is mandatory. Fields marked with an asterisk (*) or common fields like 'Name' or 'Email' should be considered required.
+5.  **required**: Determine if the field is mandatory (e.g., has an asterisk *).
 
-Return a single JSON object that strictly adheres to the provided output schema, containing a 'formName' and an array of all the field objects you have identified.
+Your primary goal is to group these fields into a layout that mirrors the PDF. Structure your output as an array of 'rows'. Each 'row' will contain an array of 'columns', and each 'column' will contain one or more 'fields'.
+
+- A field that takes up the full width of a line should be in its own row, with one column containing that single field.
+- Fields that appear side-by-side in the PDF should be in the same row, each in its own column object.
+- A single column can contain multiple vertically-stacked fields if they are logically grouped (e.g., a checkbox list).
+
+Return a single JSON object that strictly adheres to the output schema.
 
 PDF for analysis:
 {{media url=pdfDataUri}}
