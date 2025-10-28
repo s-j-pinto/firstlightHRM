@@ -17,6 +17,8 @@ export async function createAppointmentAndSendAdminEmail({caregiverId, preferred
         return { message: "No preferred times were provided.", error: true };
     }
     
+    // Sort to ensure the first time is the earliest
+    preferredTimes.sort((a, b) => a.getTime() - b.getTime());
     const primaryStartTime = preferredTimes[0]; // The earliest time is the primary one
 
     try {
@@ -26,6 +28,8 @@ export async function createAppointmentAndSendAdminEmail({caregiverId, preferred
             startTime: primaryStartTime,
             endTime: new Date(primaryStartTime.getTime() + 60 * 60 * 1000), // 60 min slot
             preferredTimes: preferredTimes,
+            appointmentStatus: 'pending',
+            inviteSent: false,
             createdAt: new Date(),
         };
         await firestore.collection('appointments').add(appointmentData);
@@ -119,7 +123,7 @@ export async function updateAppointment(appointmentId: string, newStartTime: Dat
         await appointmentRef.update({
             startTime: newStartTime,
             endTime: newEndTime,
-            inviteSent: false,
+            inviteSent: false, // Reset invite status when time is changed
         });
 
         revalidatePath('/admin');

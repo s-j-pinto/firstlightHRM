@@ -1,5 +1,4 @@
 
-
 import { z } from "zod";
 
 export const generalInfoSchema = z.object({
@@ -259,22 +258,18 @@ export const GenerateFormInputSchema = z.object({
 export type GenerateFormInput = z.infer<typeof GenerateFormInputSchema>;
 
 
-const GeneratedColumnSchema = z.object({
-  fields: z.array(GeneratedFieldSchema).describe("An array of one or more fields that appear in this column."),
-});
-
-const GeneratedRowSchema = z.object({
-  columns: z.array(GeneratedColumnSchema).describe("An array of columns for this row. A row with one column spans the full width. Multiple columns will be laid out side-by-side."),
-});
-
-
 export const FormBlockSchema = z.object({
   type: z.enum(['fields', 'heading', 'paragraph', 'html'])
     .describe("The type of content block."),
   content: z.string().optional().describe("The text or HTML content for 'heading', 'paragraph', or 'html' blocks."),
   level: z.number().optional().describe("The heading level (1-6), only for 'heading' blocks."),
-  rows: z.array(GeneratedRowSchema).optional().describe("The rows of fields, only for 'fields' blocks."),
+  rows: z.array(z.object({
+      columns: z.array(z.object({
+          fields: z.array(GeneratedFieldSchema),
+      })),
+  })).optional().describe("The rows of fields, only for 'fields' blocks."),
 }).describe("A single block of content or fields representing a part of the document.");
+
 export type FormBlock = z.infer<typeof FormBlockSchema>;
 
 
@@ -283,6 +278,5 @@ export const GenerateFormOutputSchema = z.object({
   blocks: z.array(FormBlockSchema).describe("An array of content and field blocks that represent the document's structure."),
 });
 export type GeneratedForm = z.infer<typeof GenerateFormOutputSchema>;
-export type GeneratedRow = z.infer<typeof GeneratedRowSchema>;
-export type GeneratedColumn = z.infer<typeof GeneratedColumnSchema>;
-    
+export type GeneratedRow = z.infer<typeof FormBlockSchema.shape.rows.element>;
+export type GeneratedColumn = z.infer<typeof GeneratedRow.shape.columns.element>;

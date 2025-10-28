@@ -73,6 +73,13 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
       }
       if (prev.length < 3) {
         return [...prev, slot];
+      } else {
+        // Optional: show a toast or message that they can only select 3
+        toast({
+            title: "Limit Reached",
+            description: "You can only select up to 3 time slots.",
+            variant: "default"
+        });
       }
       return prev;
     });
@@ -139,7 +146,7 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
                           variant={isSelected ? "default" : "outline"}
                           onClick={() => handleSelectSlot(slot)}
                           className={cn(isSelected ? "bg-primary hover:bg-primary/90" : "", selectedSlots.length >= 3 && !isSelected && "bg-muted/50 text-muted-foreground cursor-not-allowed")}
-                          disabled={selectedSlots.length >= 3 && !isSelected}
+                          disabled={(selectedSlots.length >= 3 && !isSelected) || isPending}
                         >
                           <Clock className="h-4 w-4 mr-2" />
                           {format(parse(slot, "yyyy-MM-dd HH:mm", new Date()), "h:mm a")}
