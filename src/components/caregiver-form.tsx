@@ -95,14 +95,13 @@ const experienceCheckboxes = [
 ] as const;
 
 const certificationCheckboxes = [
-    { id: "hca", label: "HCA" },
+    { id: "hca", label: "HCA(Home Care Aide)" },
     { id: "hha", label: "HHA" },
     { id: "cna", label: "CNA" },
-    { id: "liveScan", label: "Live scan" },
+    { id: "liveScan", label: "Live Scan(fingerprint)" },
     { id: "negativeTbTest", label: "Negative TB-test" },
     { id: "cprFirstAid", label: "CPR/First Aid" },
     { id: "canWorkWithCovid", label: "Are able to work with COVID client" },
-    { id: "covidVaccine", label: "Covid Vaccine or plan to take" },
 ] as const;
 
 
@@ -309,7 +308,7 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
                             ))}
                         </div>
                     </div>
-                    <FormField control={form.control} name="otherLanguages" render={({ field }) => ( <FormItem><FormLabel>What other languages can you speak?</FormLabel><FormControl><Input placeholder="e.g., Spanish, Tagalog" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="otherLanguages" render={({ field }) => ( <FormItem><FormLabel>What languages other than English do you speak?</FormLabel><FormControl><Input placeholder="e.g., Spanish, Tagalog" {...field} /></FormControl><FormMessage /></FormItem> )} />
                     <FormField control={form.control} name="otherCertifications" render={({ field }) => ( <FormItem><FormLabel>Other Certifications or Training (optional)</FormLabel><FormControl><Textarea placeholder="List any other relevant certifications not listed above" {...field} /></FormControl><FormMessage /></FormItem> )} />
                 </div>
             )}
@@ -394,7 +393,7 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
                     )} />
                      <FormField control={form.control} name="validLicense" render={({ field }) => (
                         <FormItem className="space-y-3">
-                            <FormLabel>Do you have a valid driver's license?</FormLabel>
+                            <FormLabel>Do you have a valid driver's license or valid California State ID ?</FormLabel>
                             <FormControl>
                                 <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-4">
                                     <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="yes" /></FormControl><FormLabel className="font-normal">Yes</FormLabel></FormItem>

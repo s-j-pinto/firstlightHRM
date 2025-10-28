@@ -266,31 +266,6 @@ const GeneratedRowSchema = z.object({
   columns: z.array(GeneratedColumnSchema).describe("An array of columns for this row. A row with one column spans the full width. Multiple columns will be laid out side-by-side."),
 });
 
-// A block for a set of interactive form fields
-const FieldsBlockSchema = z.object({
-    type: z.enum(['fields']),
-    rows: z.array(GeneratedRowSchema),
-});
-
-// A block for a heading
-const HeadingBlockSchema = z.object({
-    type: z.enum(['heading']),
-    level: z.number().min(1).max(6).describe("The heading level, from 1 (largest) to 6 (smallest)."),
-    content: z.string().describe("The text content of the heading."),
-});
-
-// A block for a standard paragraph of text
-const ParagraphBlockSchema = z.object({
-    type: z.enum(['paragraph']),
-    content: z.string().describe("The text content of the paragraph."),
-});
-
-// A block for raw HTML, like lists
-const HtmlBlockSchema = z.object({
-    type: z.enum(['html']),
-    content: z.string().describe("A string of simple HTML content, such as for lists (<ul>, <ol>, <li>)."),
-});
-
 // This is the new, flexible block schema that avoids discriminated unions.
 // Each block has a 'type' and one of the corresponding content/field properties.
 export const FormBlockSchema = z.object({
