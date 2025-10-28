@@ -40,64 +40,42 @@ export async function loginClient(email: string, password: string) {
       console.log(`[Client Login] No active client found with matching email and password for: ${normalizedEmail}`);
       return { error: 'Invalid credentials. Please check your email and password.' };
     }
+    
+    // This function checks if at least one group for a client has access enabled.
+    const getAccessStatus = async (clientId: string): Promise<boolean> => {
+        const groupsQuery = await serverDb.collection('carelog_groups').where('clientId', '==', clientId).limit(1).get();
+        if (groupsQuery.empty) return false;
+        return !!groupsQuery.docs[0].data().clientAccessEnabled;
+    }
 
     if (matchingClients.length === 1) {
       const client = matchingClients[0];
-      
-      // Check if access is enabled for this single client.
-      const groupsQuery = await serverDb.collection('carelog_groups').where('clientId', '==', client.id).limit(1).get();
-      if (groupsQuery.empty || !groupsQuery.docs[0].data().clientAccessEnabled) {
-          console.log(`[Client Login] Access denied for client ${client['Client Name']} because clientAccessEnabled is false or group does not exist.`);
-          return { error: "Access to the client portal has not been enabled for your account. Please contact the office." };
-      }
-      
+      const canViewReports = await getAccessStatus(client.id);
       const uid = `client_${client.id}`;
       
       console.log(`[Client Login] Single client found: ${client['Client Name']}. Generating token.`);
 
-      // Correctly add the clientId as a custom claim here.
-      const customToken = await serverAuth.createCustomToken(uid, { clientId: client.id });
-      console.log(`[Client Login] Token generated for UID: ${uid} with clientId claim.`);
+      // Add clientId and canViewReports as custom claims
+      const customToken = await serverAuth.createCustomToken(uid, { clientId: client.id, canViewReports });
+      console.log(`[Client Login] Token generated for UID: ${uid} with claims.`);
 
       return { 
         token: customToken,
-        redirect: `/client/dashboard` // Redirect to the main client dashboard
+        redirect: `/client/dashboard`
       };
     }
 
     // --- Multi-client scenario ---
-    // Filter the clients to only include those with portal access enabled.
-    const accessibleClients: (Client & { id: string })[] = [];
-    for (const client of matchingClients) {
-        const groupsQuery = await serverDb.collection('carelog_groups').where('clientId', '==', client.id).limit(1).get();
-        if (!groupsQuery.empty && groupsQuery.docs[0].data().clientAccessEnabled) {
-            accessibleClients.push(client);
-        }
-    }
-
-    if (accessibleClients.length === 0) {
-        console.log(`[Client Login] Multiple clients found for ${normalizedEmail}, but none have portal access enabled.`);
-        return { error: "Access to the client portal has not been enabled for your account. Please contact the office." };
-    }
-
-    // If, after filtering, only one client has access, log them in directly.
-    if (accessibleClients.length === 1) {
-        const client = accessibleClients[0];
-        const uid = `client_${client.id}`;
-        console.log(`[Client Login] Filtered to single accessible client: ${client['Client Name']}. Generating token.`);
-        const customToken = await serverAuth.createCustomToken(uid, { clientId: client.id });
-        return { token: customToken, redirect: `/client/dashboard` };
-    }
-
     // The UID needs to be consistent for the session, so we use the email.
     const tempUid = `multi_user_${Buffer.from(normalizedEmail).toString('base64')}`;
-    const clientChoices = accessibleClients.map(c => ({
+    const clientChoices = matchingClients.map(c => ({
       id: c.id,
       name: c['Client Name'],
     }));
     
-    console.log(`[Client Login] Multiple accessible clients found for ${normalizedEmail}. Returning choices.`);
+    console.log(`[Client Login] Multiple clients found for ${normalizedEmail}. Returning choices.`);
 
+    // No claims needed here, as they will be set after the user makes a choice.
     const customToken = await serverAuth.createCustomToken(tempUid, { email: normalizedEmail });
 
     return { 
@@ -130,24 +108,19 @@ export async function addClientIdClaimAndGetRedirect(clientId: string) {
         const decodedIdToken = await serverAuth.verifySessionCookie(sessionCookie, true);
         const uid = decodedIdToken.uid;
         
-        await serverAuth.setCustomUserClaims(uid, { clientId: clientId });
+        // Determine if this client has report access enabled
+        const groupsQuery = await serverDb.collection('carelog_groups').where('clientId', '==', clientId).limit(1).get();
+        const canViewReports = !groupsQuery.empty && !!groupsQuery.docs[0].data().clientAccessEnabled;
 
-        const careLogGroupsRef = serverDb.collection('carelog_groups');
-        const groupQuery = await careLogGroupsRef.where('clientId', '==', clientId).limit(1).get();
+        // Set both claims
+        await serverAuth.setCustomUserClaims(uid, { clientId: clientId, canViewReports: canViewReports });
 
-        if (groupQuery.empty) {
-            // If no group, redirect to the generic dashboard instead of returning an error
-            return { redirect: '/client/dashboard' };
-        }
-        
-        const groupId = groupQuery.docs[0].id;
-        return { redirect: `/client/reports/carelog/${groupId}` };
+        // Always redirect to the dashboard. The dashboard will handle the next step.
+        return { redirect: '/client/dashboard' };
 
     } catch (error: any)
     {
         console.error("Error setting claim or fetching group ID:", error);
-        return { error: "Could not set client profile or retrieve the care log report." };
+        return { error: "Could not set client profile. Please try again." };
     }
 }
-
-    
