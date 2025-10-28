@@ -266,33 +266,43 @@ const GeneratedRowSchema = z.object({
   columns: z.array(GeneratedColumnSchema).describe("An array of columns for this row. A row with one column spans the full width. Multiple columns will be laid out side-by-side."),
 });
 
+// A block for a set of interactive form fields
 const FieldsBlockSchema = z.object({
-    type: z.literal('fields'),
+    type: z.enum(['fields']),
     rows: z.array(GeneratedRowSchema),
 });
 
+// A block for a heading
 const HeadingBlockSchema = z.object({
-    type: z.literal('heading'),
+    type: z.enum(['heading']),
     level: z.number().min(1).max(6).describe("The heading level, from 1 (largest) to 6 (smallest)."),
     content: z.string().describe("The text content of the heading."),
 });
 
+// A block for a standard paragraph of text
 const ParagraphBlockSchema = z.object({
-    type: z.literal('paragraph'),
+    type: z.enum(['paragraph']),
     content: z.string().describe("The text content of the paragraph."),
 });
 
+// A block for raw HTML, like lists
 const HtmlBlockSchema = z.object({
-    type: z.literal('html'),
+    type: z.enum(['html']),
     content: z.string().describe("A string of simple HTML content, such as for lists (<ul>, <ol>, <li>)."),
 });
 
-const FormBlockSchema = z.discriminatedUnion("type", [
-  FieldsBlockSchema,
-  HeadingBlockSchema,
-  ParagraphBlockSchema,
-  HtmlBlockSchema
-]);
+// This is the new, flexible block schema that avoids discriminated unions.
+// Each block has a 'type' and one of the corresponding content/field properties.
+export const FormBlockSchema = z.object({
+  type: z.enum(['fields', 'heading', 'paragraph', 'html'])
+    .describe("The type of content block."),
+  // Content for static blocks
+  content: z.string().optional().describe("The text or HTML content for 'heading', 'paragraph', or 'html' blocks."),
+  level: z.number().optional().describe("The heading level (1-6), only for 'heading' blocks."),
+  // Content for interactive field blocks
+  rows: z.array(GeneratedRowSchema).optional().describe("The rows of fields, only for 'fields' blocks."),
+}).describe("A single block of content or fields representing a part of the document.");
+
 
 export const GenerateFormOutputSchema = z.object({
   formName: z.string().describe("A concise and appropriate name for the entire form, derived from the PDF's title or content (e.g., 'Client Intake Form')."),
@@ -303,4 +313,3 @@ export type GeneratedRow = z.infer<typeof GeneratedRowSchema>;
 export type GeneratedColumn = z.infer<typeof GeneratedColumnSchema>;
 export type FormBlock = z.infer<typeof FormBlockSchema>;
     
-
