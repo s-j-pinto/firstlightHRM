@@ -1,0 +1,233 @@
+
+"use client";
+
+import { useState, useTransition } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Loader2, UploadCloud, FileJson, FileText, Check, ChevronsUpDown, Mail, Phone } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { generateFormFromPdf } from "@/lib/form-generator.actions";
+import { GeneratedField } from "@/ai/flows/generate-form-from-pdf";
+
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
+
+
+export default function PdfFormGenerator() {
+  const [file, setFile] = useState<File | null>(null);
+  const [generatedFields, setGeneratedFields] = useState<GeneratedField[]>([]);
+  const [formName, setFormName] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    if (selectedFile && selectedFile.type === "application/pdf") {
+      setFile(selectedFile);
+      setGeneratedFields([]); // Reset on new file selection
+      setFormName(null);
+    } else {
+      toast({
+        title: "Invalid File Type",
+        description: "Please select a PDF file.",
+        variant: "destructive",
+      });
+      setFile(null);
+    }
+  };
+
+  const handleGenerateForm = () => {
+    if (!file) {
+      toast({
+        title: "No File Selected",
+        description: "Please select a PDF file to generate a form from.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    startTransition(async () => {
+      try {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = async () => {
+          const pdfDataUri = reader.result as string;
+          const result = await generateFormFromPdf({ pdfDataUri });
+
+          if (result.error) {
+            throw new Error(result.error);
+          }
+          
+          if (result.formName && result.fields) {
+            setFormName(result.formName);
+            setGeneratedFields(result.fields);
+            toast({
+              title: "Form Generated Successfully",
+              description: `AI has created a form with ${result.fields.length} fields.`,
+            });
+          } else {
+             throw new Error("The AI did not return a valid form structure.");
+          }
+        };
+      } catch (e: any) {
+        toast({
+          title: "Form Generation Failed",
+          description: e.message || "An unknown error occurred.",
+          variant: "destructive",
+        });
+      }
+    });
+  };
+
+  const DynamicForm = ({ fields, formName }: { fields: GeneratedField[], formName: string }) => {
+    // Dynamically create a Zod schema from the generated fields
+    const dynamicSchema = z.object(
+      fields.reduce((schema, field) => {
+        let fieldSchema: z.ZodTypeAny;
+        switch (field.fieldType) {
+          case 'checkbox':
+            fieldSchema = field.required ? z.literal(true, { errorMap: () => ({ message: "This checkbox must be checked." }) }) : z.boolean();
+            break;
+          case 'email':
+            fieldSchema = z.string().email({ message: "Invalid email address." });
+            break;
+          case 'tel':
+            fieldSchema = z.string().min(10, { message: "Phone number seems too short." });
+            break;
+          default:
+            fieldSchema = z.string();
+        }
+        if (field.required && field.fieldType !== 'checkbox') {
+          fieldSchema = fieldSchema.min(1, { message: `${field.label} is required.` });
+        }
+        
+        schema[field.fieldName] = fieldSchema;
+        return schema;
+      }, {} as Record<string, z.ZodTypeAny>)
+    );
+
+    const form = useForm({
+      resolver: zodResolver(dynamicSchema),
+    });
+
+    function onSubmit(data: any) {
+      toast({
+        title: "Form Submitted!",
+        description: (
+          <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
+            <code className="text-white">{JSON.stringify(data, null, 2)}</code>
+          </pre>
+        ),
+      });
+    }
+
+    return (
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><FileText /> {formName}</CardTitle>
+          <CardDescription>This form was dynamically generated by AI from your PDF.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              {fields.map((field) => (
+                <FormField
+                  key={field.fieldName}
+                  control={form.control}
+                  name={field.fieldName}
+                  render={({ field: formField }) => {
+                    let inputComponent;
+                    switch (field.fieldType) {
+                      case 'textarea':
+                        inputComponent = <Textarea placeholder={`Enter ${field.label.toLowerCase()}`} {...formField} />;
+                        break;
+                      case 'checkbox':
+                        inputComponent = (
+                           <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                            <FormControl>
+                              <Checkbox checked={formField.value} onCheckedChange={formField.onChange} />
+                            </FormControl>
+                             <div className="space-y-1 leading-none">
+                              <FormLabel>{field.label}</FormLabel>
+                            </div>
+                           </FormItem>
+                        );
+                        // Checkbox has its own label structure
+                        return inputComponent;
+                      case 'select':
+                        inputComponent = (
+                           <Select onValueChange={formField.onChange} defaultValue={formField.value}>
+                            <FormControl>
+                              <SelectTrigger><SelectValue placeholder={`Select ${field.label.toLowerCase()}`} /></SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {field.options?.map(option => <SelectItem key={option} value={option}>{option}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        );
+                        break;
+                      default:
+                        inputComponent = <Input type={field.fieldType} placeholder={`Enter ${field.label.toLowerCase()}`} {...formField} />;
+                        break;
+                    }
+
+                    return (
+                      <FormItem>
+                        <FormLabel>{field.label}</FormLabel>
+                        <FormControl>{inputComponent}</FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
+                />
+              ))}
+              <Button type="submit">Submit Generated Form</Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  return (
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>Generate Form from PDF</CardTitle>
+          <CardDescription>
+            Upload a PDF document, and the AI will analyze it to generate a corresponding web form.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="pdf-upload">PDF Document</Label>
+            <Input id="pdf-upload" type="file" accept=".pdf" onChange={handleFileChange} />
+          </div>
+          <Button onClick={handleGenerateForm} disabled={isPending || !file}>
+            {isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <UploadCloud className="mr-2 h-4 w-4" />
+            )}
+            Generate Form
+          </Button>
+        </CardContent>
+      </Card>
+
+      {generatedFields.length > 0 && formName && (
+        <DynamicForm fields={generatedFields} formName={formName} />
+      )}
+    </>
+  );
+}
