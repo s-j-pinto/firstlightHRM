@@ -1018,8 +1018,8 @@ export default function ManageInterviewsClient() {
             <CardContent className="space-y-6">
                 <Form {...hiringForm}>
                     <form onSubmit={hiringForm.handleSubmit(onHiringSubmit)} className="space-y-8 pt-4">
-                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                             <FormField
+                        <div className="space-y-6">
+                            <FormField
                                 control={hiringForm.control}
                                 name="inPersonInterviewDate"
                                 render={({ field }) => (
@@ -1042,51 +1042,53 @@ export default function ManageInterviewsClient() {
                                     </FormItem>
                                 )}
                             />
-                            <FormField
-                                control={hiringForm.control}
-                                name="hireDate"
-                                render={({ field }) => (
-                                    <FormItem className="flex flex-col">
-                                        <FormLabel>Hire Date</FormLabel>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                            <FormControl>
-                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                </Button>
-                                            </FormControl>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0" align="start">
-                                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} />
-                                            </PopoverContent>
-                                        </Popover>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={hiringForm.control}
-                                name="hiringManager"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Hiring Manager</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value} disabled={!!existingEmployee}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select a hiring manager" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="Lolita Pinto">Lolita Pinto</SelectItem>
-                                                <SelectItem value="Jacqui Wilson">Jacqui Wilson</SelectItem>
-                                                <SelectItem value="Office Hiring Manager">Office Hiring Manager</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                            <div className="grid md:grid-cols-2 gap-6">
+                                <FormField
+                                    control={hiringForm.control}
+                                    name="hireDate"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-col">
+                                            <FormLabel>Hire Date</FormLabel>
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                <FormControl>
+                                                    <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                    </Button>
+                                                </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-auto p-0" align="start">
+                                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} />
+                                                </PopoverContent>
+                                            </Popover>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={hiringForm.control}
+                                    name="hiringManager"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Hiring Manager</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value} disabled={!!existingEmployee}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Select a hiring manager" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="Lolita Pinto">Lolita Pinto</SelectItem>
+                                                    <SelectItem value="Jacqui Wilson">Jacqui Wilson</SelectItem>
+                                                    <SelectItem value="Office Hiring Manager">Office Hiring Manager</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
                             <FormField
                                 control={hiringForm.control}
                                 name="teletrackPin"
