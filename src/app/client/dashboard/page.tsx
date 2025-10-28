@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useUser, firestore, useMemoFirebase } from "@/firebase";
+import { useUser, firestore } from "@/firebase";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2, FileText } from "lucide-react";
 import Link from 'next/link';
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { collection, query, where, getDocs } from "firebase/firestore";
+import { cn } from "@/lib/utils";
 
 export default function ClientDashboardPage() {
   const { user, isUserLoading } = useUser();
