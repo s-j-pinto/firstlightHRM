@@ -1019,30 +1019,30 @@ export default function ManageInterviewsClient() {
                 <Form {...hiringForm}>
                     <form onSubmit={hiringForm.handleSubmit(onHiringSubmit)} className="space-y-8 pt-4">
                         <div className="space-y-6">
-                            <FormField
-                                control={hiringForm.control}
-                                name="inPersonInterviewDate"
-                                render={({ field }) => (
-                                    <FormItem className="flex flex-col">
-                                        <FormLabel>Interview Date</FormLabel>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                            <FormControl>
-                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={true}>
-                                                    {field.value ? format(field.value, "PPP") : <span>N/A</span>}
-                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                </Button>
-                                            </FormControl>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0" align="start">
-                                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                                            </PopoverContent>
-                                        </Popover>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <div className="grid md:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
+                                <FormField
+                                    control={hiringForm.control}
+                                    name="inPersonInterviewDate"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-col">
+                                            <FormLabel>Interview Date</FormLabel>
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                <FormControl>
+                                                    <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={true}>
+                                                        {field.value ? format(field.value, "PPP") : <span>N/A</span>}
+                                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                    </Button>
+                                                </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-auto p-0" align="start">
+                                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                                </PopoverContent>
+                                            </Popover>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
                                 <FormField
                                     control={hiringForm.control}
                                     name="hireDate"
@@ -1088,20 +1088,20 @@ export default function ManageInterviewsClient() {
                                         </FormItem>
                                     )}
                                 />
+                                 <FormField
+                                    control={hiringForm.control}
+                                    name="teletrackPin"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>TeleTrack PIN</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="Enter PIN" {...field} value={field.value || ''} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
                             </div>
-                            <FormField
-                                control={hiringForm.control}
-                                name="teletrackPin"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>TeleTrack PIN</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="Enter PIN" {...field} value={field.value || ''} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
                         </div>
                         <FormField
                             control={hiringForm.control}
@@ -1144,4 +1144,5 @@ export default function ManageInterviewsClient() {
     
 
     
+
 
