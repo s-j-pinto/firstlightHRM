@@ -32,7 +32,7 @@ const formGenerationPrompt = ai.definePrompt({
   name: 'formGenerationPrompt',
   input: { schema: GenerateFormInputSchema },
   output: { schema: GenerateFormOutputSchema },
-  model: 'googleai/gemini-2.0-pro',
+  model: 'googleai/gemini-2.0-flash',
   prompt: `You are an expert AI assistant specialized in converting PDF documents into structured JSON data suitable for generating HTML forms.
 
 Your task is to analyze the provided PDF file and identify all the interactive form fields within it. This includes text inputs, email fields, phone numbers, text areas, checkboxes, radio button groups, and select/dropdown menus.
