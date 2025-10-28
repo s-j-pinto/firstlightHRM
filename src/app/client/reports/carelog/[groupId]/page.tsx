@@ -7,7 +7,7 @@ import { collection, query, where, doc } from 'firebase/firestore';
 import { firestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { CareLog, CareLogGroup } from '@/lib/types';
 import { format } from 'date-fns';
-import { Loader2, FileText, Calendar, Clock, User, Image as ImageIcon } from 'lucide-react';
+import { Loader2, FileText, Calendar, Clock, User, Image as ImageIcon, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -150,7 +150,7 @@ export default function CareLogReportPage() {
           <CardContent>
             <p>The care log group could not be found.</p>
             <Button asChild variant="link" className="mt-4">
-              <Link href="/staffing-admin">Return to Admin</Link>
+              <Link href="/client/dashboard">Return to Dashboard</Link>
             </Button>
           </CardContent>
         </Card>
@@ -168,6 +168,12 @@ export default function CareLogReportPage() {
         <p className="text-xl text-muted-foreground mt-1">
             Client: <span className="font-semibold text-foreground">{groupData.clientName}</span>
         </p>
+        <Button asChild variant="outline" className="mt-4">
+            <Link href="/client/dashboard">
+                <ArrowLeft className="mr-2" />
+                Back to Dashboard
+            </Link>
+        </Button>
       </div>
 
       {sortedLogs.length > 0 ? (
@@ -226,3 +232,5 @@ export default function CareLogReportPage() {
     </div>
   );
 }
+
+    
