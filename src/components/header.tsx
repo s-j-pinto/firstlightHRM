@@ -20,6 +20,7 @@ export function AppHeader() {
   
   const isAdminRoute = pathname.startsWith('/admin');
   const isStaffingAdminRoute = pathname.startsWith('/staffing-admin');
+  const isOwnerRoute = pathname.startsWith('/owner');
   const isClientRoute = pathname.startsWith('/client');
 
 
@@ -30,7 +31,7 @@ export function AppHeader() {
 
   const handleSignOut = async () => {
     await signOut(auth);
-    if(isAdminRoute || isStaffingAdminRoute) {
+    if(isAdminRoute || isStaffingAdminRoute || isOwnerRoute) {
         router.push("/admin-login");
     } else {
         router.push("/");
@@ -90,7 +91,14 @@ export function AppHeader() {
                 </Link>
                </>
             )}
-            {!user && !isUserLoading && !pathname.startsWith('/admin-login') && !pathname.startsWith('/login-form') && !pathname.startsWith('/caregiver-login') && !pathname.startsWith('/active-caregiver-login') && !pathname.startsWith('/client-login') && (
+             {isOwnerRoute && user && (
+               <>
+                <Link href="/owner/dashboard" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
+                    Owner Dashboard
+                </Link>
+               </>
+            )}
+            {!user && !isUserLoading && !pathname.startsWith('/admin-login') && !pathname.startsWith('/login-form') && !pathname.startsWith('/caregiver-login') && !pathname.startsWith('/active-caregiver-login') && !pathname.startsWith('/client-login') && !pathname.startsWith('/owner-login') && (
               <Button asChild variant="ghost">
                 <Link href="/caregiver-login">
                   <LogIn className="mr-2" />
