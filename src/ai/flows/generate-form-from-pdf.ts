@@ -14,7 +14,7 @@ import {
     GenerateFormInputSchema,
     GenerateFormOutputSchema,
     type GenerateFormInput,
-    type GenerateFormOutput 
+    type GeneratedForm as GenerateFormOutput
 } from '@/lib/types';
 
 
@@ -33,24 +33,30 @@ const formGenerationPrompt = ai.definePrompt({
   input: { schema: GenerateFormInputSchema },
   output: { schema: GenerateFormOutputSchema },
   model: 'googleai/gemini-2.0-flash',
-  prompt: `You are an expert AI assistant specialized in converting PDF documents into structured JSON data suitable for generating responsive HTML forms that visually mimic the PDF layout.
+  prompt: `You are an expert AI assistant that creates a "fillable PDF" like experience from a document.
 
-Your task is to analyze the provided PDF file and identify all the interactive form fields, including their layout in rows and columns.
+Your task is to analyze the provided PDF and convert its entire structure into a series of content 'blocks'. The goal is to create a JSON representation that can be rendered as a web form that looks and feels just like the original document.
 
-For each field, extract the following information:
-1.  **fieldName**: A unique, programmatic, camelCase name (e.g., 'fullName').
-2.  **fieldType**: The most semantically correct HTML input type. Use 'email' for emails, 'tel' for phones, 'date' for dates, 'textarea' for large multi-line boxes, and 'text' for general single-line inputs.
-3.  **label**: The exact user-visible text label for the field.
-4.  **options**: If the field is a 'select' or 'radio' group, provide an array of the available string options.
-5.  **required**: Determine if the field is mandatory (e.g., has an asterisk *).
+You must identify every piece of content, in order, and classify it into one of the following block types:
 
-Your primary goal is to group these fields into a layout that mirrors the PDF. Structure your output as an array of 'rows'. Each 'row' will contain an array of 'columns', and each 'column' will contain one or more 'fields'.
+1.  **'heading'**: For titles and section headers. Specify the appropriate heading level (1-6).
+2.  **'paragraph'**: For regular paragraphs of text, instructions, or boilerplate information.
+3.  **'html'**: For simple lists (<ul>, <ol>, <li>). Do not use for complex layouts.
+4.  **'fields'**: For sections that contain one or more interactive form fields (like text inputs, checkboxes, etc.).
 
-- A field that takes up the full width of a line should be in its own row, with one column containing that single field.
+For the **'fields'** blocks, you must identify their layout in rows and columns:
+- A field that takes up the full width should be in its own row, with one column containing that single field.
 - Fields that appear side-by-side in the PDF should be in the same row, each in its own column object.
-- A single column can contain multiple vertically-stacked fields if they are logically grouped (e.g., a checkbox list).
+- A single column can contain multiple vertically-stacked fields if they are logically grouped (e.g., a list of checkboxes).
 
-Return a single JSON object that strictly adheres to the output schema.
+For each interactive field you find, extract:
+- **fieldName**: A unique, programmatic, camelCase name (e.g., 'fullName').
+- **fieldType**: The most semantically correct HTML input type ('text', 'email', 'tel', 'date', 'textarea', 'checkbox', 'radio', 'select').
+- **label**: The exact user-visible text label.
+- **options**: An array of string options for 'select' or 'radio' groups.
+- **required**: Determine if the field is mandatory (e.g., marked with an asterisk *).
+
+Return a single JSON object that strictly adheres to the output schema. The final 'blocks' array should represent the entire document from top to bottom.
 
 PDF for analysis:
 {{media url=pdfDataUri}}

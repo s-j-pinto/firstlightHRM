@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, UploadCloud, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateFormFromPdf } from "@/lib/form-generator.actions";
-import { type GeneratedField, type GeneratedForm } from "@/lib/types";
+import { type GeneratedField, type GeneratedForm, type FormBlock } from "@/lib/types";
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,7 +23,10 @@ import { cn } from "@/lib/utils";
 
 
 const DynamicFormRenderer = ({ formDefinition }: { formDefinition: GeneratedForm }) => {
-  const allFields = formDefinition.rows.flatMap(row => row.columns.flatMap(col => col.fields));
+  const allFields = formDefinition.blocks
+    .filter((block): block is { type: 'fields'; rows: { columns: { fields: GeneratedField[] }[] }[] } => block.type === 'fields')
+    .flatMap(block => block.rows.flatMap(row => row.columns.flatMap(col => col.fields)));
+
 
   const dynamicSchema = z.object(
     allFields.reduce((schema, field) => {
@@ -136,6 +139,35 @@ const DynamicFormRenderer = ({ formDefinition }: { formDefinition: GeneratedForm
      )
   }
 
+  const renderBlock = (block: FormBlock, index: number) => {
+    switch (block.type) {
+        case 'heading':
+            const Tag = `h${block.level}` as keyof JSX.IntrinsicElements;
+            return <Tag key={index} className="font-bold text-xl my-4">{block.content}</Tag>;
+        case 'paragraph':
+            return <p key={index} className="text-muted-foreground my-2">{block.content}</p>;
+        case 'html':
+             return <div key={index} dangerouslySetInnerHTML={{ __html: block.content }} className="prose prose-sm text-muted-foreground my-2" />;
+        case 'fields':
+            return (
+                <div key={index} className="space-y-6">
+                    {block.rows.map((row, rowIndex) => (
+                        <div key={rowIndex} className={`grid gap-6`} style={{ gridTemplateColumns: `repeat(${row.columns.length}, minmax(0, 1fr))` }}>
+                            {row.columns.map((column, colIndex) => (
+                                <div key={colIndex} className="space-y-6">
+                                    {column.fields.map(field => renderField(field))}
+                                </div>
+                            ))}
+                        </div>
+                    ))}
+                </div>
+            );
+        default:
+            return null;
+    }
+  }
+
+
   return (
     <Card className="mt-6">
       <CardHeader>
@@ -145,15 +177,7 @@ const DynamicFormRenderer = ({ formDefinition }: { formDefinition: GeneratedForm
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            {formDefinition.rows.map((row, rowIndex) => (
-                <div key={rowIndex} className={`grid gap-6`} style={{ gridTemplateColumns: `repeat(${row.columns.length}, minmax(0, 1fr))` }}>
-                    {row.columns.map((column, colIndex) => (
-                        <div key={colIndex} className="space-y-6">
-                            {column.fields.map(field => renderField(field))}
-                        </div>
-                    ))}
-                </div>
-            ))}
+            {formDefinition.blocks.map((block, index) => renderBlock(block, index))}
             <Button type="submit">Submit Generated Form</Button>
           </form>
         </Form>
@@ -206,7 +230,7 @@ export default function PdfFormGenerator() {
             throw new Error(result.error);
           }
           
-          if (result.formName && result.rows) {
+          if (result.formName && result.blocks) {
             setGeneratedForm(result);
             toast({
               title: "Form Generated Successfully",

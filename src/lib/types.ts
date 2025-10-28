@@ -257,6 +257,7 @@ export const GenerateFormInputSchema = z.object({
 });
 export type GenerateFormInput = z.infer<typeof GenerateFormInputSchema>;
 
+
 const GeneratedColumnSchema = z.object({
   fields: z.array(GeneratedFieldSchema).describe("An array of one or more fields that appear in this column."),
 });
@@ -265,11 +266,41 @@ const GeneratedRowSchema = z.object({
   columns: z.array(GeneratedColumnSchema).describe("An array of columns for this row. A row with one column spans the full width. Multiple columns will be laid out side-by-side."),
 });
 
+const FieldsBlockSchema = z.object({
+    type: z.literal('fields'),
+    rows: z.array(GeneratedRowSchema),
+});
+
+const HeadingBlockSchema = z.object({
+    type: z.literal('heading'),
+    level: z.number().min(1).max(6).describe("The heading level, from 1 (largest) to 6 (smallest)."),
+    content: z.string().describe("The text content of the heading."),
+});
+
+const ParagraphBlockSchema = z.object({
+    type: z.literal('paragraph'),
+    content: z.string().describe("The text content of the paragraph."),
+});
+
+const HtmlBlockSchema = z.object({
+    type: z.literal('html'),
+    content: z.string().describe("A string of simple HTML content, such as for lists (<ul>, <ol>, <li>)."),
+});
+
+const FormBlockSchema = z.discriminatedUnion("type", [
+  FieldsBlockSchema,
+  HeadingBlockSchema,
+  ParagraphBlockSchema,
+  HtmlBlockSchema
+]);
+
 export const GenerateFormOutputSchema = z.object({
   formName: z.string().describe("A concise and appropriate name for the entire form, derived from the PDF's title or content (e.g., 'Client Intake Form')."),
-  rows: z.array(GeneratedRowSchema).describe("An array of row objects that define the form's layout."),
+  blocks: z.array(FormBlockSchema).describe("An array of content and field blocks that represent the document's structure."),
 });
 export type GeneratedForm = z.infer<typeof GenerateFormOutputSchema>;
 export type GeneratedRow = z.infer<typeof GeneratedRowSchema>;
 export type GeneratedColumn = z.infer<typeof GeneratedColumnSchema>;
+export type FormBlock = z.infer<typeof FormBlockSchema>;
     
+
