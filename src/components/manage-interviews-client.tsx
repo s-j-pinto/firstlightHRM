@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useMemo, useTransition, useEffect } from 'react';
@@ -572,7 +571,8 @@ export default function ManageInterviewsClient() {
   const isLoading = caregiversLoading || employeesLoading;
   const isPhoneScreenCompleted = existingInterview && existingInterview.phoneScreenPassed !== 'N/A';
   const isFinalInterviewPending = isPhoneScreenCompleted && existingInterview?.interviewPathway === 'separate' && existingInterview?.finalInterviewStatus === 'Pending';
-  const showCompletedSeparateFlowSummary = existingInterview?.interviewPathway === 'separate' && existingInterview?.finalInterviewStatus === 'Passed' && existingInterview?.orientationScheduled;
+  
+  const showCompletedSeparateFlowSummary = existingInterview?.interviewPathway === 'separate' && existingInterview?.finalInterviewStatus === 'Passed' && (existingInterview?.orientationScheduled || existingEmployee);
 
 
   return (
@@ -1012,125 +1012,137 @@ export default function ManageInterviewsClient() {
             <CardHeader>
                  <CardTitle>Hiring &amp; Onboarding: {selectedCaregiver?.fullName}</CardTitle>
                 <CardDescription>
-                    {existingEmployee ? "This caregiver has been hired. Review or update the details below." : "The candidate has passed all stages. Enter hiring details to complete onboarding."}
+                    {existingEmployee ? "This caregiver has been hired. Review the details below." : "The candidate has passed all stages. Enter hiring details to complete onboarding."}
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-                <Form {...hiringForm}>
-                    <form onSubmit={hiringForm.handleSubmit(onHiringSubmit)} className="space-y-8 pt-4">
-                        <div className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
-                                <FormField
-                                    control={hiringForm.control}
-                                    name="inPersonInterviewDate"
-                                    render={({ field }) => (
-                                        <FormItem className="flex flex-col">
-                                            <FormLabel>Interview Date</FormLabel>
-                                            <Popover>
-                                                <PopoverTrigger asChild>
+                {existingEmployee ? (
+                     <Alert>
+                        <UserCheck className="h-4 w-4" />
+                        <AlertTitle>Hiring Complete</AlertTitle>
+                        <AlertDescription>
+                            Hired On: <span className="font-semibold">{format((existingEmployee.hireDate as any).toDate(), 'PP')}</span>
+                            <br />
+                            Hiring Manager: <span className="font-semibold">{existingEmployee.hiringManager}</span>
+                        </AlertDescription>
+                    </Alert>
+                ) : (
+                    <Form {...hiringForm}>
+                        <form onSubmit={hiringForm.handleSubmit(onHiringSubmit)} className="space-y-8 pt-4">
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
+                                    <FormField
+                                        control={hiringForm.control}
+                                        name="inPersonInterviewDate"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-col">
+                                                <FormLabel>Interview Date</FormLabel>
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={true}>
+                                                            {field.value ? format(field.value, "PPP") : <span>N/A</span>}
+                                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                        </Button>
+                                                    </FormControl>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-auto p-0" align="start">
+                                                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                                    </PopoverContent>
+                                                </Popover>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={hiringForm.control}
+                                        name="hireDate"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-col">
+                                                <FormLabel>Hire Date</FormLabel>
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                        </Button>
+                                                    </FormControl>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-auto p-0" align="start">
+                                                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} />
+                                                    </PopoverContent>
+                                                </Popover>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={hiringForm.control}
+                                        name="hiringManager"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Hiring Manager</FormLabel>
+                                                <Select onValueChange={field.onChange} value={field.value} disabled={!!existingEmployee}>
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Select a hiring manager" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="Lolita Pinto">Lolita Pinto</SelectItem>
+                                                        <SelectItem value="Jacqui Wilson">Jacqui Wilson</SelectItem>
+                                                        <SelectItem value="Office Hiring Manager">Office Hiring Manager</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={hiringForm.control}
+                                        name="teletrackPin"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>TeleTrack PIN</FormLabel>
                                                 <FormControl>
-                                                    <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={true}>
-                                                        {field.value ? format(field.value, "PPP") : <span>N/A</span>}
-                                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                    </Button>
+                                                    <Input placeholder="Enter PIN" {...field} value={field.value || ''} />
                                                 </FormControl>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-auto p-0" align="start">
-                                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                                                </PopoverContent>
-                                            </Popover>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={hiringForm.control}
-                                    name="hireDate"
-                                    render={({ field }) => (
-                                        <FormItem className="flex flex-col">
-                                            <FormLabel>Hire Date</FormLabel>
-                                            <Popover>
-                                                <PopoverTrigger asChild>
-                                                <FormControl>
-                                                    <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                    </Button>
-                                                </FormControl>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-auto p-0" align="start">
-                                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} />
-                                                </PopoverContent>
-                                            </Popover>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={hiringForm.control}
-                                    name="hiringManager"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Hiring Manager</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value} disabled={!!existingEmployee}>
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select a hiring manager" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="Lolita Pinto">Lolita Pinto</SelectItem>
-                                                    <SelectItem value="Jacqui Wilson">Jacqui Wilson</SelectItem>
-                                                    <SelectItem value="Office Hiring Manager">Office Hiring Manager</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                 <FormField
-                                    control={hiringForm.control}
-                                    name="teletrackPin"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>TeleTrack PIN</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="Enter PIN" {...field} value={field.value || ''} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
                             </div>
-                        </div>
-                        <FormField
-                            control={hiringForm.control}
-                            name="hiringComments"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Hiring Comments</FormLabel>
-                                    <FormControl>
-                                        <Textarea placeholder="Additional comments about the hiring decision..." {...field} rows={4} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <div className="flex justify-end gap-4">
-                            {existingInterview?.interviewType === 'Google Meet' && existingInterview.googleMeetLink && (
-                                <Button type="button" variant="outline" onClick={handleLaunchMeet}>
-                                    <Video className="mr-2 h-4 w-4" />
-                                    Launch Google Meet
+                            <FormField
+                                control={hiringForm.control}
+                                name="hiringComments"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Hiring Comments</FormLabel>
+                                        <FormControl>
+                                            <Textarea placeholder="Additional comments about the hiring decision..." {...field} rows={4} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <div className="flex justify-end gap-4">
+                                {existingInterview?.interviewType === 'Google Meet' && existingInterview.googleMeetLink && (
+                                    <Button type="button" variant="outline" onClick={handleLaunchMeet}>
+                                        <Video className="mr-2 h-4 w-4" />
+                                        Launch Google Meet
+                                    </Button>
+                                )}
+                                <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
+                                <Button type="submit" disabled={isSubmitting}>
+                                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
+                                    {existingEmployee ? 'Update Record' : 'Complete Hiring'}
                                 </Button>
-                            )}
-                            <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
-                             <Button type="submit" disabled={isSubmitting}>
-                                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
-                                {existingEmployee ? 'Update Record' : 'Complete Hiring'}
-                            </Button>
-                        </div>
-                    </form>
-                </Form>
+                            </div>
+                        </form>
+                    </Form>
+                )}
             </CardContent>
         </Card>
       )}
@@ -1144,5 +1156,6 @@ export default function ManageInterviewsClient() {
     
 
     
+
 
 
