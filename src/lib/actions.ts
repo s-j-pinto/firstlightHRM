@@ -26,8 +26,6 @@ export async function submitCaregiverProfile(data: {
 }
 
 
-// This server action is now only responsible for redirection.
-// The data creation is handled on the client.
 export async function scheduleAppointment(data: z.infer<typeof appointmentSchema>) {
     const validatedFields = appointmentSchema.safeParse(data);
 
@@ -37,12 +35,10 @@ export async function scheduleAppointment(data: z.infer<typeof appointmentSchema
         return;
     }
     
-    // Although data is saved on client, we can still revalidate here
-    // to ensure the admin dashboard is updated.
+    // The data is now saved via createAppointmentAndSendAdminEmail
     revalidatePath("/admin");
     
+    // Redirect to confirmation using the primary start time
     const redirectUrl = `/confirmation?time=${validatedFields.data.startTime.toISOString()}`;
     redirect(redirectUrl);
 }
-
-    

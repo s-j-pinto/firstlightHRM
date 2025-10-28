@@ -6,19 +6,26 @@ import { serverDb } from "@/firebase/server-init";
 import { toZonedTime, format } from "date-fns-tz";
 import type { CaregiverProfile } from "./types";
 
-export async function createAppointmentAndSendAdminEmail({caregiverId, appointmentDate}: {caregiverId: string, appointmentDate: Date}) {
+export async function createAppointmentAndSendAdminEmail({caregiverId, preferredTimes}: {caregiverId: string, preferredTimes: Date[]}) {
     const firestore = serverDb;
     const adminEmail = "care-rc@firstlighthomecare.com";
     const pacificTimeZone = "America/Los_Angeles";
     const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
 
 
+    if (!preferredTimes || preferredTimes.length === 0) {
+        return { message: "No preferred times were provided.", error: true };
+    }
+    
+    const primaryStartTime = preferredTimes[0]; // The earliest time is the primary one
+
     try {
         // Step 1: Create the appointment document
         const appointmentData = {
             caregiverId: caregiverId,
-            startTime: appointmentDate,
-            endTime: new Date(appointmentDate.getTime() + 60 * 60 * 1000), // 60 min slot
+            startTime: primaryStartTime,
+            endTime: new Date(primaryStartTime.getTime() + 60 * 60 * 1000), // 60 min slot
+            preferredTimes: preferredTimes,
             createdAt: new Date(),
         };
         await firestore.collection('appointments').add(appointmentData);
@@ -31,9 +38,11 @@ export async function createAppointmentAndSendAdminEmail({caregiverId, appointme
         const caregiverData = caregiverProfileSnap.data() as CaregiverProfile;
 
         // Step 3: Construct and queue the admin notification email
-        const zonedStartTime = toZonedTime(appointmentDate, pacificTimeZone);
-        const formattedStartTime = format(zonedStartTime, "h:mm a", { timeZone: pacificTimeZone });
-        const formattedDate = format(zonedStartTime, "EEEE, MMMM do, yyyy", { timeZone: pacificTimeZone });
+        const formattedPreferredTimes = preferredTimes.map(time => {
+            const zonedTime = toZonedTime(time, pacificTimeZone);
+            return `<li>${format(zonedTime, "EEEE, MMMM do, yyyy 'at' h:mm a", { timeZone: pacificTimeZone })}</li>`;
+        }).join('');
+
 
         const email = {
             to: [adminEmail],
@@ -43,17 +52,19 @@ export async function createAppointmentAndSendAdminEmail({caregiverId, appointme
                   <body style="font-family: sans-serif; line-height: 1.6;">
                     <div style="max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
                       <h1 style="color: #333;">New Phone Interview Scheduled</h1>
-                      <p>A new phone interview has been requested by a caregiver candidate. Please review their details below and send a calendar invite from the dashboard.</p>
+                      <p>A new phone interview has been requested by a caregiver candidate. Please review their details and preferred times below, then send a calendar invite from the dashboard for the most suitable slot.</p>
                       
                       <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                        <h2 style="margin-top: 0; color: #555;">Appointment Details</h2>
-                        <p><strong>Caregiver:</strong> ${caregiverData.fullName || 'N/A'}</p>
-                        <p><strong>Date:</strong> ${formattedDate}</p>
-                        <p><strong>Time:</strong> ${formattedStartTime} (Pacific Time)</p>
+                        <h2 style="margin-top: 0; color: #555;">Candidate's Preferred Times</h2>
+                        <ul style="padding-left: 20px;">
+                           ${formattedPreferredTimes}
+                        </ul>
+                         <p><strong>Note:</strong> The earliest time has been set as the default on the dashboard.</p>
                       </div>
 
                       <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
                           <h2 style="margin-top: 0; color: #555;">Caregiver Snapshot</h2>
+                          <p><strong>Caregiver:</strong> ${caregiverData.fullName || 'N/A'}</p>
                           <p><strong>Email:</strong> ${caregiverData.email}</p>
                           <p><strong>Phone:</strong> ${caregiverData.phone}</p>
                           <p><strong>Experience:</strong> ${caregiverData.yearsExperience} years</p>

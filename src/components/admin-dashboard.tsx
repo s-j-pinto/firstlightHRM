@@ -24,6 +24,7 @@ import {
   AlertCircle,
   ExternalLink,
   Calendar as CalendarIcon,
+  Clock4
 } from "lucide-react";
 import Link from 'next/link';
 import { collection } from "firebase/firestore";
@@ -115,6 +116,7 @@ export default function AdminDashboard() {
       ...appt,
       startTime: (appt.startTime as any).toDate(), // Convert Firestore Timestamp to Date
       endTime: (appt.endTime as any).toDate(),
+      preferredTimes: appt.preferredTimes?.map(t => (t as any).toDate()),
       caregiver: caregiversMap.get(appt.caregiverId),
     }));
   }, [appointmentsData, caregiversData]);
@@ -219,6 +221,23 @@ export default function AdminDashboard() {
                     <Phone className="mr-2 h-4 w-4" />
                     <span>{appointment.caregiver?.phone}</span>
                   </div>
+                  
+                  {appointment.preferredTimes && appointment.preferredTimes.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold flex items-center mb-2">
+                        <Clock4 className="mr-2 h-4 w-4" />
+                        Candidate's Preferred Times:
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {appointment.preferredTimes.map((time, index) => (
+                          <Badge key={index} variant={appointment.startTime.getTime() === time.getTime() ? 'default' : 'secondary'}>
+                            {format(time, 'h:mm a')}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <Separator />
                   <div className="flex gap-2 mt-4">
                     <Dialog>
@@ -329,5 +348,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-
-    

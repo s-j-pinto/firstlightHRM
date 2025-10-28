@@ -79,6 +79,7 @@ export const appointmentSchema = z.object({
   caregiverId: z.string(),
   startTime: z.date(),
   endTime: z.date(),
+  preferredTimes: z.array(z.date()).optional(),
   inviteSent: z.boolean().optional(),
   appointmentStatus: z.string().optional(),
   cancelReason: z.string().optional(),
@@ -266,17 +267,15 @@ const GeneratedRowSchema = z.object({
   columns: z.array(GeneratedColumnSchema).describe("An array of columns for this row. A row with one column spans the full width. Multiple columns will be laid out side-by-side."),
 });
 
-// This is the new, flexible block schema that avoids discriminated unions.
-// Each block has a 'type' and one of the corresponding content/field properties.
+
 export const FormBlockSchema = z.object({
   type: z.enum(['fields', 'heading', 'paragraph', 'html'])
     .describe("The type of content block."),
-  // Content for static blocks
   content: z.string().optional().describe("The text or HTML content for 'heading', 'paragraph', or 'html' blocks."),
   level: z.number().optional().describe("The heading level (1-6), only for 'heading' blocks."),
-  // Content for interactive field blocks
   rows: z.array(GeneratedRowSchema).optional().describe("The rows of fields, only for 'fields' blocks."),
 }).describe("A single block of content or fields representing a part of the document.");
+export type FormBlock = z.infer<typeof FormBlockSchema>;
 
 
 export const GenerateFormOutputSchema = z.object({
@@ -286,5 +285,4 @@ export const GenerateFormOutputSchema = z.object({
 export type GeneratedForm = z.infer<typeof GenerateFormOutputSchema>;
 export type GeneratedRow = z.infer<typeof GeneratedRowSchema>;
 export type GeneratedColumn = z.infer<typeof GeneratedColumnSchema>;
-export type FormBlock = z.infer<typeof FormBlockSchema>;
     

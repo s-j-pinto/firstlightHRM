@@ -15,6 +15,7 @@ import { firestore, useFirestore, useCollection, useMemoFirebase } from "@/fireb
 import type { Appointment } from "@/lib/types";
 import { createAppointmentAndSendAdminEmail } from "@/lib/appointments.actions";
 import { collection } from "firebase/firestore";
+import { cn } from "@/lib/utils";
 
 
 interface AppointmentSchedulerProps {
@@ -27,7 +28,7 @@ interface AppointmentSchedulerProps {
 const pacificTimeZone = "America/Los_Angeles";
 
 export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmail, caregiverPhone }: AppointmentSchedulerProps) {
-  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const db = useFirestore();
@@ -66,22 +67,30 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
   }, [configuredSlots, appointmentsData]);
   
   const handleSelectSlot = (slot: string) => {
-    setSelectedSlot(slot);
+    setSelectedSlots(prev => {
+      if (prev.includes(slot)) {
+        return prev.filter(s => s !== slot);
+      }
+      if (prev.length < 3) {
+        return [...prev, slot];
+      }
+      return prev;
+    });
   };
 
   const handleSubmit = () => {
-    if (!selectedSlot || !caregiverId) {
+    if (selectedSlots.length !== 3 || !caregiverId) {
         toast({
             variant: "destructive",
-            title: "Error",
-            description: "Please select a time slot.",
+            title: "Selection Required",
+            description: "Please select exactly 3 time slots.",
         });
         return;
     }
     
     startTransition(async () => {
-        const appointmentDate = fromZonedTime(selectedSlot, pacificTimeZone);
-        const result = await createAppointmentAndSendAdminEmail({ caregiverId, appointmentDate });
+        const appointmentDates = selectedSlots.map(slot => fromZonedTime(slot, pacificTimeZone)).sort((a,b) => a.getTime() - b.getTime());
+        const result = await createAppointmentAndSendAdminEmail({ caregiverId, preferredTimes: appointmentDates });
 
         if (result.error) {
             toast({
@@ -90,7 +99,7 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
                 description: result.message,
             });
         } else {
-             const redirectUrl = `/confirmation?time=${appointmentDate.toISOString()}`;
+             const redirectUrl = `/confirmation?time=${appointmentDates[0].toISOString()}`;
              router.push(redirectUrl);
         }
     });
@@ -103,7 +112,7 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
       <CardHeader>
         <CardTitle className="text-3xl font-bold text-center font-headline">Schedule Your Interview</CardTitle>
         <CardDescription className="text-center">
-          Congratulations, {caregiverName}! Please select a time slot for your interview.
+          Congratulations, {caregiverName}! Please select 3 preferred time slots for your interview.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -122,17 +131,21 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
                     {format(parse(date, "yyyy-MM-dd", new Date()), "EEEE, MMMM do")}
                   </h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                    {slots.map((slot) => (
-                      <Button
-                        key={slot}
-                        variant={selectedSlot === slot ? "default" : "outline"}
-                        onClick={() => handleSelectSlot(slot)}
-                        className={selectedSlot === slot ? "bg-primary hover:bg-primary/90" : ""}
-                      >
-                        <Clock className="h-4 w-4 mr-2" />
-                        {format(parse(slot, "yyyy-MM-dd HH:mm", new Date()), "h:mm a")}
-                      </Button>
-                    ))}
+                    {slots.map((slot) => {
+                      const isSelected = selectedSlots.includes(slot);
+                      return (
+                        <Button
+                          key={slot}
+                          variant={isSelected ? "default" : "outline"}
+                          onClick={() => handleSelectSlot(slot)}
+                          className={cn(isSelected ? "bg-primary hover:bg-primary/90" : "", selectedSlots.length >= 3 && !isSelected && "bg-muted/50 text-muted-foreground cursor-not-allowed")}
+                          disabled={selectedSlots.length >= 3 && !isSelected}
+                        >
+                          <Clock className="h-4 w-4 mr-2" />
+                          {format(parse(slot, "yyyy-MM-dd HH:mm", new Date()), "h:mm a")}
+                        </Button>
+                      )
+                    })}
                   </div>
                 </div>
               ))
@@ -145,10 +158,13 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
             )}
             {availableSlots.length > 0 && (
                 <div className="pt-6 flex flex-col items-center">
+                    <p className="text-sm font-medium mb-2">
+                        {selectedSlots.length} of 3 slots selected
+                    </p>
                     <Button
                         size="lg"
                         onClick={handleSubmit}
-                        disabled={!selectedSlot || isPending}
+                        disabled={selectedSlots.length !== 3 || isPending}
                         className="bg-accent hover:bg-accent/90 w-full max-w-xs"
                     >
                         {isPending ? (
@@ -156,7 +172,7 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
                         ) : null}
                         Confirm Appointment
                     </Button>
-                    {!selectedSlot && <p className="text-sm text-muted-foreground mt-2">Please select a time slot to continue.</p>}
+                    {selectedSlots.length !== 3 && <p className="text-sm text-muted-foreground mt-2">Please select exactly 3 time slots to continue.</p>}
                 </div>
             )}
           </div>
