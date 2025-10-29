@@ -124,6 +124,11 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
   }
 
   const renderBlock = (block: FormBlock, index: number) => {
+    // Skip rendering the hardcoded text logos
+    if (block.type === 'heading' && (block.content?.toLowerCase().includes('firstlight') || block.content?.toLowerCase().includes('home care'))) {
+        return null;
+    }
+      
     switch (block.type) {
         case 'heading':
             const Tag = `h${block.level}` as keyof JSX.IntrinsicElements;
@@ -215,8 +220,9 @@ export default function ClientSignupForm() {
   const handleSaveTemplate = (formData: any) => {
     if (!template) return;
 
-    // Create a plain object to pass to the server action, excluding the Timestamp.
+    // Create a plain object to pass to the server action, excluding any Timestamps.
     const plainTemplate: GeneratedForm = {
+        jsxString: template.jsxString,
         formName: template.formName,
         blocks: template.blocks,
     };
@@ -257,5 +263,3 @@ export default function ClientSignupForm() {
 
   return <DynamicFormRenderer formDefinition={template} onSave={handleSaveTemplate} isSaving={isSaving} />;
 }
-
-    
