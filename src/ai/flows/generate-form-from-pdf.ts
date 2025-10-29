@@ -35,31 +35,18 @@ const formGenerationPrompt = ai.definePrompt({
   model: 'googleai/gemini-2.0-flash-lite',
   prompt: `You are an expert React developer specializing in creating forms with ShadCN UI and Tailwind CSS.
 
-Your task is to analyze the provided PDF and convert its entire structure into a single, self-contained React JSX component string. The component should be fully functional and ready to be rendered.
+Your task is to analyze the provided PDF and convert its entire structure into a structured JSON object representing a form.
 
 **CRITICAL INSTRUCTIONS:**
-1.  **Single Component String**: The entire output must be a single string of JSX code. Do not wrap it in markdown or any other formatting.
-2.  **Full Document**: Process ALL pages of the PDF from start to finish. The final component must represent the entire document.
-3.  **Styling**: Use Tailwind CSS for all styling. Replicate the PDF's layout using divs, flexbox, and grids. Use appropriate ShadCN components (\`Input\`, \`Checkbox\`, \`RadioGroup\`, \`Select\`, \`Textarea\`, \`Card\`, \`CardHeader\`, \`CardContent\`, etc.). Import them from "@/components/ui/...".
-4.  **Component Definition**:
-    - The component must be a default exported function.
-    - It must accept a single prop: \`{ formData, onFormChange, isReadOnly }\`.
-    - Every input field must have its \`value\` tied to \`formData.fieldName\` and its \`onChange\` handler must call \`onFormChange\`.
-    - Add the \`readOnly={isReadOnly}\` attribute to all input fields to control their state.
-5.  **Field Naming**: Use unique, descriptive, camelCase names for all form fields (e.g., \`clientName\`, \`emergencyContactPhone\`).
-6.  **Structure**:
-    - Use \`<Card>\`, \`<CardHeader>\`, and \`<CardContent>\` for logical sections.
-    - Use \`<FormLabel>\` for all field labels.
-    - Use \`<p>\` tags with Tailwind classes like \`text-muted-foreground\` for instructional text.
-    - Replicate the layout of fields (side-by-side vs. stacked) using \`div\` containers with flexbox or grid classes (e.g., \`grid grid-cols-2 gap-4\`).
+1.  **Full Document**: Process ALL pages of the PDF from start to finish.
+2.  **Structure**: The output must be a JSON object with a 'formName' and an array of 'blocks'. Each block can be a heading, paragraph, or a group of fields.
+3.  **Field Identification**:
+    *   Identify all input fields, checkboxes, radio buttons, text areas, and select dropdowns.
+    *   **Crucially, identify fields that are embedded within sentences.** For example, in the sentence "The hourly rate for providing the Services is $______.", the blank should be identified as a 'text' field named 'hourlyRate' with the label 'The hourly rate for providing the Services is $'. The surrounding text should be part of the paragraph.
+4.  **Field Naming**: Use unique, descriptive, camelCase names for all form fields (e.g., \`clientName\`, \`emergencyContactPhone\`).
+5.  **Layout Replication**: Replicate the PDF's layout by grouping fields into rows and columns within 'fields' blocks.
 
-**EXAMPLE of a single field:**
-\`<div className="space-y-2">
-  <FormLabel htmlFor="clientName">Client Name</FormLabel>
-  <Input id="clientName" name="clientName" value={formData.clientName || ''} onChange={onFormChange} readOnly={isReadOnly} />
-</div>\`
-
-Return ONLY the raw JSX string for the complete React component.
+Return ONLY the raw JSON object.
 
 PDF for analysis:
 {{media url=pdfDataUri}}
@@ -76,13 +63,10 @@ const generateFormFromPdfFlow = ai.defineFlow(
   async (input) => {
     const { output } = await formGenerationPrompt(input);
     
-    if (!output || !output.jsxString) {
-      throw new Error("The AI model did not return a valid JSX component string.");
+    if (!output || !output.formName || !output.blocks) {
+      throw new Error("The AI model did not return a valid form structure.");
     }
     
-    // Replace backticks that the model sometimes adds around the JSX string
-    const cleanedJsxString = output.jsxString.replace(/^```jsx\n|```$/g, '').trim();
-
-    return { jsxString: cleanedJsxString };
+    return output;
   }
 );

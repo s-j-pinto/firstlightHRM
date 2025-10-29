@@ -48,12 +48,13 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
       relationshipIfNotClient: z.string().optional(),
       representativeSignatureDate: z.string().optional(),
       companionCareClientInitials: z.string().optional(),
+      hourlyRate: z.string().optional(),
       // Add other fields from your dynamic form here if needed for validation
   });
 
   const form = useForm({
     resolver: zodResolver(formSchema),
-    defaultValues: { clientEmail: '', todaysDate: '', referralDate: '', dateOfInitialContact: '', clientNameAgreement: '', signatureDate: '', relationshipIfNotClient: '', representativeSignatureDate: '', companionCareClientInitials: '' },
+    defaultValues: { clientEmail: '', todaysDate: '', referralDate: '', dateOfInitialContact: '', clientNameAgreement: '', signatureDate: '', relationshipIfNotClient: '', representativeSignatureDate: '', companionCareClientInitials: '', hourlyRate: '' },
   });
 
   const onSubmit = (data: any) => {
@@ -190,6 +191,30 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
     if (block.type === 'paragraph') {
       let content: React.ReactNode = block.content;
       
+      const hourlyRateText = "The hourly rate for providing the Services is";
+      if (typeof content === 'string' && content.includes(hourlyRateText)) {
+        const parts = content.split(hourlyRateText);
+        return (
+          <p key={index} className="text-muted-foreground my-2 flex items-center flex-wrap">
+            {parts[0]}
+            {hourlyRateText}
+            <FormField
+                control={form.control}
+                name="hourlyRate"
+                render={({ field }) => (
+                    <FormItem className='flex items-center'>
+                        <FormControl>
+                            <Input type="text" className="inline-block w-20 h-8 mx-1 px-2" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+            {parts[1]}
+          </p>
+        );
+      }
+      
       const rateTextStart = "The rates are provided on a current rate card dated";
       const rateTextEnd = "and will be used to calculate the Client's";
 
@@ -226,19 +251,6 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                 <span className="bg-yellow-200 p-1">{cancellationText}</span>
                 {parts[1]}
             </>
-        );
-      }
-
-      const hourlyRateText = "The hourly rate for providing the Services is";
-      if (typeof content === 'string' && content.includes(hourlyRateText)) {
-        const parts = content.split(hourlyRateText);
-        return (
-          <p key={index} className="text-muted-foreground my-2 flex items-center flex-wrap">
-            {parts[0]}
-            {hourlyRateText}
-            <Input type="text" className="inline-block w-20 h-8 mx-1 px-2" />
-            {parts[1]}
-          </p>
         );
       }
       
