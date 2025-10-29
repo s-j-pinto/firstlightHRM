@@ -272,8 +272,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                         )
                     })}
                 </div>
-
-                 {/* This renders the Companion Care checkboxes from the template */}
+                
                 <h2 className="text-xl font-bold text-center my-4 pt-6">Companion Care</h2>
                 {block.rows && block.rows.map((row, rowIndex) => (
                     <div key={rowIndex} className="space-y-6">
@@ -297,18 +296,13 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
     
     switch (block.type) {
         case 'heading':
-            const Tag = `h${block.level}` as keyof JSX.IntrinsicElements;
+            const Tag = `h${block.level || 2}` as keyof JSX.IntrinsicElements;
             return <Tag key={index} className="font-bold text-xl my-4">{block.content}</Tag>;
         case 'paragraph':
             return <p key={index} className="text-muted-foreground my-2">{block.content}</p>;
         case 'html':
              return <div key={index} dangerouslySetInnerHTML={{ __html: block.content }} className="prose prose-sm text-muted-foreground my-2" />;
         case 'fields':
-            // This case handles the Companion Care checkboxes if they come in a separate block.
-            if (block.rows?.some(row => row.columns.some(col => col.fields?.some(f => f.label.toLowerCase().includes('companion care'))))) {
-                // We're handling this within the servicePlanText check, so we can return null here to avoid duplication.
-                return null;
-            }
             return (
                 <div key={index} className="space-y-6">
                     {block.rows?.map((row, rowIndex) => (
@@ -336,16 +330,6 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
   return (
     <Card>
       <CardHeader>
-        <div className="flex justify-center my-6">
-            <Image
-                src="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc"
-                alt="FirstLight Home Care Logo"
-                width={250}
-                height={40}
-                priority
-                className="object-contain"
-            />
-        </div>
         <CardTitle className="flex items-center gap-2 pt-4"><FileText /> {formDefinition?.formName || 'Client Intake Form'}</CardTitle>
         <CardDescription>
             This form is based on the saved template. Review and fill out the details below.
