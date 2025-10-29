@@ -137,6 +137,23 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
   }
 
   const renderBlock = (block: FormBlock, index: number) => {    
+    
+    // Check for the specific heading text to be replaced by the logo
+    if (block.type === 'heading' && block.content?.toUpperCase().includes('FIRSTLIGHT HOME CARE')) {
+        return (
+            <div key={index} className="flex justify-center my-6">
+                <Image
+                    src="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc"
+                    alt="FirstLight Home Care Logo"
+                    width={250}
+                    height={40}
+                    priority
+                    className="object-contain"
+                />
+            </div>
+        );
+    }
+    
     if (block.type === 'paragraph' && block.content) {
       const rateText = "The hourly rate for providing the Services is $";
       const minHoursText = "FirstLight Home Care of Rancho Cucamonga for a minimum of";
@@ -193,12 +210,6 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
     }
   }
 
-  // Filter out the unwanted logo text blocks before rendering
-  const filteredBlocks = formDefinition.blocks.filter((block: FormBlock) => 
-    !(block.type === 'heading' && block.content?.toUpperCase().includes('FIRSTLIGHT'))
-  );
-
-
   return (
     <Card>
       <CardHeader>
@@ -210,16 +221,6 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <div className="flex justify-center mb-6">
-                <Image
-                    src="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc"
-                    alt="FirstLight Home Care Logo"
-                    width={250}
-                    height={40}
-                    priority
-                    className="object-contain"
-                />
-            </div>
              <FormField
                 control={form.control}
                 name="clientEmail"
@@ -232,7 +233,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                     </FormItem>
                 )} />
 
-            {filteredBlocks.map((block: FormBlock, index: number) => renderBlock(block, index))}
+            {formDefinition.blocks.map((block: FormBlock, index: number) => renderBlock(block, index))}
 
             <div className="flex justify-end gap-4">
                 <Button type="button" onClick={() => onSave(form.getValues())} disabled={isSaving}>
@@ -263,7 +264,6 @@ export default function ClientSignupForm() {
 
     // Create a plain object to pass to the server action, excluding any Timestamps.
     const plainTemplate: GeneratedForm = {
-        jsxString: template.jsxString,
         formName: template.formName,
         blocks: template.blocks,
     };
