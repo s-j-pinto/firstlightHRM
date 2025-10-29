@@ -380,6 +380,21 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                         )} />
                 </div>
             </div>
+            
+            <div className="pt-6 text-center">
+                <div className="flex justify-center my-6">
+                    <Image
+                        src="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc"
+                        alt="FirstLight Home Care Logo"
+                        width={250}
+                        height={40}
+                        priority
+                        className="object-contain"
+                    />
+                </div>
+                <h2 className="font-bold text-xl my-4">AGREEMENT TO ACCEPT PAYMENT RESPONSIBILITY AND CONSENT FOR USE AND DISCLOSURE OF PERSONAL INFORMATION-PRIVATE PAY</h2>
+            </div>
+
 
             <div className="flex justify-end gap-4">
                 <Button type="button" onClick={() => onSave(form.getValues())} disabled={isSaving}>
