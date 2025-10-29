@@ -40,12 +40,15 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
 
   const formSchema = z.object({
       clientEmail: z.string().email("A valid client email is required to send the signature link."),
+      todaysDate: z.string().optional(),
+      referralDate: z.string().optional(),
+      dateOfInitialContact: z.string().optional(),
       // Add other fields from your dynamic form here if needed for validation
   });
 
   const form = useForm({
     resolver: zodResolver(formSchema),
-    defaultValues: { clientEmail: '' },
+    defaultValues: { clientEmail: '', todaysDate: '', referralDate: '', dateOfInitialContact: '' },
   });
 
   const onSubmit = (data: any) => {
@@ -149,7 +152,27 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
           col.fields?.some(field => waiverCheckboxLabels.includes(field.label))
         )
       );
-
+  
+    if (block.type === 'heading' && block.content && block.content.trim().toUpperCase().includes('FIRSTLIGHT')) {
+        return (
+            <div key={index} className="break-before-page flex justify-center my-6">
+            <Image
+                src="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc"
+                alt="FirstLight Home Care Logo"
+                width={250}
+                height={40}
+                priority
+                className="object-contain"
+            />
+            </div>
+        );
+    }
+    
+    // Skip rendering the "HOME CARE" and "®" blocks
+    if (block.content && (block.content.trim().toUpperCase() === "HOME CARE" || block.content.trim() === "®")) {
+        return null;
+    }
+  
     if (isWaiverBlock) {
       const allFields = block.rows!.flatMap(row => row.columns.flatMap(col => col.fields || []));
       return (
@@ -159,54 +182,22 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
       );
     }
       
-    if (block.type === 'heading' && block.content && block.content.trim().toUpperCase().includes('FIRSTLIGHT')) {
-      return (
-        <div key={index} className="break-before-page flex justify-center my-6">
-          <Image
-            src="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc"
-            alt="FirstLight Home Care Logo"
-            width={250}
-            height={40}
-            priority
-            className="object-contain"
-          />
-        </div>
-      );
-    }
-    
-    // Skip rendering the "HOME CARE" and "®" blocks
-    if (block.content && (block.content.trim().toUpperCase() === "HOME CARE" || block.content.trim() === "®")) {
-        return null;
-    }
-
     if (block.type === 'paragraph') {
       let content: React.ReactNode = block.content;
       
-      const dateTextStart = "The rates are provided on a current rate card dated";
-      const dateTextEnd = "and will be used to calculate the Client's";
+      const rateTextStart = "The rates are provided on a current rate card dated";
+      const rateTextEnd = "and will be used to calculate the Client's";
 
-      if (typeof content === 'string' && content.startsWith(dateTextStart) && content.includes(dateTextEnd)) {
-        const parts = content.split(dateTextEnd);
-        return (
-            <p key={index} className="text-muted-foreground my-2">
-                {dateTextStart}
-                <Input type="date" className="inline-block w-40 h-8 mx-1 px-2" />
-                {dateTextEnd}
-                {parts.slice(1).join(dateTextEnd)}
-            </p>
-        );
-      }
-      
-      const rateText = "The hourly rate for providing the Services is $";
-      if (typeof content === 'string' && content.includes(rateText)) {
-        const parts = content.split(rateText);
-        content = (
-          <>
-            {parts[0]}{rateText}
-            <Input type="number" className="inline-block w-20 h-8 mx-1 px-2" />
-            {parts[1]}
-          </>
-        );
+      if (typeof content === 'string' && content.startsWith(rateTextStart) && content.includes(rateTextEnd)) {
+          const parts = content.split(rateTextEnd);
+          return (
+              <p key={index} className="text-muted-foreground my-2 flex items-center flex-wrap">
+                  {rateTextStart}
+                  <Input type="date" className="inline-block w-40 h-8 mx-2 px-2" />
+                  {rateTextEnd}
+                  {parts.slice(1).join(rateTextEnd)}
+              </p>
+          );
       }
       
       const minHoursText = "FirstLight Home Care of Rancho Cucamonga for a minimum of ";
@@ -219,32 +210,8 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
             {parts[1]}
           </>
          )
-      } else if (typeof block.content === 'string' && block.content.includes(rateText) && block.content.includes(minHoursText)) {
-         const rateParts = block.content.split(rateText);
-         const minHoursParts = rateParts[1].split(minHoursText);
-         content = (
-           <>
-            {rateParts[0]}{rateText}
-            <Input type="number" className="inline-block w-20 h-8 mx-1 px-2" />
-            {minHoursParts[0]}{minHoursText}
-            <Input type="number" className="inline-block w-20 h-8 mx-1 px-2" />
-            {minHoursParts[1]}
-          </>
-         );
       }
       
-      const calculationText = "and will be used to calculate the Client's invoice based on actual hours of Service provided.";
-       if (typeof content === 'string' && content.includes(calculationText) && !content.includes(dateTextStart)) {
-        const parts = content.split("and will be used to calculate the Client's");
-        return (
-            <p key={index} className="text-muted-foreground my-2">
-                {parts[0]}
-                <Input type="text" className="inline-block w-32 h-8 mx-1 px-2" />
-                and will be used to calculate the Client's{parts[1]}
-            </p>
-        );
-      }
-
       const cancellationText = "If there is same day cancellation, client will be charged for full scheduled hours, except if there is a medical emergency.";
       if (typeof content === 'string' && content.includes(cancellationText)) {
         const parts = content.split(cancellationText);
@@ -298,15 +265,6 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                     })}
                 </div>
                  <h2 className="text-xl font-bold text-center my-4 pt-6">Companion Care</h2>
-                {block.rows && block.rows.map((row, rowIndex) => (
-                    <div key={rowIndex} className="space-y-6">
-                        {row.columns.map((column, colIndex) => (
-                            <div key={colIndex} className="space-y-6">
-                                {column.fields?.map(field => renderField(field))}
-                            </div>
-                        ))}
-                    </div>
-                ))}
             </React.Fragment>
         )
       }
@@ -385,6 +343,42 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                         </FormItem>
                     )}
                 />
+            </div>
+
+            <div className="border p-4 rounded-md space-y-4 mt-8">
+                <h3 className="font-semibold text-lg text-center">For Office Use Only</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                     <FormField
+                        control={form.control}
+                        name="todaysDate"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>TODAY'S DATE</FormLabel>
+                                <FormControl><Input type="date" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                     <FormField
+                        control={form.control}
+                        name="referralDate"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>REFERRAL DATE</FormLabel>
+                                <FormControl><Input type="date" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                     <FormField
+                        control={form.control}
+                        name="dateOfInitialContact"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>DATE OF INITIAL CLIENT CONTACT</FormLabel>
+                                <FormControl><Input type="date" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                </div>
             </div>
 
             <div className="flex justify-end gap-4">
