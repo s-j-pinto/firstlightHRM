@@ -138,7 +138,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
 
   const renderBlock = (block: FormBlock, index: number) => {    
     
-    if (block.type === 'heading' && block.content?.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().includes('FIRSTLIGHTHOMECARE')) {
+    if (block.type === 'heading' && block.content?.replace(/[^a-zA-Z]/g, '').toUpperCase().includes('FIRSTLIGHTHOMECARE')) {
         return (
             <div key={index} className="break-before-page flex justify-center my-6">
                 <Image
@@ -161,7 +161,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
       
       let content: React.ReactNode = block.content;
 
-      if (content.includes(rateText)) {
+      if (typeof content === 'string' && content.includes(rateText)) {
         const parts = content.split(rateText);
         content = (
           <>
@@ -182,17 +182,17 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
           </>
          )
       } else if (typeof content !== 'string' && block.content.includes(minHoursText)) {
-         // This handles the case where content is already a React node from the previous `if`
-         const parts = block.content.split(minHoursText);
+         const originalContentString = block.content;
+         const rateParts = originalContentString.split(rateText);
+         const minHoursParts = rateParts[1].split(minHoursText);
+         
          content = (
            <>
-            {/* Logic to reconstruct the first part if it contained the rateText input */}
-            {block.content.split(rateText)[0]}{rateText}
+            {rateParts[0]}{rateText}
             <Input type="number" className="inline-block w-20 h-8 mx-1 px-2" />
-            {block.content.split(rateText)[1].split(minHoursText)[0]}
-            {minHoursText}
+            {minHoursParts[0]}{minHoursText}
             <Input type="number" className="inline-block w-20 h-8 mx-1 px-2" />
-            {parts[1]}
+            {minHoursParts[1]}
           </>
          );
       }
