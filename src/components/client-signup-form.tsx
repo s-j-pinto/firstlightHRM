@@ -272,7 +272,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                 <p className="text-muted-foreground my-2">{content}</p>
                 
                 <h2 className="text-xl font-bold text-center my-4 pt-6">Personal Care Services</h2>
-                <div className="space-y-2">
+                <div className="grid grid-cols-4 gap-4">
                     {personalCareCheckboxes.map((label, i) => {
                         const fieldName = `personalCare_${i}`;
                         return (
