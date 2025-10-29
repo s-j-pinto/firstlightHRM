@@ -136,7 +136,8 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
      )
   }
 
- const renderBlock = (block: FormBlock, index: number) => {
+  const [termsFound, setTermsFound] = useState(false);
+  const renderBlock = (block: FormBlock, index: number) => {
     // Skip rendering the hardcoded text logos
     if (block.type === 'heading' && (block.content?.toLowerCase().includes('firstlight') || block.content?.toLowerCase().includes('home care'))) {
         return null;
@@ -170,7 +171,31 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
          )
       }
     }
-      
+
+    if (block.type === 'heading' && block.content?.toUpperCase().includes('TERMS AND CONDITIONS') && !termsFound) {
+      setTermsFound(true); // Prevent this from rendering multiple times
+      return (
+        <div key="logo-and-terms-wrapper">
+            <div className="flex justify-center mb-6">
+                <Image
+                    src="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc"
+                    alt="FirstLight Home Care Logo"
+                    width={250}
+                    height={40}
+                    priority
+                    className="object-contain"
+                />
+            </div>
+            <h2 className="font-bold text-xl my-4 text-center">{block.content}</h2>
+        </div>
+      );
+    }
+
+    // Don't render anything until we find the terms and conditions
+    if (!termsFound) {
+      return null;
+    }
+
     switch (block.type) {
         case 'heading':
             const Tag = `h${block.level}` as keyof JSX.IntrinsicElements;
@@ -208,16 +233,6 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
         </CardDescription>
       </CardHeader>
       <CardContent>
-         <div className="flex justify-center mb-6">
-            <Image
-                src="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc"
-                alt="FirstLight Home Care Logo"
-                width={250}
-                height={40}
-                priority
-                className="object-contain"
-            />
-        </div>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
              <FormField
