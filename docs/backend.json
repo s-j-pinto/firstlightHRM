@@ -248,6 +248,22 @@
         },
         "required": ["clientId", "clientName", "preferredDateTime", "duration", "reason", "urgency", "status", "createdAt"]
     },
+    "ClientSignup": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ClientSignup",
+      "type": "object",
+      "description": "Tracks the state of a new client intake form.",
+      "properties": {
+        "formData": { "type": "object", "description": "The partially or fully completed form data." },
+        "clientEmail": { "type": "string", "format": "email", "description": "The primary email of the client signing up." },
+        "status": { "type": "string", "enum": ["New", "Sent For Signature", "Completed"], "description": "The current status of the signup process." },
+        "formTemplateId": { "type": "string", "description": "The ID of the form template used for this signup." },
+        "completedPdfUrl": { "type": "string", "format": "uri", "description": "The URL to the final, signed PDF in Google Cloud Storage." },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastUpdatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["formData", "clientEmail", "status", "createdAt", "lastUpdatedAt"]
+    },
     "CareLogTemplate": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "title": "CareLogTemplate",
@@ -309,6 +325,10 @@
     "/client_additional_care_requests/{requestId}": {
       "schema": { "$ref": "#/entities/ClientCareRequest" },
       "description": "Stores requests from clients for additional care hours."
+    },
+    "/client_signups/{signupId}": {
+      "schema": { "$ref": "#/entities/ClientSignup" },
+      "description": "Tracks the state of a new client intake form through the signing process."
     },
     "/carelog_templates/{templateId}": {
       "schema": { "$ref": "#/entities/CareLogTemplate" },

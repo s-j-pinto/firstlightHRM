@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useTransition, useRef } from "react";
@@ -17,17 +18,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, FileText, RefreshCw } from "lucide-react";
+import { Loader2, FileText, RefreshCw, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { type GeneratedForm, type GeneratedField, type FormBlock } from "@/lib/types";
 
 // Placeholder for the server action
-async function processClientIntake(data: any): Promise<{ error?: string; message?: string }> {
-  console.log("Submitting Client Intake Data:", data);
-  // This is where the Genkit flow for PDF generation, storage, and email would be called.
+async function saveAndSendForSignature(data: any): Promise<{ error?: string; message?: string }> {
+  console.log("Saving form data and sending for signature:", data);
+  // This is where the logic to save to 'client_signups' and email the link would go.
   // For the prototype, we just simulate a success.
   await new Promise(resolve => setTimeout(resolve, 1500));
-  return { message: "Client intake form submitted successfully (Prototype)." };
+  return { message: "Client intake form has been saved and an invitation to sign has been sent to the client." };
 }
 
 const DynamicFormRenderer = ({ formDefinition }: { formDefinition: GeneratedForm }) => {
@@ -39,6 +40,7 @@ const DynamicFormRenderer = ({ formDefinition }: { formDefinition: GeneratedForm
     .filter((block): block is { type: 'fields'; rows: { columns: { fields: GeneratedField[] }[] }[] } => block.type === 'fields')
     .flatMap(block => block.rows.flatMap(row => row.columns.flatMap(col => col.fields)));
 
+  // Add a field for the client's email to ensure we can send the signature link
   const dynamicSchema = z.object(
     allFields.reduce((schema, field) => {
       let fieldSchema: z.ZodTypeAny;
@@ -49,6 +51,9 @@ const DynamicFormRenderer = ({ formDefinition }: { formDefinition: GeneratedForm
           break;
         case 'email':
           fieldSchema = z.string().email({ message: "Invalid email." });
+          if (field.required) {
+            schema['clientEmail'] = fieldSchema.min(1, "Client email is required for sending the signature link.");
+          }
           break;
         default:
           fieldSchema = z.string();
@@ -60,36 +65,32 @@ const DynamicFormRenderer = ({ formDefinition }: { formDefinition: GeneratedForm
 
       schema[field.fieldName] = fieldSchema;
       return schema;
-    }, {} as Record<string, z.ZodTypeAny>)
-  ).and(z.object({
-    clientSignature: z.string().min(1, 'Client signature is required.')
-  }));
+    }, { clientEmail: z.string().email("A valid client email is required to send the signature link.") } as Record<string, z.ZodTypeAny>)
+  );
+
 
   const form = useForm({
     resolver: zodResolver(dynamicSchema),
     defaultValues: allFields.reduce((values, field) => {
       values[field.fieldName] = field.fieldType === 'checkbox' ? false : '';
-      return { ...values, clientSignature: '' };
+      return { ...values };
     }, {} as Record<string, any>),
   });
 
   const onSubmit = (data: any) => {
+    // For this prototype stage, the owner does not sign.
+    // The signature pad is just a visual placeholder for what the client will see.
     startTransition(async () => {
-      const result = await processClientIntake(data);
+      const result = await saveAndSendForSignature(data);
       if (result.error) {
         toast({ title: "Error", description: result.error, variant: "destructive" });
       } else {
         toast({ title: "Success", description: result.message });
         form.reset();
-        sigPadRef.current?.clear();
       }
     });
   };
 
-  const clearSignature = () => {
-    sigPadRef.current?.clear();
-    form.setValue('clientSignature', '');
-  };
 
   const renderField = (field: GeneratedField) => {
     return (
@@ -98,7 +99,6 @@ const DynamicFormRenderer = ({ formDefinition }: { formDefinition: GeneratedForm
         control={form.control}
         name={field.fieldName}
         render={({ field: formField }) => {
-            // Field rendering logic as before
             return (
                  <FormItem>
                     <FormLabel>{field.label}</FormLabel>
@@ -120,7 +120,6 @@ const DynamicFormRenderer = ({ formDefinition }: { formDefinition: GeneratedForm
   };
   
   const renderBlock = (block: FormBlock, index: number) => {
-    // Block rendering logic as before
     switch(block.type) {
         case 'heading':
             const Tag = `h${block.level}` as keyof JSX.IntrinsicElements;
@@ -158,35 +157,15 @@ const DynamicFormRenderer = ({ formDefinition }: { formDefinition: GeneratedForm
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             {formDefinition.blocks.map((block, index) => renderBlock(block, index))}
             
-            <FormField
-              control={form.control}
-              name="clientSignature"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Client Signature</FormLabel>
-                  <FormControl>
-                    <div className="relative w-full h-40 rounded-md border">
-                      <SignatureCanvas
-                        ref={sigPadRef}
-                        penColor='black'
-                        canvasProps={{ className: 'w-full h-full' }}
-                        onEnd={() => field.onChange(sigPadRef.current?.toDataURL() || '')}
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="button" variant="ghost" size="sm" onClick={clearSignature}>
-                <RefreshCw className="mr-2" />
-                Clear Signature
-            </Button>
-            
+            <div className="pt-6">
+                <p className="text-sm text-muted-foreground">The signature section below is a preview of what the client will see. The client will provide their signature after you send the form.</p>
+                <div className="mt-2 w-full h-40 rounded-md border bg-muted pointer-events-none" />
+            </div>
+
             <div className="flex justify-end">
               <Button type="submit" disabled={isPending}>
-                {isPending && <Loader2 className="mr-2 animate-spin" />}
-                Submit Client Intake
+                {isPending ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2" />}
+                Save and Send for Signature
               </Button>
             </div>
           </form>
