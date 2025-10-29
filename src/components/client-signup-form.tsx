@@ -20,7 +20,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, FileText, Send, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { type GeneratedForm } from "@/lib/types";
+import { type GeneratedForm, type FormBlock, type GeneratedField } from "@/lib/types";
 import { saveFormAsTemplate } from "@/lib/form-generator.actions";
 
 // Placeholder for the server action
@@ -59,6 +59,99 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
     });
   };
 
+  const renderField = (field: GeneratedField) => {
+     return (
+       <FormField
+        key={field.fieldName}
+        control={form.control}
+        name={field.fieldName}
+        render={({ field: formField }) => {
+            let inputComponent;
+            switch (field.fieldType) {
+                case 'textarea':
+                    inputComponent = <Textarea placeholder={`Enter ${field.label.toLowerCase()}`} {...formField} />;
+                    break;
+                case 'checkbox':
+                    return (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 py-2">
+                        <FormControl>
+                            <Checkbox checked={formField.value} onCheckedChange={formField.onChange} />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                            <FormLabel>{field.label}</FormLabel>
+                        </div>
+                        </FormItem>
+                    );
+                case 'radio':
+                    inputComponent = (
+                         <RadioGroup onValueChange={formField.onChange} defaultValue={formField.value} className="flex gap-4">
+                            {field.options?.map(option => (
+                                <FormItem key={option} className="flex items-center space-x-3 space-y-0">
+                                    <FormControl><RadioGroupItem value={option} /></FormControl>
+                                    <FormLabel className="font-normal">{option}</FormLabel>
+                                </FormItem>
+                            ))}
+                        </RadioGroup>
+                    );
+                    break;
+                case 'select':
+                    inputComponent = (
+                        <Select onValueChange={formField.onChange} defaultValue={formField.value}>
+                        <FormControl>
+                            <SelectTrigger><SelectValue placeholder={`Select ${field.label.toLowerCase()}`} /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            {field.options?.map(option => <SelectItem key={option} value={option}>{option}</SelectItem>)}
+                        </SelectContent>
+                        </Select>
+                    );
+                    break;
+                default:
+                    inputComponent = <Input type={field.fieldType} placeholder={`Enter ${field.label.toLowerCase()}`} {...formField} />;
+                    break;
+            }
+
+            return (
+                <FormItem>
+                    <FormLabel>{field.label}</FormLabel>
+                    <FormControl>{inputComponent}</FormControl>
+                    <FormMessage />
+                </FormItem>
+            );
+        }}
+      />
+     )
+  }
+
+  const renderBlock = (block: FormBlock, index: number) => {
+    switch (block.type) {
+        case 'heading':
+            const Tag = `h${block.level}` as keyof JSX.IntrinsicElements;
+            return <Tag key={index} className="font-bold text-xl my-4">{block.content}</Tag>;
+        case 'paragraph':
+            return <p key={index} className="text-muted-foreground my-2 text-xs">{block.content}</p>;
+        case 'html':
+             return <div key={index} dangerouslySetInnerHTML={{ __html: block.content }} className="prose prose-sm text-muted-foreground my-2" />;
+        case 'fields':
+            return (
+                <div key={index} className="space-y-6">
+                    {block.rows?.map((row, rowIndex) => (
+                        <div key={rowIndex} className={`grid gap-6`} style={{ gridTemplateColumns: `repeat(${row.columns.length}, minmax(0, 1fr))` }}>
+                            {row.columns.map((column, colIndex) => (
+                                <div key={colIndex} className="space-y-6">
+                                    {column.fields?.map(field => renderField(field))}
+                                </div>
+                            ))}
+                        </div>
+                    ))}
+                </div>
+            );
+        default:
+            return null;
+    }
+  }
+
+
   const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
 
   return (
@@ -72,31 +165,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <div className="flex justify-center mb-6">
-                <Image src={logoUrl} alt="FirstLight Home Care Logo" width={250} height={40} priority className="object-contain" />
-            </div>
-            <h2 className="text-2xl font-bold text-center">CLIENT SERVICE AGREEMENT</h2>
-            <p className="text-xs">
-                Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated. This Client Service Agreement (the "Agreement") is entered into between the client, or his or her authorized representative, (the "Client") and FirstLight Home Care of Rancho Cucamonga, CA, address 9650 Business Center drive, Suite 132, Rancho Cucamonga CA 91730, phone number 9093214466 ("FirstLight Home Care").
-            </p>
-            
-            {/* Example of a field that would be part of the dynamic form */}
-            <FormField
-                control={form.control}
-                name="clientEmail"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Client Contact Email</FormLabel>
-                        <FormControl><Input placeholder="client@email.com" {...field} /></FormControl>
-                         <FormDescription>The signature link will be sent to this email.</FormDescription>
-                        <FormMessage />
-                    </FormItem>
-                )} />
-
-            {/* This is a placeholder for the rest of the dynamic form content */}
-            <div className="p-8 my-8 text-center border-dashed border-2 rounded-md text-muted-foreground">
-                <p>The rest of the form fields based on the saved template would be rendered here.</p>
-            </div>
+            {formDefinition.blocks.map((block: FormBlock, index: number) => renderBlock(block, index))}
 
             <div className="flex justify-end gap-4">
                 <Button type="button" onClick={() => onSave(form.getValues())} disabled={isSaving}>
@@ -168,3 +237,5 @@ export default function ClientSignupForm() {
 
   return <DynamicFormRenderer formDefinition={template} onSave={handleSaveTemplate} isSaving={isSaving} />;
 }
+
+    
