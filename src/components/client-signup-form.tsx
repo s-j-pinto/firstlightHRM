@@ -197,17 +197,14 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
         return (
           <div key={index} className="text-muted-foreground my-2 flex items-center flex-wrap">
             <span>{parts[0]}</span>
-            <span>{hourlyRateText}</span>
+            <span>{hourlyRateText} $</span>
             <FormField
                 control={form.control}
                 name="hourlyRate"
                 render={({ field }) => (
-                    <FormItem className='flex items-center mx-1'>
-                        <FormControl>
-                            <Input type="text" className="inline-block w-20 h-8 px-2" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
+                    <FormControl>
+                        <Input type="number" className="inline-block w-20 h-8 px-2 mx-1" {...field} />
+                    </FormControl>
                 )}
             />
             <span>{parts[1]}</span>
@@ -428,10 +425,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                     />
                 </div>
                 <h2 className="font-bold text-xl my-4">AGREEMENT TO ACCEPT PAYMENT RESPONSIBILITY AND CONSENT FOR USE AND DISCLOSURE OF PERSONAL INFORMATION-PRIVATE PAY</h2>
-            </div>
-            
-             <div className="space-y-4">
-                <FormField
+                 <FormField
                     control={form.control}
                     name="clientNameAgreement"
                     render={({ field }) => (
@@ -444,6 +438,9 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                         </FormItem>
                     )}
                 />
+            </div>
+            
+             <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
                     I understand that Firstlight Home Care of Rancho Cucamonga may need to use or disclose my personal information to provide ser­vices to me, to obtain payment for its services and for all of the other reasons more fully described in Firstlight Home Care of Rancho Cucamonga Notice of Privacy Practices.
                 </p>
