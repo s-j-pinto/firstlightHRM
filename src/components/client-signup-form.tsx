@@ -136,12 +136,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
      )
   }
 
-  const renderBlock = (block: FormBlock, index: number) => {
-    // Skip rendering the hardcoded text logos
-    if (block.type === 'heading' && (block.content?.toUpperCase().includes('FIRSTLIGHT') || block.content?.toUpperCase().includes('HOME CARE'))) {
-        return null;
-    }
-
+  const renderBlock = (block: FormBlock, index: number) => {    
     if (block.type === 'paragraph' && block.content) {
       const rateText = "The hourly rate for providing the Services is $";
       const minHoursText = "FirstLight Home Care of Rancho Cucamonga for a minimum of";
@@ -198,6 +193,11 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
     }
   }
 
+  // Filter out the unwanted logo text blocks before rendering
+  const filteredBlocks = formDefinition.blocks.filter((block: FormBlock) => 
+    !(block.type === 'heading' && block.content?.toUpperCase().includes('FIRSTLIGHT'))
+  );
+
 
   return (
     <Card>
@@ -232,7 +232,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                     </FormItem>
                 )} />
 
-            {formDefinition.blocks.map((block: FormBlock, index: number) => renderBlock(block, index))}
+            {filteredBlocks.map((block: FormBlock, index: number) => renderBlock(block, index))}
 
             <div className="flex justify-end gap-4">
                 <Button type="button" onClick={() => onSave(form.getValues())} disabled={isSaving}>
