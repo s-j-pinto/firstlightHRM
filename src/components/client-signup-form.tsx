@@ -20,22 +20,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, FileText, Send, Save } from "lucide-react";
+import { Loader2, FileText, Send, Save, BookUser } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { type GeneratedForm, type FormBlock, type GeneratedField } from "@/lib/types";
-import { saveFormAsTemplate } from "@/lib/form-generator.actions";
+import { saveClientSignupForm } from "@/lib/client-signup.actions";
 
-// Placeholder for the server action
-async function saveAndSendForSignature(data: any): Promise<{ error?: string; message?: string }> {
-  console.log("Saving form data and sending for signature:", data);
-  // This is where the logic to save to 'client_signups' and email the link would go.
-  // For the prototype, we just simulate a success.
-  await new Promise(resolve => setTimeout(resolve, 1500));
-  return { message: "Client intake form has been saved and an invitation to sign has been sent to the client." };
-}
 
-const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinition: any, onSave: (data: any) => void, isSaving: boolean }) => {
-  const [isSubmitting, startSubmitTransition] = useTransition();
+const DynamicFormRenderer = ({ formDefinition }: { formDefinition: any }) => {
+  const [isSaving, startSavingTransition] = useTransition();
+  const [isSending, startSendingTransition] = useTransition();
   const { toast } = useToast();
   const sigPadRef = useRef<SignatureCanvas>(null);
 
@@ -56,14 +49,25 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
     defaultValues: defaultValues,
   });
 
-  const onSubmit = (data: any) => {
-    startSubmitTransition(async () => {
-      const result = await saveAndSendForSignature(data);
+  const handleSave = (status: "INCOMPLETE" | "PENDING CLIENT SIGNATURES") => {
+    const transition = status === "INCOMPLETE" ? startSavingTransition : startSendingTransition;
+    transition(async () => {
+      // In a real scenario, you'd pass the full form data.
+      // We're just passing the clientEmail as a placeholder for the action.
+      const formData = form.getValues();
+      const result = await saveClientSignupForm({
+        clientEmail: formData.clientEmail,
+        formData: formData,
+        status: status,
+      });
+
       if (result.error) {
-        toast({ title: "Error", description: result.error, variant: "destructive" });
+        toast({ title: "Error", description: result.message, variant: "destructive" });
       } else {
         toast({ title: "Success", description: result.message });
-        form.reset();
+        if (status === "PENDING CLIENT SIGNATURES") {
+            form.reset(); // Clear form after successful send
+        }
       }
     });
   };
@@ -94,7 +98,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
             let inputComponent;
             switch (field.fieldType) {
                 case 'textarea':
-                    inputComponent = <Textarea placeholder={`Enter ${field.label.toLowerCase()}`} {...formField} />;
+                    inputComponent = <Textarea placeholder={`Enter ${field.label.toLowerCase()}`} {...formField} value={formField.value || ''} />;
                     break;
                 case 'checkbox':
                     return (
@@ -132,7 +136,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                     );
                     break;
                 default:
-                    inputComponent = <Input type={field.fieldType} placeholder={`Enter ${field.label.toLowerCase()}`} {...formField} className={isInitials ? 'w-24' : ''} />;
+                    inputComponent = <Input type={field.fieldType} placeholder={`Enter ${field.label.toLowerCase()}`} {...formField} className={isInitials ? 'w-24' : ''} value={formField.value || ''} />;
                     break;
             }
 
@@ -188,24 +192,26 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
     }
       
     if (block.type === 'paragraph') {
-      let content: React.ReactNode = block.content;
+      let content = block.content;
       
       const hourlyRateText = "The hourly rate for providing the Services is";
       if (typeof content === 'string' && content.includes(hourlyRateText)) {
-        const parts = content.split(hourlyRateText);
-        return (
-           <div key={index} className="text-muted-foreground my-2 flex items-center flex-wrap">
-            <span>{parts[0]}{hourlyRateText} $</span>
-             <FormField
+          const parts = content.split(hourlyRateText);
+          return (
+            <div key={index} className="text-muted-foreground my-2 flex items-center flex-wrap">
+              <span>{parts[0]}{hourlyRateText} $</span>
+              <FormField
                 control={form.control}
                 name="hourlyRate"
                 render={({ field }) => (
-                    <Input type="number" className="inline-block w-20 h-8 px-2 mx-1" {...field} />
+                  <FormControl>
+                    <Input type="number" className="inline-block w-20 h-8 px-2 mx-1" {...field} value={field.value || ''} />
+                  </FormControl>
                 )}
-            />
-            <span>{parts[1]}</span>
-          </div>
-        );
+              />
+              <span>{parts[1]}</span>
+            </div>
+          );
       }
       
       const rateTextStart = "The rates are provided on a current rate card dated";
@@ -226,24 +232,24 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
       const minHoursText = "FirstLight Home Care of Rancho Cucamonga for a minimum of ";
       if (typeof content === 'string' && content.includes(minHoursText)) {
          const parts = content.split(minHoursText);
-         content = (
-           <>
-            {parts[0]}{minHoursText}
-            <Input type="number" className="inline-block w-20 h-8 mx-1 px-2" />
-            {parts[1]}
-          </>
+         return (
+            <p key={index} className="text-muted-foreground my-2">
+                {parts[0]}{minHoursText}
+                <Input type="number" className="inline-block w-20 h-8 mx-1 px-2" />
+                {parts[1]}
+            </p>
          )
       }
       
       const cancellationText = "If there is same day cancellation, client will be charged for full scheduled hours, except if there is a medical emergency.";
       if (typeof content === 'string' && content.includes(cancellationText)) {
         const parts = content.split(cancellationText);
-        content = (
-            <>
+        return (
+            <p key={index} className="text-muted-foreground my-2">
                 {parts[0]}
                 <span className="bg-yellow-200 p-1">{cancellationText}</span>
                 {parts[1]}
-            </>
+            </p>
         );
       }
       
@@ -335,21 +341,21 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 pt-4"><FileText /> {formDefinition?.formName || 'Client Intake Form'}</CardTitle>
+        <CardTitle className="flex items-center gap-2 pt-4"><BookUser /> {formDefinition?.formName || 'Client Intake Form'}</CardTitle>
         <CardDescription>
             This form is based on the saved template. Review and fill out the details below.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form className="space-y-8">
              <FormField
                 control={form.control}
                 name="clientEmail"
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel>Client Contact Email</FormLabel>
-                        <FormControl><Input placeholder="client@email.com" {...field} /></FormControl>
+                        <FormControl><Input placeholder="client@email.com" {...field} value={field.value || ''} /></FormControl>
                          <FormDescription>The signature link will be sent to this email.</FormDescription>
                         <FormMessage />
                     </FormItem>
@@ -366,7 +372,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                         <FormItem>
                             <FormLabel>Client Initials</FormLabel>
                             <FormControl>
-                                <Input placeholder="Enter initials" {...field} className="w-24" />
+                                <Input placeholder="Enter initials" {...field} className="w-24" value={field.value || ''} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -383,7 +389,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>TODAY'S DATE</FormLabel>
-                                <FormControl><Input type="date" {...field} /></FormControl>
+                                <FormControl><Input type="date" {...field} value={field.value || ''} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )} />
@@ -393,7 +399,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>REFERRAL DATE</FormLabel>
-                                <FormControl><Input type="date" {...field} /></FormControl>
+                                <FormControl><Input type="date" {...field} value={field.value || ''} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )} />
@@ -403,7 +409,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>DATE OF INITIAL CLIENT CONTACT</FormLabel>
-                                <FormControl><Input type="date" {...field} /></FormControl>
+                                <FormControl><Input type="date" {...field} value={field.value || ''} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )} />
@@ -429,7 +435,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                         <FormItem>
                             <FormLabel>Client Name:</FormLabel>
                             <FormControl>
-                                <Input placeholder="Enter client name" {...field} />
+                                <Input placeholder="Enter client name" {...field} value={field.value || ''} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -465,14 +471,14 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Date</FormLabel>
-                            <FormControl><Input type="date" {...field} /></FormControl>
+                            <FormControl><Input type="date" {...field} value={field.value || ''} /></FormControl>
                             <FormMessage />
                         </FormItem>
                     )}
                 />
             </div>
             
-            <div className="pt-8 grid grid-cols-2 gap-8 items-end">
+             <div className="pt-8 grid grid-cols-2 gap-8 items-end">
                  <div className="space-y-1">
                     <FormLabel>Signature</FormLabel>
                     <div className="relative w-full h-24 rounded-md border bg-slate-50">
@@ -488,7 +494,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Relationship if not Client</FormLabel>
-                            <FormControl><Input placeholder="e.g., Spouse, Child, Guardian" {...field} /></FormControl>
+                            <FormControl><Input placeholder="e.g., Spouse, Child, Guardian" {...field} value={field.value || ''} /></FormControl>
                             <FormMessage />
                         </FormItem>
                     )}
@@ -511,22 +517,21 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Date</FormLabel>
-                            <FormControl><Input type="date" {...field} /></FormControl>
+                            <FormControl><Input type="date" {...field} value={field.value || ''} /></FormControl>
                             <FormMessage />
                         </FormItem>
                     )}
                 />
             </div>
 
-
-            <div className="flex justify-end gap-4">
-                <Button type="button" onClick={() => onSave(form.getValues())} disabled={isSaving}>
+            <div className="flex justify-end gap-4 pt-6">
+                <Button type="button" variant="secondary" onClick={() => handleSave("INCOMPLETE")} disabled={isSaving || isSending}>
                     {isSaving ? <Loader2 className="mr-2 animate-spin" /> : <Save className="mr-2" />}
-                    Update Master Template
+                    Save as Incomplete
                 </Button>
-                <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2" />}
-                    Save and Send for Signature
+                <Button type="button" onClick={() => handleSave("PENDING CLIENT SIGNATURES")} disabled={isSaving || isSending}>
+                    {isSending ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2" />}
+                    Send for Signature
                 </Button>
             </div>
           </form>
@@ -543,27 +548,6 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
 export default function ClientSignupForm() {
   const templateRef = useMemoFirebase(() => doc(firestore, "settings", "clientIntakeFormTemplate"), []);
   const { data: template, isLoading, error } = useDoc<any>(templateRef);
-  const [isSaving, startSavingTransition] = useTransition();
-  const { toast } = useToast();
-
-  const handleSaveTemplate = (formData: any) => {
-    if (!template) return;
-
-    // Create a plain object to pass to the server action, excluding any Timestamps.
-    const plainTemplate: GeneratedForm = {
-        formName: template.formName,
-        blocks: template.blocks,
-    };
-
-    startSavingTransition(async () => {
-        const result = await saveFormAsTemplate(plainTemplate);
-        if (result.error) {
-            toast({ title: "Error", description: result.message, variant: "destructive" });
-        } else {
-            toast({ title: "Success", description: result.message });
-        }
-    });
-  }
 
   if (isLoading) {
     return (
@@ -589,7 +573,5 @@ export default function ClientSignupForm() {
     );
   }
 
-  return <DynamicFormRenderer formDefinition={template} onSave={handleSaveTemplate} isSaving={isSaving} />;
+  return <DynamicFormRenderer formDefinition={template} />;
 }
-
-    
