@@ -139,7 +139,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
   const renderBlock = (block: FormBlock, index: number) => {    
     
     // Check for the specific heading text to be replaced by the logo
-    if (block.type === 'heading' && block.content?.toUpperCase().includes('FIRSTLIGHT HOME CARE')) {
+    if (block.type === 'heading' && block.content?.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().includes('FIRSTLIGHTHOMECARE')) {
         return (
             <div key={index} className="break-before-page flex justify-center my-6">
                 <Image
