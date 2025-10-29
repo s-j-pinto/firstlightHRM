@@ -60,6 +60,19 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
   };
 
   const renderField = (field: GeneratedField) => {
+     if (field.label.toLowerCase().includes('signature')) {
+        return (
+            <FormItem key={field.fieldName}>
+                <FormLabel>{field.label}</FormLabel>
+                 <div className="relative w-full h-24 rounded-md border bg-slate-50">
+                    <SignatureCanvas
+                        penColor='black'
+                        canvasProps={{className: 'w-full h-full'}}
+                    />
+                </div>
+            </FormItem>
+        )
+    }
      return (
        <FormField
         key={field.fieldName}
@@ -123,10 +136,39 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
      )
   }
 
-  const renderBlock = (block: FormBlock, index: number) => {
+ const renderBlock = (block: FormBlock, index: number) => {
     // Skip rendering the hardcoded text logos
     if (block.type === 'heading' && (block.content?.toLowerCase().includes('firstlight') || block.content?.toLowerCase().includes('home care'))) {
         return null;
+    }
+
+    if (block.type === 'paragraph' && block.content) {
+      const rateText = "The hourly rate for providing the Services is $";
+      const minHoursText = "FirstLight Home Care of Rancho Cucamonga for a minimum of";
+      
+      if (block.content.includes(rateText)) {
+        const parts = block.content.split(rateText);
+        return (
+          <p key={index} className="text-muted-foreground my-2">
+            {parts[0]}
+            {rateText}
+            <Input type="number" className="inline-block w-20 h-8 mx-1 px-2" />
+            {parts[1]}
+          </p>
+        );
+      }
+      
+      if (block.content.includes(minHoursText)) {
+         const parts = block.content.split(minHoursText);
+         return (
+           <p key={index} className="text-muted-foreground my-2">
+            {parts[0]}
+            {minHoursText}
+            <Input type="number" className="inline-block w-20 h-8 mx-1 px-2" />
+            {parts[1]}
+          </p>
+         )
+      }
     }
       
     switch (block.type) {
@@ -134,7 +176,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
             const Tag = `h${block.level}` as keyof JSX.IntrinsicElements;
             return <Tag key={index} className="font-bold text-xl my-4">{block.content}</Tag>;
         case 'paragraph':
-            return <p key={index} className="text-muted-foreground my-2 text-xs">{block.content}</p>;
+            return <p key={index} className="text-muted-foreground my-2">{block.content}</p>;
         case 'html':
              return <div key={index} dangerouslySetInnerHTML={{ __html: block.content }} className="prose prose-sm text-muted-foreground my-2" />;
         case 'fields':
@@ -156,7 +198,6 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
     }
   }
 
-  const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
 
   return (
     <Card>
@@ -169,7 +210,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
       <CardContent>
          <div className="flex justify-center mb-6">
             <Image
-                src={logoUrl}
+                src="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc"
                 alt="FirstLight Home Care Logo"
                 width={250}
                 height={40}
@@ -263,3 +304,4 @@ export default function ClientSignupForm() {
 
   return <DynamicFormRenderer formDefinition={template} onSave={handleSaveTemplate} isSaving={isSaving} />;
 }
+ 
