@@ -141,7 +141,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
     
     if (block.type === 'heading' && block.content?.toUpperCase().replace(/[^A-Z]/g, '').includes('FIRSTLIGHTHOMECARE')) {
         return (
-            <div key={index} className="break-before-page flex justify-center my-6">
+             <div key={index} className="break-before-page flex justify-center my-6">
                 <Image
                     src="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc"
                     alt="FirstLight Home Care Logo"
@@ -274,9 +274,9 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                 </div>
 
                  {/* This renders the Companion Care checkboxes from the template */}
+                <h2 className="text-xl font-bold text-center my-4 pt-6">Companion Care</h2>
                 {block.rows && block.rows.map((row, rowIndex) => (
-                    <div key={rowIndex} className="space-y-6 pt-6">
-                         <h2 className="text-xl font-bold text-center my-4">Companion Care</h2>
+                    <div key={rowIndex} className="space-y-6">
                         {row.columns.map((column, colIndex) => (
                             <div key={colIndex} className="space-y-6">
                                 {column.fields?.map(field => renderField(field))}
@@ -328,12 +328,24 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
   }
 
   // Filter out the original "FirstLight HOME CARE" heading to avoid duplication
-  const filteredBlocks = formDefinition.blocks;
+  const filteredBlocks = formDefinition.blocks.filter((block: FormBlock) => {
+    return !(block.type === 'heading' && block.content?.toUpperCase().replace(/[^A-Z]/g, '').includes('FIRSTLIGHTHOMECARE'));
+  });
 
 
   return (
     <Card>
       <CardHeader>
+        <div className="flex justify-center my-6">
+            <Image
+                src="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc"
+                alt="FirstLight Home Care Logo"
+                width={250}
+                height={40}
+                priority
+                className="object-contain"
+            />
+        </div>
         <CardTitle className="flex items-center gap-2 pt-4"><FileText /> {formDefinition?.formName || 'Client Intake Form'}</CardTitle>
         <CardDescription>
             This form is based on the saved template. Review and fill out the details below.
