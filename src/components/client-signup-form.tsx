@@ -157,8 +157,9 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
       const rateText = "The hourly rate for providing the Services is $";
       const minHoursText = "FirstLight Home Care of Rancho Cucamonga for a minimum of ";
       const dateText = "on a current rate card dated";
-      const cancellationText = "If there is same day cancellation, client will be charged for full scheduled hours, except if there is a medical emergency.";
       const calculationText = "and will be used to calculate the Client's";
+      const cancellationText = "If there is same day cancellation, client will be charged for full scheduled hours, except if there is a medical emergency.";
+      const servicePlanText = "Frequency and duration of Services to be identified on individualized Client Service Plan";
       
       let content: React.ReactNode = block.content;
 
@@ -229,6 +230,15 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                 {parts[1]}
             </>
         );
+      }
+
+      if (typeof content === 'string' && content.includes(servicePlanText)) {
+        return (
+            <React.Fragment key={index}>
+                <p className="text-muted-foreground my-2">{content}</p>
+                <h2 className="text-xl font-bold text-center my-4">Companion Care</h2>
+            </React.Fragment>
+        )
       }
       
       return (
