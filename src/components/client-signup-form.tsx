@@ -138,7 +138,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
 
   const renderBlock = (block: FormBlock, index: number) => {    
     
-    if (block.type === 'heading' && block.content?.replace(/[^a-zA-Z]/g, '').toUpperCase().includes('FIRSTLIGHTHOMECARE')) {
+    if (block.type === 'heading' && block.content?.toUpperCase().replace(/[^A-Z]/g, '').includes('FIRSTLIGHTHOMECARE')) {
         return (
             <div key={index} className="break-before-page flex justify-center my-6">
                 <Image
@@ -158,6 +158,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
       const minHoursText = "FirstLight Home Care of Rancho Cucamonga for a minimum of ";
       const dateText = "on a current rate card dated";
       const cancellationText = "If there is same day cancellation, client will be charged for full scheduled hours, except if there is a medical emergency.";
+      const calculationText = "and will be used to calculate the Client's";
       
       let content: React.ReactNode = block.content;
 
@@ -205,6 +206,16 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                 <Input type="date" className="inline-block w-40 h-8 mx-1 px-2" />
                 {parts[1]}
             </>
+        );
+      }
+      
+      if (typeof content === 'string' && content.includes(calculationText)) {
+        const parts = content.split(calculationText);
+        content = (
+          <>
+            <Input type="text" className="inline-block w-32 h-8 mx-1 px-2" />
+            {parts[0]}{calculationText}{parts[1]}
+          </>
         );
       }
 
