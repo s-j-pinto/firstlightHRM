@@ -11,7 +11,7 @@ import SignatureCanvas from 'react-signature-canvas';
 import { useDoc, useMemoFirebase, firestore } from "@/firebase";
 import { doc } from 'firebase/firestore';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -47,12 +47,13 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
       signatureDate: z.string().optional(),
       relationshipIfNotClient: z.string().optional(),
       representativeSignatureDate: z.string().optional(),
+      companionCareClientInitials: z.string().optional(),
       // Add other fields from your dynamic form here if needed for validation
   });
 
   const form = useForm({
     resolver: zodResolver(formSchema),
-    defaultValues: { clientEmail: '', todaysDate: '', referralDate: '', dateOfInitialContact: '', clientNameAgreement: '', signatureDate: '', relationshipIfNotClient: '', representativeSignatureDate: '' },
+    defaultValues: { clientEmail: '', todaysDate: '', referralDate: '', dateOfInitialContact: '', clientNameAgreement: '', signatureDate: '', relationshipIfNotClient: '', representativeSignatureDate: '', companionCareClientInitials: '' },
   });
 
   const onSubmit = (data: any) => {
@@ -274,7 +275,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
         )
       }
 
-      if (typeof content === 'string' && content.includes('Companion Care')) {
+      if (typeof content === 'string' && content.includes('Companion Care') && !content.includes("Firstlight Home Care of Rancho Cucamonga provides Personal Care Services")) {
         return (
           <React.Fragment key={index}>
              <h2 className="text-xl font-bold text-center my-4 pt-6">Companion Care</h2>
@@ -517,6 +518,9 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
           </form>
         </Form>
       </CardContent>
+      <CardFooter className="flex justify-center text-xs text-muted-foreground pt-4">
+        <p>Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated.</p>
+      </CardFooter>
     </Card>
   );
 };
