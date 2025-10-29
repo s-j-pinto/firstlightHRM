@@ -58,3 +58,9 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
+
+@media print {
+  .break-before-page {
+    page-break-before: always;
+  }
+}

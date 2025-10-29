@@ -141,7 +141,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
     // Check for the specific heading text to be replaced by the logo
     if (block.type === 'heading' && block.content?.toUpperCase().includes('FIRSTLIGHT HOME CARE')) {
         return (
-            <div key={index} className="flex justify-center my-6">
+            <div key={index} className="break-before-page flex justify-center my-6">
                 <Image
                     src="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc"
                     alt="FirstLight Home Care Logo"
