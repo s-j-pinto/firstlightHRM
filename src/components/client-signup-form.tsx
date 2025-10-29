@@ -232,12 +232,13 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
       const hourlyRateText = "The hourly rate for providing the Services is $";
       if (typeof content === 'string' && content.includes(hourlyRateText)) {
          const parts = content.split(hourlyRateText);
-         content = (
-           <span key={index}>
-            {parts[0]}{hourlyRateText}
+         return (
+           <p key={index} className="text-muted-foreground my-2 flex items-center flex-wrap">
+            {parts[0]}
+            {hourlyRateText}
             <Input type="text" className="inline-block w-20 h-8 mx-1 px-2" />
             {parts[1]}
-          </span>
+          </p>
          )
       }
 
@@ -305,8 +306,6 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
         case 'heading':
             const Tag = `h${block.level || 2}` as keyof JSX.IntrinsicElements;
             return <Tag key={index} className="font-bold text-xl my-4">{block.content}</Tag>;
-        case 'paragraph':
-            return <p key={index} className="text-muted-foreground my-2">{block.content}</p>;
         case 'html':
              return <div key={index} dangerouslySetInnerHTML={{ __html: block.content }} className="prose prose-sm text-muted-foreground my-2" />;
         case 'fields':
