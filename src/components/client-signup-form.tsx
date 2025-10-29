@@ -3,6 +3,7 @@
 "use client";
 
 import { useState, useTransition, useRef } from "react";
+import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -18,9 +19,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, FileText, RefreshCw, Send } from "lucide-react";
+import { Loader2, FileText, Send, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { type GeneratedForm, type GeneratedField, type FormBlock } from "@/lib/types";
+import { type GeneratedForm } from "@/lib/types";
+import { saveFormAsTemplate } from "@/lib/form-generator.actions";
 
 // Placeholder for the server action
 async function saveAndSendForSignature(data: any): Promise<{ error?: string; message?: string }> {
@@ -31,56 +33,23 @@ async function saveAndSendForSignature(data: any): Promise<{ error?: string; mes
   return { message: "Client intake form has been saved and an invitation to sign has been sent to the client." };
 }
 
-const DynamicFormRenderer = ({ formDefinition }: { formDefinition: GeneratedForm }) => {
-  const [isPending, startTransition] = useTransition();
+const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinition: any, onSave: (data: any) => void, isSaving: boolean }) => {
+  const [isSubmitting, startSubmitTransition] = useTransition();
   const { toast } = useToast();
   const sigPadRef = useRef<SignatureCanvas>(null);
 
-  const allFields = formDefinition.blocks
-    .filter((block): block is { type: 'fields'; rows: { columns: { fields: GeneratedField[] }[] }[] } => block.type === 'fields')
-    .flatMap(block => block.rows.flatMap(row => row.columns.flatMap(col => col.fields)));
-
-  // Add a field for the client's email to ensure we can send the signature link
-  const dynamicSchema = z.object(
-    allFields.reduce((schema, field) => {
-      let fieldSchema: z.ZodTypeAny;
-
-      switch (field.fieldType) {
-        case 'checkbox':
-          fieldSchema = field.required ? z.literal(true, { errorMap: () => ({ message: "This must be checked." }) }) : z.boolean();
-          break;
-        case 'email':
-          fieldSchema = z.string().email({ message: "Invalid email." });
-          if (field.required) {
-            schema['clientEmail'] = fieldSchema.min(1, "Client email is required for sending the signature link.");
-          }
-          break;
-        default:
-          fieldSchema = z.string();
-      }
-
-      if (field.required && field.fieldType !== 'checkbox') {
-        fieldSchema = fieldSchema.min(1, { message: `${field.label} is required.` });
-      }
-
-      schema[field.fieldName] = fieldSchema;
-      return schema;
-    }, { clientEmail: z.string().email("A valid client email is required to send the signature link.") } as Record<string, z.ZodTypeAny>)
-  );
-
+  const formSchema = z.object({
+      clientEmail: z.string().email("A valid client email is required to send the signature link."),
+      // Add other fields from your dynamic form here if needed for validation
+  });
 
   const form = useForm({
-    resolver: zodResolver(dynamicSchema),
-    defaultValues: allFields.reduce((values, field) => {
-      values[field.fieldName] = field.fieldType === 'checkbox' ? false : '';
-      return { ...values };
-    }, {} as Record<string, any>),
+    resolver: zodResolver(formSchema),
+    defaultValues: { clientEmail: '' },
   });
 
   const onSubmit = (data: any) => {
-    // For this prototype stage, the owner does not sign.
-    // The signature pad is just a visual placeholder for what the client will see.
-    startTransition(async () => {
+    startSubmitTransition(async () => {
       const result = await saveAndSendForSignature(data);
       if (result.error) {
         toast({ title: "Error", description: result.error, variant: "destructive" });
@@ -91,82 +60,56 @@ const DynamicFormRenderer = ({ formDefinition }: { formDefinition: GeneratedForm
     });
   };
 
-
-  const renderField = (field: GeneratedField) => {
-    return (
-      <FormField
-        key={field.fieldName}
-        control={form.control}
-        name={field.fieldName}
-        render={({ field: formField }) => {
-            return (
-                 <FormItem>
-                    <FormLabel>{field.label}</FormLabel>
-                    <FormControl>
-                        {
-                        field.fieldType === 'textarea' ? <Textarea {...formField} /> :
-                        field.fieldType === 'checkbox' ? <div className="flex items-center space-x-2 pt-2"><Checkbox checked={formField.value} onCheckedChange={formField.onChange} /><label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Confirm</label></div> :
-                        field.fieldType === 'radio' ? <RadioGroup onValueChange={formField.onChange} defaultValue={formField.value} className="flex gap-4">{field.options?.map(o => <FormItem key={o} className="flex items-center space-x-2"><FormControl><RadioGroupItem value={o} /></FormControl><FormLabel className="font-normal">{o}</FormLabel></FormItem>)}</RadioGroup> :
-                        field.fieldType === 'select' ? <Select onValueChange={formField.onChange} defaultValue={formField.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>{field.options?.map(o=><SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select> :
-                        <Input type={field.fieldType} {...formField} />
-                        }
-                    </FormControl>
-                    <FormMessage />
-                </FormItem>
-            )
-        }}
-      />
-    );
-  };
-  
-  const renderBlock = (block: FormBlock, index: number) => {
-    switch(block.type) {
-        case 'heading':
-            const Tag = `h${block.level}` as keyof JSX.IntrinsicElements;
-            return <Tag key={index} className="font-bold text-xl my-4">{block.content}</Tag>;
-        case 'paragraph':
-            return <p key={index} className="text-muted-foreground my-2">{block.content}</p>;
-        case 'html':
-             return <div key={index} dangerouslySetInnerHTML={{ __html: block.content }} className="prose prose-sm text-muted-foreground my-2" />;
-        case 'fields':
-            return (
-                <div key={index} className="space-y-6">
-                    {block.rows.map((row, rowIndex) => (
-                        <div key={rowIndex} className={`grid gap-6`} style={{ gridTemplateColumns: `repeat(${row.columns.length}, minmax(0, 1fr))` }}>
-                            {row.columns.map((column, colIndex) => (
-                                <div key={colIndex} className="space-y-6">
-                                    {column.fields.map(field => renderField(field))}
-                                </div>
-                            ))}
-                        </div>
-                    ))}
-                </div>
-            );
-        default:
-            return null;
-    }
-  }
+  const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2"><FileText /> {formDefinition.formName}</CardTitle>
+        <CardTitle className="flex items-center gap-2"><FileText /> {formDefinition?.formName || 'Client Intake Form'}</CardTitle>
+        <CardDescription>
+            This form is based on the saved template. Review and fill out the details below.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            {formDefinition.blocks.map((block, index) => renderBlock(block, index))}
+            {/* The dynamically rendered form content will go here */}
+            {/* For now, we simulate the structure based on previous conversations */}
+            <div className="flex justify-center mb-6">
+                <Image src={logoUrl} alt="FirstLight Home Care Logo" width={250} height={40} priority className="object-contain" />
+            </div>
+            <h2 className="text-2xl font-bold text-center">CLIENT SERVICE AGREEMENT</h2>
+            <p className="text-xs">
+                Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated. This Client Service Agreement (the "Agreement") is entered into between the client, or his or her authorized representative, (the "Client") and FirstLight Home Care of Rancho Cucamonga, CA, address 9650 Business Center drive, Suite 132, Rancho Cucamonga CA 91730, phone number 9093214466 ("FirstLight Home Care").
+            </p>
             
-            <div className="pt-6">
-                <p className="text-sm text-muted-foreground">The signature section below is a preview of what the client will see. The client will provide their signature after you send the form.</p>
-                <div className="mt-2 w-full h-40 rounded-md border bg-muted pointer-events-none" />
+            {/* Example of a field that would be part of the dynamic form */}
+            <FormField
+                control={form.control}
+                name="clientEmail"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Client Contact Email</FormLabel>
+                        <FormControl><Input placeholder="client@email.com" {...field} /></FormControl>
+                         <FormDescription>The signature link will be sent to this email.</FormDescription>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+
+            {/* This is a placeholder for the rest of the dynamic form content */}
+            <div className="p-8 my-8 text-center border-dashed border-2 rounded-md text-muted-foreground">
+                <p>The rest of the form fields based on the saved template would be rendered here.</p>
             </div>
 
-            <div className="flex justify-end">
-              <Button type="submit" disabled={isPending}>
-                {isPending ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2" />}
-                Save and Send for Signature
-              </Button>
+            <div className="flex justify-end gap-4">
+                <Button type="button" onClick={() => onSave(form.getValues())} disabled={isSaving}>
+                    {isSaving ? <Loader2 className="mr-2 animate-spin" /> : <Save className="mr-2" />}
+                    Update Master Template
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2" />}
+                    Save and Send for Signature
+                </Button>
             </div>
           </form>
         </Form>
@@ -178,7 +121,25 @@ const DynamicFormRenderer = ({ formDefinition }: { formDefinition: GeneratedForm
 
 export default function ClientSignupForm() {
   const templateRef = useMemoFirebase(() => doc(firestore, "settings", "clientIntakeFormTemplate"), []);
-  const { data: template, isLoading, error } = useDoc<GeneratedForm>(templateRef);
+  const { data: template, isLoading, error } = useDoc<any>(templateRef);
+  const [isSaving, startSavingTransition] = useTransition();
+  const { toast } = useToast();
+
+  const handleSaveTemplate = (formData: any) => {
+      // In a real scenario, you'd serialize the current state of the form
+      // back into the JSX string or a JSON structure to save it.
+      // For this prototype, we'll just re-save the existing template data.
+      if (!template) return;
+
+      startSavingTransition(async () => {
+         const result = await saveFormAsTemplate(template);
+         if (result.error) {
+            toast({ title: "Error", description: result.message, variant: "destructive" });
+        } else {
+            toast({ title: "Success", description: result.message });
+        }
+      });
+  }
 
   if (isLoading) {
     return (
@@ -204,5 +165,5 @@ export default function ClientSignupForm() {
     );
   }
 
-  return <DynamicFormRenderer formDefinition={template} />;
+  return <DynamicFormRenderer formDefinition={template} onSave={handleSaveTemplate} isSaving={isSaving} />;
 }
