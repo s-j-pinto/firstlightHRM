@@ -229,22 +229,15 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
         );
       }
 
-      const hourlyRateText = "The hourly rate for providing the Services is $";
+      const hourlyRateText = "The hourly rate for providing the Services is";
       if (typeof content === 'string' && content.includes(hourlyRateText)) {
         const parts = content.split(hourlyRateText);
         return (
           <p key={index} className="text-muted-foreground my-2">
-            {parts.map((part, i) => (
-              <React.Fragment key={i}>
-                {i > 0 && (
-                  <span className="inline-flex items-center">
-                    {hourlyRateText}
-                    <Input type="text" className="inline-block w-20 h-8 mx-1 px-2" />
-                  </span>
-                )}
-                {part}
-              </React.Fragment>
-            ))}
+            {parts[0]}
+            {hourlyRateText}
+            <Input type="text" className="inline-block w-20 h-8 mx-1 px-2" />
+            {parts[1]}
           </p>
         );
       }
@@ -297,7 +290,6 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
         return (
           <React.Fragment key={index}>
              <h2 className="text-xl font-bold text-center my-4 pt-6">Companion Care</h2>
-             <p className="text-muted-foreground my-2">{content.replace('Companion Care', '')}</p>
           </React.Fragment>
         )
       }
