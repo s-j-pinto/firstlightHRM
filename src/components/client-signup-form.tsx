@@ -121,7 +121,8 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                     );
                     break;
                 default:
-                    inputComponent = <Input type={field.fieldType} placeholder={`Enter ${field.label.toLowerCase()}`} {...formField} />;
+                    const isInitials = field.label.toLowerCase().includes('client initials');
+                    inputComponent = <Input type={field.fieldType} placeholder={`Enter ${field.label.toLowerCase()}`} {...formField} className={isInitials ? 'w-24' : ''} />;
                     break;
             }
 
@@ -180,7 +181,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
       let content: React.ReactNode = block.content;
       
       const dateTextStart = "The rates are provided on a current rate card dated";
-      const dateTextEnd = " and will be used to calculate the Client's";
+      const dateTextEnd = "and will be used to calculate the Client's";
 
       if (typeof content === 'string' && content.startsWith(dateTextStart) && content.includes(dateTextEnd)) {
         const parts = content.split(dateTextEnd);
@@ -230,14 +231,15 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
          );
       }
       
-      const calculationText = "and will be used to calculate the Client's";
+      const calculationText = "and will be used to calculate the Client's invoice based on actual hours of Service provided.";
        if (typeof content === 'string' && content.includes(calculationText) && !content.includes(dateTextStart)) {
-        const parts = content.split(calculationText);
-        content = (
-          <>
-            <Input type="text" className="inline-block w-32 h-8 mx-1 px-2" />
-            {parts[0]}{calculationText}{parts[1]}
-          </>
+        const parts = content.split("and will be used to calculate the Client's");
+        return (
+            <p key={index} className="text-muted-foreground my-2">
+                {parts[0]}
+                <Input type="text" className="inline-block w-32 h-8 mx-1 px-2" />
+                and will be used to calculate the Client's{parts[1]}
+            </p>
         );
       }
 
