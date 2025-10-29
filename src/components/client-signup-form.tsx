@@ -52,9 +52,30 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
       // Add other fields from your dynamic form here if needed for validation
   });
 
+  const allFields = formDefinition.blocks
+    .filter((block: FormBlock) => block.type === 'fields' && !!block.rows)
+    .flatMap((block: FormBlock) => block.rows!.flatMap(row => row.columns.flatMap(col => col.fields || [])));
+
+  const defaultValues = allFields.reduce((acc: any, field: GeneratedField) => {
+    acc[field.fieldName] = '';
+    return acc;
+  }, { 
+    clientEmail: '', 
+    todaysDate: '', 
+    referralDate: '', 
+    dateOfInitialContact: '', 
+    clientNameAgreement: '', 
+    signatureDate: '', 
+    relationshipIfNotClient: '', 
+    representativeSignatureDate: '', 
+    companionCareClientInitials: '',
+    hourlyRate: '' 
+  });
+
+
   const form = useForm({
     resolver: zodResolver(formSchema),
-    defaultValues: { clientEmail: '', todaysDate: '', referralDate: '', dateOfInitialContact: '', clientNameAgreement: '', signatureDate: '', relationshipIfNotClient: '', representativeSignatureDate: '', companionCareClientInitials: '', hourlyRate: '' },
+    defaultValues: defaultValues,
   });
 
   const onSubmit = (data: any) => {
@@ -195,16 +216,14 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
       if (typeof content === 'string' && content.includes(hourlyRateText)) {
         const parts = content.split(hourlyRateText);
         return (
-          <div key={index} className="text-muted-foreground my-2 flex items-center flex-wrap">
+           <div key={index} className="text-muted-foreground my-2 flex items-center flex-wrap">
             <span>{parts[0]}</span>
             <span>{hourlyRateText} $</span>
             <FormField
                 control={form.control}
                 name="hourlyRate"
                 render={({ field }) => (
-                    <FormControl>
-                        <Input type="number" className="inline-block w-20 h-8 px-2 mx-1" {...field} />
-                    </FormControl>
+                     <Input type="number" className="inline-block w-20 h-8 px-2 mx-1" {...field} />
                 )}
             />
             <span>{parts[1]}</span>
@@ -218,12 +237,12 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
       if (typeof content === 'string' && content.startsWith(rateTextStart) && content.includes(rateTextEnd)) {
           const parts = content.split(rateTextEnd);
           return (
-              <p key={index} className="text-muted-foreground my-2 flex items-center flex-wrap">
-                  {rateTextStart}
+              <div key={index} className="text-muted-foreground my-2 flex items-center flex-wrap">
+                  <span>{rateTextStart}</span>
                   <Input type="date" className="inline-block w-40 h-8 mx-2 px-2" />
-                  {rateTextEnd}
-                  {parts.slice(1).join(rateTextEnd)}
-              </p>
+                  <span>{rateTextEnd}</span>
+                  <span>{parts.slice(1).join(rateTextEnd)}</span>
+              </div>
           );
       }
       
@@ -594,3 +613,5 @@ export default function ClientSignupForm() {
 
   return <DynamicFormRenderer formDefinition={template} onSave={handleSaveTemplate} isSaving={isSaving} />;
 }
+
+    
