@@ -138,7 +138,6 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
   }
 
   const renderBlock = (block: FormBlock, index: number) => {
-    // Check for the header text and replace with the logo
     if (block.type === 'heading' && block.content && block.content.toUpperCase().includes('FIRSTLIGHT')) {
       return (
         <div key={index} className="break-before-page flex justify-center my-6">
@@ -273,7 +272,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                         )
                     })}
                 </div>
-                <h2 className="text-xl font-bold text-center my-4 pt-6">Companion Care</h2>
+                 <h2 className="text-xl font-bold text-center my-4 pt-6">Companion Care</h2>
                 {block.rows && block.rows.map((row, rowIndex) => (
                     <div key={rowIndex} className="space-y-6">
                         {row.columns.map((column, colIndex) => (
