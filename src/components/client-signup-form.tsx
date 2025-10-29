@@ -43,12 +43,13 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
       todaysDate: z.string().optional(),
       referralDate: z.string().optional(),
       dateOfInitialContact: z.string().optional(),
+      clientNameAgreement: z.string().optional(),
       // Add other fields from your dynamic form here if needed for validation
   });
 
   const form = useForm({
     resolver: zodResolver(formSchema),
-    defaultValues: { clientEmail: '', todaysDate: '', referralDate: '', dateOfInitialContact: '' },
+    defaultValues: { clientEmail: '', todaysDate: '', referralDate: '', dateOfInitialContact: '', clientNameAgreement: '' },
   });
 
   const onSubmit = (data: any) => {
@@ -152,7 +153,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
           col.fields?.some(field => waiverCheckboxLabels.includes(field.label))
         )
       );
-  
+
     if (block.type === 'heading' && block.content && block.content.trim().toUpperCase().includes('FIRSTLIGHT')) {
         return (
             <div key={index} className="break-before-page flex justify-center my-6">
@@ -393,6 +394,31 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                     />
                 </div>
                 <h2 className="font-bold text-xl my-4">AGREEMENT TO ACCEPT PAYMENT RESPONSIBILITY AND CONSENT FOR USE AND DISCLOSURE OF PERSONAL INFORMATION-PRIVATE PAY</h2>
+            </div>
+            
+             <div className="space-y-4">
+                <FormField
+                    control={form.control}
+                    name="clientNameAgreement"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Client Name:</FormLabel>
+                            <FormControl>
+                                <Input placeholder="Enter client name" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <p className="text-sm text-muted-foreground">
+                    I understand that Firstlight Home Care of Rancho Cucamonga may need to use or disclose my personal information to provide ser­vices to me, to obtain payment for its services and for all of the other reasons more fully described in Firstlight Home Care of Rancho Cucamonga Notice of Privacy Practices.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                    I acknowledge that I have received the Notice of Privacy Practices, and I consent to all of the uses and disclosures of my personal information as described in that document including, if applicable and as is necessary, for Firstlight Home Care of Rancho Cucamonga  provide services to me; to coordinate with my other providers; to determine eligibility for payment, bill, and receive payment for services; and to make all other uses and disclosures described in the Notice of Privacy Practices.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                    My consent will be valid for two (2) years from the date below. I may revoke my consent to share information, in writing, at any time. Revoking my consent does not apply to information that has already been shared or affect my financial responsibility for Ser­ vices. I understand that some uses and sharing of my information are authorized by law and do not require my consent.
+                </p>
             </div>
 
 
