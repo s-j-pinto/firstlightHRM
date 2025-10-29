@@ -194,15 +194,13 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
       const rateTextEnd = "and will be used to calculate the Client's";
 
       if (typeof content === 'string' && content.startsWith(rateTextStart) && content.includes(rateTextEnd)) {
-          const parts = content.split(rateTextStart);
-          const endParts = parts[1].split(rateTextEnd);
+          const parts = content.split(rateTextEnd);
           return (
               <p key={index} className="text-muted-foreground my-2 flex items-center flex-wrap">
                   {rateTextStart}
                   <Input type="date" className="inline-block w-40 h-8 mx-2 px-2" />
-                  {endParts[0]}
                   {rateTextEnd}
-                  {endParts.slice(1).join(rateTextEnd)}
+                  {parts.slice(1).join(rateTextEnd)}
               </p>
           );
       }
@@ -231,6 +229,18 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
         );
       }
       
+      const hourlyRateText = "The hourly rate for providing the Services is $";
+      if (typeof content === 'string' && content.includes(hourlyRateText)) {
+         const parts = content.split(hourlyRateText);
+         content = (
+           <span key={index}>
+            {parts[0]}{hourlyRateText}
+            <Input type="text" className="inline-block w-20 h-8 mx-1 px-2" />
+            {parts[1]}
+          </span>
+         )
+      }
+
       const servicePlanText = "Frequency and duration of Services to be identified on individualized Client Service Plan";
       if (typeof content === 'string' && content.includes(servicePlanText)) {
         const personalCareCheckboxes = [
@@ -344,7 +354,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
             {formDefinition.blocks.map((block: FormBlock, index: number) => renderBlock(block, index))}
             
             <div className="pt-6">
-                <p className="text-muted-foreground my-2">Firstlight Home Care of Rancho Cucamonga provides Personal Care Services as defined under Cal. Health & Safety Code § 1796.12 and does not provide medical services or function as a home health agency.</p>
+                 <p className="text-muted-foreground my-2">Firstlight Home Care of Rancho Cucamonga provides Personal Care Services as defined under Cal. Health & Safety Code § 1796.12 and does not provide medical services or function as a home health agency.</p>
                  <FormField
                     control={form.control}
                     name="companionCareClientInitials"
@@ -577,5 +587,3 @@ export default function ClientSignupForm() {
 
   return <DynamicFormRenderer formDefinition={template} onSave={handleSaveTemplate} isSaving={isSaving} />;
 }
-
-    
