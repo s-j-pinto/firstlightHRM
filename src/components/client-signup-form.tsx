@@ -157,6 +157,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
     if (block.type === 'paragraph' && block.content) {
       const rateText = "The hourly rate for providing the Services is $";
       const minHoursText = "FirstLight Home Care of Rancho Cucamonga for a minimum of";
+      const cancellationText = "If there is same day cancellation, client will be charged for full scheduled hours, except if there is a medical emergency.";
       
       if (block.content.includes(rateText)) {
         const parts = block.content.split(rateText);
@@ -180,6 +181,17 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
             {parts[1]}
           </p>
          )
+      }
+
+      if (block.content.includes(cancellationText)) {
+        const parts = block.content.split(cancellationText);
+        return (
+            <p key={index} className="text-muted-foreground my-2">
+                {parts[0]}
+                <span className="bg-yellow-200 p-1">{cancellationText}</span>
+                {parts[1]}
+            </p>
+        );
       }
     }
     
