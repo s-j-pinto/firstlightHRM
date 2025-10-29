@@ -138,6 +138,24 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
   }
 
   const renderBlock = (block: FormBlock, index: number) => {
+    // Check for the specific set of checkboxes to align horizontally
+    const waiverCheckboxLabels = ["Notice of Privacy Practices", "Client Rights and Responsibilities", "Advance Directives", "Rate Sheet", "Transportation Waiver"];
+    const isWaiverBlock = block.type === 'fields' && 
+      block.rows?.some(row => 
+        row.columns.some(col => 
+          col.fields?.some(field => waiverCheckboxLabels.includes(field.label))
+        )
+      );
+
+    if (isWaiverBlock) {
+      const allFields = block.rows!.flatMap(row => row.columns.flatMap(col => col.fields || []));
+      return (
+        <div key={index} className="grid grid-cols-5 gap-4">
+          {allFields.map(field => renderField(field))}
+        </div>
+      );
+    }
+      
     if (block.type === 'heading' && block.content && block.content.toUpperCase().includes('FIRSTLIGHT')) {
       return (
         <div key={index} className="break-before-page flex justify-center my-6">
@@ -158,8 +176,23 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
         return null;
     }
 
-    if (block.type === 'paragraph' && block.content) {
+    if (block.type === 'paragraph') {
       let content: React.ReactNode = block.content;
+      
+      const dateTextStart = "The rates are provided on a current rate card dated";
+      const dateTextEnd = " and will be used to calculate the Client's";
+
+      if (typeof content === 'string' && content.startsWith(dateTextStart) && content.includes(dateTextEnd)) {
+        const parts = content.split(dateTextEnd);
+        return (
+            <p key={index} className="text-muted-foreground my-2">
+                {dateTextStart}
+                <Input type="date" className="inline-block w-40 h-8 mx-1 px-2" />
+                {dateTextEnd}
+                {parts.slice(1).join(dateTextEnd)}
+            </p>
+        );
+      }
       
       const rateText = "The hourly rate for providing the Services is $";
       if (typeof content === 'string' && content.includes(rateText)) {
@@ -195,19 +228,6 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
             {minHoursParts[1]}
           </>
          );
-      }
-
-      const dateTextStart = "The rates are provided on a current rate card dated";
-      const dateTextEnd = "and will be used to calculate the Client's";
-      
-      if (typeof content === 'string' && content.startsWith(dateTextStart) && content.endsWith(dateTextEnd)) {
-        content = (
-            <>
-                {dateTextStart}
-                <Input type="date" className="inline-block w-40 h-8 mx-1 px-2" />
-                {dateTextEnd}
-            </>
-        );
       }
       
       const calculationText = "and will be used to calculate the Client's";
