@@ -138,7 +138,6 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
 
   const renderBlock = (block: FormBlock, index: number) => {    
     
-    // Check for the specific heading text to be replaced by the logo
     if (block.type === 'heading' && block.content?.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().includes('FIRSTLIGHTHOMECARE')) {
         return (
             <div key={index} className="break-before-page flex justify-center my-6">
@@ -156,43 +155,76 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
     
     if (block.type === 'paragraph' && block.content) {
       const rateText = "The hourly rate for providing the Services is $";
-      const minHoursText = "FirstLight Home Care of Rancho Cucamonga for a minimum of";
+      const minHoursText = "FirstLight Home Care of Rancho Cucamonga for a minimum of ";
+      const dateText = "on a current rate card dated";
       const cancellationText = "If there is same day cancellation, client will be charged for full scheduled hours, except if there is a medical emergency.";
       
-      if (block.content.includes(rateText)) {
-        const parts = block.content.split(rateText);
-        return (
-          <p key={index} className="text-muted-foreground my-2">
-            {parts[0]}
-            {rateText}
+      let content: React.ReactNode = block.content;
+
+      if (content.includes(rateText)) {
+        const parts = content.split(rateText);
+        content = (
+          <>
+            {parts[0]}{rateText}
             <Input type="number" className="inline-block w-20 h-8 mx-1 px-2" />
             {parts[1]}
-          </p>
+          </>
         );
       }
       
-      if (block.content.includes(minHoursText)) {
+      if (typeof content === 'string' && content.includes(minHoursText)) {
+         const parts = content.split(minHoursText);
+         content = (
+           <>
+            {parts[0]}{minHoursText}
+            <Input type="number" className="inline-block w-20 h-8 mx-1 px-2" />
+            {parts[1]}
+          </>
+         )
+      } else if (typeof content !== 'string' && block.content.includes(minHoursText)) {
+         // This handles the case where content is already a React node from the previous `if`
          const parts = block.content.split(minHoursText);
-         return (
-           <p key={index} className="text-muted-foreground my-2">
-            {parts[0]}
+         content = (
+           <>
+            {/* Logic to reconstruct the first part if it contained the rateText input */}
+            {block.content.split(rateText)[0]}{rateText}
+            <Input type="number" className="inline-block w-20 h-8 mx-1 px-2" />
+            {block.content.split(rateText)[1].split(minHoursText)[0]}
             {minHoursText}
             <Input type="number" className="inline-block w-20 h-8 mx-1 px-2" />
             {parts[1]}
-          </p>
-         )
+          </>
+         );
       }
 
-      if (block.content.includes(cancellationText)) {
-        const parts = block.content.split(cancellationText);
-        return (
-            <p key={index} className="text-muted-foreground my-2">
+      if (typeof content === 'string' && content.includes(dateText)) {
+        const parts = content.split(dateText);
+        content = (
+            <>
+                {parts[0]}{dateText}
+                <Input type="date" className="inline-block w-40 h-8 mx-1 px-2" />
+                {parts[1]}
+            </>
+        );
+      }
+
+
+      if (typeof content === 'string' && content.includes(cancellationText)) {
+        const parts = content.split(cancellationText);
+        content = (
+            <>
                 {parts[0]}
                 <span className="bg-yellow-200 p-1">{cancellationText}</span>
                 {parts[1]}
-            </p>
+            </>
         );
       }
+      
+      return (
+        <p key={index} className="text-muted-foreground my-2">
+            {content}
+        </p>
+      );
     }
     
     switch (block.type) {
