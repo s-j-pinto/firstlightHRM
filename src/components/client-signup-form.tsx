@@ -396,7 +396,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                 </div>
             </div>
             
-            <div className="pt-6 text-center">
+            <div className="pt-6 text-center break-before-page">
                 <div className="flex justify-center my-6">
                     <Image
                         src="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc"
@@ -459,7 +459,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
             </div>
             
             <div className="pt-8 grid grid-cols-2 gap-8 items-end">
-                <div className="space-y-1">
+                 <div className="space-y-1">
                     <FormLabel>Signature</FormLabel>
                     <div className="relative w-full h-24 rounded-md border bg-slate-50">
                         <SignatureCanvas
@@ -577,3 +577,5 @@ export default function ClientSignupForm() {
 
   return <DynamicFormRenderer formDefinition={template} onSave={handleSaveTemplate} isSaving={isSaving} />;
 }
+
+    
