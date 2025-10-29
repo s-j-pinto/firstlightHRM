@@ -247,17 +247,6 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
         return (
             <React.Fragment key={index}>
                 <p className="text-muted-foreground my-2">{content}</p>
-                <h2 className="text-xl font-bold text-center my-4">Companion Care</h2>
-                {/* This will render the Companion Care checkboxes from the template */}
-                {block.rows && block.rows.map((row, rowIndex) => (
-                    <div key={rowIndex} className="space-y-6">
-                        {row.columns.map((column, colIndex) => (
-                            <div key={colIndex} className="space-y-6">
-                                {column.fields?.map(field => renderField(field))}
-                            </div>
-                        ))}
-                    </div>
-                ))}
                 
                 <h2 className="text-xl font-bold text-center my-4 pt-6">Personal Care Services</h2>
                 <div className="space-y-2">
@@ -284,6 +273,17 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                     })}
                 </div>
 
+                 {/* This renders the Companion Care checkboxes from the template */}
+                {block.rows && block.rows.map((row, rowIndex) => (
+                    <div key={rowIndex} className="space-y-6 pt-6">
+                         <h2 className="text-xl font-bold text-center my-4">Companion Care</h2>
+                        {row.columns.map((column, colIndex) => (
+                            <div key={colIndex} className="space-y-6">
+                                {column.fields?.map(field => renderField(field))}
+                            </div>
+                        ))}
+                    </div>
+                ))}
             </React.Fragment>
         )
       }
@@ -328,24 +328,12 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
   }
 
   // Filter out the original "FirstLight HOME CARE" heading to avoid duplication
-  const filteredBlocks = formDefinition.blocks.filter((block: FormBlock) =>
-    !(block.type === 'heading' && block.content?.toUpperCase().replace(/[^A-Z]/g, '').includes('FIRSTLIGHTHOMECARE'))
-  );
+  const filteredBlocks = formDefinition.blocks;
 
 
   return (
     <Card>
       <CardHeader>
-        <div className="flex justify-center my-6">
-          <Image
-              src="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc"
-              alt="FirstLight Home Care Logo"
-              width={250}
-              height={40}
-              priority
-              className="object-contain"
-          />
-        </div>
         <CardTitle className="flex items-center gap-2 pt-4"><FileText /> {formDefinition?.formName || 'Client Intake Form'}</CardTitle>
         <CardDescription>
             This form is based on the saved template. Review and fill out the details below.
