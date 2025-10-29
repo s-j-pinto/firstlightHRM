@@ -57,6 +57,8 @@ Your task is to analyze the provided PDF and convert its entire structure into a
     - Use \`<FormLabel>\` for all field labels.
     - Use \`<p>\` tags with Tailwind classes like \`text-muted-foreground\` for instructional text.
     - Replicate the layout of fields (side-by-side vs. stacked) using \`div\` containers with flexbox or grid classes (e.g., \`grid grid-cols-2 gap-4\`).
+8.  **Inline Fields**: For paragraphs that contain blanks to be filled in, such as "The hourly rate...is $_____" or "...rate card dated ______.", you must embed an \`<Input />\` component directly within the paragraph text. Use a small width for these inputs (e.g., \`className="inline-block w-24 h-6"\`).
+9.  **Signature Fields**: For any field labeled as a signature (e.g., "Client Signature"), do not create a text input. Instead, create a signature pad area using a div with a bottom border, like this: \`<div className="border-b border-gray-400 h-12"></div>\`. Assign it a unique \`fieldName\` like \`clientSignaturePad\`.
 
 **EXAMPLE of a single field:**
 \`<div className="space-y-2">
@@ -85,6 +87,9 @@ const generateFormFromPdfFlow = ai.defineFlow(
       throw new Error("The AI model did not return a valid JSX component string.");
     }
     
-    return output;
+    // Replace backticks that the model sometimes adds around the JSX string
+    const cleanedJsxString = output.jsxString.replace(/^```jsx\n|```$/g, '').trim();
+
+    return { jsxString: cleanedJsxString };
   }
 );
