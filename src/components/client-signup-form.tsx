@@ -197,12 +197,13 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
          );
       }
 
-      const dateText = "on a current rate card dated ";
-      if (typeof content === 'string' && content.includes(dateText)) {
+      const fullDateText = "The rates are provided on a current rate card dated and will be used to calculate the Client's";
+      const dateText = "The rates are provided on a current rate card dated";
+      if (typeof content === 'string' && content.includes(fullDateText)) {
         const parts = content.split(dateText);
         content = (
             <>
-                {parts[0]}{dateText}
+                {dateText}
                 <Input type="date" className="inline-block w-40 h-8 mx-1 px-2" />
                 {parts[1]}
             </>
@@ -210,7 +211,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
       }
       
       const calculationText = "and will be used to calculate the Client's";
-       if (typeof content === 'string' && content.includes(calculationText)) {
+       if (typeof content === 'string' && content.includes(calculationText) && !content.includes(fullDateText)) {
         const parts = content.split(calculationText);
         content = (
           <>
