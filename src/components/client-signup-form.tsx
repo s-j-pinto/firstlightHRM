@@ -151,7 +151,6 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
     }
   }
 
-
   const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
 
   return (
@@ -163,8 +162,30 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
         </CardDescription>
       </CardHeader>
       <CardContent>
+         <div className="flex justify-center mb-6">
+            <Image
+                src={logoUrl}
+                alt="FirstLight Home Care Logo"
+                width={250}
+                height={40}
+                priority
+                className="object-contain"
+            />
+        </div>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+             <FormField
+                control={form.control}
+                name="clientEmail"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Client Contact Email</FormLabel>
+                        <FormControl><Input placeholder="client@email.com" {...field} /></FormControl>
+                         <FormDescription>The signature link will be sent to this email.</FormDescription>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+
             {formDefinition.blocks.map((block: FormBlock, index: number) => renderBlock(block, index))}
 
             <div className="flex justify-end gap-4">
@@ -196,7 +217,6 @@ export default function ClientSignupForm() {
 
     // Create a plain object to pass to the server action, excluding the Timestamp.
     const plainTemplate: GeneratedForm = {
-        jsxString: template.jsxString,
         formName: template.formName,
         blocks: template.blocks,
     };
