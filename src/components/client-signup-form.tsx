@@ -157,7 +157,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
       );
     }
       
-    if (block.type === 'heading' && block.content && block.content.toUpperCase().includes('FIRSTLIGHT')) {
+    if (block.type === 'heading' && block.content && block.content.trim().toUpperCase().includes('FIRSTLIGHT')) {
       return (
         <div key={index} className="break-before-page flex justify-center my-6">
           <Image
@@ -305,6 +305,22 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                         ))}
                     </div>
                 ))}
+                <div className="pt-6">
+                    <p className="text-muted-foreground my-2">Firstlight Home Care of Rancho Cucamonga provides Personal Care Services as defined under Cal. Health & Safety Code § 1796.12 and does not provide medical services or function as a home health agency.</p>
+                     <FormField
+                        control={form.control}
+                        name="companionCareClientInitials"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Client Initials</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Enter initials" {...field} className="w-24" />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
             </React.Fragment>
         )
       }
