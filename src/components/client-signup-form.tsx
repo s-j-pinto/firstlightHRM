@@ -155,7 +155,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
     }
     
     // Skip rendering the "HOME CARE" and "®" blocks
-    if (block.content && (block.content.trim() === "HOME CARE" || block.content.trim() === "®")) {
+    if (block.content && (block.content.trim().toUpperCase() === "HOME CARE" || block.content.trim() === "®")) {
         return null;
     }
 
@@ -198,7 +198,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
          );
       }
 
-      const dateText = "on a current rate card dated";
+      const dateText = "on a current rate card dated ";
       if (typeof content === 'string' && content.includes(dateText)) {
         const parts = content.split(dateText);
         content = (
