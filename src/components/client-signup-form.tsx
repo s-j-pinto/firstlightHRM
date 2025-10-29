@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import * as React from "react";
@@ -47,12 +46,13 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
       clientNameAgreement: z.string().optional(),
       signatureDate: z.string().optional(),
       relationshipIfNotClient: z.string().optional(),
+      representativeSignatureDate: z.string().optional(),
       // Add other fields from your dynamic form here if needed for validation
   });
 
   const form = useForm({
     resolver: zodResolver(formSchema),
-    defaultValues: { clientEmail: '', todaysDate: '', referralDate: '', dateOfInitialContact: '', clientNameAgreement: '', signatureDate: '', relationshipIfNotClient: '' },
+    defaultValues: { clientEmail: '', todaysDate: '', referralDate: '', dateOfInitialContact: '', clientNameAgreement: '', signatureDate: '', relationshipIfNotClient: '', representativeSignatureDate: '' },
   });
 
   const onSubmit = (data: any) => {
@@ -193,13 +193,15 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
       const rateTextEnd = "and will be used to calculate the Client's";
 
       if (typeof content === 'string' && content.startsWith(rateTextStart) && content.includes(rateTextEnd)) {
-          const parts = content.split(rateTextEnd);
+          const parts = content.split(rateTextStart);
+          const endParts = parts[1].split(rateTextEnd);
           return (
               <p key={index} className="text-muted-foreground my-2 flex items-center flex-wrap">
                   {rateTextStart}
                   <Input type="date" className="inline-block w-40 h-8 mx-2 px-2" />
+                  {endParts[0]}
                   {rateTextEnd}
-                  {parts.slice(1).join(rateTextEnd)}
+                  {endParts.slice(1).join(rateTextEnd)}
               </p>
           );
       }
@@ -472,6 +474,29 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                         <FormItem>
                             <FormLabel>Relationship if not Client</FormLabel>
                             <FormControl><Input placeholder="e.g., Spouse, Child, Guardian" {...field} /></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
+
+            <div className="pt-8 grid grid-cols-2 gap-8 items-end">
+                <div className="space-y-1">
+                    <FormLabel>FirstLight Home Care of Rancho Cucamonga Representative</FormLabel>
+                    <div className="relative w-full h-24 rounded-md border bg-slate-50">
+                        <SignatureCanvas
+                            penColor='black'
+                            canvasProps={{className: 'w-full h-full'}}
+                        />
+                    </div>
+                </div>
+                 <FormField
+                    control={form.control}
+                    name="representativeSignatureDate"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Date</FormLabel>
+                            <FormControl><Input type="date" {...field} /></FormControl>
                             <FormMessage />
                         </FormItem>
                     )}
