@@ -137,23 +137,28 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
      )
   }
 
-  const renderBlock = (block: FormBlock, index: number) => {    
-    
+  const renderBlock = (block: FormBlock, index: number) => {
+    // Check for the header text and replace with the logo
     if (block.type === 'heading' && block.content && block.content.toUpperCase().includes('FIRSTLIGHT')) {
-        return (
-             <div key={index} className="break-before-page flex justify-center my-6">
-                <Image
-                    src="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc"
-                    alt="FirstLight Home Care Logo"
-                    width={250}
-                    height={40}
-                    priority
-                    className="object-contain"
-                />
-            </div>
-        );
+      return (
+        <div key={index} className="break-before-page flex justify-center my-6">
+          <Image
+            src="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc"
+            alt="FirstLight Home Care Logo"
+            width={250}
+            height={40}
+            priority
+            className="object-contain"
+          />
+        </div>
+      );
     }
     
+    // Skip rendering the "HOME CARE" and "®" blocks
+    if (block.content && (block.content.trim() === "HOME CARE" || block.content.trim() === "®")) {
+        return null;
+    }
+
     if (block.type === 'paragraph' && block.content) {
       let content: React.ReactNode = block.content;
       
@@ -268,7 +273,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                         )
                     })}
                 </div>
-                 <h2 className="text-xl font-bold text-center my-4 pt-6">Companion Care</h2>
+                <h2 className="text-xl font-bold text-center my-4 pt-6">Companion Care</h2>
                 {block.rows && block.rows.map((row, rowIndex) => (
                     <div key={rowIndex} className="space-y-6">
                         {row.columns.map((column, colIndex) => (
