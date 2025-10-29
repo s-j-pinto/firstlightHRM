@@ -46,12 +46,13 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
       dateOfInitialContact: z.string().optional(),
       clientNameAgreement: z.string().optional(),
       signatureDate: z.string().optional(),
+      relationshipIfNotClient: z.string().optional(),
       // Add other fields from your dynamic form here if needed for validation
   });
 
   const form = useForm({
     resolver: zodResolver(formSchema),
-    defaultValues: { clientEmail: '', todaysDate: '', referralDate: '', dateOfInitialContact: '', clientNameAgreement: '', signatureDate: '' },
+    defaultValues: { clientEmail: '', todaysDate: '', referralDate: '', dateOfInitialContact: '', clientNameAgreement: '', signatureDate: '', relationshipIfNotClient: '' },
   });
 
   const onSubmit = (data: any) => {
@@ -267,8 +268,16 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                         )
                     })}
                 </div>
-                 <h2 className="text-xl font-bold text-center my-4 pt-6">Companion Care</h2>
             </React.Fragment>
+        )
+      }
+
+      if (typeof content === 'string' && content.includes('Companion Care')) {
+        return (
+          <React.Fragment key={index}>
+             <h2 className="text-xl font-bold text-center my-4 pt-6">Companion Care</h2>
+             <p className="text-muted-foreground my-2">{content.replace('Companion Care', '')}</p>
+          </React.Fragment>
         )
       }
       
@@ -440,6 +449,29 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                         <FormItem>
                             <FormLabel>Date</FormLabel>
                             <FormControl><Input type="date" {...field} /></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
+            
+            <div className="pt-8 grid grid-cols-2 gap-8 items-end">
+                <div className="space-y-1">
+                    <FormLabel>Signature</FormLabel>
+                    <div className="relative w-full h-24 rounded-md border bg-slate-50">
+                        <SignatureCanvas
+                            penColor='black'
+                            canvasProps={{className: 'w-full h-full'}}
+                        />
+                    </div>
+                </div>
+                 <FormField
+                    control={form.control}
+                    name="relationshipIfNotClient"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Relationship if not Client</FormLabel>
+                            <FormControl><Input placeholder="e.g., Spouse, Child, Guardian" {...field} /></FormControl>
                             <FormMessage />
                         </FormItem>
                     )}
