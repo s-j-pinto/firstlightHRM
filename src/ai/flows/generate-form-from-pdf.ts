@@ -41,24 +41,17 @@ Your task is to analyze the provided PDF and convert its entire structure into a
 1.  **Single Component String**: The entire output must be a single string of JSX code. Do not wrap it in markdown or any other formatting.
 2.  **Full Document**: Process ALL pages of the PDF from start to finish. The final component must represent the entire document.
 3.  **Styling**: Use Tailwind CSS for all styling. Replicate the PDF's layout using divs, flexbox, and grids. Use appropriate ShadCN components (\`Input\`, \`Checkbox\`, \`RadioGroup\`, \`Select\`, \`Textarea\`, \`Card\`, \`CardHeader\`, \`CardContent\`, etc.). Import them from "@/components/ui/...".
-4.  **Logo**: At the very top of the form, you MUST include the FirstLight Home Care logo. It should be centered. Use the following code for the logo:
-    \`<div className="flex justify-center mb-4">
-        <Image src="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc" alt="FirstLight Home Care Logo" width={250} height={40} priority className="object-contain" />
-    </div>\`
-    Make sure to import the 'Image' component from 'next/image'.
-5.  **Component Definition**:
+4.  **Component Definition**:
     - The component must be a default exported function.
     - It must accept a single prop: \`{ formData, onFormChange, isReadOnly }\`.
     - Every input field must have its \`value\` tied to \`formData.fieldName\` and its \`onChange\` handler must call \`onFormChange\`.
     - Add the \`readOnly={isReadOnly}\` attribute to all input fields to control their state.
-6.  **Field Naming**: Use unique, descriptive, camelCase names for all form fields (e.g., \`clientName\`, \`emergencyContactPhone\`).
-7.  **Structure**:
+5.  **Field Naming**: Use unique, descriptive, camelCase names for all form fields (e.g., \`clientName\`, \`emergencyContactPhone\`).
+6.  **Structure**:
     - Use \`<Card>\`, \`<CardHeader>\`, and \`<CardContent>\` for logical sections.
     - Use \`<FormLabel>\` for all field labels.
     - Use \`<p>\` tags with Tailwind classes like \`text-muted-foreground\` for instructional text.
     - Replicate the layout of fields (side-by-side vs. stacked) using \`div\` containers with flexbox or grid classes (e.g., \`grid grid-cols-2 gap-4\`).
-8.  **Inline Fields**: For paragraphs that contain blanks to be filled in, such as "The hourly rate...is $_____" or "...rate card dated ______.", you must embed an \`<Input />\` component directly within the paragraph text. Use a small width for these inputs (e.g., \`className="inline-block w-24 h-6"\`).
-9.  **Signature Fields**: For any field labeled as a signature (e.g., "Client Signature"), do not create a text input. Instead, create a signature pad area using a div with a bottom border, like this: \`<div className="border-b border-gray-400 h-12"></div>\`. Assign it a unique \`fieldName\` like \`clientSignaturePad\`.
 
 **EXAMPLE of a single field:**
 \`<div className="space-y-2">
