@@ -74,6 +74,9 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
             </FormItem>
         )
     }
+
+    const isInitials = field.label.toLowerCase().includes('client initials');
+
      return (
        <FormField
         key={field.fieldName}
@@ -121,7 +124,6 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                     );
                     break;
                 default:
-                    const isInitials = field.label.toLowerCase().includes('client initials');
                     inputComponent = <Input type={field.fieldType} placeholder={`Enter ${field.label.toLowerCase()}`} {...formField} className={isInitials ? 'w-24' : ''} />;
                     break;
             }
@@ -305,22 +307,6 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                         ))}
                     </div>
                 ))}
-                <div className="pt-6">
-                    <p className="text-muted-foreground my-2">Firstlight Home Care of Rancho Cucamonga provides Personal Care Services as defined under Cal. Health & Safety Code § 1796.12 and does not provide medical services or function as a home health agency.</p>
-                     <FormField
-                        control={form.control}
-                        name="companionCareClientInitials"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Client Initials</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="Enter initials" {...field} className="w-24" />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
             </React.Fragment>
         )
       }
@@ -383,6 +369,23 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                 )} />
 
             {formDefinition.blocks.map((block: FormBlock, index: number) => renderBlock(block, index))}
+            
+            <div className="pt-6">
+                <p className="text-muted-foreground my-2">Firstlight Home Care of Rancho Cucamonga provides Personal Care Services as defined under Cal. Health & Safety Code § 1796.12 and does not provide medical services or function as a home health agency.</p>
+                 <FormField
+                    control={form.control}
+                    name="companionCareClientInitials"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Client Initials</FormLabel>
+                            <FormControl>
+                                <Input placeholder="Enter initials" {...field} className="w-24" />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
 
             <div className="flex justify-end gap-4">
                 <Button type="button" onClick={() => onSave(form.getValues())} disabled={isSaving}>
