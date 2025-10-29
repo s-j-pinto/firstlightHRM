@@ -228,20 +228,27 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
             </>
         );
       }
-      
+
       const hourlyRateText = "The hourly rate for providing the Services is $";
       if (typeof content === 'string' && content.includes(hourlyRateText)) {
-         const parts = content.split(hourlyRateText);
-         return (
-           <p key={index} className="text-muted-foreground my-2 flex items-center flex-wrap">
-            {parts[0]}
-            {hourlyRateText}
-            <Input type="text" className="inline-block w-20 h-8 mx-1 px-2" />
-            {parts[1]}
+        const parts = content.split(hourlyRateText);
+        return (
+          <p key={index} className="text-muted-foreground my-2">
+            {parts.map((part, i) => (
+              <React.Fragment key={i}>
+                {i > 0 && (
+                  <span className="inline-flex items-center">
+                    {hourlyRateText}
+                    <Input type="text" className="inline-block w-20 h-8 mx-1 px-2" />
+                  </span>
+                )}
+                {part}
+              </React.Fragment>
+            ))}
           </p>
-         )
+        );
       }
-
+      
       const servicePlanText = "Frequency and duration of Services to be identified on individualized Client Service Plan";
       if (typeof content === 'string' && content.includes(servicePlanText)) {
         const personalCareCheckboxes = [
@@ -368,8 +375,8 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                     )}
                 />
             </div>
-
-            <div className="border p-4 rounded-md space-y-4 mt-8">
+            
+             <div className="border p-4 rounded-md space-y-4 mt-8">
                 <h3 className="font-semibold text-lg text-center">For Office Use Only</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                      <FormField
@@ -404,7 +411,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                         )} />
                 </div>
             </div>
-            
+
             <div className="pt-6 text-center break-before-page">
                 <div className="flex justify-center my-6">
                     <Image
