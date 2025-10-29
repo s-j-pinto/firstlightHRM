@@ -72,8 +72,6 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            {/* The dynamically rendered form content will go here */}
-            {/* For now, we simulate the structure based on previous conversations */}
             <div className="flex justify-center mb-6">
                 <Image src={logoUrl} alt="FirstLight Home Care Logo" width={250} height={40} priority className="object-contain" />
             </div>
@@ -125,19 +123,23 @@ export default function ClientSignupForm() {
   const { toast } = useToast();
 
   const handleSaveTemplate = (formData: any) => {
-      // In a real scenario, you'd serialize the current state of the form
-      // back into the JSX string or a JSON structure to save it.
-      // For this prototype, we'll just re-save the existing template data.
-      if (!template) return;
+    if (!template) return;
 
-      startSavingTransition(async () => {
-         const result = await saveFormAsTemplate(template);
-         if (result.error) {
+    // Create a plain object to pass to the server action, excluding the Timestamp.
+    const plainTemplate: GeneratedForm = {
+        jsxString: template.jsxString,
+        formName: template.formName,
+        blocks: template.blocks,
+    };
+
+    startSavingTransition(async () => {
+        const result = await saveFormAsTemplate(plainTemplate);
+        if (result.error) {
             toast({ title: "Error", description: result.message, variant: "destructive" });
         } else {
             toast({ title: "Success", description: result.message });
         }
-      });
+    });
   }
 
   if (isLoading) {
@@ -166,5 +168,3 @@ export default function ClientSignupForm() {
 
   return <DynamicFormRenderer formDefinition={template} onSave={handleSaveTemplate} isSaving={isSaving} />;
 }
-
-    
