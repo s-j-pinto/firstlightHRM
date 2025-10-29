@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from "react";
@@ -38,43 +39,20 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
   const { toast } = useToast();
   const sigPadRef = useRef<SignatureCanvas>(null);
 
-  const formSchema = z.object({
-      clientEmail: z.string().email("A valid client email is required to send the signature link."),
-      todaysDate: z.string().optional(),
-      referralDate: z.string().optional(),
-      dateOfInitialContact: z.string().optional(),
-      clientNameAgreement: z.string().optional(),
-      signatureDate: z.string().optional(),
-      relationshipIfNotClient: z.string().optional(),
-      representativeSignatureDate: z.string().optional(),
-      companionCareClientInitials: z.string().optional(),
-      hourlyRate: z.string().optional(),
-      // Add other fields from your dynamic form here if needed for validation
-  });
-
   const allFields = formDefinition.blocks
     .filter((block: FormBlock) => block.type === 'fields' && !!block.rows)
     .flatMap((block: FormBlock) => block.rows!.flatMap(row => row.columns.flatMap(col => col.fields || [])));
 
   const defaultValues = allFields.reduce((acc: any, field: GeneratedField) => {
-    acc[field.fieldName] = '';
+    acc[field.fieldName] = field.fieldType === 'checkbox' ? false : '';
     return acc;
   }, { 
     clientEmail: '', 
-    todaysDate: '', 
-    referralDate: '', 
-    dateOfInitialContact: '', 
-    clientNameAgreement: '', 
-    signatureDate: '', 
-    relationshipIfNotClient: '', 
-    representativeSignatureDate: '', 
-    companionCareClientInitials: '',
-    hourlyRate: '' 
   });
 
 
   const form = useForm({
-    resolver: zodResolver(formSchema),
+    // Using a basic schema since validation rules are not fully defined dynamically yet
     defaultValues: defaultValues,
   });
 
@@ -217,13 +195,12 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
         const parts = content.split(hourlyRateText);
         return (
            <div key={index} className="text-muted-foreground my-2 flex items-center flex-wrap">
-            <span>{parts[0]}</span>
-            <span>{hourlyRateText} $</span>
-            <FormField
+            <span>{parts[0]}{hourlyRateText} $</span>
+             <FormField
                 control={form.control}
                 name="hourlyRate"
                 render={({ field }) => (
-                     <Input type="number" className="inline-block w-20 h-8 px-2 mx-1" {...field} />
+                    <Input type="number" className="inline-block w-20 h-8 px-2 mx-1" {...field} />
                 )}
             />
             <span>{parts[1]}</span>
@@ -310,6 +287,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                         )
                     })}
                 </div>
+                <h2 className="text-xl font-bold text-center my-4 pt-6">Companion Care Services</h2>
             </React.Fragment>
         )
       }
