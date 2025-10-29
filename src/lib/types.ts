@@ -267,7 +267,7 @@ export const FormBlockSchema = z.object({
   level: z.number().optional().describe("The heading level (1-6), only for 'heading' blocks."),
   rows: z.array(z.object({
       columns: z.array(z.object({
-          fields: z.array(GeneratedFieldSchema),
+          fields: z.array(GeneratedFieldSchema).optional(),
       })),
   })).optional().describe("The rows of fields, only for 'fields' blocks."),
 }).describe("A single block of content or fields representing a part of the document.");
@@ -282,5 +282,3 @@ export const GenerateFormOutputSchema = z.object({
 export type GeneratedForm = z.infer<typeof GenerateFormOutputSchema>;
 export type GeneratedRow = z.infer<typeof FormBlockSchema.shape.rows.element>;
 export type GeneratedColumn = z.infer<typeof GeneratedRow.shape.columns.element>;
-
-    

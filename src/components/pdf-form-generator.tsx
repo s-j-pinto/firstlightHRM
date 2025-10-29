@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useTransition } from "react";
@@ -24,8 +25,8 @@ import { cn } from "@/lib/utils";
 
 const DynamicFormRenderer = ({ formDefinition }: { formDefinition: GeneratedForm }) => {
   const allFields = formDefinition.blocks
-    .filter((block): block is { type: 'fields'; rows: { columns: { fields: GeneratedField[] }[] }[] } => block.type === 'fields')
-    .flatMap(block => block.rows.flatMap(row => row.columns.flatMap(col => col.fields)));
+    .filter((block): block is { type: 'fields'; rows: { columns: { fields: GeneratedField[] }[] }[] } => block.type === 'fields' && !!block.rows)
+    .flatMap(block => block.rows.flatMap(row => row.columns.flatMap(col => col.fields || [])));
 
 
   const dynamicSchema = z.object(
@@ -151,11 +152,11 @@ const DynamicFormRenderer = ({ formDefinition }: { formDefinition: GeneratedForm
         case 'fields':
             return (
                 <div key={index} className="space-y-6">
-                    {block.rows.map((row, rowIndex) => (
+                    {block.rows?.map((row, rowIndex) => (
                         <div key={rowIndex} className={`grid gap-6`} style={{ gridTemplateColumns: `repeat(${row.columns.length}, minmax(0, 1fr))` }}>
                             {row.columns.map((column, colIndex) => (
                                 <div key={colIndex} className="space-y-6">
-                                    {column.fields.map(field => renderField(field))}
+                                    {column.fields?.map(field => renderField(field))}
                                 </div>
                             ))}
                         </div>
