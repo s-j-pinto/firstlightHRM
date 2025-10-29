@@ -32,7 +32,7 @@ const formGenerationPrompt = ai.definePrompt({
   name: 'formGenerationPrompt',
   input: { schema: GenerateFormInputSchema },
   output: { schema: GenerateFormOutputSchema },
-  model: 'googleai/gemini-2.0-flash',
+  model: 'googleai/gemini-2.0-flash-lite',
   prompt: `You are an expert AI assistant that creates a "fillable PDF" like experience from a document.
 
 Your task is to analyze the provided PDF and convert its entire structure into a series of content 'blocks'. You must process **all pages** of the PDF from start to finish. The goal is to create a single JSON representation that can be rendered as a web form that looks and feels just like the original document.
