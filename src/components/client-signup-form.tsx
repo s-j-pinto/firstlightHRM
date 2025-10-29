@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from "react";
@@ -44,12 +45,13 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
       referralDate: z.string().optional(),
       dateOfInitialContact: z.string().optional(),
       clientNameAgreement: z.string().optional(),
+      signatureDate: z.string().optional(),
       // Add other fields from your dynamic form here if needed for validation
   });
 
   const form = useForm({
     resolver: zodResolver(formSchema),
-    defaultValues: { clientEmail: '', todaysDate: '', referralDate: '', dateOfInitialContact: '', clientNameAgreement: '' },
+    defaultValues: { clientEmail: '', todaysDate: '', referralDate: '', dateOfInitialContact: '', clientNameAgreement: '', signatureDate: '' },
   });
 
   const onSubmit = (data: any) => {
@@ -419,6 +421,29 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                 <p className="text-sm text-muted-foreground">
                     My consent will be valid for two (2) years from the date below. I may revoke my consent to share information, in writing, at any time. Revoking my consent does not apply to information that has already been shared or affect my financial responsibility for Ser­ vices. I understand that some uses and sharing of my information are authorized by law and do not require my consent.
                 </p>
+            </div>
+            
+            <div className="pt-8 grid grid-cols-2 gap-8 items-end">
+                <div className="space-y-1">
+                    <FormLabel>Client Signature/Responsible Party</FormLabel>
+                    <div className="relative w-full h-24 rounded-md border bg-slate-50">
+                        <SignatureCanvas
+                            penColor='black'
+                            canvasProps={{className: 'w-full h-full'}}
+                        />
+                    </div>
+                </div>
+                 <FormField
+                    control={form.control}
+                    name="signatureDate"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Date</FormLabel>
+                            <FormControl><Input type="date" {...field} /></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
             </div>
 
 
