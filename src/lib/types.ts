@@ -1,4 +1,5 @@
 
+
 import { z } from "zod";
 
 export const generalInfoSchema = z.object({
@@ -11,6 +12,7 @@ export const generalInfoSchema = z.object({
   city: z.string().min(2, "City is required."),
   state: z.string().min(2, "State is required."),
   zip: z.string().min(5, "Zip code is required."),
+  gender: z.enum(["Male", "Female", "Other"]).optional(),
 });
 
 export const experienceSchema = z.object({
@@ -280,3 +282,5 @@ export const GenerateFormOutputSchema = z.object({
 export type GeneratedForm = z.infer<typeof GenerateFormOutputSchema>;
 export type GeneratedRow = z.infer<typeof FormBlockSchema.shape.rows.element>;
 export type GeneratedColumn = z.infer<typeof GeneratedRow.shape.columns.element>;
+
+    
