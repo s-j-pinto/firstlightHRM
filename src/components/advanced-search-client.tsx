@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo, useTransition } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { collection } from 'firebase/firestore';
 import { firestore, useCollection, useMemoFirebase } from '@/firebase';
 import { CaregiverProfile, Interview, CaregiverEmployee } from '@/lib/types';
@@ -164,15 +164,29 @@ export default function AdvancedSearchClient() {
                             <Card className="p-4 bg-muted/50">
                                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                 {skillsAndAttributes.map(skill => (
-                                    <div key={skill.id} className="flex items-center space-x-2">
-                                        <Checkbox
-                                            id={skill.id}
-                                            {...register('skills')}
-                                            value={skill.id}
-                                            checked={watch('skills')?.includes(skill.id)}
-                                        />
-                                        <Label htmlFor={skill.id} className="font-normal text-sm">{skill.label}</Label>
-                                    </div>
+                                    <Controller
+                                        key={skill.id}
+                                        name="skills"
+                                        control={control}
+                                        render={({ field }) => (
+                                        <div className="flex items-center space-x-2">
+                                            <Checkbox
+                                                id={skill.id}
+                                                checked={field.value?.includes(skill.id)}
+                                                onCheckedChange={(checked) => {
+                                                    return checked
+                                                    ? field.onChange([...field.value, skill.id])
+                                                    : field.onChange(
+                                                        field.value?.filter(
+                                                            (value) => value !== skill.id
+                                                        )
+                                                        );
+                                                }}
+                                            />
+                                            <Label htmlFor={skill.id} className="font-normal text-sm">{skill.label}</Label>
+                                        </div>
+                                        )}
+                                    />
                                 ))}
                                 </div>
                             </Card>
