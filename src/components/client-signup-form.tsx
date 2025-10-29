@@ -139,7 +139,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
 
   const renderBlock = (block: FormBlock, index: number) => {    
     
-    if (block.type === 'heading' && block.content?.toUpperCase().replace(/[^A-Z]/g, '').includes('FIRSTLIGHTHOMECARE')) {
+    if (block.type === 'heading' && block.content && block.content.toUpperCase().includes('FIRSTLIGHT')) {
         return (
              <div key={index} className="break-before-page flex justify-center my-6">
                 <Image
@@ -155,15 +155,9 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
     }
     
     if (block.type === 'paragraph' && block.content) {
-      const rateText = "The hourly rate for providing the Services is $";
-      const minHoursText = "FirstLight Home Care of Rancho Cucamonga for a minimum of ";
-      const dateText = "on a current rate card dated";
-      const calculationText = "and will be used to calculate the Client's";
-      const cancellationText = "If there is same day cancellation, client will be charged for full scheduled hours, except if there is a medical emergency.";
-      const servicePlanText = "Frequency and duration of Services to be identified on individualized Client Service Plan";
-      
       let content: React.ReactNode = block.content;
-
+      
+      const rateText = "The hourly rate for providing the Services is $";
       if (typeof content === 'string' && content.includes(rateText)) {
         const parts = content.split(rateText);
         content = (
@@ -175,6 +169,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
         );
       }
       
+      const minHoursText = "FirstLight Home Care of Rancho Cucamonga for a minimum of ";
       if (typeof content === 'string' && content.includes(minHoursText)) {
          const parts = content.split(minHoursText);
          content = (
@@ -184,11 +179,9 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
             {parts[1]}
           </>
          )
-      } else if (typeof content !== 'string' && block.content.includes(minHoursText)) {
-         const originalContentString = block.content;
-         const rateParts = originalContentString.split(rateText);
+      } else if (typeof block.content === 'string' && block.content.includes(rateText) && block.content.includes(minHoursText)) {
+         const rateParts = block.content.split(rateText);
          const minHoursParts = rateParts[1].split(minHoursText);
-         
          content = (
            <>
             {rateParts[0]}{rateText}
@@ -200,6 +193,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
          );
       }
 
+      const dateText = "on a current rate card dated";
       if (typeof content === 'string' && content.includes(dateText)) {
         const parts = content.split(dateText);
         content = (
@@ -211,7 +205,8 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
         );
       }
       
-      if (typeof content === 'string' && content.includes(calculationText)) {
+      const calculationText = "and will be used to calculate the Client's";
+       if (typeof content === 'string' && content.includes(calculationText)) {
         const parts = content.split(calculationText);
         content = (
           <>
@@ -221,7 +216,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
         );
       }
 
-
+      const cancellationText = "If there is same day cancellation, client will be charged for full scheduled hours, except if there is a medical emergency.";
       if (typeof content === 'string' && content.includes(cancellationText)) {
         const parts = content.split(cancellationText);
         content = (
@@ -232,7 +227,8 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
             </>
         );
       }
-
+      
+      const servicePlanText = "Frequency and duration of Services to be identified on individualized Client Service Plan";
       if (typeof content === 'string' && content.includes(servicePlanText)) {
         const personalCareCheckboxes = [
             "Provide Alzheimer's care, cognitive impairment",
@@ -272,8 +268,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                         )
                     })}
                 </div>
-                
-                <h2 className="text-xl font-bold text-center my-4 pt-6">Companion Care</h2>
+                 <h2 className="text-xl font-bold text-center my-4 pt-6">Companion Care</h2>
                 {block.rows && block.rows.map((row, rowIndex) => (
                     <div key={rowIndex} className="space-y-6">
                         {row.columns.map((column, colIndex) => (
