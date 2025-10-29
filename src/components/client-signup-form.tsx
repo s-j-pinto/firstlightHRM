@@ -195,23 +195,23 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
       if (typeof content === 'string' && content.includes(hourlyRateText)) {
         const parts = content.split(hourlyRateText);
         return (
-          <p key={index} className="text-muted-foreground my-2 flex items-center flex-wrap">
-            {parts[0]}
-            {hourlyRateText}
+          <div key={index} className="text-muted-foreground my-2 flex items-center flex-wrap">
+            <span>{parts[0]}</span>
+            <span>{hourlyRateText}</span>
             <FormField
                 control={form.control}
                 name="hourlyRate"
                 render={({ field }) => (
-                    <FormItem className='flex items-center'>
+                    <FormItem className='flex items-center mx-1'>
                         <FormControl>
-                            <Input type="text" className="inline-block w-20 h-8 mx-1 px-2" {...field} />
+                            <Input type="text" className="inline-block w-20 h-8 px-2" {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
                 )}
             />
-            {parts[1]}
-          </p>
+            <span>{parts[1]}</span>
+          </div>
         );
       }
       
