@@ -233,7 +233,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
       if (typeof content === 'string' && content.includes(hourlyRateText)) {
         const parts = content.split(hourlyRateText);
         return (
-          <p key={index} className="text-muted-foreground my-2">
+          <p key={index} className="text-muted-foreground my-2 flex items-center flex-wrap">
             {parts[0]}
             {hourlyRateText}
             <Input type="text" className="inline-block w-20 h-8 mx-1 px-2" />
