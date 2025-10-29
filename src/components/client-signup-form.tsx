@@ -321,12 +321,6 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
     }
   }
 
-  // Filter out the original "FirstLight HOME CARE" heading to avoid duplication
-  const filteredBlocks = formDefinition.blocks.filter((block: FormBlock) => {
-    return !(block.type === 'heading' && block.content?.toUpperCase().replace(/[^A-Z]/g, '').includes('FIRSTLIGHTHOMECARE'));
-  });
-
-
   return (
     <Card>
       <CardHeader>
@@ -350,7 +344,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                     </FormItem>
                 )} />
 
-            {filteredBlocks.map((block: FormBlock, index: number) => renderBlock(block, index))}
+            {formDefinition.blocks.map((block: FormBlock, index: number) => renderBlock(block, index))}
 
             <div className="flex justify-end gap-4">
                 <Button type="button" onClick={() => onSave(form.getValues())} disabled={isSaving}>
