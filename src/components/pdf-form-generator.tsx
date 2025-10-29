@@ -6,9 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Loader2, UploadCloud, FileText } from "lucide-react";
+import { Loader2, UploadCloud, FileText, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { generateFormFromPdf } from "@/lib/form-generator.actions";
+import { generateFormFromPdf, saveFormAsTemplate } from "@/lib/form-generator.actions";
 import { type GeneratedField, type GeneratedForm, type FormBlock } from "@/lib/types";
 
 import { useForm } from "react-hook-form";
@@ -191,6 +191,7 @@ export default function PdfFormGenerator() {
   const [file, setFile] = useState<File | null>(null);
   const [generatedForm, setGeneratedForm] = useState<GeneratedForm | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isSaving, startSavingTransition] = useTransition();
   const { toast } = useToast();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -249,6 +250,19 @@ export default function PdfFormGenerator() {
       }
     });
   };
+  
+  const handleSaveTemplate = () => {
+    if (!generatedForm) return;
+
+    startSavingTransition(async () => {
+      const result = await saveFormAsTemplate(generatedForm);
+      if (result.error) {
+        toast({ title: "Error", description: result.message, variant: "destructive" });
+      } else {
+        toast({ title: "Success", description: result.message });
+      }
+    });
+  };
 
 
   return (
@@ -265,14 +279,22 @@ export default function PdfFormGenerator() {
             <Label htmlFor="pdf-upload">PDF Document</Label>
             <Input id="pdf-upload" type="file" accept=".pdf" onChange={handleFileChange} />
           </div>
-          <Button onClick={handleGenerateForm} disabled={isPending || !file}>
-            {isPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <UploadCloud className="mr-2 h-4 w-4" />
+          <div className="flex gap-4">
+            <Button onClick={handleGenerateForm} disabled={isPending || !file}>
+                {isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                <UploadCloud className="mr-2 h-4 w-4" />
+                )}
+                Generate Form
+            </Button>
+            {generatedForm && (
+                 <Button onClick={handleSaveTemplate} disabled={isSaving}>
+                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    Save as Client Intake Template
+                </Button>
             )}
-            Generate Form
-          </Button>
+          </div>
         </CardContent>
       </Card>
 

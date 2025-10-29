@@ -3,7 +3,9 @@
 
 import { useUser } from "@/firebase";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Loader2, UserPlus } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default function OwnerDashboardPage() {
   const { user, isUserLoading } = useUser();
@@ -33,7 +35,12 @@ export default function OwnerDashboardPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <p>More features coming soon!</p>
+            <Button asChild>
+                <Link href="/owner/new-client-signup">
+                    <UserPlus className="mr-2" />
+                    Sign Up New Client
+                </Link>
+            </Button>
         </CardContent>
       </Card>
     </div>
