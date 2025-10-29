@@ -234,10 +234,56 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
       }
 
       if (typeof content === 'string' && content.includes(servicePlanText)) {
+        const personalCareCheckboxes = [
+            "Provide Alzheimer's care, cognitive impairment",
+            "Provide medication reminders",
+            "Assist with dressing, grooming",
+            "Assist with bathing, hair care",
+            "Assist with feeding, special diets",
+            "Assist with mobility, ambulation and transfer",
+            "Assist with incontinence care",
+            "Assist with other:",
+        ];
         return (
             <React.Fragment key={index}>
                 <p className="text-muted-foreground my-2">{content}</p>
                 <h2 className="text-xl font-bold text-center my-4">Companion Care</h2>
+                {/* This will render the Companion Care checkboxes from the template */}
+                {block.rows && block.rows.map((row, rowIndex) => (
+                    <div key={rowIndex} className="space-y-6">
+                        {row.columns.map((column, colIndex) => (
+                            <div key={colIndex} className="space-y-6">
+                                {column.fields?.map(field => renderField(field))}
+                            </div>
+                        ))}
+                    </div>
+                ))}
+                
+                <h2 className="text-xl font-bold text-center my-4 pt-6">Personal Care Services</h2>
+                <div className="space-y-2">
+                    {personalCareCheckboxes.map((label, i) => {
+                        const fieldName = `personalCare_${i}`;
+                        return (
+                            <FormField
+                                key={fieldName}
+                                control={form.control}
+                                name={fieldName}
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                        <FormControl>
+                                            <Checkbox
+                                                checked={field.value}
+                                                onCheckedChange={field.onChange}
+                                            />
+                                        </FormControl>
+                                        <FormLabel className="font-normal">{label}</FormLabel>
+                                    </FormItem>
+                                )}
+                            />
+                        )
+                    })}
+                </div>
+
             </React.Fragment>
         )
       }
@@ -258,6 +304,11 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
         case 'html':
              return <div key={index} dangerouslySetInnerHTML={{ __html: block.content }} className="prose prose-sm text-muted-foreground my-2" />;
         case 'fields':
+            // This case handles the Companion Care checkboxes if they come in a separate block.
+            if (block.rows?.some(row => row.columns.some(col => col.fields?.some(f => f.label.toLowerCase().includes('companion care'))))) {
+                // We're handling this within the servicePlanText check, so we can return null here to avoid duplication.
+                return null;
+            }
             return (
                 <div key={index} className="space-y-6">
                     {block.rows?.map((row, rowIndex) => (
@@ -276,10 +327,26 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
     }
   }
 
+  // Filter out the original "FirstLight HOME CARE" heading to avoid duplication
+  const filteredBlocks = formDefinition.blocks.filter((block: FormBlock) =>
+    !(block.type === 'heading' && block.content?.toUpperCase().replace(/[^A-Z]/g, '').includes('FIRSTLIGHTHOMECARE'))
+  );
+
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2"><FileText /> {formDefinition?.formName || 'Client Intake Form'}</CardTitle>
+        <div className="flex justify-center my-6">
+          <Image
+              src="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc"
+              alt="FirstLight Home Care Logo"
+              width={250}
+              height={40}
+              priority
+              className="object-contain"
+          />
+        </div>
+        <CardTitle className="flex items-center gap-2 pt-4"><FileText /> {formDefinition?.formName || 'Client Intake Form'}</CardTitle>
         <CardDescription>
             This form is based on the saved template. Review and fill out the details below.
         </CardDescription>
@@ -299,7 +366,7 @@ const DynamicFormRenderer = ({ formDefinition, onSave, isSaving }: { formDefinit
                     </FormItem>
                 )} />
 
-            {formDefinition.blocks.map((block: FormBlock, index: number) => renderBlock(block, index))}
+            {filteredBlocks.map((block: FormBlock, index: number) => renderBlock(block, index))}
 
             <div className="flex justify-end gap-4">
                 <Button type="button" onClick={() => onSave(form.getValues())} disabled={isSaving}>
