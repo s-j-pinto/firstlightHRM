@@ -32,14 +32,19 @@ const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-
 
 const PrintHeader = () => (
     <div className="print-header-content hidden print:block">
+      <div className="flex items-center justify-between">
         <Image src={logoUrl} alt="FirstLight Home Care Logo" width={200} height={40} />
+        <span className="text-red-500 font-bold">NO. 00000</span>
+      </div>
     </div>
 );
 
 const PrintFooter = () => (
-    <div className="print-footer-content hidden print:block text-xs text-gray-500 flex justify-between w-full">
-        <span>Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated.</span>
-        <span>FIRST-0084-A (10/2018)</span>
+    <div className="print-footer-content hidden print:block text-xs text-gray-500">
+        <div className="flex justify-between w-full">
+            <span>Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated.</span>
+            <span>FIRST-0084-A (10/2018)</span>
+        </div>
     </div>
 );
 
