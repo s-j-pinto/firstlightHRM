@@ -5,10 +5,12 @@ import * as React from "react";
 import { useState, useTransition, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { useDoc, useMemoFirebase, firestore, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { doc, addDoc, updateDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { useRouter } from "next/navigation";
+import SignatureCanvas from 'react-signature-canvas';
 
+import { clientSignupFormSchema, type ClientSignupFormData } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -16,16 +18,6 @@ import { Input } from "@/components/ui/input";
 import { Loader2, Send, Save, BookUser } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { sendSignatureEmail } from "@/lib/client-signup.actions";
-import { useRouter } from "next/navigation";
-import SignatureCanvas from 'react-signature-canvas';
-
-// Define a basic schema. This will be expanded with all the form fields.
-const clientSignupFormSchema = z.object({
-  clientEmail: z.string().email({ message: "A valid client email is required to send the signature link." }),
-});
-
-// This will become the full type for our form data.
-type ClientSignupFormData = z.infer<typeof clientSignupFormSchema>;
 
 export default function ClientSignupForm({ signupId }: { signupId: string | null }) {
   const [isSaving, startSavingTransition] = useTransition();
@@ -33,7 +25,6 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
   const { toast } = useToast();
   const router = useRouter();
 
-  // Fetches the existing signup document if an ID is provided
   const signupDocRef = useMemoFirebase(() => signupId ? doc(firestore, "client_signups", signupId) : null, [signupId]);
   const { data: existingSignupData, isLoading: isSignupLoading } = useDoc<any>(signupDocRef);
 
@@ -41,10 +32,17 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
     resolver: zodResolver(clientSignupFormSchema),
     defaultValues: {
       clientEmail: '',
+      clientName: '',
+      clientAddress: '',
+      clientCity: '',
+      clientState: '',
+      clientPostalCode: '',
+      clientPhone: '',
+      clientSSN: '',
+      clientDOB: '',
     },
   });
 
-  // When existing data loads, reset the form with those values.
   useEffect(() => {
     if (existingSignupData) {
       form.reset(existingSignupData.formData);
@@ -70,13 +68,13 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
       
       try {
         let docId = signupId;
+        
         if (docId) {
-          // Update existing document
           const docRef = doc(firestore, 'client_signups', docId);
            const saveData = {
-              formData: formData,
+              formData,
               clientEmail: formData.clientEmail,
-              status: status,
+              status,
               lastUpdatedAt: serverTimestamp(),
           };
           await updateDoc(docRef, saveData).catch(serverError => {
@@ -85,13 +83,13 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
             }));
             throw serverError;
           });
+
         } else {
-          // Create new document
           const colRef = collection(firestore, 'client_signups');
           const saveData = {
-              formData: formData,
+              formData,
               clientEmail: formData.clientEmail,
-              status: status,
+              status,
               createdAt: serverTimestamp(),
               lastUpdatedAt: serverTimestamp(),
           };
@@ -153,6 +151,21 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
                         Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated. This Client Service Agreement (the "Agreement") is entered into between the client, or his or her authorized representative, (the "Client") and FirstLight Home Care of Rancho Cucamonga CA, address 9650 Business Center drive, Suite 132, Rancho Cucamonga CA 91730 phone number 9093214466 ("FirstLight Home Care")
                     </p>
 
+                    <div className="space-y-6">
+                        <h3 className="text-lg font-semibold text-center">I. CLIENT INFORMATION</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                             <FormField control={form.control} name="clientName" render={({ field }) => ( <FormItem><FormLabel>Client Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                             <FormField control={form.control} name="clientAddress" render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                             <FormField control={form.control} name="clientCity" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                             <FormField control={form.control} name="clientState" render={({ field }) => ( <FormItem><FormLabel>State</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                             <FormField control={form.control} name="clientPostalCode" render={({ field }) => ( <FormItem><FormLabel>Postal Code</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                             <FormField control={form.control} name="clientPhone" render={({ field }) => ( <FormItem><FormLabel>Phone</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                             <FormField control={form.control} name="clientSSN" render={({ field }) => ( <FormItem><FormLabel>Social Security #</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                             <FormField control={form.control} name="clientDOB" render={({ field }) => ( <FormItem><FormLabel>DOB</FormLabel><FormControl><Input {...field} type="date" /></FormControl><FormMessage /></FormItem> )} />
+                        </div>
+                    </div>
+
+
                     <div className="flex justify-end gap-4 pt-6">
                         <Button type="button" variant="secondary" onClick={() => handleSave("INCOMPLETE")} disabled={isSaving || isSending}>
                             {isSaving ? <Loader2 className="mr-2 animate-spin" /> : <Save className="mr-2" />}
@@ -163,13 +176,12 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
                             Save and Send for Signature
                         </Button>
                     </div>
-
                 </CardContent>
-                <CardFooter className="flex justify-center text-xs text-muted-foreground pt-4">
-                    <p>Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated.</p>
-                </CardFooter>
             </form>
         </Form>
+        <CardFooter className="flex justify-center text-xs text-muted-foreground pt-4">
+            <p>Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated.</p>
+        </CardFooter>
     </Card>
   );
 }

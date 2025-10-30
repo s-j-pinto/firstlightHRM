@@ -213,6 +213,19 @@ export const clientCareRequestSchema = z.object({
 });
 export type ClientCareRequest = z.infer<typeof clientCareRequestSchema> & { id: string };
 
+export const clientSignupFormSchema = z.object({
+  clientEmail: z.string().email({ message: "A valid client email is required to send the signature link." }),
+  clientName: z.string().min(1, { message: "Client Name is required." }),
+  clientAddress: z.string().min(1, { message: "Address is required." }),
+  clientCity: z.string().min(1, { message: "City is required." }),
+  clientState: z.string().min(1, { message: "State is required." }),
+  clientPostalCode: z.string().min(1, { message: "Postal Code is required." }),
+  clientPhone: z.string().min(1, { message: "Phone is required." }),
+  clientSSN: z.string().optional(),
+  clientDOB: z.string().optional(),
+});
+export type ClientSignupFormData = z.infer<typeof clientSignupFormSchema>;
+
 
 // Defines the schema for the data that will be passed into the AI prompt.
 // It accepts either an image data URI or plain text content.
@@ -239,46 +252,3 @@ export const ExtractCareLogOutputSchema = z.object({
   extractedText: z.string().describe('The full, raw text extracted from the provided content.'),
 });
 export type ExtractCareLogOutput = z.infer<typeof ExtractCareLogOutputSchema>;
-
-// Schema for a single field within the generated form.
-export const GeneratedFieldSchema = z.object({
-  fieldName: z.string().describe("A unique, camelCase name for the form field, derived from the label (e.g., 'fullName', 'emailAddress')."),
-  fieldType: z.enum(['text', 'email', 'tel', 'date', 'number', 'textarea', 'checkbox', 'radio', 'select'])
-    .describe("The most appropriate HTML input type for this field."),
-  label: z.string().describe("The user-visible label for the form field as it appears in the PDF."),
-  options: z.array(z.string()).optional().describe("An array of string options, only for 'radio' or 'select' field types."),
-  required: z.boolean().describe("True if the field appears to be mandatory (e.g., marked with an asterisk or is a standard required field like 'email')."),
-});
-export type GeneratedField = z.infer<typeof GeneratedFieldSchema>;
-
-// Schema for the PDF form generation flow.
-export const GenerateFormInputSchema = z.object({
-  pdfDataUri: z.string().describe(
-    "The PDF file to be analyzed, as a data URI that must include a 'data:application/pdf;base64,' prefix."
-  ),
-});
-export type GenerateFormInput = z.infer<typeof GenerateFormInputSchema>;
-
-
-export const FormBlockSchema = z.object({
-  type: z.enum(['fields', 'heading', 'paragraph', 'html'])
-    .describe("The type of content block."),
-  content: z.string().optional().describe("The text or HTML content for 'heading', 'paragraph', or 'html' blocks."),
-  level: z.number().optional().describe("The heading level (1-6), only for 'heading' blocks."),
-  rows: z.array(z.object({
-      columns: z.array(z.object({
-          fields: z.array(GeneratedFieldSchema).optional(),
-      })),
-  })).optional().describe("The rows of fields, only for 'fields' blocks."),
-}).describe("A single block of content or fields representing a part of the document.");
-
-export type FormBlock = z.infer<typeof FormBlockSchema>;
-
-
-export const GenerateFormOutputSchema = z.object({
-  formName: z.string().describe("A concise and appropriate name for the entire form, derived from the PDF's title or content (e.g., 'Client Intake Form')."),
-  blocks: z.array(FormBlockSchema).describe("An array of content and field blocks that represent the document's structure."),
-});
-export type GeneratedForm = z.infer<typeof GenerateFormOutputSchema>;
-export type GeneratedRow = z.infer<typeof FormBlockSchema.shape.rows.element>;
-export type GeneratedColumn = z.infer<typeof GeneratedRow.shape.columns.element>;
