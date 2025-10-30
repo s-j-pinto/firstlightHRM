@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import * as React from "react";
@@ -168,9 +167,9 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
         const convertedData = { ...formData };
         dateFields.forEach(field => {
             const value = formData[field];
-            if (value && typeof value.toDate === 'function') { // Check if it's a Firestore Timestamp
+            if (value && typeof value.toDate === 'function') { // Firestore Timestamp
                 convertedData[field] = value.toDate();
-            } else if (value && typeof value === 'string') { // Handle string dates
+            } else if (value && typeof value === 'string') { // ISO String
                 const parsedDate = new Date(value);
                 if (!isNaN(parsedDate.getTime())) {
                     convertedData[field] = parsedDate;
@@ -181,29 +180,38 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
         });
 
       form.reset(convertedData);
+
+      // After resetting the form, load the signature data into the canvas
+      Object.keys(sigPads).forEach(key => {
+        const padKey = key as keyof typeof sigPads;
+        const formKey = key as keyof ClientSignupFormData;
+        const sigPad = sigPads[padKey].current;
+        const sigData = formData[formKey];
+        if (sigPad && sigData) {
+            // Use a timeout to ensure the canvas is ready after the form reset
+            setTimeout(() => sigPad.fromDataURL(sigData), 100);
+        }
+      });
     }
   }, [existingSignupData, form]);
 
   const handleSave = async (status: "INCOMPLETE" | "PENDING CLIENT SIGNATURES") => {
-    console.log(`[handleSave] Initiated with status: ${status}`);
     const isSendingAction = status === "PENDING CLIENT SIGNATURES";
     const draftFields: (keyof ClientSignupFormData)[] = ['clientName', 'clientCity', 'clientState', 'clientPhone', 'clientEmail'];
     const fieldsToValidate = isSendingAction ? undefined : draftFields;
 
-    const isValid = await form.trigger(fieldsToValidate);
-    console.log(`[handleSave] Validation triggered. Is valid: ${isValid}`);
-    
-    if (!isValid) {
-        console.log('[handleSave] Validation failed.');
-        toast({
-            title: "Validation Error",
-            description: `Please fill out all required fields before ${isSendingAction ? 'sending' : 'saving'}.`,
-            variant: "destructive",
-        });
-        return;
-    }
-
     const action = async () => {
+        const isValid = await form.trigger(fieldsToValidate);
+        if (!isValid) {
+            toast({
+                title: "Validation Error",
+                description: `Please fill out all required fields before ${isSendingAction ? 'sending' : 'saving'}.`,
+                variant: "destructive",
+            });
+            return;
+        }
+
+        // Capture signature data before getting form values
         Object.keys(sigPads).forEach(key => {
             const padKey = key as keyof typeof sigPads;
             const formKey = key as keyof ClientSignupFormData;
@@ -214,21 +222,18 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
         });
 
         const formData = form.getValues();
-        const sanitizedFormData = { ...formData };
+        const sanitizedFormData: any = { ...formData };
         Object.keys(sanitizedFormData).forEach(key => {
-            const typedKey = key as keyof ClientSignupFormData;
-            if (String(typedKey).endsWith('Date') && sanitizedFormData[typedKey] === undefined) {
-                (sanitizedFormData as any)[typedKey] = null;
+            if (String(key).endsWith('Date') && sanitizedFormData[key] === undefined) {
+                sanitizedFormData[key] = null;
             }
         });
         
-        console.log('[handleSave] Action inside transition started.');
         try {
             let docId = signupId;
             const now = serverTimestamp();
             
             if (docId) {
-                console.log(`[handleSave] Updating existing document: ${docId}`);
                 const docRef = doc(firestore, 'client_signups', docId);
                 const saveData = {
                     formData: sanitizedFormData,
@@ -242,9 +247,7 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
                     }));
                     throw serverError;
                 });
-                console.log(`[handleSave] Document ${docId} updated successfully.`);
             } else {
-                console.log('[handleSave] Creating new document.');
                 const colRef = collection(firestore, 'client_signups');
                 const saveData = {
                     formData: sanitizedFormData,
@@ -260,30 +263,24 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
                     throw serverError;
                 });
                 docId = newDoc.id;
-                console.log(`[handleSave] New document created with ID: ${docId}`);
             }
 
             if (status === 'INCOMPLETE') {
-                console.log('[handleSave] Status is INCOMPLETE. Showing toast and redirecting.');
                 toast({ title: "Draft Saved", description: "The client intake form has been saved as a draft." });
                 if (!signupId) {
                     router.push(`/owner/new-client-signup?signupId=${docId}`);
                 }
             } else {
-                console.log('[handleSave] Status is PENDING. Sending signature email.');
                 const emailResult = await sendSignatureEmail(docId!, sanitizedFormData.clientEmail);
                 if (emailResult.error) {
-                    console.error('[handleSave] Email sending failed:', emailResult.message);
                     toast({ title: "Email Error", description: emailResult.message, variant: "destructive" });
                 } else {
-                    console.log('[handleSave] Email sent successfully.');
                     toast({ title: "Success", description: "Form saved and signature link sent to the client." });
                 }
                 router.push('/owner/dashboard');
             }
 
         } catch (error: any) {
-            console.error('[handleSave] An error occurred in the action:', error);
             if (!error.name?.includes('FirebaseError')) {
                 toast({ title: "Error", description: error.message || "An unexpected error occurred.", variant: "destructive" });
             }
@@ -664,6 +661,3 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
 }
 
     
-
-    
-
