@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from "react";
@@ -8,15 +9,21 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useDoc, useMemoFirebase, firestore, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { doc, addDoc, updateDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { useRouter } from "next/navigation";
+import { format } from "date-fns";
 
 import { clientSignupFormSchema, type ClientSignupFormData } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Loader2, Send, Save, BookUser } from "lucide-react";
+import { Loader2, Send, Save, BookUser, Calendar as CalendarIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { sendSignatureEmail } from "@/lib/client-signup.actions";
+import { Textarea } from "./ui/textarea";
+import { cn } from "@/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Calendar } from "./ui/calendar";
+import { Checkbox } from "./ui/checkbox";
 
 export default function ClientSignupForm({ signupId }: { signupId: string | null }) {
   const [isSaving, startSavingTransition] = useTransition();
@@ -46,12 +53,24 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
       secondEmergencyContactName: '',
       secondEmergencyContactRelationship: '',
       secondEmergencyContactPhone: '',
+      homemakerCompanion: false,
+      personalCare: false,
+      scheduledFrequency: '',
+      daysPerWeek: '',
+      hoursPerDay: '',
+      contractStartDate: undefined,
     },
   });
 
   useEffect(() => {
-    if (existingSignupData) {
-      form.reset(existingSignupData.formData);
+    if (existingSignupData?.formData) {
+      const data = {
+          ...existingSignupData.formData,
+          contractStartDate: existingSignupData.formData.contractStartDate 
+              ? new Date(existingSignupData.formData.contractStartDate) 
+              : undefined,
+      };
+      form.reset(data);
     }
   }, [existingSignupData, form]);
 
@@ -74,6 +93,7 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
       
       try {
         let docId = signupId;
+        const now = serverTimestamp();
         
         if (docId) {
           const docRef = doc(firestore, 'client_signups', docId);
@@ -81,7 +101,7 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
               formData,
               clientEmail: formData.clientEmail,
               status,
-              lastUpdatedAt: serverTimestamp(),
+              lastUpdatedAt: now,
           };
           await updateDoc(docRef, saveData).catch(serverError => {
             errorEmitter.emit("permission-error", new FirestorePermissionError({
@@ -96,8 +116,8 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
               formData,
               clientEmail: formData.clientEmail,
               status,
-              createdAt: serverTimestamp(),
-              lastUpdatedAt: serverTimestamp(),
+              createdAt: now,
+              lastUpdatedAt: now,
           };
           const newDoc = await addDoc(colRef, saveData).catch(serverError => {
             errorEmitter.emit("permission-error", new FirestorePermissionError({
@@ -148,16 +168,15 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
             Fill out the details below. You can save a draft or send it to the client for their signature.
             </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-8">
+        <CardContent>
             <Form {...form}>
-                <form>
+                <form className="space-y-8">
                     <h2 className="text-2xl font-bold text-center">CLIENT SERVICE AGREEMENT</h2>
-                    
                     <p className="text-sm text-muted-foreground">
                         Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated. This Client Service Agreement (the "Agreement") is entered into between the client, or his or her authorized representative, (the "Client") and FirstLight Home Care of Rancho Cucamonga CA, address 9650 Business Center drive, Suite 132, Rancho Cucamonga CA 91730 phone number 9093214466 ("FirstLight Home Care")
                     </p>
 
-                    <div className="space-y-6 mt-8">
+                    <div className="space-y-6">
                         <h3 className="text-lg font-semibold text-center">I. CLIENT INFORMATION</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                              <FormField control={form.control} name="clientName" render={({ field }) => ( <FormItem><FormLabel>Client Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
@@ -172,7 +191,7 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
                         </div>
                     </div>
 
-                    <div className="space-y-6 mt-8">
+                    <div className="space-y-6">
                         <h3 className="text-lg font-semibold text-center">II. EMERGENCY CONTACT INFORMATION</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <FormField control={form.control} name="emergencyContactName" render={({ field }) => ( <FormItem><FormLabel>Emergency Contact Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
@@ -187,7 +206,51 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
                         </div>
                     </div>
 
-                    <p className="text-sm text-muted-foreground mt-8">
+                     <div className="space-y-6">
+                        <h3 className="text-lg font-semibold text-center">III. TYPE OF SERVICE</h3>
+                        <div className="flex gap-8 justify-center">
+                            <FormField control={form.control} name="homemakerCompanion" render={({ field }) => (
+                                <FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Homemaker/Companion</FormLabel></FormItem>
+                            )} />
+                            <FormField control={form.control} name="personalCare" render={({ field }) => (
+                                <FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Personal Care</FormLabel></FormItem>
+                            )} />
+                        </div>
+                    </div>
+
+                    <div className="space-y-6">
+                        <h3 className="text-lg font-semibold text-center">IV. SCHEDULE</h3>
+                         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            <FormField control={form.control} name="scheduledFrequency" render={({ field }) => ( <FormItem><FormLabel>Scheduled Frequency</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="daysPerWeek" render={({ field }) => ( <FormItem><FormLabel>Days/Wk</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="hoursPerDay" render={({ field }) => ( <FormItem><FormLabel>Hrs/Day</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                            <FormField
+                                control={form.control}
+                                name="contractStartDate"
+                                render={({ field }) => (
+                                <FormItem className="flex flex-col">
+                                    <FormLabel>Contract Start Date</FormLabel>
+                                    <Popover>
+                                    <PopoverTrigger asChild>
+                                        <FormControl>
+                                        <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                        </Button>
+                                        </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                    </PopoverContent>
+                                    </Popover>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                        </div>
+                    </div>
+
+                    <p className="text-sm text-muted-foreground">
                         "FirstLight Home Care of Rancho Cucamonga will provide non-medical in-home services (the "Services") specified in the attached Service Plan Agreement (the "Service Plan")"
                     </p>
 
