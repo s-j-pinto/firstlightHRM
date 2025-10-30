@@ -31,13 +31,13 @@ import { Checkbox } from "./ui/checkbox";
 const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
 
 const PrintHeader = () => (
-    <div className="print-header-content">
+    <div className="print-header-content hidden print:block">
         <Image src={logoUrl} alt="FirstLight Home Care Logo" width={200} height={40} />
     </div>
 );
 
 const PrintFooter = () => (
-    <div className="print-footer-content text-xs text-gray-500 flex justify-between w-full">
+    <div className="print-footer-content hidden print:block text-xs text-gray-500 flex justify-between w-full">
         <span>Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated.</span>
         <span>FIRST-0084-A (10/2018)</span>
     </div>
@@ -445,7 +445,7 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
                                 If there is same day cancellation, client will be charged for full scheduled hours, except if there is a medical emergency.
                             </p>
                         </div>
-
+                        
                         <div className="space-y-6">
                             <h3 className="text-lg font-semibold text-center">ACKNOWLEDGEMENT & AGREEMENT</h3>
                             <p className="text-sm text-muted-foreground">
