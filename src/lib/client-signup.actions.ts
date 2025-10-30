@@ -27,7 +27,7 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
     }
     const firestore = serverDb;
     try {
-        const signingLink = `${process.env.NEXT_PUBLIC_BASE_URL}/client-sign/${signupId}`;
+        const signingLink = `${process.env.NEXT_PUBLIC_BASE_URL}/new-client-login`;
       
         const email = {
             to: [clientEmail],
@@ -38,10 +38,10 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
                 <div style="max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
                     <h1 style="color: #333;">Complete Your Onboarding</h1>
                     <p>Hello,</p>
-                    <p>Thank you for choosing FirstLight Home Care. To finalize your service agreement, please review and sign the intake form by clicking the button below.</p>
+                    <p>Thank you for choosing FirstLight Home Care. To finalize your service agreement, please log in to your secure portal to review and sign the pending documents by clicking the button below.</p>
                     <div style="text-align: center; margin: 30px 0;">
                     <a href="${signingLink}" style="background-color: #E07A5F; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-size: 16px; display: inline-block;">
-                        Review and Sign Document
+                        Log In to Sign Documents
                     </a>
                     </div>
                     <p>If you have any questions, please don't hesitate to contact our office.</p>
@@ -65,7 +65,7 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
 export async function submitClientSignature(payload: { signupId: string; signature: string; initials: string; date: string; }) {
     const { signupId, signature, initials, date } = payload;
     const firestore = serverDb;
-    const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL;
+    const ownerEmail = process.env.OWNER_EMAIL;
 
     try {
         const signupRef = firestore.collection('client_signups').doc(signupId);
@@ -106,7 +106,7 @@ export async function submitClientSignature(payload: { signupId: string; signatu
 
 export async function finalizeAndSubmit(signupId: string) {
     const firestore = serverDb;
-    const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL;
+    const ownerEmail = process.env.OWNER_EMAIL;
     try {
         const signupRef = firestore.collection('client_signups').doc(signupId);
         const signupDoc = await signupRef.get();
