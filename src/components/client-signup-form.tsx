@@ -62,19 +62,21 @@ const DynamicFormRenderer = ({ formDefinition, existingData, signupId }: { formD
    useEffect(() => {
     if (existingData) {
       form.reset(existingData);
-      // Load signatures from existing data
-      if (existingData.clientSignature && signaturePad1Ref.current) {
-        signaturePad1Ref.current.fromDataURL(existingData.clientSignature);
-      }
-      if (existingData.representativeSignature && signaturePad2Ref.current) {
-        signaturePad2Ref.current.fromDataURL(existingData.representativeSignature);
-      }
-      if (existingData.officeSignature && signaturePad3Ref.current) {
-        signaturePad3Ref.current.fromDataURL(existingData.officeSignature);
-      }
-       if (existingData.companionCareClientInitials && clientInitialsPadRef.current) {
-        clientInitialsPadRef.current.fromDataURL(existingData.companionCareClientInitials);
-      }
+      // Use a short timeout to ensure canvas refs are ready
+      setTimeout(() => {
+        if (existingData.clientSignature && signaturePad1Ref.current) {
+            signaturePad1Ref.current.fromDataURL(existingData.clientSignature);
+        }
+        if (existingData.representativeSignature && signaturePad2Ref.current) {
+            signaturePad2Ref.current.fromDataURL(existingData.representativeSignature);
+        }
+        if (existingData.officeSignature && signaturePad3Ref.current) {
+            signaturePad3Ref.current.fromDataURL(existingData.officeSignature);
+        }
+        if (existingData.companionCareClientInitials && clientInitialsPadRef.current) {
+            clientInitialsPadRef.current.fromDataURL(existingData.companionCareClientInitials);
+        }
+      }, 100);
     }
   }, [existingData, form]);
 
@@ -427,15 +429,17 @@ const DynamicFormRenderer = ({ formDefinition, existingData, signupId }: { formD
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Client Initials</FormLabel>
-                            <div className="relative w-24 h-16 rounded-md border bg-slate-50">
-                                <SignatureCanvas
-                                    ref={clientInitialsPadRef}
-                                    penColor='black'
-                                    canvasProps={{className: 'w-full h-full'}}
-                                    onEnd={() => form.setValue('companionCareClientInitials', clientInitialsPadRef.current?.toDataURL() || '')}
-                                />
-                            </div>
-                            <Button type="button" variant="ghost" size="sm" onClick={() => { clientInitialsPadRef.current?.clear(); form.setValue('companionCareClientInitials', ''); }}><RefreshCw className="mr-2" />Clear</Button>
+                            <FormControl>
+                                <div className="relative w-24 h-16 rounded-md border bg-slate-50">
+                                    <SignatureCanvas
+                                        ref={clientInitialsPadRef}
+                                        penColor='black'
+                                        canvasProps={{className: 'w-full h-full'}}
+                                        onEnd={() => field.onChange(clientInitialsPadRef.current?.toDataURL() || '')}
+                                    />
+                                </div>
+                            </FormControl>
+                            <Button type="button" variant="ghost" size="sm" onClick={() => { clientInitialsPadRef.current?.clear(); field.onChange(''); }}><RefreshCw className="mr-2" />Clear</Button>
                             <FormMessage />
                         </FormItem>
                     )}
@@ -518,21 +522,23 @@ const DynamicFormRenderer = ({ formDefinition, existingData, signupId }: { formD
             </div>
             
             <div className="pt-8 grid grid-cols-2 gap-8 items-end">
-                <FormField
+                 <FormField
                     control={form.control}
                     name="clientSignature"
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Client Signature/Responsible Party</FormLabel>
-                            <div className="relative w-full h-24 rounded-md border bg-slate-50">
-                                <SignatureCanvas
-                                    ref={signaturePad1Ref}
-                                    penColor='black'
-                                    canvasProps={{className: 'w-full h-full'}}
-                                    onEnd={() => form.setValue('clientSignature', signaturePad1Ref.current?.toDataURL() || '')}
-                                />
-                            </div>
-                            <Button type="button" variant="ghost" size="sm" onClick={() => { signaturePad1Ref.current?.clear(); form.setValue('clientSignature', ''); }}><RefreshCw className="mr-2" />Clear</Button>
+                            <FormControl>
+                                <div className="relative w-full h-24 rounded-md border bg-slate-50">
+                                    <SignatureCanvas
+                                        ref={signaturePad1Ref}
+                                        penColor='black'
+                                        canvasProps={{className: 'w-full h-full'}}
+                                        onEnd={() => field.onChange(signaturePad1Ref.current?.toDataURL() || '')}
+                                    />
+                                </div>
+                            </FormControl>
+                            <Button type="button" variant="ghost" size="sm" onClick={() => { signaturePad1Ref.current?.clear(); field.onChange(''); }}><RefreshCw className="mr-2" />Clear</Button>
                         </FormItem>
                     )}
                 />
@@ -556,15 +562,17 @@ const DynamicFormRenderer = ({ formDefinition, existingData, signupId }: { formD
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Signature</FormLabel>
-                            <div className="relative w-full h-24 rounded-md border bg-slate-50">
-                                <SignatureCanvas
-                                    ref={signaturePad2Ref}
-                                    penColor='black'
-                                    canvasProps={{className: 'w-full h-full'}}
-                                    onEnd={() => form.setValue('representativeSignature', signaturePad2Ref.current?.toDataURL() || '')}
-                                />
-                            </div>
-                            <Button type="button" variant="ghost" size="sm" onClick={() => { signaturePad2Ref.current?.clear(); form.setValue('representativeSignature', ''); }}><RefreshCw className="mr-2" />Clear</Button>
+                            <FormControl>
+                                <div className="relative w-full h-24 rounded-md border bg-slate-50">
+                                    <SignatureCanvas
+                                        ref={signaturePad2Ref}
+                                        penColor='black'
+                                        canvasProps={{className: 'w-full h-full'}}
+                                        onEnd={() => field.onChange(signaturePad2Ref.current?.toDataURL() || '')}
+                                    />
+                                </div>
+                            </FormControl>
+                            <Button type="button" variant="ghost" size="sm" onClick={() => { signaturePad2Ref.current?.clear(); field.onChange(''); }}><RefreshCw className="mr-2" />Clear</Button>
                         </FormItem>
                     )}
                 />
@@ -582,21 +590,23 @@ const DynamicFormRenderer = ({ formDefinition, existingData, signupId }: { formD
             </div>
 
             <div className="pt-8 grid grid-cols-2 gap-8 items-end">
-                <FormField
+                 <FormField
                     control={form.control}
                     name="officeSignature"
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>FirstLight Home Care of Rancho Cucamonga Representative</FormLabel>
-                            <div className="relative w-full h-24 rounded-md border bg-slate-50">
-                                <SignatureCanvas
-                                    ref={signaturePad3Ref}
-                                    penColor='black'
-                                    canvasProps={{className: 'w-full h-full'}}
-                                    onEnd={() => form.setValue('officeSignature', signaturePad3Ref.current?.toDataURL() || '')}
-                                />
-                            </div>
-                            <Button type="button" variant="ghost" size="sm" onClick={() => { signaturePad3Ref.current?.clear(); form.setValue('officeSignature', ''); }}><RefreshCw className="mr-2" />Clear</Button>
+                            <FormControl>
+                                <div className="relative w-full h-24 rounded-md border bg-slate-50">
+                                    <SignatureCanvas
+                                        ref={signaturePad3Ref}
+                                        penColor='black'
+                                        canvasProps={{className: 'w-full h-full'}}
+                                        onEnd={() => field.onChange(signaturePad3Ref.current?.toDataURL() || '')}
+                                    />
+                                </div>
+                            </FormControl>
+                            <Button type="button" variant="ghost" size="sm" onClick={() => { signaturePad3Ref.current?.clear(); field.onChange(''); }}><RefreshCw className="mr-2" />Clear</Button>
                         </FormItem>
                     )}
                 />
