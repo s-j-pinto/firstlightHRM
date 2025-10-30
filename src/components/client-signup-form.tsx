@@ -196,118 +196,113 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
   }, [existingSignupData, form]);
 
   const handleSave = async (status: "INCOMPLETE" | "PENDING CLIENT SIGNATURES") => {
-    console.log(`handleSave called with status: ${status}`);
     const isSendingAction = status === "PENDING CLIENT SIGNATURES";
     const draftFields: (keyof ClientSignupFormData)[] = ['clientName', 'clientCity', 'clientState', 'clientPhone', 'clientEmail'];
     const fieldsToValidate = isSendingAction ? undefined : draftFields;
-
-    const action = async () => {
-        console.log("Validation triggered.");
-        const isValid = await form.trigger(fieldsToValidate);
-        console.log(`Validation result: ${isValid}`);
-        
-        if (!isValid) {
-            toast({
-                title: "Validation Error",
-                description: `Please fill out all required fields before ${isSendingAction ? 'sending' : 'saving'}.`,
-                variant: "destructive",
-            });
-            return;
-        }
-
-        Object.keys(sigPads).forEach(key => {
-            const padKey = key as keyof typeof sigPads;
-            const formKey = key as keyof ClientSignupFormData;
-            const pad = sigPads[padKey].current;
-            if (pad && !pad.isEmpty()) {
-                form.setValue(formKey, pad.toDataURL());
-            }
-        });
-
-        const formData = form.getValues();
-        const sanitizedFormData: any = { ...formData };
-        const dateFields = [
-            'contractStartDate', 'rateCardDate', 'clientSignatureDate',
-            'clientRepresentativeSignatureDate', 'firstLightRepresentativeSignatureDate',
-            'officeTodaysDate', 'officeReferralDate', 'officeInitialContactDate',
-            'agreementSignatureDate', 'agreementRepDate'
-        ];
-        dateFields.forEach(key => {
-            if (sanitizedFormData[key] === undefined) {
-                sanitizedFormData[key] = null;
-            }
-        });
-        
-        try {
-            let docId = signupId;
-            const now = serverTimestamp();
-            
-            console.log("Preparing to write to Firestore.");
-            if (docId) {
-                const docRef = doc(firestore, 'client_signups', docId);
-                const saveData = {
-                    formData: sanitizedFormData,
-                    clientEmail: sanitizedFormData.clientEmail,
-                    clientPhone: sanitizedFormData.clientPhone,
-                    status,
-                    lastUpdatedAt: now,
-                };
-                console.log("Updating existing document:", docId);
-                await updateDoc(docRef, saveData).catch(serverError => {
-                    errorEmitter.emit("permission-error", new FirestorePermissionError({
-                        path: docRef.path, operation: "update", requestResourceData: saveData,
-                    }));
-                    throw serverError;
-                });
-            } else {
-                const colRef = collection(firestore, 'client_signups');
-                const saveData = {
-                    formData: sanitizedFormData,
-                    clientEmail: sanitizedFormData.clientEmail,
-                    clientPhone: sanitizedFormData.clientPhone,
-                    status,
-                    createdAt: now,
-                    lastUpdatedAt: now,
-                };
-                console.log("Adding new document.");
-                const newDoc = await addDoc(colRef, saveData).catch(serverError => {
-                    errorEmitter.emit("permission-error", new FirestorePermissionError({
-                        path: colRef.path, operation: "create", requestResourceData: saveData,
-                    }));
-                    throw serverError;
-                });
-                docId = newDoc.id;
-                console.log("New document created with ID:", docId);
-            }
-
-            if (status === 'INCOMPLETE') {
-                toast({ title: "Draft Saved", description: "The client intake form has been saved as a draft." });
-                if (!signupId) {
-                    router.push(`/owner/new-client-signup?signupId=${docId}`);
-                }
-            } else {
-                const emailResult = await sendSignatureEmail(docId!, sanitizedFormData.clientEmail);
-                if (emailResult.error) {
-                    toast({ title: "Email Error", description: emailResult.message, variant: "destructive" });
-                } else {
-                    toast({ title: "Success", description: "Form saved and signature link sent to the client." });
-                }
-                router.push('/owner/dashboard');
-            }
-
-        } catch (error: any) {
-            console.error("Firestore save error:", error);
-            if (!error.name?.includes('FirebaseError')) {
-                toast({ title: "Error", description: error.message || "An unexpected error occurred.", variant: "destructive" });
-            }
-        }
-    };
-
-    if (isSendingAction) {
-        startSendingTransition(action);
-    } else {
-        startSavingTransition(action);
+  
+    const transitionAction = isSendingAction ? startSendingTransition : startSavingTransition;
+  
+    console.log(`handleSave called with status: ${status}`);
+    const isValid = await form.trigger(fieldsToValidate);
+    console.log(`Validation result for status ${status}: ${isValid}`);
+  
+    if (!isValid) {
+      toast({
+        title: "Validation Error",
+        description: `Please fill out all required fields before ${isSendingAction ? 'sending' : 'saving'}.`,
+        variant: "destructive",
+      });
+      return;
     }
+  
+    transitionAction(async () => {
+      console.log("Preparing to write to Firestore.");
+      Object.keys(sigPads).forEach(key => {
+        const padKey = key as keyof typeof sigPads;
+        const formKey = key as keyof ClientSignupFormData;
+        const pad = sigPads[padKey].current;
+        if (pad && !pad.isEmpty()) {
+            form.setValue(formKey, pad.toDataURL());
+        }
+      });
+
+      const formData = form.getValues();
+      const sanitizedFormData: any = { ...formData };
+      const dateFields = [
+          'contractStartDate', 'rateCardDate', 'clientSignatureDate',
+          'clientRepresentativeSignatureDate', 'firstLightRepresentativeSignatureDate',
+          'officeTodaysDate', 'officeReferralDate', 'officeInitialContactDate',
+          'agreementSignatureDate', 'agreementRepDate'
+      ];
+      dateFields.forEach(key => {
+          if (sanitizedFormData[key] === undefined) {
+              sanitizedFormData[key] = null;
+          }
+      });
+  
+      try {
+        let docId = signupId;
+        const now = serverTimestamp();
+  
+        if (docId) {
+          const docRef = doc(firestore, 'client_signups', docId);
+          const saveData = {
+            formData: sanitizedFormData,
+            clientEmail: sanitizedFormData.clientEmail,
+            clientPhone: sanitizedFormData.clientPhone,
+            status,
+            lastUpdatedAt: now,
+          };
+          console.log("Updating existing document:", docId);
+          await updateDoc(docRef, saveData).catch(serverError => {
+            errorEmitter.emit("permission-error", new FirestorePermissionError({
+              path: docRef.path, operation: "update", requestResourceData: saveData,
+            }));
+            throw serverError;
+          });
+        } else {
+          const colRef = collection(firestore, 'client_signups');
+          const saveData = {
+            formData: sanitizedFormData,
+            clientEmail: sanitizedFormData.clientEmail,
+            clientPhone: sanitizedFormData.clientPhone,
+            status,
+            createdAt: now,
+            lastUpdatedAt: now,
+          };
+          console.log("Adding new document.");
+          const newDoc = await addDoc(colRef, saveData).catch(serverError => {
+            errorEmitter.emit("permission-error", new FirestorePermissionError({
+              path: colRef.path, operation: "create", requestResourceData: saveData,
+            }));
+            throw serverError;
+          });
+          docId = newDoc.id;
+          console.log("New document created with ID:", docId);
+        }
+  
+        if (status === 'INCOMPLETE') {
+          toast({ title: "Draft Saved", description: "The client intake form has been saved as a draft." });
+          if (!signupId) {
+            router.push(`/owner/new-client-signup?signupId=${docId}`);
+          }
+        } else {
+          const emailResult = await sendSignatureEmail(docId!, sanitizedFormData.clientEmail);
+          if (emailResult.error) {
+            toast({ title: "Email Error", description: emailResult.message, variant: "destructive" });
+          } else {
+            toast({ title: "Success", description: "Form saved and signature link sent to the client." });
+          }
+          router.push('/owner/dashboard');
+        }
+  
+      } catch (error: any) {
+        console.error("Firestore save error:", error);
+        if (!error.name?.includes('FirebaseError')) {
+          toast({ title: "Error", description: error.message || "An unexpected error occurred.", variant: "destructive" });
+        }
+      }
+    });
   };
 
   const handleFinalize = () => {
@@ -516,7 +511,7 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
                         
                         <div className="space-y-6 break-before-page">
                             <h3 className="text-lg font-semibold text-center">ACKNOWLEDGEMENT & AGREEMENT</h3>
-                            <p className="text-sm text-muted-foreground">
+                             <p className="text-sm text-muted-foreground">
                                 The Client, or his or her authorized representative, consents to receive the Services and acknowledges he or she or they have read, accept, and consent to this Agreement, including the "Terms and Conditions" and all other attached documents, all of which are incorporated into this Agreement.
                             </p>
                             <div className="space-y-8">
@@ -649,7 +644,7 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
                             <p className="text-sm text-muted-foreground">I understand that Firstlight Home Care of Rancho Cucamonga may need to use or disclose my personal information to provide ser­vices to me, to obtain payment for its services and for all of the other reasons more fully described in Firstlight Home Care of Rancho Cucamonga Notice of Privacy Practices.</p>
                             <p className="text-sm text-muted-foreground">I acknowledge that I have received the Notice of Privacy Practices, and I consent to all of the uses and disclosures of my personal information as described in that document including, if applicable and as is necessary, for Firstlight Home Care of Rancho Cucamonga provide services to me; to coordinate with my other providers; to determine eligibility for payment, bill, and receive payment for services; and to make all other uses and disclosures described in the Notice of Privacy Practices.</p>
                             <p className="text-sm text-muted-foreground">My consent will be valid for two (2) years from the date below. I may revoke my consent to share information, in writing, at any time. Revoking my consent does not apply to information that has already been shared or affect my financial responsibility for Ser­ vices. I understand that some uses and sharing of my information are authorized by law and do not require my consent.</p>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
                                 <div className="space-y-2">
                                     <FormLabel>Client Signature/Responsible Party</FormLabel>
                                     <div className="rounded-md border bg-white">
@@ -660,7 +655,7 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
                                 <FormField control={form.control} name="agreementSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem> )} />
                             </div>
                             <FormField control={form.control} name="agreementRelationship" render={({ field }) => ( <FormItem><FormLabel>Relationship if not Client</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
                                 <div className="space-y-2">
                                     <FormLabel>FirstLight Home Care of Rancho Cucamonga Representative</FormLabel>
                                     <div className="rounded-md border bg-white">
