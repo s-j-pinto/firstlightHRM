@@ -83,8 +83,8 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
       daysPerWeek: '',
       hoursPerDay: '',
       contractStartDate: undefined,
-      hourlyRate: undefined,
-      minimumHoursPerShift: undefined,
+      hourlyRate: 0,
+      minimumHoursPerShift: 0,
       rateCardDate: undefined,
       policyNumber: "",
       policyPeriod: "",
@@ -133,6 +133,17 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
       personalCare_assistWithIncontinenceCare: false,
       personalCare_assistWithOther: "",
       servicePlanClientInitials: "",
+      // Office Use Only
+      officeTodaysDate: undefined,
+      officeReferralDate: undefined,
+      officeInitialContactDate: undefined,
+      // Agreement
+      agreementClientName: "",
+      agreementClientSignature: "",
+      agreementSignatureDate: undefined,
+      agreementRelationship: "",
+      agreementRepSignature: "",
+      agreementRepDate: undefined,
     },
   });
 

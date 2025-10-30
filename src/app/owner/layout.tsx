@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { useUser } from "@/firebase";

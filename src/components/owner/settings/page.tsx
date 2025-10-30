@@ -1,4 +1,6 @@
 
+import AdminSettings from "@/components/admin-settings";
+
 export default function OwnerSettingsPage() {
   return (
     <div className="space-y-6">
