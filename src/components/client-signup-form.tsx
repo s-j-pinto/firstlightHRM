@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import * as React from "react";
@@ -264,13 +263,13 @@ const DynamicFormRenderer = ({ formDefinition, existingData, signupId }: { formD
       if (typeof content === 'string' && content.includes(hourlyRateText)) {
           const parts = content.split(hourlyRateText);
           return (
-             <div key={index} className="text-muted-foreground my-2 flex items-center flex-wrap">
+            <div key={index} className="text-muted-foreground my-2 flex items-center flex-wrap">
               <span>{parts[0]}{hourlyRateText} $</span>
-               <FormField
+              <FormField
                 control={form.control}
                 name="hourlyRate"
                 render={({ field }) => (
-                   <Input type="number" className="inline-block w-20 h-8 px-2 mx-1" {...field} value={field.value || ''} />
+                  <Input type="number" className="inline-block w-20 h-8 px-2 mx-1" {...field} value={field.value || ''} />
                 )}
               />
               <span>{parts[1]}</span>
@@ -668,3 +667,5 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
 
   return <DynamicFormRenderer formDefinition={template} existingData={signupData?.formData} signupId={signupId} />;
 }
+
+    
