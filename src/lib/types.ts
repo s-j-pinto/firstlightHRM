@@ -1,5 +1,4 @@
 
-
 import { z } from "zod";
 
 export const generalInfoSchema = z.object({
@@ -247,6 +246,11 @@ export const clientSignupFormSchema = z.object({
   minimumHoursPerShift: z.coerce.number().optional(),
   rateCardDate: z.date().optional(),
   
+  // Terms and Conditions
+  policyNumber: z.string().optional(),
+  policyPeriod: z.string().optional(),
+  clientInitials: z.string().optional(),
+
   // Signatures
   clientSignature: z.string().optional(),
   clientPrintedName: z.string().optional(),
