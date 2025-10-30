@@ -20,6 +20,12 @@ env:
     value: ${NEXT_PUBLIC_ADMIN_EMAIL}
   - variable: STAFFING_ADMIN_EMAIL
     value: ${NEXT_PUBLIC_STAFFING_ADMIN_EMAIL}
-  - variable: NEXT_PUBLIC_OWNER_EMAIL
-    value: ${NEXT_PUBLIC_OWNER_EMAIL}
+  - variable: OWNER_EMAIL
+    value: ${OWNER_EMAIL}
+  - variable: NEXT_PUBLIC_BASE_URL
+    value: 'https://care-connect-360--firstlighthomecare-hrm.us-central1.hosted.app'
+    availability:
+      - BUILD
+      - RUNTIME
     
+

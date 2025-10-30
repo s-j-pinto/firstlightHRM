@@ -43,11 +43,6 @@ const nextConfig: NextConfig = {
       }
     ],
   },
-  env: {
-    NEXT_PUBLIC_BASE_URL: process.env.NODE_ENV === 'production'
-      ? 'https://care-connect-360--firstlighthomecare-hrm.us-central1.hosted.app'
-      : 'http://localhost:9002',
-  }
 };
 
 export default nextConfig;
