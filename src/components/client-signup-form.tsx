@@ -1,9 +1,10 @@
 
 
+
 "use client";
 
 import * as React from "react";
-import { useState, useTransition, useRef } from "react";
+import { useState, useTransition, useRef, useEffect } from "react";
 import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,13 +25,14 @@ import { Loader2, FileText, Send, Save, BookUser } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { type GeneratedForm, type FormBlock, type GeneratedField } from "@/lib/types";
 import { saveClientSignupForm } from "@/lib/client-signup.actions";
+import { useRouter } from "next/navigation";
 
 
-const DynamicFormRenderer = ({ formDefinition }: { formDefinition: any }) => {
+const DynamicFormRenderer = ({ formDefinition, existingData, signupId }: { formDefinition: any, existingData?: any, signupId?: string | null }) => {
   const [isSaving, startSavingTransition] = useTransition();
   const [isSending, startSendingTransition] = useTransition();
   const { toast } = useToast();
-  const sigPadRef = useRef<SignatureCanvas>(null);
+  const router = useRouter();
 
   const allFields = formDefinition.blocks
     .filter((block: FormBlock) => block.type === 'fields' && !!block.rows)
@@ -45,17 +47,21 @@ const DynamicFormRenderer = ({ formDefinition }: { formDefinition: any }) => {
 
 
   const form = useForm({
-    // Using a basic schema since validation rules are not fully defined dynamically yet
-    defaultValues: defaultValues,
+    defaultValues: existingData || defaultValues,
   });
+
+   useEffect(() => {
+    if (existingData) {
+      form.reset(existingData);
+    }
+  }, [existingData, form]);
 
   const handleSave = (status: "INCOMPLETE" | "PENDING CLIENT SIGNATURES") => {
     const transition = status === "INCOMPLETE" ? startSavingTransition : startSendingTransition;
     transition(async () => {
-      // In a real scenario, you'd pass the full form data.
-      // We're just passing the clientEmail as a placeholder for the action.
       const formData = form.getValues();
       const result = await saveClientSignupForm({
+        signupId: signupId || null,
         clientEmail: formData.clientEmail,
         formData: formData,
         status: status,
@@ -66,7 +72,9 @@ const DynamicFormRenderer = ({ formDefinition }: { formDefinition: any }) => {
       } else {
         toast({ title: "Success", description: result.message });
         if (status === "PENDING CLIENT SIGNATURES") {
-            form.reset(); // Clear form after successful send
+            router.push('/owner/dashboard');
+        } else if (result.signupId) {
+            router.push(`/owner/new-client-signup?signupId=${result.signupId}`);
         }
       }
     });
@@ -153,7 +161,6 @@ const DynamicFormRenderer = ({ formDefinition }: { formDefinition: any }) => {
   }
 
   const renderBlock = (block: FormBlock, index: number) => {
-    // Check for the specific set of checkboxes to align horizontally
     const waiverCheckboxLabels = ["Notice of Privacy Practices", "Client Rights and Responsibilities", "Advance Directives", "Rate Sheet", "Transportation Waiver"];
     const isWaiverBlock = block.type === 'fields' && 
       block.rows?.some(row => 
@@ -177,7 +184,6 @@ const DynamicFormRenderer = ({ formDefinition }: { formDefinition: any }) => {
         );
     }
     
-    // Skip rendering the "HOME CARE" and "®" blocks
     if (block.content && (block.content.trim().toUpperCase() === "HOME CARE" || block.content.trim() === "®")) {
         return null;
     }
@@ -293,16 +299,7 @@ const DynamicFormRenderer = ({ formDefinition }: { formDefinition: any }) => {
                         )
                     })}
                 </div>
-                <h2 className="text-xl font-bold text-center my-4 pt-6">Companion Care Services</h2>
             </React.Fragment>
-        )
-      }
-
-      if (typeof content === 'string' && content.includes('Companion Care') && !content.includes("Firstlight Home Care of Rancho Cucamonga provides Personal Care Services")) {
-        return (
-          <React.Fragment key={index}>
-             <h2 className="text-xl font-bold text-center my-4 pt-6">Companion Care</h2>
-          </React.Fragment>
         )
       }
       
@@ -363,6 +360,8 @@ const DynamicFormRenderer = ({ formDefinition }: { formDefinition: any }) => {
 
             {formDefinition.blocks.map((block: FormBlock, index: number) => renderBlock(block, index))}
             
+             <h2 className="text-xl font-bold text-center my-4 pt-6">Companion Care Services</h2>
+
             <div className="pt-6">
                  <p className="text-muted-foreground my-2">Firstlight Home Care of Rancho Cucamonga provides Personal Care Services as defined under Cal. Health & Safety Code § 1796.12 and does not provide medical services or function as a home health agency.</p>
                  <FormField
@@ -545,20 +544,23 @@ const DynamicFormRenderer = ({ formDefinition }: { formDefinition: any }) => {
 };
 
 
-export default function ClientSignupForm() {
+export default function ClientSignupForm({ signupId }: { signupId: string | null }) {
   const templateRef = useMemoFirebase(() => doc(firestore, "settings", "clientIntakeFormTemplate"), []);
-  const { data: template, isLoading, error } = useDoc<any>(templateRef);
+  const { data: template, isLoading: isTemplateLoading, error: templateError } = useDoc<any>(templateRef);
+  
+  const signupDocRef = useMemoFirebase(() => signupId ? doc(firestore, "client_signups", signupId) : null, [signupId]);
+  const { data: signupData, isLoading: isSignupLoading, error: signupError } = useDoc<any>(signupDocRef);
 
-  if (isLoading) {
+  if (isTemplateLoading || isSignupLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-accent" />
-        <p className="ml-4 text-muted-foreground">Loading form template...</p>
+        <p className="ml-4 text-muted-foreground">Loading form data...</p>
       </div>
     );
   }
 
-  if (error || !template) {
+  if (templateError || !template) {
     return (
       <Card className="text-center py-10">
         <CardHeader>
@@ -573,5 +575,5 @@ export default function ClientSignupForm() {
     );
   }
 
-  return <DynamicFormRenderer formDefinition={template} />;
+  return <DynamicFormRenderer formDefinition={template} existingData={signupData?.formData} signupId={signupId} />;
 }

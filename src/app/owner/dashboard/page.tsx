@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Loader2, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import ClientSignupList from "@/components/client-signup-list";
 
 export default function OwnerDashboardPage() {
   const { user, isUserLoading } = useUser();
@@ -19,30 +20,25 @@ export default function OwnerDashboardPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold tracking-tight font-headline mb-2">
-        Welcome, Owner!
-      </h1>
-      <p className="text-muted-foreground mb-8">
-        This is your owner dashboard.
-      </p>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Owner Dashboard</CardTitle>
-          <CardDescription>
-            High-level overview and controls will be displayed here.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+    <div className="space-y-8">
+        <div className="flex justify-between items-start">
+            <div>
+                <h1 className="text-3xl font-bold tracking-tight font-headline mb-2">
+                    Welcome, Owner!
+                </h1>
+                <p className="text-muted-foreground">
+                    Manage new client intake forms and view their status.
+                </p>
+            </div>
             <Button asChild>
                 <Link href="/owner/new-client-signup">
                     <UserPlus className="mr-2" />
                     Sign Up New Client
                 </Link>
             </Button>
-        </CardContent>
-      </Card>
+        </div>
+      
+      <ClientSignupList />
     </div>
   );
 }

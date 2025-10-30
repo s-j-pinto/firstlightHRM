@@ -1,4 +1,5 @@
 
+
 "use server";
 
 import { revalidatePath } from 'next/cache';
@@ -7,6 +8,7 @@ import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
 
 const clientSignupSchema = z.object({
+  signupId: z.string().nullable(),
   clientEmail: z.string().email(),
   formData: z.any(),
   status: z.enum(["INCOMPLETE", "PENDING CLIENT SIGNATURES"]),
@@ -19,26 +21,34 @@ export async function saveClientSignupForm(payload: z.infer<typeof clientSignupS
     return { message: "Invalid data provided for client signup form.", error: true };
   }
 
-  const { clientEmail, formData, status } = validation.data;
+  const { signupId, clientEmail, formData, status } = validation.data;
   const firestore = serverDb;
 
   try {
-    const signupData = {
-      clientEmail,
-      formData,
-      status,
-      lastUpdatedAt: Timestamp.now(),
-      createdAt: Timestamp.now(),
-    };
-
-    const docRef = await firestore.collection('client_signups').add(signupData);
+    let docRef;
+    if (signupId) {
+        docRef = firestore.collection('client_signups').doc(signupId);
+        await docRef.update({
+            clientEmail,
+            formData,
+            status,
+            lastUpdatedAt: Timestamp.now(),
+        });
+    } else {
+         docRef = await firestore.collection('client_signups').add({
+            clientEmail,
+            formData,
+            status,
+            createdAt: Timestamp.now(),
+            lastUpdatedAt: Timestamp.now(),
+        });
+    }
 
     revalidatePath('/owner/dashboard');
 
     if (status === 'INCOMPLETE') {
-      return { message: "Draft of the client intake form has been saved." };
+      return { message: "Draft of the client intake form has been saved.", signupId: docRef.id };
     } else {
-      // Logic to send email with signing link
       const signingLink = `${process.env.NEXT_PUBLIC_BASE_URL}/client-sign/${docRef.id}`;
       
       const email = {
@@ -66,7 +76,7 @@ export async function saveClientSignupForm(payload: z.infer<typeof clientSignupS
 
       await firestore.collection("mail").add(email);
 
-      return { message: "The form has been saved and a signature link has been sent to the client." };
+      return { message: "The form has been saved and a signature link has been sent to the client.", signupId: docRef.id };
     }
   } catch (error: any) {
     console.error("Error saving client signup form:", error);
