@@ -1,6 +1,4 @@
 
-import PdfFormGenerator from "@/components/pdf-form-generator";
-
 export default function OwnerSettingsPage() {
   return (
     <div className="space-y-6">
@@ -10,7 +8,12 @@ export default function OwnerSettingsPage() {
           Manage high-level application settings and tools.
         </p>
       </div>
-      <PdfFormGenerator />
+      <div>
+        {/* The PDF Form Generator has been removed as the client intake form is now a static component. */}
+        <p className="text-muted-foreground p-8 text-center border-2 border-dashed rounded-lg">
+          Settings area for future feature controls.
+        </p>
+      </div>
     </div>
   );
 }
