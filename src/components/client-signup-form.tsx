@@ -1,6 +1,5 @@
 
 
-
 "use client";
 
 import * as React from "react";
@@ -10,8 +9,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import SignatureCanvas from 'react-signature-canvas';
-import { useDoc, useMemoFirebase, firestore } from "@/firebase";
-import { doc } from 'firebase/firestore';
+import { useDoc, useMemoFirebase, firestore, errorEmitter, FirestorePermissionError } from "@/firebase";
+import { doc, addDoc, updateDoc, collection, Timestamp } from 'firebase/firestore';
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,7 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, FileText, Send, Save, BookUser } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { type GeneratedForm, type FormBlock, type GeneratedField } from "@/lib/types";
-import { saveClientSignupForm } from "@/lib/client-signup.actions";
+import { sendSignatureEmail } from "@/lib/client-signup.actions";
 import { useRouter } from "next/navigation";
 
 
@@ -60,21 +59,59 @@ const DynamicFormRenderer = ({ formDefinition, existingData, signupId }: { formD
     const transition = status === "INCOMPLETE" ? startSavingTransition : startSendingTransition;
     transition(async () => {
       const formData = form.getValues();
-      const result = await saveClientSignupForm({
+      const payload = {
         signupId: signupId || null,
         clientEmail: formData.clientEmail,
         formData: formData,
         status: status,
-      });
+      };
 
-      if (result.error) {
-        toast({ title: "Error", description: result.message, variant: "destructive" });
-      } else {
-        toast({ title: "Success", description: result.message });
-        if (status === "PENDING CLIENT SIGNATURES") {
-            router.push('/owner/dashboard');
-        } else if (result.signupId) {
-            router.push(`/owner/new-client-signup?signupId=${result.signupId}`);
+      try {
+        let docId = payload.signupId;
+        const colRef = collection(firestore, 'client_signups');
+
+        if (docId) {
+          const docRef = doc(firestore, 'client_signups', docId);
+          await updateDoc(docRef, { ...payload, lastUpdatedAt: Timestamp.now() }).catch(serverError => {
+            const permissionError = new FirestorePermissionError({
+              path: docRef.path,
+              operation: "update",
+              requestResourceData: payload,
+            });
+            errorEmitter.emit("permission-error", permissionError);
+            throw serverError;
+          });
+        } else {
+          const newDocRef = await addDoc(colRef, { ...payload, createdAt: Timestamp.now(), lastUpdatedAt: Timestamp.now() }).catch(serverError => {
+             const permissionError = new FirestorePermissionError({
+                path: colRef.path,
+                operation: "create",
+                requestResourceData: payload,
+            });
+            errorEmitter.emit("permission-error", permissionError);
+            throw serverError;
+          });
+          docId = newDocRef.id;
+        }
+
+        if (status === 'INCOMPLETE') {
+          toast({ title: "Success", description: "Draft of the client intake form has been saved." });
+          router.push(`/owner/new-client-signup?signupId=${docId}`);
+        } else {
+          // Now call the server action just to send the email
+          const emailResult = await sendSignatureEmail(docId, payload.clientEmail);
+           if (emailResult.error) {
+              toast({ title: "Email Error", description: emailResult.message, variant: "destructive" });
+           } else {
+              toast({ title: "Success", description: "The form has been saved and a signature link has been sent to the client." });
+           }
+          router.push('/owner/dashboard');
+        }
+
+      } catch (error: any) {
+        // This will only catch client-side errors, not the permission error which is now handled by the emitter.
+        if (!error.name.includes('FirebaseError')) {
+           toast({ title: "Error", description: error.message || "An unexpected error occurred.", variant: "destructive" });
         }
       }
     });
@@ -204,15 +241,13 @@ const DynamicFormRenderer = ({ formDefinition, existingData, signupId }: { formD
       if (typeof content === 'string' && content.includes(hourlyRateText)) {
           const parts = content.split(hourlyRateText);
           return (
-            <div key={index} className="text-muted-foreground my-2 flex items-center flex-wrap">
+             <div key={index} className="text-muted-foreground my-2 flex items-center flex-wrap">
               <span>{parts[0]}{hourlyRateText} $</span>
-              <FormField
+               <FormField
                 control={form.control}
                 name="hourlyRate"
                 render={({ field }) => (
-                  <FormControl>
-                    <Input type="number" className="inline-block w-20 h-8 px-2 mx-1" {...field} value={field.value || ''} />
-                  </FormControl>
+                   <Input type="number" className="inline-block w-20 h-8 px-2 mx-1" {...field} value={field.value || ''} />
                 )}
               />
               <span>{parts[1]}</span>
