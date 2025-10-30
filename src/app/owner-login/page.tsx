@@ -48,7 +48,7 @@ function OwnerLoginPageContent() {
       try {
         const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
         const user = userCredential.user;
-        const ownerEmail = process.env.OWNER_EMAIL;
+        const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL;
 
         if (user.email === ownerEmail) {
             const redirectTo = searchParams.get("redirect") || "/owner/dashboard";

@@ -65,7 +65,7 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
 export async function submitClientSignature(payload: { signupId: string; signature: string; initials: string; date: string; }) {
     const { signupId, signature, initials, date } = payload;
     const firestore = serverDb;
-    const ownerEmail = process.env.OWNER_EMAIL;
+    const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL;
 
     try {
         const signupRef = firestore.collection('client_signups').doc(signupId);
@@ -106,7 +106,7 @@ export async function submitClientSignature(payload: { signupId: string; signatu
 
 export async function finalizeAndSubmit(signupId: string) {
     const firestore = serverDb;
-    const ownerEmail = process.env.OWNER_EMAIL;
+    const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL;
     try {
         const signupRef = firestore.collection('client_signups').doc(signupId);
         const signupDoc = await signupRef.get();
