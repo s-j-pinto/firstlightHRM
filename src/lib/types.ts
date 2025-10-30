@@ -250,6 +250,12 @@ export const clientSignupFormSchema = z.object({
   policyNumber: z.string().optional(),
   policyPeriod: z.string().optional(),
   clientInitials: z.string().optional(),
+  receivedPrivacyPractices: z.boolean().optional(),
+  receivedClientRights: z.boolean().optional(),
+  receivedAdvanceDirectives: z.boolean().optional(),
+  receivedRateSheet: z.boolean().optional(),
+  receivedTransportationWaiver: z.boolean().optional(),
+  receivedPaymentAgreement: z.boolean().optional(),
 
   // Signatures
   clientSignature: z.string().optional(),
@@ -290,3 +296,29 @@ export const ExtractCareLogOutputSchema = z.object({
   extractedText: z.string().describe('The full, raw text extracted from the provided content.'),
 });
 export type ExtractCareLogOutput = z.infer<typeof ExtractCareLogOutputSchema>;
+
+export interface GeneratedField {
+  fieldName: string;
+  label: string;
+  fieldType: 'text' | 'email' | 'tel' | 'date' | 'number' | 'checkbox' | 'radio' | 'select' | 'textarea' | 'signature';
+  required: boolean;
+  options?: string[];
+}
+
+export interface FormBlock {
+  type: 'heading' | 'paragraph' | 'html' | 'fields';
+  content?: string;
+  level?: number;
+  rows?: {
+    columns: {
+      fields?: GeneratedField[];
+    }[];
+  }[];
+}
+
+export interface GeneratedForm {
+  id?: string;
+  formName: string;
+  blocks: FormBlock[];
+  formData: any;
+}
