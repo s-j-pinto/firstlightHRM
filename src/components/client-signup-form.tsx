@@ -302,10 +302,6 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
   return (
      <Card>
         <CardHeader className="no-print">
-            <CardTitle className="flex items-center gap-2 pt-4"><BookUser />New Client Intake Form</CardTitle>
-            <CardDescription>
-            Fill out the details below. You can save a draft or send it to the client for their signature.
-            </CardDescription>
         </CardHeader>
         <CardContent>
             <div className="printable-area">
@@ -535,7 +531,7 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
                             </ol>
                         </div>
 
-                        <div className="space-y-6">
+                        <div className="space-y-6 break-before-page">
                             <h3 className="text-lg font-semibold text-center">HOME CARE SERVICE PLAN AGREEMENT</h3>
                             <FormField control={form.control} name="clientName" render={({ field }) => ( <FormItem><FormLabel>Client Name:</FormLabel><FormControl><Input {...field} disabled /></FormControl></FormItem> )} />
                             <p className="text-sm text-muted-foreground">Frequency and duration of Services to be identified on individualized Client Service Plan</p>
@@ -576,7 +572,7 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
                             </div>
                         </div>
 
-                        <div className="space-y-6">
+                        <div className="space-y-6 break-before-page">
                             <h3 className="text-lg font-semibold text-center">AGREEMENT TO ACCEPT PAYMENT RESPONSIBILITY AND CONSENT FOR USE AND DISCLOSURE OF PERSONAL INFORMATION-PRIVATE PAY</h3>
                             <FormField control={form.control} name="agreementClientName" render={({ field }) => ( <FormItem><FormLabel>Client Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                             <p className="text-sm text-muted-foreground">I understand that Firstlight Home Care of Rancho Cucamonga may need to use or disclose my personal information to provide ser­vices to me, to obtain payment for its services and for all of the other reasons more fully described in Firstlight Home Care of Rancho Cucamonga Notice of Privacy Practices.</p>
