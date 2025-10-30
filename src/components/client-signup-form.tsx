@@ -344,8 +344,6 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
 
   return (
      <Card>
-        <CardHeader className="no-print">
-        </CardHeader>
         <CardContent className="pt-6">
             <div className="printable-area">
                 <PrintHeader />
@@ -668,3 +666,4 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
     
 
     
+
