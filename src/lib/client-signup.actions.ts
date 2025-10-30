@@ -1,5 +1,4 @@
 
-
 "use server";
 
 import { revalidatePath } from 'next/cache';
@@ -32,8 +31,8 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
         const email = {
             to: [clientEmail],
             message: {
-            subject: "Action Required: Please Sign Your FirstLight Home Care Agreement",
-            html: `
+                subject: "Action Required: Please Sign Your FirstLight Home Care Agreement",
+                html: `
                 <body style="font-family: sans-serif; line-height: 1.6;">
                 <div style="max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
                     <h1 style="color: #333;">Complete Your Onboarding</h1>
