@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -66,6 +65,12 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
       policyNumber: "",
       policyPeriod: "",
       clientInitials: "",
+      receivedPrivacyPractices: false,
+      receivedClientRights: false,
+      receivedAdvanceDirectives: false,
+      receivedRateSheet: false,
+      receivedTransportationWaiver: false,
+      receivedPaymentAgreement: false,
       clientSignature: "",
       clientPrintedName: "",
       clientSignatureDate: undefined,
@@ -75,13 +80,6 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
       firstLightRepresentativeSignature: "",
       firstLightRepresentativeTitle: "",
       firstLightRepresentativeSignatureDate: undefined,
-      receivedPrivacyPractices: false,
-      receivedClientRights: false,
-      receivedAdvanceDirectives: false,
-      receivedRateSheet: false,
-      receivedTransportationWaiver: false,
-      receivedPaymentAgreement: false,
-
       // Service Plan
       companionCare_mealPreparation: false,
       companionCare_cleanKitchen: false,
@@ -413,41 +411,9 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
                          <p className="text-sm text-muted-foreground">
                             Invoices are to be presented on a regular scheduled basis. Payment is due upon receipt or not more than seven days after an invoice has been received by the Client. The Client should submit payment to the address listed above. Full refunds of any advance deposit fees collected for unused services will occur within ten (10) business days of last date of service. FirstLight Home Care of Rancho Cucamonga does not participate in and is not credentialed with any government or commercial health insurance plans and therefore does not submit bills or claims for Services as in-network, out-of-network or any other status to any government or commercial health plans. Client acknowledges and agrees that Client does not have insurance through any government health insurance plan; that Client requests to pay for Services out-of-pocket; and that because FirstLight Home Care of Rancho Cucamonga does not participate in or accept any form of government or commercial health insurance, FirstLight Home Care of Rancho Cucamonga will bill Client directly for the Services and Client is responsible for paying such charges.
                         </p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm p-3 rounded-md bg-yellow-100 border-l-4 border-yellow-400 text-yellow-800">
                             If there is same day cancellation, client will be charged for full scheduled hours, except if there is a medical emergency.
                         </p>
-                    </div>
-
-                    <div className="space-y-6">
-                        <h3 className="text-lg font-semibold text-center">HOME CARE SERVICE PLAN AGREEMENT</h3>
-                        <FormField control={form.control} name="clientName" render={({ field }) => ( <FormItem><FormLabel>Client Name:</FormLabel><FormControl><Input {...field} disabled /></FormControl></FormItem> )} />
-                        <p className="text-sm text-muted-foreground">Frequency and duration of Services to be identified on individualized Client Service Plan</p>
-                        <div className="space-y-4">
-                            <h4 className="font-semibold">Companion Care Services</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                                {companionCareCheckboxes.map(item => (
-                                    <FormField key={item.id} control={form.control} name={item.id} render={({ field }) => (
-                                        <FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal text-sm">{item.label}</FormLabel></FormItem>
-                                    )} />
-                                ))}
-                            </div>
-                            <FormField control={form.control} name="companionCare_other" render={({ field }) => ( <FormItem><FormLabel>Other:</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                        </div>
-                        <div className="space-y-4">
-                            <h4 className="font-semibold">Personal Care Services</h4>
-                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                                {personalCareCheckboxes.map(item => (
-                                    <FormField key={item.id} control={form.control} name={item.id} render={({ field }) => (
-                                        <FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal text-sm">{item.label}</FormLabel></FormItem>
-                                    )} />
-                                ))}
-                            </div>
-                            <FormField control={form.control} name="personalCare_assistWithOther" render={({ field }) => ( <FormItem><FormLabel>Assist with other:</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                        </div>
-                        <p className="text-sm text-muted-foreground">Firstlight Home Care of Rancho Cucamonga provides Personal Care Services as defined under Cal. Health & Safety Code § 1796.12 and does not provide medical services or function as a home health agency.</p>
-                        <div className="w-1/3 mt-2">
-                            <FormField control={form.control} name="servicePlanClientInitials" render={({ field }) => ( <FormItem><FormLabel>Client Initials</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                        </div>
                     </div>
                     
                     <div className="space-y-6">
@@ -539,6 +505,39 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
                         </ol>
                     </div>
 
+                    <div className="space-y-6">
+                        <h3 className="text-lg font-semibold text-center">HOME CARE SERVICE PLAN AGREEMENT</h3>
+                        <FormField control={form.control} name="clientName" render={({ field }) => ( <FormItem><FormLabel>Client Name:</FormLabel><FormControl><Input {...field} disabled /></FormControl></FormItem> )} />
+                        <p className="text-sm text-muted-foreground">Frequency and duration of Services to be identified on individualized Client Service Plan</p>
+                        <div className="space-y-4">
+                            <h4 className="font-semibold">Companion Care Services</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                                {companionCareCheckboxes.map(item => (
+                                    <FormField key={item.id} control={form.control} name={item.id} render={({ field }) => (
+                                        <FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal text-sm">{item.label}</FormLabel></FormItem>
+                                    )} />
+                                ))}
+                            </div>
+                            <FormField control={form.control} name="companionCare_other" render={({ field }) => ( <FormItem><FormLabel>Other:</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        </div>
+                        <div className="space-y-4">
+                            <h4 className="font-semibold">Personal Care Services</h4>
+                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                                {personalCareCheckboxes.map(item => (
+                                    <FormField key={item.id} control={form.control} name={item.id} render={({ field }) => (
+                                        <FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal text-sm">{item.label}</FormLabel></FormItem>
+                                    )} />
+                                ))}
+                            </div>
+                            <FormField control={form.control} name="personalCare_assistWithOther" render={({ field }) => ( <FormItem><FormLabel>Assist with other:</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        </div>
+                        <p className="text-sm text-muted-foreground">Firstlight Home Care of Rancho Cucamonga provides Personal Care Services as defined under Cal. Health & Safety Code § 1796.12 and does not provide medical services or function as a home health agency.</p>
+                        <div className="w-1/3 mt-2">
+                            <FormField control={form.control} name="servicePlanClientInitials" render={({ field }) => ( <FormItem><FormLabel>Client Initials</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        </div>
+                    </div>
+
+
                     <div className="flex justify-end gap-4 pt-6">
                         <Button type="button" variant="secondary" onClick={() => handleSave("INCOMPLETE")} disabled={isSaving || isSending}>
                             {isSaving ? <Loader2 className="mr-2 animate-spin" /> : <Save className="mr-2" />}
@@ -558,3 +557,5 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
     </Card>
   );
 }
+
+    
