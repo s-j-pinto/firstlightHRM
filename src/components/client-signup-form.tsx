@@ -184,7 +184,7 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
     }
   }, [existingSignupData, form]);
 
-  const handleSave = async (status: "INCOMPLETE" | "PENDING CLIENT SIGNATURES") => {
+ const handleSave = async (status: "INCOMPLETE" | "PENDING CLIENT SIGNATURES") => {
     console.log(`[handleSave] Initiated with status: ${status}`);
     const isSendingAction = status === "PENDING CLIENT SIGNATURES";
     const draftFields: (keyof ClientSignupFormData)[] = ['clientName', 'clientCity', 'clientState', 'clientPhone', 'clientEmail'];
@@ -213,6 +213,15 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
     });
 
     const formData = form.getValues();
+
+    // Sanitize date fields before saving to Firestore
+    const sanitizedFormData = { ...formData };
+    Object.keys(sanitizedFormData).forEach(key => {
+        const typedKey = key as keyof ClientSignupFormData;
+        if (typedKey.endsWith('Date') && sanitizedFormData[typedKey] === undefined) {
+            (sanitizedFormData as any)[typedKey] = null;
+        }
+    });
     
     const action = async () => {
       console.log('[handleSave] Action inside transition started.');
@@ -224,8 +233,8 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
           console.log(`[handleSave] Updating existing document: ${docId}`);
           const docRef = doc(firestore, 'client_signups', docId);
            const saveData = {
-              formData,
-              clientEmail: formData.clientEmail,
+              formData: sanitizedFormData,
+              clientEmail: sanitizedFormData.clientEmail,
               status,
               lastUpdatedAt: now,
           };
@@ -240,8 +249,8 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
           console.log('[handleSave] Creating new document.');
           const colRef = collection(firestore, 'client_signups');
           const saveData = {
-              formData,
-              clientEmail: formData.clientEmail,
+              formData: sanitizedFormData,
+              clientEmail: sanitizedFormData.clientEmail,
               status,
               createdAt: now,
               lastUpdatedAt: now,
@@ -264,7 +273,7 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
           }
         } else {
           console.log('[handleSave] Status is PENDING. Sending signature email.');
-          const emailResult = await sendSignatureEmail(docId!, formData.clientEmail);
+          const emailResult = await sendSignatureEmail(docId!, sanitizedFormData.clientEmail);
            if (emailResult.error) {
               console.error('[handleSave] Email sending failed:', emailResult.message);
               toast({ title: "Email Error", description: emailResult.message, variant: "destructive" });
@@ -543,7 +552,7 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
                                     </div>
                                     The Client agrees not to entrust a FirstLight Home Care of Rancho Cucamonga In-Home Worker with unattended premises or any part thereof, or with the care, custody, or control of cash, negotiable, or other valuables without the prior written permission of FirstLight Home Care of Rancho Cucamonga and then only when the FirstLight Home Care of Rancho Cucamonga In-Home Worker's specific duties necessitate such activities.
                                 </li>
-                                <li><strong>USE OF PREMISES:</strong> Client shall not do or suffer or permit anything to be done in or about the location where the Services are to be provided (the "Premises") which would in any way subject FirstLight Home Care of Rancho Cucamonga, its employees, agents, representatives, and affiliates to any liability or cause a cancellation of, or give rise to any defense by an insurer to any claim under, or conflict with, any policies for homeowners' or renters' insurance. Client shall not do or permit anything to be done in or about the Premises which will in any way conflict with any law, ordinance or governmental requirement now in force or which may hereafter be enacted. Client shall immediately furnish FirstLight Home Care of Rancho Cucamonga with any notices received from any insurance company or governmental agency or inspection bureau regarding any unsafe or unlawful conditions within the Premises. Client will indemnify, defend and hold harmless FirstLight Home Care of Rancho Cucamonga, any related entities, its affiliates, and each of their directors, officers, and employees ("Indemnified Persons") from and against any and all claims, actions, demands, liabilities, losses, damages, judgments, costs and expenses, including but not limited to, reasonable attorneys' fees, costs and interest, asserted against, imposed upon or incurred by Indemnified Persons that arise out of, or in connection with, the Client's failure to perform the obligations of this Section 12.</li>
+                                <li><strong>USE OF PREMISES:</strong> Client shall not do or suffer or permit anything to be done in or about the location where the Services are to be provided (the "Premises") which would in any way subject FirstLight Home Care of Rancho Cucamonga, its employees, agents, representatives, and affiliates to any liability or cause a cancellation of, or give rise to any defense by an insurer to any claim under, or conflict with, any policies for homeowners' or renters' insurance. Client shall not do or permit anything to be done in or about the Premises which will in any way conflict with any law, ordinance or governmental requirement now in force or which may hereafter be enacted. Client shall immediately furnish FirstLight Home Care of Rancho Cucamonga with any notices received from any insurance company or governmental agency or inspection bureau regarding any unsafe or unlawful conditions within the Premises. Client will indemnify, defend and hold harmless FirstLight Home Care of Rancho Cucamonga, any related entities, its affiliates, and each of their directors, officers, and employees ("Indemnified Persons") from and against any and all claims, actions, demands, liabilities, losses, damages, judgments, costs and expenses, including but not to, reasonable attorneys' fees, costs and interest, asserted against, imposed upon or incurred by Indemnified Persons that arise out of, or in connection with, the Client's failure to perform the obligations of this Section 12.</li>
                                 <li><strong>USE OF VEHICLE:</strong> FirstLight Home Care of Rancho Cucamonga will not operate a vehicle on the Client's behalf unless the Client executes the Transportation Waiver substantially in the form provided by FirstLight Home Care of Rancho Cucamonga as part of this Agreement.</li>
                                 <li><strong>HIRING:</strong> The investment FirstLight Home Care of Rancho Cucamonga makes in maintaining our quality caregivers and employees is substantial; therefore, it is agreed for a period of one year from the last day worked or for a period of one year after the Client stops utilizing FirstLight Home Care of Rancho Cucamonga Services, the Client agrees not to hire directly, or hire through any other company or agency, FirstLight Home Care of Rancho Cucamonga employees directly or indirectly who have personally provided care for the Client. If the Client wishes to hire a FirstLight Home Care of Rancho Cucamonga employee directly, the Client will notify FirstLight Home Care of Rancho Cucamonga of this intent in writing and a flat fee of $15,000.00 will be required to hire that employee directly. A written request by said employee will be required and must be approved by FirstLight Home Care of Rancho Cucamonga
                                     <div className="w-1/3 mt-2">
