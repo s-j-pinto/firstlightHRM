@@ -116,10 +116,10 @@ service cloud.firestore {
      * @deny (update, delete) - No user can update or delete a client_signups.
      * @principle Open read access.
      */
-    match /client_signups/{signupsId} {
+     match /client_signups/{signupsId} {
       allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if false;
+      allow create, update: if isSignedIn();
+      allow delete: if false;
     }
   }
 }
