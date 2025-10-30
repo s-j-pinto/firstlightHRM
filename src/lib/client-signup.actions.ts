@@ -53,7 +53,7 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
         };
 
         await firestore.collection("mail").add(email);
-        return { message: "Signature email sent successfully.", error: false }
+        return { message: "Signature email sent successfully.", error: false };
 
     } catch (error: any) {
         console.error("Error sending signature email:", error);
