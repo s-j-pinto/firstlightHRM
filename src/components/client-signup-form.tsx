@@ -81,6 +81,36 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
       receivedRateSheet: false,
       receivedTransportationWaiver: false,
       receivedPaymentAgreement: false,
+
+      // Service Plan
+      companionCare_mealPreparation: false,
+      companionCare_cleanKitchen: false,
+      companionCare_assistWithLaundry: false,
+      companionCare_dustFurniture: false,
+      companionCare_assistWithEating: false,
+      companionCare_provideAlzheimersRedirection: false,
+      companionCare_assistWithHomeManagement: false,
+      companionCare_preparationForBathing: false,
+      companionCare_groceryShopping: false,
+      companionCare_cleanBathrooms: false,
+      companionCare_changeBedLinens: false,
+      companionCare_runErrands: false,
+      companionCare_escortAndTransportation: false,
+      companionCare_provideRemindersAndAssistWithToileting: false,
+      companionCare_provideRespiteCare: false,
+      companionCare_stimulateMentalAwareness: false,
+      companionCare_assistWithDressingAndGrooming: false,
+      companionCare_assistWithShavingAndOralCare: false,
+      companionCare_other: "",
+      personalCare_provideAlzheimersCare: false,
+      personalCare_provideMedicationReminders: false,
+      personalCare_assistWithDressingGrooming: false,
+      personalCare_assistWithBathingHairCare: false,
+      personalCare_assistWithFeedingSpecialDiets: false,
+      personalCare_assistWithMobilityAmbulationTransfer: false,
+      personalCare_assistWithIncontinenceCare: false,
+      personalCare_assistWithOther: "",
+      servicePlanClientInitials: "",
     },
   });
 
@@ -204,6 +234,37 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
   const clearSignature = (sigPadRef: React.RefObject<SignatureCanvas>) => {
     sigPadRef.current?.clear();
   };
+
+  const companionCareCheckboxes = [
+    { id: 'companionCare_mealPreparation', label: 'Meal preparation and clean up' },
+    { id: 'companionCare_cleanKitchen', label: 'Clean kitchen - appliances, sinks, mop floors' },
+    { id: 'companionCare_assistWithLaundry', label: 'Assist with laundry and ironing' },
+    { id: 'companionCare_dustFurniture', label: 'Dust furniture - living room, bedrooms, dining room' },
+    { id: 'companionCare_assistWithEating', label: 'Assist with eating and proper nutrition' },
+    { id: 'companionCare_provideAlzheimersRedirection', label: "Provide Alzheimer's redirection - for safety" },
+    { id: 'companionCare_assistWithHomeManagement', label: 'Assist with home management - mail, plants, calendar' },
+    { id: 'companionCare_preparationForBathing', label: 'Preparation for bathing and hair care' },
+    { id: 'companionCare_groceryShopping', label: 'Grocery shopping' },
+    { id: 'companionCare_cleanBathrooms', label: 'Clean bathrooms - sink, tub, toilet' },
+    { id: 'companionCare_changeBedLinens', label: 'Change bed linens and make bed' },
+    { id: 'companionCare_runErrands', label: 'Run errands - pick up prescription' },
+    { id: 'companionCare_escortAndTransportation', label: 'Escort and transportation' },
+    { id: 'companionCare_provideRemindersAndAssistWithToileting', label: 'Provide reminders and assist with toileting' },
+    { id: 'companionCare_provideRespiteCare', label: 'Provide respite care' },
+    { id: 'companionCare_stimulateMentalAwareness', label: 'Stimulate mental awareness - read' },
+    { id: 'companionCare_assistWithDressingAndGrooming', label: 'Assist with dressing and grooming' },
+    { id: 'companionCare_assistWithShavingAndOralCare', label: 'Assist with shaving and oral care' },
+  ] as const;
+
+  const personalCareCheckboxes = [
+    { id: 'personalCare_provideAlzheimersCare', label: "Provide Alzheimer's care, cognitive impairment" },
+    { id: 'personalCare_provideMedicationReminders', label: 'Provide medication reminders' },
+    { id: 'personalCare_assistWithDressingGrooming', label: 'Assist with dressing, grooming' },
+    { id: 'personalCare_assistWithBathingHairCare', label: 'Assist with bathing, hair care' },
+    { id: 'personalCare_assistWithFeedingSpecialDiets', label: 'Assist with feeding, special diets' },
+    { id: 'personalCare_assistWithMobilityAmbulationTransfer', label: 'Assist with mobility, ambulation and transfer' },
+    { id: 'personalCare_assistWithIncontinenceCare', label: 'Assist with incontinence care' },
+  ] as const;
 
   if (isSignupLoading) {
     return (
@@ -356,6 +417,38 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
                             If there is same day cancellation, client will be charged for full scheduled hours, except if there is a medical emergency.
                         </p>
                     </div>
+
+                    <div className="space-y-6">
+                        <h3 className="text-lg font-semibold text-center">HOME CARE SERVICE PLAN AGREEMENT</h3>
+                        <FormField control={form.control} name="clientName" render={({ field }) => ( <FormItem><FormLabel>Client Name:</FormLabel><FormControl><Input {...field} disabled /></FormControl></FormItem> )} />
+                        <p className="text-sm text-muted-foreground">Frequency and duration of Services to be identified on individualized Client Service Plan</p>
+                        <div className="space-y-4">
+                            <h4 className="font-semibold">Companion Care Services</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                                {companionCareCheckboxes.map(item => (
+                                    <FormField key={item.id} control={form.control} name={item.id} render={({ field }) => (
+                                        <FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal text-sm">{item.label}</FormLabel></FormItem>
+                                    )} />
+                                ))}
+                            </div>
+                            <FormField control={form.control} name="companionCare_other" render={({ field }) => ( <FormItem><FormLabel>Other:</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        </div>
+                        <div className="space-y-4">
+                            <h4 className="font-semibold">Personal Care Services</h4>
+                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                                {personalCareCheckboxes.map(item => (
+                                    <FormField key={item.id} control={form.control} name={item.id} render={({ field }) => (
+                                        <FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal text-sm">{item.label}</FormLabel></FormItem>
+                                    )} />
+                                ))}
+                            </div>
+                            <FormField control={form.control} name="personalCare_assistWithOther" render={({ field }) => ( <FormItem><FormLabel>Assist with other:</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        </div>
+                        <p className="text-sm text-muted-foreground">Firstlight Home Care of Rancho Cucamonga provides Personal Care Services as defined under Cal. Health & Safety Code § 1796.12 and does not provide medical services or function as a home health agency.</p>
+                        <div className="w-1/3 mt-2">
+                            <FormField control={form.control} name="servicePlanClientInitials" render={({ field }) => ( <FormItem><FormLabel>Client Initials</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        </div>
+                    </div>
                     
                     <div className="space-y-6">
                         <h3 className="text-lg font-semibold text-center">ACKNOWLEDGEMENT & AGREEMENT</h3>
@@ -465,4 +558,3 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
     </Card>
   );
 }
-
