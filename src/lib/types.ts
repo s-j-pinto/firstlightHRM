@@ -241,6 +241,11 @@ export const clientSignupFormSchema = z.object({
   daysPerWeek: z.string().optional(),
   hoursPerDay: z.string().optional(),
   contractStartDate: z.date().optional(),
+
+  // Payments
+  hourlyRate: z.coerce.number().optional(),
+  minimumHoursPerShift: z.coerce.number().optional(),
+  rateCardDate: z.date().optional(),
 });
 export type ClientSignupFormData = z.infer<typeof clientSignupFormSchema>;
 

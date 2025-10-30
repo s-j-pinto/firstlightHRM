@@ -59,6 +59,9 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
       daysPerWeek: '',
       hoursPerDay: '',
       contractStartDate: undefined,
+      hourlyRate: undefined,
+      minimumHoursPerShift: undefined,
+      rateCardDate: undefined,
     },
   });
 
@@ -68,6 +71,9 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
           ...existingSignupData.formData,
           contractStartDate: existingSignupData.formData.contractStartDate 
               ? new Date(existingSignupData.formData.contractStartDate) 
+              : undefined,
+          rateCardDate: existingSignupData.formData.rateCardDate
+              ? new Date(existingSignupData.formData.rateCardDate)
               : undefined,
       };
       form.reset(data);
@@ -253,6 +259,56 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
                     <p className="text-sm text-muted-foreground">
                         "FirstLight Home Care of Rancho Cucamonga will provide non-medical in-home services (the "Services") specified in the attached Service Plan Agreement (the "Service Plan")"
                     </p>
+
+                    <div className="space-y-6">
+                        <h3 className="text-lg font-semibold text-center">V. PAYMENTS FOR THE SERVICES</h3>
+                        <div className="space-y-4 rounded-md border p-4">
+                            <div className="flex flex-wrap items-baseline gap-2">
+                                <p className="text-sm">The hourly rate for providing the Services is $</p>
+                                <FormField control={form.control} name="hourlyRate" render={({ field }) => (
+                                    <FormItem className="inline-flex">
+                                        <FormControl><Input {...field} type="number" className="w-24 h-8" /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <p className="text-sm">per hour. The rate is based on the Client utilizing the services of FirstLight Home Care of Rancho Cucamonga for a minimum of</p>
+                                 <FormField control={form.control} name="minimumHoursPerShift" render={({ field }) => (
+                                    <FormItem className="inline-flex">
+                                        <FormControl><Input {...field} type="number" className="w-20 h-8" /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <p className="text-sm">hours per shift. The rates are provided on a current rate card dated</p>
+                                <FormField control={form.control} name="rateCardDate" render={({ field }) => (
+                                    <FormItem className="inline-flex">
+                                        <Popover>
+                                        <PopoverTrigger asChild>
+                                            <FormControl>
+                                            <Button variant={"outline"} size="sm" className={cn("pl-3 text-left font-normal h-8", !field.value && "text-muted-foreground")}>
+                                                {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                            </Button>
+                                            </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                        </PopoverContent>
+                                        </Popover>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                 <p className="text-sm">and will be used to calculate the Client's rate for Services. Rates are subject to change with two (2) weeks' written notice (See attached rate sheet.).</p>
+                            </div>
+
+                        </div>
+                         <p className="text-sm text-muted-foreground">
+                            Invoices are to be presented on a regular scheduled basis. Payment is due upon receipt or not more than seven days after an invoice has been received by the Client. The Client should submit payment to the address listed above. Full refunds of any advance deposit fees collected for unused services will occur within ten (10) business days of last date of service. FirstLight Home Care of Rancho Cucamonga does not participate in and is not credentialed with any government or commercial health insurance plans and therefore does not submit bills or claims for Services as in-network, out-of-network or any other status to any government or commercial health plans. Client acknowledges and agrees that Client does not have insurance through any government health insurance plan; that Client requests to pay for Services out-of-pocket; and that because FirstLight Home Care of Rancho Cucamonga does not participate in or accept any form of government or commercial health insurance, FirstLight Home Care of Rancho Cucamonga will bill Client directly for the Services and Client is responsible for paying such charges.
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                            If there is same day cancellation, client will be charged for full scheduled hours, except if there is a medical emergency.
+                        </p>
+                    </div>
+
 
                     <div className="flex justify-end gap-4 pt-6">
                         <Button type="button" variant="secondary" onClick={() => handleSave("INCOMPLETE")} disabled={isSaving || isSending}>
