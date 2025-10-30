@@ -18,10 +18,8 @@ import { useToast } from "@/hooks/use-toast";
 import { sendSignatureEmail } from "@/lib/client-signup.actions";
 import { useRouter } from "next/navigation";
 
-
 // Define a basic schema. This will be expanded with all the form fields.
 const clientSignupFormSchema = z.object({
-  formName: z.string().optional().default("Client Intake Form"),
   clientEmail: z.string().email({ message: "A valid client email is required to send the signature link." }),
 });
 
@@ -52,12 +50,10 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
     }
   }, [existingSignupData, form]);
 
-
   const handleSave = async (status: "INCOMPLETE" | "PENDING CLIENT SIGNATURES") => {
     const isSendingAction = status === "PENDING CLIENT SIGNATURES";
     const transition = isSendingAction ? startSendingTransition : startSavingTransition;
 
-    // Trigger validation before saving
     const isValid = await form.trigger();
     if (!isValid) {
         toast({
@@ -70,12 +66,11 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
 
     transition(async () => {
       const formData = form.getValues();
-      
-      const saveData: any = {
-        formData: formData,
-        clientEmail: formData.clientEmail,
-        status: status,
-        lastUpdatedAt: serverTimestamp(),
+      const saveData = {
+          formData: formData,
+          clientEmail: formData.clientEmail,
+          status: status,
+          lastUpdatedAt: serverTimestamp(),
       };
 
       try {
@@ -91,15 +86,14 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
           });
         } else {
           // Create new document
-          saveData.createdAt = serverTimestamp();
           const colRef = collection(firestore, 'client_signups');
-          const newDocRef = await addDoc(colRef, saveData).catch(serverError => {
+          const newDoc = await addDoc(colRef, { ...saveData, createdAt: serverTimestamp() }).catch(serverError => {
             errorEmitter.emit("permission-error", new FirestorePermissionError({
                 path: colRef.path, operation: "create", requestResourceData: saveData,
             }));
             throw serverError;
           });
-          docId = newDocRef.id;
+          docId = newDoc.id;
         }
 
         if (status === 'INCOMPLETE') {
@@ -135,51 +129,40 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
   }
 
   return (
-    <Card>
-      <Form {...form}>
-        <form>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 pt-4"><BookUser /> Client Intake Form</CardTitle>
-            <CardDescription>
-              Fill out the details below. You can save a draft or send it to the client for their signature.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-8">
-            <FormField
-              control={form.control}
-              name="clientEmail"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Client Contact Email</FormLabel>
-                  <FormControl>
-                    <Input placeholder="client@email.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+     <Card>
+        <Form {...form}>
+            <form>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 pt-4"><BookUser />New Client Intake Form</CardTitle>
+                    <CardDescription>
+                    Fill out the details below. You can save a draft or send it to the client for their signature.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-8">
+                    <h2 className="text-2xl font-bold text-center">CLIENT SERVICE AGREEMENT</h2>
 
-            <div className="text-center text-muted-foreground py-10 border-2 border-dashed rounded-lg">
-                <p>Boilerplate language and form fields will be added here.</p>
-            </div>
+                    {/* Placeholder for form fields and boilerplate */}
+                    <div className="text-center text-muted-foreground py-10 border-2 border-dashed rounded-lg">
+                        <p>Form fields and boilerplate will be added here.</p>
+                    </div>
 
-            <div className="flex justify-end gap-4 pt-6">
-                <Button type="button" variant="secondary" onClick={() => handleSave("INCOMPLETE")} disabled={isSaving || isSending}>
-                    {isSaving ? <Loader2 className="mr-2 animate-spin" /> : <Save className="mr-2" />}
-                    Save as Incomplete
-                </Button>
-                <Button type="button" onClick={() => handleSave("PENDING CLIENT SIGNATURES")} disabled={isSaving || isSending}>
-                    {isSending ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2" />}
-                    Save and Send for Signature
-                </Button>
-            </div>
+                    <div className="flex justify-end gap-4 pt-6">
+                        <Button type="button" variant="secondary" onClick={() => handleSave("INCOMPLETE")} disabled={isSaving || isSending}>
+                            {isSaving ? <Loader2 className="mr-2 animate-spin" /> : <Save className="mr-2" />}
+                            Save as Incomplete
+                        </Button>
+                        <Button type="button" onClick={() => handleSave("PENDING CLIENT SIGNATURES")} disabled={isSaving || isSending}>
+                            {isSending ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2" />}
+                            Save and Send for Signature
+                        </Button>
+                    </div>
 
-          </CardContent>
-          <CardFooter className="flex justify-center text-xs text-muted-foreground pt-4">
-            <p>Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated.</p>
-          </CardFooter>
-        </form>
-      </Form>
+                </CardContent>
+                <CardFooter className="flex justify-center text-xs text-muted-foreground pt-4">
+                    <p>Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated.</p>
+                </CardFooter>
+            </form>
+        </Form>
     </Card>
   );
 }
