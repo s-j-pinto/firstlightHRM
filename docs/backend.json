@@ -1,5 +1,4 @@
 
-
 {
   "entities": {
     "CaregiverProfile": {
@@ -256,13 +255,14 @@
       "properties": {
         "formData": { "type": "object", "description": "The partially or fully completed form data." },
         "clientEmail": { "type": "string", "format": "email", "description": "The primary email of the client signing up." },
+        "clientPhone": { "type": "string", "description": "The primary phone number of the client signing up." },
         "status": { "type": "string", "enum": ["INCOMPLETE", "PENDING CLIENT SIGNATURES", "SIGNED AND PUBLISHED"], "description": "The current status of the signup process." },
         "formTemplateId": { "type": "string", "description": "The ID of the form template used for this signup." },
         "completedPdfUrl": { "type": "string", "format": "uri", "description": "The URL to the final, signed PDF in Google Cloud Storage." },
         "createdAt": { "type": "string", "format": "date-time" },
         "lastUpdatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["formData", "clientEmail", "status", "createdAt", "lastUpdatedAt"]
+      "required": ["formData", "clientEmail", "clientPhone", "status", "createdAt", "lastUpdatedAt"]
     },
     "CareLogTemplate": {
         "$schema": "http://json-schema.org/draft-07/schema#",

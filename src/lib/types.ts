@@ -212,20 +212,23 @@ export const clientCareRequestSchema = z.object({
 });
 export type ClientCareRequest = z.infer<typeof clientCareRequestSchema> & { id: string };
 
-export const clientSignupFormSchema = z.object({
+const clientSignupDraftSchema = z.object({
+  clientName: z.string().min(1, { message: "Client Name is required." }),
+  clientCity: z.string().min(1, { message: "City is required." }),
+  clientState: z.string().min(1, { message: "State is required." }),
+  clientPhone: z.string().min(1, { message: "Phone is required." }),
+  clientEmail: z.string().email({ message: "A valid client email is required to send the signature link." }),
+});
+
+export const clientSignupFormSchema = clientSignupDraftSchema.extend({
   // Office Use Only
   officeTodaysDate: z.date().optional(),
   officeReferralDate: z.date().optional(),
   officeInitialContactDate: z.date().optional(),
 
   // Client Information
-  clientEmail: z.string().email({ message: "A valid client email is required to send the signature link." }),
-  clientName: z.string().min(1, { message: "Client Name is required." }),
   clientAddress: z.string().optional(),
-  clientCity: z.string().min(1, { message: "City is required." }),
-  clientState: z.string().min(1, { message: "State is required." }),
   clientPostalCode: z.string().optional(),
-  clientPhone: z.string().min(1, { message: "Phone is required." }),
   clientSSN: z.string().optional(),
   clientDOB: z.string().optional(),
   
