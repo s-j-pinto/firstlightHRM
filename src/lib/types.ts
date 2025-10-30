@@ -221,10 +221,10 @@ export const clientSignupFormSchema = z.object({
   // Client Information
   clientEmail: z.string().email({ message: "A valid client email is required to send the signature link." }),
   clientName: z.string().min(1, { message: "Client Name is required." }),
-  clientAddress: z.string().min(1, { message: "Address is required." }),
+  clientAddress: z.string().optional(),
   clientCity: z.string().min(1, { message: "City is required." }),
   clientState: z.string().min(1, { message: "State is required." }),
-  clientPostalCode: z.string().min(1, { message: "Postal Code is required." }),
+  clientPostalCode: z.string().optional(),
   clientPhone: z.string().min(1, { message: "Phone is required." }),
   clientSSN: z.string().optional(),
   clientDOB: z.string().optional(),

@@ -177,11 +177,13 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
     const isSendingAction = status === "PENDING CLIENT SIGNATURES";
     const transition = isSendingAction ? startSendingTransition : startSavingTransition;
 
-    const isValid = await form.trigger();
+    const draftFields: (keyof ClientSignupFormData)[] = ['clientName', 'clientCity', 'clientState', 'clientPhone', 'clientEmail'];
+    const isValid = isSendingAction ? await form.trigger() : await form.trigger(draftFields);
+    
     if (!isValid) {
         toast({
             title: "Validation Error",
-            description: "Please fill out all required fields before saving or sending.",
+            description: `Please fill out all required fields before ${isSendingAction ? 'sending' : 'saving'}.`,
             variant: "destructive",
         });
         return;
@@ -306,9 +308,7 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
 
   return (
      <Card>
-        <CardHeader className="no-print">
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
             <div className="printable-area">
                 <PrintHeader />
                 <PrintFooter />
