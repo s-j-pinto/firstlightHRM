@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from "react";
@@ -292,17 +293,6 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
         <CardContent>
             <Form {...form}>
                 <form className="space-y-8">
-                    
-                    <div className="border p-4 rounded-md space-y-4 bg-muted/20">
-                        <h3 className="text-lg font-semibold text-center">For Office Use Only</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <FormField control={form.control} name="officeTodaysDate" render={({ field }) => ( <FormItem><FormLabel>TODAY'S DATE</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem> )} />
-                            <FormField control={form.control} name="officeReferralDate" render={({ field }) => ( <FormItem><FormLabel>REFERRAL DATE</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem> )} />
-                            <FormField control={form.control} name="officeInitialContactDate" render={({ field }) => ( <FormItem><FormLabel>DATE OF INITIAL CLIENT CONTACT</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem> )} />
-                        </div>
-                    </div>
-
-
                     <h2 className="text-2xl font-bold text-center">CLIENT SERVICE AGREEMENT</h2>
                     <p className="text-sm text-muted-foreground">
                         Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated. This Client Service Agreement (the "Agreement") is entered into between the client, or his or her authorized representative, (the "Client") and FirstLight Home Care of Rancho Cucamonga CA, address 9650 Business Center drive, Suite 132, Rancho Cucamonga CA 91730 phone number 9093214466 ("FirstLight Home Care")
@@ -553,6 +543,15 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
                         <p className="text-sm text-muted-foreground">Firstlight Home Care of Rancho Cucamonga provides Personal Care Services as defined under Cal. Health & Safety Code § 1796.12 and does not provide medical services or function as a home health agency.</p>
                         <div className="w-1/3 mt-2">
                             <FormField control={form.control} name="servicePlanClientInitials" render={({ field }) => ( <FormItem><FormLabel>Client Initials</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        </div>
+                    </div>
+                    
+                    <div className="border p-4 rounded-md space-y-4 bg-muted/20">
+                        <h3 className="text-lg font-semibold text-center">For Office Use Only</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <FormField control={form.control} name="officeTodaysDate" render={({ field }) => ( <FormItem><FormLabel>TODAY'S DATE</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="officeReferralDate" render={({ field }) => ( <FormItem><FormLabel>REFERRAL DATE</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="officeInitialContactDate" render={({ field }) => ( <FormItem><FormLabel>DATE OF INITIAL CLIENT CONTACT</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem> )} />
                         </div>
                     </div>
 
