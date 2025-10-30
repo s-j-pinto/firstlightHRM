@@ -108,6 +108,19 @@ service cloud.firestore {
         // Staffing admin can read and update all requests.
         allow read, update: if isStaffingAdmin();
     }
+    /**
+     * @description Controls access to client_signups. Open for all.
+     * @path /client_signups/{signupsId}
+     * @allow (get, list) - Any user can view care logs.
+     * @allow (create) - Any authenticated user can create a client_signups.
+     * @deny (update, delete) - No user can update or delete a client_signups.
+     * @principle Open read access.
+     */
+    match /client_signups/{signupsId} {
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
   }
 }
     
