@@ -64,7 +64,9 @@ export default function ClientSignupList() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Client Email</TableHead>
+              <TableHead>Client Name</TableHead>
+              <TableHead>Phone</TableHead>
+              <TableHead>Address</TableHead>
               <TableHead>Created At</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Action</TableHead>
@@ -74,7 +76,9 @@ export default function ClientSignupList() {
             {signups && signups.length > 0 ? (
               signups.map(signup => (
                 <TableRow key={signup.id}>
-                  <TableCell className="font-medium">{signup.clientEmail}</TableCell>
+                  <TableCell className="font-medium">{signup.formData?.clientName || 'N/A'}</TableCell>
+                  <TableCell>{signup.formData?.clientPhone || 'N/A'}</TableCell>
+                  <TableCell>{signup.formData?.clientAddress ? `${signup.formData.clientAddress}, ${signup.formData.clientCity || ''}` : 'N/A'}</TableCell>
                   <TableCell>
                     {signup.createdAt ? format((signup.createdAt as any).toDate(), 'PPp') : 'N/A'}
                   </TableCell>
@@ -90,7 +94,7 @@ export default function ClientSignupList() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center">
+                <TableCell colSpan={6} className="h-24 text-center">
                   No signup documents found.
                 </TableCell>
               </TableRow>
