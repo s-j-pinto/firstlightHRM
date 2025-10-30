@@ -7,7 +7,7 @@ import { useState, useTransition, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useDoc, useMemoFirebase, firestore, errorEmitter, FirestorePermissionError } from "@/firebase";
-import { doc, addDoc, updateDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { doc, addDoc, updateDoc, collection, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import SignatureCanvas from 'react-signature-canvas';
@@ -157,34 +157,34 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
 
   useEffect(() => {
     if (existingSignupData?.formData) {
-      const data = {
-          ...existingSignupData.formData,
-          contractStartDate: existingSignupData.formData.contractStartDate 
-              ? new Date(existingSignupData.formData.contractStartDate) 
-              : undefined,
-          rateCardDate: existingSignupData.formData.rateCardDate
-              ? new Date(existingSignupData.formData.rateCardDate)
-              : undefined,
-          clientSignatureDate: existingSignupData.formData.clientSignatureDate
-              ? new Date(existingSignupData.formData.clientSignatureDate)
-              : undefined,
-          clientRepresentativeSignatureDate: existingSignupData.formData.clientRepresentativeSignatureDate
-              ? new Date(existingSignupData.formData.clientRepresentativeSignatureDate)
-              : undefined,
-          firstLightRepresentativeSignatureDate: existingSignupData.formData.firstLightRepresentativeSignatureDate
-              ? new Date(existingSignupData.formData.firstLightRepresentativeSignatureDate)
-              : undefined,
-          officeTodaysDate: existingSignupData.formData.officeTodaysDate ? new Date(existingSignupData.formData.officeTodaysDate) : undefined,
-          officeReferralDate: existingSignupData.formData.officeReferralDate ? new Date(existingSignupData.formData.officeReferralDate) : undefined,
-          officeInitialContactDate: existingSignupData.formData.officeInitialContactDate ? new Date(existingSignupData.formData.officeInitialContactDate) : undefined,
-          agreementSignatureDate: existingSignupData.formData.agreementSignatureDate ? new Date(existingSignupData.formData.agreementSignatureDate) : undefined,
-          agreementRepDate: existingSignupData.formData.agreementRepDate ? new Date(existingSignupData.formData.agreementRepDate) : undefined,
-      };
-      form.reset(data);
+        const formData = existingSignupData.formData;
+        const dateFields = [
+            'contractStartDate', 'rateCardDate', 'clientSignatureDate',
+            'clientRepresentativeSignatureDate', 'firstLightRepresentativeSignatureDate',
+            'officeTodaysDate', 'officeReferralDate', 'officeInitialContactDate',
+            'agreementSignatureDate', 'agreementRepDate'
+        ];
+
+        const convertedData = { ...formData };
+        dateFields.forEach(field => {
+            const value = formData[field];
+            if (value && typeof value.toDate === 'function') { // Check if it's a Firestore Timestamp
+                convertedData[field] = value.toDate();
+            } else if (value && typeof value === 'string') { // Handle string dates
+                const parsedDate = new Date(value);
+                if (!isNaN(parsedDate.getTime())) {
+                    convertedData[field] = parsedDate;
+                }
+            } else {
+                convertedData[field] = undefined;
+            }
+        });
+
+      form.reset(convertedData);
     }
   }, [existingSignupData, form]);
 
- const handleSave = async (status: "INCOMPLETE" | "PENDING CLIENT SIGNATURES") => {
+  const handleSave = async (status: "INCOMPLETE" | "PENDING CLIENT SIGNATURES") => {
     console.log(`[handleSave] Initiated with status: ${status}`);
     const isSendingAction = status === "PENDING CLIENT SIGNATURES";
     const draftFields: (keyof ClientSignupFormData)[] = ['clientName', 'clientCity', 'clientState', 'clientPhone', 'clientEmail'];
@@ -203,93 +203,91 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
         return;
     }
 
-    Object.keys(sigPads).forEach(key => {
-        const padKey = key as keyof typeof sigPads;
-        const formKey = key as keyof ClientSignupFormData;
-        const pad = sigPads[padKey].current;
-        if (pad && !pad.isEmpty()) {
-            form.setValue(formKey, pad.toDataURL());
-        }
-    });
-
-    const formData = form.getValues();
-
-    // Sanitize date fields before saving to Firestore
-    const sanitizedFormData = { ...formData };
-    Object.keys(sanitizedFormData).forEach(key => {
-        const typedKey = key as keyof ClientSignupFormData;
-        if (typedKey.endsWith('Date') && sanitizedFormData[typedKey] === undefined) {
-            (sanitizedFormData as any)[typedKey] = null;
-        }
-    });
-    
     const action = async () => {
-      console.log('[handleSave] Action inside transition started.');
-      try {
-        let docId = signupId;
-        const now = serverTimestamp();
+        Object.keys(sigPads).forEach(key => {
+            const padKey = key as keyof typeof sigPads;
+            const formKey = key as keyof ClientSignupFormData;
+            const pad = sigPads[padKey].current;
+            if (pad && !pad.isEmpty()) {
+                form.setValue(formKey, pad.toDataURL());
+            }
+        });
+
+        const formData = form.getValues();
+        const sanitizedFormData = { ...formData };
+        Object.keys(sanitizedFormData).forEach(key => {
+            const typedKey = key as keyof ClientSignupFormData;
+            if (String(typedKey).endsWith('Date') && sanitizedFormData[typedKey] === undefined) {
+                (sanitizedFormData as any)[typedKey] = null;
+            }
+        });
         
-        if (docId) {
-          console.log(`[handleSave] Updating existing document: ${docId}`);
-          const docRef = doc(firestore, 'client_signups', docId);
-           const saveData = {
-              formData: sanitizedFormData,
-              clientEmail: sanitizedFormData.clientEmail,
-              status,
-              lastUpdatedAt: now,
-          };
-          await updateDoc(docRef, saveData).catch(serverError => {
-            errorEmitter.emit("permission-error", new FirestorePermissionError({
-              path: docRef.path, operation: "update", requestResourceData: saveData,
-            }));
-            throw serverError;
-          });
-          console.log(`[handleSave] Document ${docId} updated successfully.`);
-        } else {
-          console.log('[handleSave] Creating new document.');
-          const colRef = collection(firestore, 'client_signups');
-          const saveData = {
-              formData: sanitizedFormData,
-              clientEmail: sanitizedFormData.clientEmail,
-              status,
-              createdAt: now,
-              lastUpdatedAt: now,
-          };
-          const newDoc = await addDoc(colRef, saveData).catch(serverError => {
-            errorEmitter.emit("permission-error", new FirestorePermissionError({
-                path: colRef.path, operation: "create", requestResourceData: saveData,
-            }));
-            throw serverError;
-          });
-          docId = newDoc.id;
-          console.log(`[handleSave] New document created with ID: ${docId}`);
-        }
+        console.log('[handleSave] Action inside transition started.');
+        try {
+            let docId = signupId;
+            const now = serverTimestamp();
+            
+            if (docId) {
+                console.log(`[handleSave] Updating existing document: ${docId}`);
+                const docRef = doc(firestore, 'client_signups', docId);
+                const saveData = {
+                    formData: sanitizedFormData,
+                    clientEmail: sanitizedFormData.clientEmail,
+                    status,
+                    lastUpdatedAt: now,
+                };
+                await updateDoc(docRef, saveData).catch(serverError => {
+                    errorEmitter.emit("permission-error", new FirestorePermissionError({
+                        path: docRef.path, operation: "update", requestResourceData: saveData,
+                    }));
+                    throw serverError;
+                });
+                console.log(`[handleSave] Document ${docId} updated successfully.`);
+            } else {
+                console.log('[handleSave] Creating new document.');
+                const colRef = collection(firestore, 'client_signups');
+                const saveData = {
+                    formData: sanitizedFormData,
+                    clientEmail: sanitizedFormData.clientEmail,
+                    status,
+                    createdAt: now,
+                    lastUpdatedAt: now,
+                };
+                const newDoc = await addDoc(colRef, saveData).catch(serverError => {
+                    errorEmitter.emit("permission-error", new FirestorePermissionError({
+                        path: colRef.path, operation: "create", requestResourceData: saveData,
+                    }));
+                    throw serverError;
+                });
+                docId = newDoc.id;
+                console.log(`[handleSave] New document created with ID: ${docId}`);
+            }
 
-        if (status === 'INCOMPLETE') {
-          console.log('[handleSave] Status is INCOMPLETE. Showing toast and redirecting.');
-          toast({ title: "Draft Saved", description: "The client intake form has been saved as a draft." });
-          if (!signupId) {
-            router.push(`/owner/new-client-signup?signupId=${docId}`);
-          }
-        } else {
-          console.log('[handleSave] Status is PENDING. Sending signature email.');
-          const emailResult = await sendSignatureEmail(docId!, sanitizedFormData.clientEmail);
-           if (emailResult.error) {
-              console.error('[handleSave] Email sending failed:', emailResult.message);
-              toast({ title: "Email Error", description: emailResult.message, variant: "destructive" });
-           } else {
-              console.log('[handleSave] Email sent successfully.');
-              toast({ title: "Success", description: "Form saved and signature link sent to the client." });
-           }
-          router.push('/owner/dashboard');
-        }
+            if (status === 'INCOMPLETE') {
+                console.log('[handleSave] Status is INCOMPLETE. Showing toast and redirecting.');
+                toast({ title: "Draft Saved", description: "The client intake form has been saved as a draft." });
+                if (!signupId) {
+                    router.push(`/owner/new-client-signup?signupId=${docId}`);
+                }
+            } else {
+                console.log('[handleSave] Status is PENDING. Sending signature email.');
+                const emailResult = await sendSignatureEmail(docId!, sanitizedFormData.clientEmail);
+                if (emailResult.error) {
+                    console.error('[handleSave] Email sending failed:', emailResult.message);
+                    toast({ title: "Email Error", description: emailResult.message, variant: "destructive" });
+                } else {
+                    console.log('[handleSave] Email sent successfully.');
+                    toast({ title: "Success", description: "Form saved and signature link sent to the client." });
+                }
+                router.push('/owner/dashboard');
+            }
 
-      } catch (error: any) {
-        console.error('[handleSave] An error occurred in the action:', error);
-        if (!error.name?.includes('FirebaseError')) {
-           toast({ title: "Error", description: error.message || "An unexpected error occurred.", variant: "destructive" });
+        } catch (error: any) {
+            console.error('[handleSave] An error occurred in the action:', error);
+            if (!error.name?.includes('FirebaseError')) {
+                toast({ title: "Error", description: error.message || "An unexpected error occurred.", variant: "destructive" });
+            }
         }
-      }
     };
 
     if (isSendingAction) {
