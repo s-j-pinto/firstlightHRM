@@ -186,8 +186,7 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
 
   const handleSave = async (status: "INCOMPLETE" | "PENDING CLIENT SIGNATURES") => {
     const isSendingAction = status === "PENDING CLIENT SIGNATURES";
-    const transition = isSendingAction ? startSendingTransition : startSavingTransition;
-
+    
     const draftFields: (keyof ClientSignupFormData)[] = ['clientName', 'clientCity', 'clientState', 'clientPhone', 'clientEmail'];
     const isValid = isSendingAction ? await form.trigger() : await form.trigger(draftFields);
     
@@ -210,7 +209,7 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
         }
     });
 
-    transition(async () => {
+    const action = async () => {
       const formData = form.getValues();
       
       try {
@@ -270,7 +269,13 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
            toast({ title: "Error", description: error.message || "An unexpected error occurred.", variant: "destructive" });
         }
       }
-    });
+    };
+
+    if (isSendingAction) {
+        startSendingTransition(action);
+    } else {
+        startSavingTransition(action);
+    }
   };
 
   const clearSignature = (sigPadRef: React.RefObject<SignatureCanvas>) => {
@@ -319,6 +324,9 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
 
   return (
      <Card>
+        <CardHeader>
+             <h1 className="text-3xl font-bold tracking-tight font-headline">New Client Intake</h1>
+        </CardHeader>
         <CardContent className="pt-6">
             <div className="printable-area">
                 <PrintHeader />
@@ -458,7 +466,7 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
                             </p>
                         </div>
                         
-                        <div className="space-y-6">
+                        <div className="space-y-6 break-before-page">
                             <h3 className="text-lg font-semibold text-center">ACKNOWLEDGEMENT & AGREEMENT</h3>
                             <p className="text-sm text-muted-foreground">
                                 The Client, or his or her authorized representative, consents to receive the Services and acknowledges he or she or they have read, accept, and consent to this Agreement, including the "Terms and Conditions" and all other attached documents, all of which are incorporated into this Agreement.
@@ -619,11 +627,11 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
 
 
                         <div className="flex justify-end gap-4 pt-6 no-print">
-                            <Button type="button" variant="secondary" onClick={() => handleSave("INCOMPLETE")} disabled={isSaving || isSending}>
+                            <Button type="button" variant="secondary" onClick={() => handleSave("INCOMPLETE")} disabled={isSaving}>
                                 {isSaving ? <Loader2 className="mr-2 animate-spin" /> : <Save className="mr-2" />}
                                 Save as Incomplete
                             </Button>
-                            <Button type="button" onClick={() => handleSave("PENDING CLIENT SIGNATURES")} disabled={isSaving || isSending}>
+                            <Button type="button" onClick={() => handleSave("PENDING CLIENT SIGNATURES")} disabled={isSending}>
                                 {isSending ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2" />}
                                 Save and Send for Signature
                             </Button>
@@ -638,3 +646,4 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
     </Card>
   );
 }
+
