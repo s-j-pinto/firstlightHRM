@@ -627,7 +627,7 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
 
 
                         <div className="flex justify-end gap-4 pt-6 no-print">
-                            <Button type="button" variant="secondary" onClick={() => handleSave("INCOMPLETE")} disabled={isSaving}>
+                           <Button type="button" variant="secondary" onClick={() => handleSave("INCOMPLETE")} disabled={isSaving}>
                                 {isSaving ? <Loader2 className="mr-2 animate-spin" /> : <Save className="mr-2" />}
                                 Save as Incomplete
                             </Button>
@@ -646,4 +646,3 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
     </Card>
   );
 }
-
