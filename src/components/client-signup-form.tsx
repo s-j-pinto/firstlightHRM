@@ -185,11 +185,16 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
   }, [existingSignupData, form]);
 
   const handleSave = async (status: "INCOMPLETE" | "PENDING CLIENT SIGNATURES") => {
+    console.log(`[handleSave] Initiated with status: ${status}`);
     const isSendingAction = status === "PENDING CLIENT SIGNATURES";
     const draftFields: (keyof ClientSignupFormData)[] = ['clientName', 'clientCity', 'clientState', 'clientPhone', 'clientEmail'];
-    const isValid = isSendingAction ? await form.trigger() : await form.trigger(draftFields);
+    const fieldsToValidate = isSendingAction ? undefined : draftFields;
+
+    const isValid = await form.trigger(fieldsToValidate);
+    console.log(`[handleSave] Validation triggered. Is valid: ${isValid}`);
     
     if (!isValid) {
+        console.log('[handleSave] Validation failed.');
         toast({
             title: "Validation Error",
             description: `Please fill out all required fields before ${isSendingAction ? 'sending' : 'saving'}.`,
@@ -197,7 +202,7 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
         });
         return;
     }
-    
+
     Object.keys(sigPads).forEach(key => {
         const padKey = key as keyof typeof sigPads;
         const formKey = key as keyof ClientSignupFormData;
@@ -208,12 +213,15 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
     });
 
     const formData = form.getValues();
+    
     const action = async () => {
+      console.log('[handleSave] Action inside transition started.');
       try {
         let docId = signupId;
         const now = serverTimestamp();
         
         if (docId) {
+          console.log(`[handleSave] Updating existing document: ${docId}`);
           const docRef = doc(firestore, 'client_signups', docId);
            const saveData = {
               formData,
@@ -227,8 +235,9 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
             }));
             throw serverError;
           });
-
+          console.log(`[handleSave] Document ${docId} updated successfully.`);
         } else {
+          console.log('[handleSave] Creating new document.');
           const colRef = collection(firestore, 'client_signups');
           const saveData = {
               formData,
@@ -244,24 +253,30 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
             throw serverError;
           });
           docId = newDoc.id;
+          console.log(`[handleSave] New document created with ID: ${docId}`);
         }
 
         if (status === 'INCOMPLETE') {
+          console.log('[handleSave] Status is INCOMPLETE. Showing toast and redirecting.');
           toast({ title: "Draft Saved", description: "The client intake form has been saved as a draft." });
           if (!signupId) {
             router.push(`/owner/new-client-signup?signupId=${docId}`);
           }
         } else {
+          console.log('[handleSave] Status is PENDING. Sending signature email.');
           const emailResult = await sendSignatureEmail(docId!, formData.clientEmail);
            if (emailResult.error) {
+              console.error('[handleSave] Email sending failed:', emailResult.message);
               toast({ title: "Email Error", description: emailResult.message, variant: "destructive" });
            } else {
+              console.log('[handleSave] Email sent successfully.');
               toast({ title: "Success", description: "Form saved and signature link sent to the client." });
            }
           router.push('/owner/dashboard');
         }
 
       } catch (error: any) {
+        console.error('[handleSave] An error occurred in the action:', error);
         if (!error.name?.includes('FirebaseError')) {
            toast({ title: "Error", description: error.message || "An unexpected error occurred.", variant: "destructive" });
         }
@@ -274,6 +289,7 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
         startSavingTransition(action);
     }
   };
+
 
   const clearSignature = (sigPadRef: React.RefObject<SignatureCanvas>) => {
     sigPadRef.current?.clear();
@@ -322,7 +338,6 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
   return (
      <Card>
         <CardHeader className="no-print">
-             <h1 className="text-3xl font-bold tracking-tight font-headline">New Client Intake</h1>
         </CardHeader>
         <CardContent className="pt-6">
             <div className="printable-area">
@@ -642,5 +657,7 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
     </Card>
   );
 }
+
+    
 
     
