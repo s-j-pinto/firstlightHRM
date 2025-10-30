@@ -60,7 +60,53 @@
 }
 
 @media print {
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
   .break-before-page {
     page-break-before: always;
+  }
+  
+  .print-header, .print-footer {
+    position: fixed;
+    width: 100%;
+    display: none; /* Hidden by default, shown via @page */
+  }
+
+  .print-header {
+    top: 0;
+  }
+
+  .print-footer {
+    bottom: 0;
+  }
+
+  @page {
+    size: letter;
+    margin: 1in;
+
+    @top-center {
+      content: element(header);
+    }
+
+    @bottom-left {
+      content: element(footer);
+    }
+  }
+
+  .printable-area .print-header-content {
+      display: block;
+      position: running(header);
+  }
+
+  .printable-area .print-footer-content {
+      display: block;
+      position: running(footer);
+  }
+
+  .no-print {
+    display: none;
   }
 }
