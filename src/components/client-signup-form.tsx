@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from "react";
@@ -18,9 +19,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Loader2, Send, Save, BookUser, Calendar as CalendarIcon, RefreshCw, Briefcase } from "lucide-react";
+import { Loader2, Send, Save, BookUser, Calendar as CalendarIcon, RefreshCw, Briefcase, FileCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { sendSignatureEmail } from "@/lib/client-signup.actions";
+import { sendSignatureEmail, finalizeAndSubmit } from "@/lib/client-signup.actions";
 import { Textarea } from "./ui/textarea";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
@@ -51,6 +52,7 @@ const PrintFooter = () => (
 export default function ClientSignupForm({ signupId }: { signupId: string | null }) {
   const [isSaving, startSavingTransition] = useTransition();
   const [isSending, startSendingTransition] = useTransition();
+  const [isFinalizing, startFinalizingTransition] = useTransition();
   const { toast } = useToast();
   const router = useRouter();
 
@@ -181,14 +183,12 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
 
       form.reset(convertedData);
 
-      // After resetting the form, load the signature data into the canvas
       Object.keys(sigPads).forEach(key => {
         const padKey = key as keyof typeof sigPads;
         const formKey = key as keyof ClientSignupFormData;
         const sigPad = sigPads[padKey].current;
         const sigData = formData[formKey];
         if (sigPad && sigData) {
-            // Use a timeout to ensure the canvas is ready after the form reset
             setTimeout(() => sigPad.fromDataURL(sigData), 100);
         }
       });
@@ -196,12 +196,16 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
   }, [existingSignupData, form]);
 
   const handleSave = async (status: "INCOMPLETE" | "PENDING CLIENT SIGNATURES") => {
+    console.log(`handleSave called with status: ${status}`);
     const isSendingAction = status === "PENDING CLIENT SIGNATURES";
     const draftFields: (keyof ClientSignupFormData)[] = ['clientName', 'clientCity', 'clientState', 'clientPhone', 'clientEmail'];
     const fieldsToValidate = isSendingAction ? undefined : draftFields;
 
     const action = async () => {
+        console.log("Validation triggered.");
         const isValid = await form.trigger(fieldsToValidate);
+        console.log(`Validation result: ${isValid}`);
+        
         if (!isValid) {
             toast({
                 title: "Validation Error",
@@ -211,7 +215,6 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
             return;
         }
 
-        // Capture signature data before getting form values
         Object.keys(sigPads).forEach(key => {
             const padKey = key as keyof typeof sigPads;
             const formKey = key as keyof ClientSignupFormData;
@@ -223,8 +226,14 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
 
         const formData = form.getValues();
         const sanitizedFormData: any = { ...formData };
-        Object.keys(sanitizedFormData).forEach(key => {
-            if (String(key).endsWith('Date') && sanitizedFormData[key] === undefined) {
+        const dateFields = [
+            'contractStartDate', 'rateCardDate', 'clientSignatureDate',
+            'clientRepresentativeSignatureDate', 'firstLightRepresentativeSignatureDate',
+            'officeTodaysDate', 'officeReferralDate', 'officeInitialContactDate',
+            'agreementSignatureDate', 'agreementRepDate'
+        ];
+        dateFields.forEach(key => {
+            if (sanitizedFormData[key] === undefined) {
                 sanitizedFormData[key] = null;
             }
         });
@@ -233,14 +242,17 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
             let docId = signupId;
             const now = serverTimestamp();
             
+            console.log("Preparing to write to Firestore.");
             if (docId) {
                 const docRef = doc(firestore, 'client_signups', docId);
                 const saveData = {
                     formData: sanitizedFormData,
                     clientEmail: sanitizedFormData.clientEmail,
+                    clientPhone: sanitizedFormData.clientPhone,
                     status,
                     lastUpdatedAt: now,
                 };
+                console.log("Updating existing document:", docId);
                 await updateDoc(docRef, saveData).catch(serverError => {
                     errorEmitter.emit("permission-error", new FirestorePermissionError({
                         path: docRef.path, operation: "update", requestResourceData: saveData,
@@ -252,10 +264,12 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
                 const saveData = {
                     formData: sanitizedFormData,
                     clientEmail: sanitizedFormData.clientEmail,
+                    clientPhone: sanitizedFormData.clientPhone,
                     status,
                     createdAt: now,
                     lastUpdatedAt: now,
                 };
+                console.log("Adding new document.");
                 const newDoc = await addDoc(colRef, saveData).catch(serverError => {
                     errorEmitter.emit("permission-error", new FirestorePermissionError({
                         path: colRef.path, operation: "create", requestResourceData: saveData,
@@ -263,6 +277,7 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
                     throw serverError;
                 });
                 docId = newDoc.id;
+                console.log("New document created with ID:", docId);
             }
 
             if (status === 'INCOMPLETE') {
@@ -281,6 +296,7 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
             }
 
         } catch (error: any) {
+            console.error("Firestore save error:", error);
             if (!error.name?.includes('FirebaseError')) {
                 toast({ title: "Error", description: error.message || "An unexpected error occurred.", variant: "destructive" });
             }
@@ -293,6 +309,22 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
         startSavingTransition(action);
     }
   };
+
+  const handleFinalize = () => {
+    startFinalizingTransition(async () => {
+        if (!signupId) {
+            toast({ title: "Error", description: "No document ID found to finalize." });
+            return;
+        }
+
+        const result = await finalizeAndSubmit(signupId);
+        if (result.error) {
+            toast({ title: "Finalization Failed", description: result.message, variant: "destructive" });
+        } else {
+            toast({ title: "Success!", description: result.message });
+        }
+    });
+  }
 
 
   const clearSignature = (sigPadRef: React.RefObject<SignatureCanvas>) => {
@@ -338,6 +370,8 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
       </div>
     );
   }
+
+  const isPublished = existingSignupData?.status === 'SIGNED AND PUBLISHED';
 
   return (
      <Card>
@@ -410,7 +444,7 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
                                         <Popover>
                                         <PopoverTrigger asChild>
                                             <FormControl>
-                                            <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                            <Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")}>
                                                 {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
                                                 <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                             </Button>
@@ -638,17 +672,22 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
                             </div>
                         </div>
 
-
-                        <div className="flex justify-end gap-4 pt-6 no-print">
-                           <Button type="button" variant="secondary" onClick={() => handleSave("INCOMPLETE")} disabled={isSaving}>
-                                {isSaving ? <Loader2 className="mr-2 animate-spin" /> : <Save className="mr-2" />}
-                                Save as Incomplete
-                            </Button>
-                            <Button type="button" onClick={() => handleSave("PENDING CLIENT SIGNATURES")} disabled={isSending}>
-                                {isSending ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2" />}
-                                Save and Send for Signature
-                            </Button>
-                        </div>
+                        {!isPublished && (
+                            <div className="flex justify-end gap-4 pt-6 no-print">
+                               <Button type="button" variant="secondary" onClick={() => handleSave("INCOMPLETE")} disabled={isSaving || isSending}>
+                                    {isSaving ? <Loader2 className="mr-2 animate-spin" /> : <Save className="mr-2" />}
+                                    Save as Incomplete
+                                </Button>
+                                <Button type="button" onClick={() => handleSave("PENDING CLIENT SIGNATURES")} disabled={isSaving || isSending}>
+                                    {isSending ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2" />}
+                                    Save and Send for Signature
+                                </Button>
+                                 <Button type="button" variant="default" onClick={handleFinalize} disabled={isFinalizing}>
+                                    {isFinalizing ? <Loader2 className="mr-2 animate-spin" /> : <FileCheck className="mr-2" />}
+                                    Submit and Finalize
+                                </Button>
+                            </div>
+                        )}
                     </form>
                 </Form>
             </div>

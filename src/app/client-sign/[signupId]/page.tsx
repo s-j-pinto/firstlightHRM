@@ -4,7 +4,7 @@
 import { useParams } from 'next/navigation';
 import { useDoc, useMemoFirebase, firestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import { Loader2, Signature } from 'lucide-react';
+import { Loader2, Signature, CheckCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { GeneratedForm } from '@/lib/types';
@@ -44,6 +44,7 @@ export default function ClientSigningPage() {
     
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
+    const [isSubmitted, setIsSubmitted] = useState(false);
     const sigPadRef = useRef<SignatureCanvas>(null);
     const initialsPadRef = useRef<SignatureCanvas>(null);
     const [signature, setSignature] = useState<string | null>(null);
@@ -52,7 +53,7 @@ export default function ClientSigningPage() {
 
 
     const signupRef = useMemoFirebase(() => signupId ? doc(firestore, 'client_signups', signupId) : null, [signupId]);
-    const { data: signupData, isLoading } = useDoc<GeneratedForm & { status: string }>(signupRef);
+    const { data: signupData, isLoading } = useDoc<any>(signupRef);
 
     const handleSubmitSignature = () => {
         if (!signature || !initials) {
@@ -72,6 +73,7 @@ export default function ClientSigningPage() {
                 toast({ title: "Submission Failed", description: result.message, variant: "destructive" });
             } else {
                 toast({ title: "Submission Successful", description: result.message });
+                setIsSubmitted(true);
             }
         });
     };
@@ -94,15 +96,22 @@ export default function ClientSigningPage() {
         );
     }
     
-    if (signupData.status === "SIGNED AND PUBLISHED") {
+    const finalStatus = signupData.status === "SIGNED AND PUBLISHED" || signupData.status === "CLIENT_SIGNATURES_COMPLETED";
+
+    if (finalStatus || isSubmitted) {
          return (
-            <Card className="w-full max-w-2xl mx-auto my-8">
+            <Card className="w-full max-w-2xl mx-auto my-8 text-center">
                 <CardHeader>
-                    <CardTitle>Document Already Signed</CardTitle>
-                    <CardDescription>This document was already signed and submitted on {new Date(signupData.formData.clientSignatureDate).toLocaleDateString()}.</CardDescription>
+                    <div className="mx-auto w-fit p-4 bg-green-100 rounded-full mb-4">
+                        <CheckCircle className="h-10 w-10 text-green-600" />
+                    </div>
+                    <CardTitle>Document Submitted</CardTitle>
+                    <CardDescription>
+                        Thank you. Your signed document has been submitted for final review by our office.
+                    </CardDescription>
                 </CardHeader>
                  <CardContent>
-                    <p>Thank you for completing the process.</p>
+                    <p className="text-sm text-muted-foreground">You may now close this window.</p>
                 </CardContent>
             </Card>
         );
@@ -177,4 +186,3 @@ export default function ClientSigningPage() {
         </div>
     );
 }
-

@@ -65,28 +65,85 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
 export async function submitClientSignature(payload: { signupId: string; signature: string; initials: string; date: string; }) {
     const { signupId, signature, initials, date } = payload;
     const firestore = serverDb;
+    const ownerEmail = process.env.OWNER_EMAIL;
 
     try {
         const signupRef = firestore.collection('client_signups').doc(signupId);
         
-        // Here you would also generate and save the PDF to Cloud Storage
-        // For now, we'll just update the status and signature data
-
         await signupRef.update({
             'formData.clientSignature': signature,
             'formData.clientInitials': initials,
             'formData.clientSignatureDate': date,
-            status: 'SIGNED AND PUBLISHED',
+            status: 'CLIENT_SIGNATURES_COMPLETED',
             lastUpdatedAt: Timestamp.now(),
         });
         
+        // Notify owner to review and finalize
+        const signupDoc = await signupRef.get();
+        const clientName = signupDoc.data()?.formData?.clientName || 'the client';
+        
+        if (ownerEmail) {
+            const email = {
+                to: [ownerEmail],
+                message: {
+                    subject: `Action Required: Review Signed Document for ${clientName}`,
+                    html: `<p>The client, ${clientName}, has signed their intake form. Please log in to the Owner Dashboard to review the document and finalize the submission.</p><p>Document ID: ${signupId}</p>`
+                }
+            };
+            await firestore.collection("mail").add(email);
+        }
+
         revalidatePath(`/client-sign/${signupId}`);
         revalidatePath('/owner/dashboard');
         
-        return { message: "Thank you! Your document has been signed and submitted." };
+        return { message: "Thank you! Your signature has been submitted. The office will now conduct a final review." };
 
     } catch (error: any) {
         console.error("Error submitting client signature:", error);
         return { message: `An error occurred: ${error.message}`, error: true };
+    }
+}
+
+export async function finalizeAndSubmit(signupId: string) {
+    const firestore = serverDb;
+    const ownerEmail = process.env.OWNER_EMAIL;
+    try {
+        const signupRef = firestore.collection('client_signups').doc(signupId);
+        const signupDoc = await signupRef.get();
+        if (!signupDoc.exists) {
+            return { message: "Signup document not found.", error: true };
+        }
+
+        // 1. Update status to SIGNED AND PUBLISHED
+        await signupRef.update({
+            status: 'SIGNED AND PUBLISHED',
+            lastUpdatedAt: Timestamp.now(),
+        });
+        
+        const clientEmail = signupDoc.data()?.formData?.clientEmail;
+        
+        // 2. Here you would trigger PDF generation and upload to GCS.
+        // For now, we will simulate this by preparing an email.
+        
+        const emailRecipients = [ownerEmail, clientEmail].filter(Boolean) as string[];
+
+        if (emailRecipients.length > 0) {
+            const email = {
+                to: emailRecipients,
+                message: {
+                    subject: "Your FirstLight Home Care Service Agreement is Complete",
+                    html: `<p>The Client Service Agreement has been finalized. A PDF copy should be attached to this email.</p><p>Document ID: ${signupId}</p><p>(Note: PDF attachment is a placeholder for now.)</p>`,
+                    // attachments: [{ filename: '...', path: '...' }] // This would be added once PDF generation is live
+                }
+            };
+            await firestore.collection("mail").add(email);
+        }
+
+        revalidatePath('/owner/dashboard');
+        revalidatePath(`/owner/new-client-signup?signupId=${signupId}`);
+        return { message: 'Document has been finalized and emails have been sent.' };
+    } catch (error: any) {
+        console.error("Error finalizing document:", error);
+        return { message: `An error occurred during finalization: ${error.message}`, error: true };
     }
 }
