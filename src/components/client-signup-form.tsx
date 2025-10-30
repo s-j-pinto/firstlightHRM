@@ -3,20 +3,22 @@
 "use client";
 
 import * as React from "react";
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useDoc, useMemoFirebase, firestore, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { doc, addDoc, updateDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
+import SignatureCanvas from 'react-signature-canvas';
+
 
 import { clientSignupFormSchema, type ClientSignupFormData } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Loader2, Send, Save, BookUser, Calendar as CalendarIcon } from "lucide-react";
+import { Loader2, Send, Save, BookUser, Calendar as CalendarIcon, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { sendSignatureEmail } from "@/lib/client-signup.actions";
 import { Textarea } from "./ui/textarea";
@@ -62,8 +64,23 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
       hourlyRate: undefined,
       minimumHoursPerShift: undefined,
       rateCardDate: undefined,
+      clientSignature: "",
+      clientPrintedName: "",
+      clientSignatureDate: undefined,
+      clientRepresentativeSignature: "",
+      clientRepresentativePrintedName: "",
+      clientRepresentativeSignatureDate: undefined,
+      firstLightRepresentativeSignature: "",
+      firstLightRepresentativeTitle: "",
+      firstLightRepresentativeSignatureDate: undefined,
     },
   });
+
+  const sigPads = {
+    clientSignature: useRef<SignatureCanvas>(null),
+    clientRepresentativeSignature: useRef<SignatureCanvas>(null),
+    firstLightRepresentativeSignature: useRef<SignatureCanvas>(null),
+  };
 
   useEffect(() => {
     if (existingSignupData?.formData) {
@@ -93,6 +110,16 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
         });
         return;
     }
+    
+    // Set signature data from refs just before saving
+    Object.keys(sigPads).forEach(key => {
+        const padKey = key as keyof typeof sigPads;
+        const formKey = key as keyof ClientSignupFormData;
+        const pad = sigPads[padKey].current;
+        if (pad && !pad.isEmpty()) {
+            form.setValue(formKey, pad.toDataURL());
+        }
+    });
 
     transition(async () => {
       const formData = form.getValues();
@@ -155,6 +182,10 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
         }
       }
     });
+  };
+
+  const clearSignature = (sigPadRef: React.RefObject<SignatureCanvas>) => {
+    sigPadRef.current?.clear();
   };
 
   if (isSignupLoading) {
@@ -226,7 +257,7 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
 
                     <div className="space-y-6">
                         <h3 className="text-lg font-semibold text-center">IV. SCHEDULE</h3>
-                         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
                             <FormField control={form.control} name="scheduledFrequency" render={({ field }) => ( <FormItem><FormLabel>Scheduled Frequency</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                             <FormField control={form.control} name="daysPerWeek" render={({ field }) => ( <FormItem><FormLabel>Days/Wk</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                             <FormField control={form.control} name="hoursPerDay" render={({ field }) => ( <FormItem><FormLabel>Hrs/Day</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
@@ -307,6 +338,48 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
                         <p className="text-sm text-muted-foreground">
                             If there is same day cancellation, client will be charged for full scheduled hours, except if there is a medical emergency.
                         </p>
+                    </div>
+
+                    <div className="space-y-6">
+                        <h3 className="text-lg font-semibold text-center">ACKNOWLEDGEMENT & AGREEMENT</h3>
+                        <p className="text-sm text-muted-foreground">
+                            The Client, or his or her authorized representative, consents to receive the Services and acknowledges he or she or they have read, accept, and consent to this Agreement, including the "Terms and Conditions" and all other attached documents, all of which are incorporated into this Agreement.
+                        </p>
+                        <div className="space-y-8">
+                             {/* Client Signature Section */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                                <div className="space-y-2 col-span-2">
+                                    <FormLabel>(Client Signature)</FormLabel>
+                                    <div className="rounded-md border bg-white">
+                                        <SignatureCanvas ref={sigPads.clientSignature} canvasProps={{ className: 'w-full h-24' }} />
+                                    </div>
+                                    <Button type="button" variant="ghost" size="sm" onClick={() => clearSignature(sigPads.clientSignature)}><RefreshCw className="mr-2" />Clear</Button>
+                                </div>
+                                <FormField control={form.control} name="clientPrintedName" render={({ field }) => ( <FormItem><FormLabel>(Client Printed Name)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                            </div>
+                             {/* Representative Signature Section */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                                <div className="space-y-2 col-span-2">
+                                    <FormLabel>(Client Representative Signature)</FormLabel>
+                                    <div className="rounded-md border bg-white">
+                                        <SignatureCanvas ref={sigPads.clientRepresentativeSignature} canvasProps={{ className: 'w-full h-24' }} />
+                                    </div>
+                                    <Button type="button" variant="ghost" size="sm" onClick={() => clearSignature(sigPads.clientRepresentativeSignature)}><RefreshCw className="mr-2" />Clear</Button>
+                                </div>
+                                 <FormField control={form.control} name="clientRepresentativePrintedName" render={({ field }) => ( <FormItem><FormLabel>(Client Representative Printed Name and Relationship to Client)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                            </div>
+                            {/* FirstLight Signature Section */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                                <div className="space-y-2 col-span-2">
+                                    <FormLabel>(FirstLight Home Care of Representative Signature)</FormLabel>
+                                    <div className="rounded-md border bg-white">
+                                        <SignatureCanvas ref={sigPads.firstLightRepresentativeSignature} canvasProps={{ className: 'w-full h-24' }} />
+                                    </div>
+                                     <Button type="button" variant="ghost" size="sm" onClick={() => clearSignature(sigPads.firstLightRepresentativeSignature)}><RefreshCw className="mr-2" />Clear</Button>
+                                </div>
+                                 <FormField control={form.control} name="firstLightRepresentativeTitle" render={({ field }) => ( <FormItem><FormLabel>(FirstLight Home Care of Rancho Cucamonga Representative Title)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                            </div>
+                        </div>
                     </div>
 
 

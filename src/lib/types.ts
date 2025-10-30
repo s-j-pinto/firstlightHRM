@@ -246,6 +246,17 @@ export const clientSignupFormSchema = z.object({
   hourlyRate: z.coerce.number().optional(),
   minimumHoursPerShift: z.coerce.number().optional(),
   rateCardDate: z.date().optional(),
+  
+  // Signatures
+  clientSignature: z.string().optional(),
+  clientPrintedName: z.string().optional(),
+  clientSignatureDate: z.date().optional(),
+  clientRepresentativeSignature: z.string().optional(),
+  clientRepresentativePrintedName: z.string().optional(),
+  clientRepresentativeSignatureDate: z.date().optional(),
+  firstLightRepresentativeSignature: z.string().optional(),
+  firstLightRepresentativeTitle: z.string().optional(),
+  firstLightRepresentativeSignatureDate: z.date().optional(),
 });
 export type ClientSignupFormData = z.infer<typeof clientSignupFormSchema>;
 
