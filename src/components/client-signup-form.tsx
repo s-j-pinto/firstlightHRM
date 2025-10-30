@@ -20,7 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, FileText, Send, Save, BookUser } from "lucide-react";
+import { Loader2, FileText, Send, Save, BookUser, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { type GeneratedForm, type FormBlock, type GeneratedField } from "@/lib/types";
 import { sendSignatureEmail } from "@/lib/client-signup.actions";
@@ -357,6 +357,7 @@ const DynamicFormRenderer = ({ formDefinition, existingData, signupId }: { formD
                         )
                     })}
                 </div>
+                 <h2 className="text-xl font-bold text-center my-4 pt-6">Companion Care Services</h2>
             </React.Fragment>
         )
       }
@@ -418,8 +419,6 @@ const DynamicFormRenderer = ({ formDefinition, existingData, signupId }: { formD
 
             {formDefinition.blocks.map((block: FormBlock, index: number) => renderBlock(block, index))}
             
-             <h2 className="text-xl font-bold text-center my-4 pt-6">Companion Care Services</h2>
-
             <div className="pt-6">
                  <p className="text-muted-foreground my-2">Firstlight Home Care of Rancho Cucamonga provides Personal Care Services as defined under Cal. Health & Safety Code § 1796.12 and does not provide medical services or function as a home health agency.</p>
                  <FormField
@@ -436,7 +435,7 @@ const DynamicFormRenderer = ({ formDefinition, existingData, signupId }: { formD
                                     onEnd={() => form.setValue('companionCareClientInitials', clientInitialsPadRef.current?.toDataURL() || '')}
                                 />
                             </div>
-                            <Button type="button" variant="ghost" size="sm" onClick={() => { clientInitialsPadRef.current?.clear(); form.setValue('companionCareClientInitials', ''); }}>Clear</Button>
+                            <Button type="button" variant="ghost" size="sm" onClick={() => { clientInitialsPadRef.current?.clear(); form.setValue('companionCareClientInitials', ''); }}><RefreshCw className="mr-2" />Clear</Button>
                             <FormMessage />
                         </FormItem>
                     )}
@@ -533,7 +532,7 @@ const DynamicFormRenderer = ({ formDefinition, existingData, signupId }: { formD
                                     onEnd={() => form.setValue('clientSignature', signaturePad1Ref.current?.toDataURL() || '')}
                                 />
                             </div>
-                            <Button type="button" variant="ghost" size="sm" onClick={() => { signaturePad1Ref.current?.clear(); form.setValue('clientSignature', ''); }}>Clear</Button>
+                            <Button type="button" variant="ghost" size="sm" onClick={() => { signaturePad1Ref.current?.clear(); form.setValue('clientSignature', ''); }}><RefreshCw className="mr-2" />Clear</Button>
                         </FormItem>
                     )}
                 />
@@ -565,7 +564,7 @@ const DynamicFormRenderer = ({ formDefinition, existingData, signupId }: { formD
                                     onEnd={() => form.setValue('representativeSignature', signaturePad2Ref.current?.toDataURL() || '')}
                                 />
                             </div>
-                            <Button type="button" variant="ghost" size="sm" onClick={() => { signaturePad2Ref.current?.clear(); form.setValue('representativeSignature', ''); }}>Clear</Button>
+                            <Button type="button" variant="ghost" size="sm" onClick={() => { signaturePad2Ref.current?.clear(); form.setValue('representativeSignature', ''); }}><RefreshCw className="mr-2" />Clear</Button>
                         </FormItem>
                     )}
                 />
@@ -597,7 +596,7 @@ const DynamicFormRenderer = ({ formDefinition, existingData, signupId }: { formD
                                     onEnd={() => form.setValue('officeSignature', signaturePad3Ref.current?.toDataURL() || '')}
                                 />
                             </div>
-                            <Button type="button" variant="ghost" size="sm" onClick={() => { signaturePad3Ref.current?.clear(); form.setValue('officeSignature', ''); }}>Clear</Button>
+                            <Button type="button" variant="ghost" size="sm" onClick={() => { signaturePad3Ref.current?.clear(); form.setValue('officeSignature', ''); }}><RefreshCw className="mr-2" />Clear</Button>
                         </FormItem>
                     )}
                 />
