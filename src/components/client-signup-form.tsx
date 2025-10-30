@@ -17,6 +17,7 @@ import { Loader2, Send, Save, BookUser } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { sendSignatureEmail } from "@/lib/client-signup.actions";
 import { useRouter } from "next/navigation";
+import SignatureCanvas from 'react-signature-canvas';
 
 // Define a basic schema. This will be expanded with all the form fields.
 const clientSignupFormSchema = z.object({
@@ -66,18 +67,18 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
 
     transition(async () => {
       const formData = form.getValues();
-      const saveData = {
-          formData: formData,
-          clientEmail: formData.clientEmail,
-          status: status,
-          lastUpdatedAt: serverTimestamp(),
-      };
-
+      
       try {
         let docId = signupId;
         if (docId) {
           // Update existing document
           const docRef = doc(firestore, 'client_signups', docId);
+           const saveData = {
+              formData: formData,
+              clientEmail: formData.clientEmail,
+              status: status,
+              lastUpdatedAt: serverTimestamp(),
+          };
           await updateDoc(docRef, saveData).catch(serverError => {
             errorEmitter.emit("permission-error", new FirestorePermissionError({
               path: docRef.path, operation: "update", requestResourceData: saveData,
@@ -87,7 +88,14 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
         } else {
           // Create new document
           const colRef = collection(firestore, 'client_signups');
-          const newDoc = await addDoc(colRef, { ...saveData, createdAt: serverTimestamp() }).catch(serverError => {
+          const saveData = {
+              formData: formData,
+              clientEmail: formData.clientEmail,
+              status: status,
+              createdAt: serverTimestamp(),
+              lastUpdatedAt: serverTimestamp(),
+          };
+          const newDoc = await addDoc(colRef, saveData).catch(serverError => {
             errorEmitter.emit("permission-error", new FirestorePermissionError({
                 path: colRef.path, operation: "create", requestResourceData: saveData,
             }));
@@ -140,11 +148,10 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
                 </CardHeader>
                 <CardContent className="space-y-8">
                     <h2 className="text-2xl font-bold text-center">CLIENT SERVICE AGREEMENT</h2>
-
-                    {/* Placeholder for form fields and boilerplate */}
-                    <div className="text-center text-muted-foreground py-10 border-2 border-dashed rounded-lg">
-                        <p>Form fields and boilerplate will be added here.</p>
-                    </div>
+                    
+                    <p className="text-sm text-muted-foreground">
+                        Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated. This Client Service Agreement (the "Agreement") is entered into between the client, or his or her authorized representative, (the "Client") and FirstLight Home Care of Rancho Cucamonga CA, address 9650 Business Center drive, Suite 132, Rancho Cucamonga CA 91730 phone number 9093214466 ("FirstLight Home Care")
+                    </p>
 
                     <div className="flex justify-end gap-4 pt-6">
                         <Button type="button" variant="secondary" onClick={() => handleSave("INCOMPLETE")} disabled={isSaving || isSending}>
