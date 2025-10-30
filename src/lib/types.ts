@@ -223,6 +223,13 @@ export const clientSignupFormSchema = z.object({
   clientPhone: z.string().min(1, { message: "Phone is required." }),
   clientSSN: z.string().optional(),
   clientDOB: z.string().optional(),
+  emergencyContactName: z.string().optional(),
+  emergencyContactRelationship: z.string().optional(),
+  emergencyContactHomePhone: z.string().optional(),
+  emergencyContactWorkPhone: z.string().optional(),
+  secondEmergencyContactName: z.string().optional(),
+  secondEmergencyContactRelationship: z.string().optional(),
+  secondEmergencyContactPhone: z.string().optional(),
 });
 export type ClientSignupFormData = z.infer<typeof clientSignupFormSchema>;
 

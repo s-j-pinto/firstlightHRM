@@ -8,7 +8,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useDoc, useMemoFirebase, firestore, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { doc, addDoc, updateDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { useRouter } from "next/navigation";
-import SignatureCanvas from 'react-signature-canvas';
 
 import { clientSignupFormSchema, type ClientSignupFormData } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,6 +39,13 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
       clientPhone: '',
       clientSSN: '',
       clientDOB: '',
+      emergencyContactName: '',
+      emergencyContactRelationship: '',
+      emergencyContactHomePhone: '',
+      emergencyContactWorkPhone: '',
+      secondEmergencyContactName: '',
+      secondEmergencyContactRelationship: '',
+      secondEmergencyContactPhone: '',
     },
   });
 
@@ -136,22 +142,22 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
 
   return (
      <Card>
-        <Form {...form}>
-            <form>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 pt-4"><BookUser />New Client Intake Form</CardTitle>
-                    <CardDescription>
-                    Fill out the details below. You can save a draft or send it to the client for their signature.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-8">
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2 pt-4"><BookUser />New Client Intake Form</CardTitle>
+            <CardDescription>
+            Fill out the details below. You can save a draft or send it to the client for their signature.
+            </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-8">
+            <Form {...form}>
+                <form>
                     <h2 className="text-2xl font-bold text-center">CLIENT SERVICE AGREEMENT</h2>
                     
                     <p className="text-sm text-muted-foreground">
                         Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated. This Client Service Agreement (the "Agreement") is entered into between the client, or his or her authorized representative, (the "Client") and FirstLight Home Care of Rancho Cucamonga CA, address 9650 Business Center drive, Suite 132, Rancho Cucamonga CA 91730 phone number 9093214466 ("FirstLight Home Care")
                     </p>
 
-                    <div className="space-y-6">
+                    <div className="space-y-6 mt-8">
                         <h3 className="text-lg font-semibold text-center">I. CLIENT INFORMATION</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                              <FormField control={form.control} name="clientName" render={({ field }) => ( <FormItem><FormLabel>Client Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
@@ -162,9 +168,28 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
                              <FormField control={form.control} name="clientPhone" render={({ field }) => ( <FormItem><FormLabel>Phone</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                              <FormField control={form.control} name="clientSSN" render={({ field }) => ( <FormItem><FormLabel>Social Security #</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                              <FormField control={form.control} name="clientDOB" render={({ field }) => ( <FormItem><FormLabel>DOB</FormLabel><FormControl><Input {...field} type="date" /></FormControl><FormMessage /></FormItem> )} />
+                             <FormField control={form.control} name="clientEmail" render={({ field }) => ( <FormItem><FormLabel>Client Email</FormLabel><FormControl><Input {...field} type="email" /></FormControl><FormMessage /></FormItem> )} />
                         </div>
                     </div>
 
+                    <div className="space-y-6 mt-8">
+                        <h3 className="text-lg font-semibold text-center">II. EMERGENCY CONTACT INFORMATION</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <FormField control={form.control} name="emergencyContactName" render={({ field }) => ( <FormItem><FormLabel>Emergency Contact Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="emergencyContactRelationship" render={({ field }) => ( <FormItem><FormLabel>Relationship</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="emergencyContactHomePhone" render={({ field }) => ( <FormItem><FormLabel>Contact Home Phone</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="emergencyContactWorkPhone" render={({ field }) => ( <FormItem><FormLabel>Contact Work Phone</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                             <FormField control={form.control} name="secondEmergencyContactName" render={({ field }) => ( <FormItem><FormLabel>2nd Emergency Contact</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                             <FormField control={form.control} name="secondEmergencyContactRelationship" render={({ field }) => ( <FormItem><FormLabel>Relationship</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                             <FormField control={form.control} name="secondEmergencyContactPhone" render={({ field }) => ( <FormItem><FormLabel>Phone</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        </div>
+                    </div>
+
+                    <p className="text-sm text-muted-foreground mt-8">
+                        "FirstLight Home Care of Rancho Cucamonga will provide non-medical in-home services (the "Services") specified in the attached Service Plan Agreement (the "Service Plan")"
+                    </p>
 
                     <div className="flex justify-end gap-4 pt-6">
                         <Button type="button" variant="secondary" onClick={() => handleSave("INCOMPLETE")} disabled={isSaving || isSending}>
@@ -176,9 +201,9 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
                             Save and Send for Signature
                         </Button>
                     </div>
-                </CardContent>
-            </form>
-        </Form>
+                </form>
+            </Form>
+        </CardContent>
         <CardFooter className="flex justify-center text-xs text-muted-foreground pt-4">
             <p>Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated.</p>
         </CardFooter>
