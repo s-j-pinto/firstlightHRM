@@ -27,6 +27,7 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
     const firestore = serverDb;
     try {
         const signingLink = `${process.env.NEXT_PUBLIC_BASE_URL}/new-client-login`;
+        console.log('Generated signing link:', signingLink);
       
         const email = {
             to: [clientEmail],
