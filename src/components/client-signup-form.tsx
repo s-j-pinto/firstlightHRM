@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -16,7 +17,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Loader2, Send, Save, BookUser, Calendar as CalendarIcon, RefreshCw } from "lucide-react";
+import { Loader2, Send, Save, BookUser, Calendar as CalendarIcon, RefreshCw, Briefcase } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { sendSignatureEmail } from "@/lib/client-signup.actions";
 import { Textarea } from "./ui/textarea";
@@ -116,6 +117,8 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
     clientSignature: useRef<SignatureCanvas>(null),
     clientRepresentativeSignature: useRef<SignatureCanvas>(null),
     firstLightRepresentativeSignature: useRef<SignatureCanvas>(null),
+    agreementClientSignature: useRef<SignatureCanvas>(null),
+    agreementRepSignature: useRef<SignatureCanvas>(null),
   };
 
   useEffect(() => {
@@ -137,6 +140,11 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
           firstLightRepresentativeSignatureDate: existingSignupData.formData.firstLightRepresentativeSignatureDate
               ? new Date(existingSignupData.formData.firstLightRepresentativeSignatureDate)
               : undefined,
+          officeTodaysDate: existingSignupData.formData.officeTodaysDate ? new Date(existingSignupData.formData.officeTodaysDate) : undefined,
+          officeReferralDate: existingSignupData.formData.officeReferralDate ? new Date(existingSignupData.formData.officeReferralDate) : undefined,
+          officeInitialContactDate: existingSignupData.formData.officeInitialContactDate ? new Date(existingSignupData.formData.officeInitialContactDate) : undefined,
+          agreementSignatureDate: existingSignupData.formData.agreementSignatureDate ? new Date(existingSignupData.formData.agreementSignatureDate) : undefined,
+          agreementRepDate: existingSignupData.formData.agreementRepDate ? new Date(existingSignupData.formData.agreementRepDate) : undefined,
       };
       form.reset(data);
     }
@@ -284,6 +292,17 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
         <CardContent>
             <Form {...form}>
                 <form className="space-y-8">
+                    
+                    <div className="border p-4 rounded-md space-y-4 bg-muted/20">
+                        <h3 className="text-lg font-semibold text-center">For Office Use Only</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <FormField control={form.control} name="officeTodaysDate" render={({ field }) => ( <FormItem><FormLabel>TODAY'S DATE</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="officeReferralDate" render={({ field }) => ( <FormItem><FormLabel>REFERRAL DATE</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="officeInitialContactDate" render={({ field }) => ( <FormItem><FormLabel>DATE OF INITIAL CLIENT CONTACT</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                        </div>
+                    </div>
+
+
                     <h2 className="text-2xl font-bold text-center">CLIENT SERVICE AGREEMENT</h2>
                     <p className="text-sm text-muted-foreground">
                         Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated. This Client Service Agreement (the "Agreement") is entered into between the client, or his or her authorized representative, (the "Client") and FirstLight Home Care of Rancho Cucamonga CA, address 9650 Business Center drive, Suite 132, Rancho Cucamonga CA 91730 phone number 9093214466 ("FirstLight Home Care")
@@ -415,7 +434,7 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
                             If there is same day cancellation, client will be charged for full scheduled hours, except if there is a medical emergency.
                         </p>
                     </div>
-                    
+
                     <div className="space-y-6">
                         <h3 className="text-lg font-semibold text-center">ACKNOWLEDGEMENT & AGREEMENT</h3>
                         <p className="text-sm text-muted-foreground">
@@ -460,7 +479,7 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
                             </div>
                         </div>
                     </div>
-
+                    
                     <div className="space-y-6">
                         <h3 className="text-lg font-semibold text-center">TERMS AND CONDITIONS</h3>
                         <ol className="space-y-4 text-sm text-muted-foreground list-decimal list-inside">
@@ -537,6 +556,35 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
                         </div>
                     </div>
 
+                    <div className="space-y-6">
+                        <h3 className="text-lg font-semibold text-center">AGREEMENT TO ACCEPT PAYMENT RESPONSIBILITY AND CONSENT FOR USE AND DISCLOSURE OF PERSONAL INFORMATION-PRIVATE PAY</h3>
+                        <FormField control={form.control} name="agreementClientName" render={({ field }) => ( <FormItem><FormLabel>Client Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <p className="text-sm text-muted-foreground">I understand that Firstlight Home Care of Rancho Cucamonga may need to use or disclose my personal information to provide ser­vices to me, to obtain payment for its services and for all of the other reasons more fully described in Firstlight Home Care of Rancho Cucamonga Notice of Privacy Practices.</p>
+                        <p className="text-sm text-muted-foreground">I acknowledge that I have received the Notice of Privacy Practices, and I consent to all of the uses and disclosures of my personal information as described in that document including, if applicable and as is necessary, for Firstlight Home Care of Rancho Cucamonga provide services to me; to coordinate with my other providers; to determine eligibility for payment, bill, and receive payment for services; and to make all other uses and disclosures described in the Notice of Privacy Practices.</p>
+                        <p className="text-sm text-muted-foreground">My consent will be valid for two (2) years from the date below. I may revoke my consent to share information, in writing, at any time. Revoking my consent does not apply to information that has already been shared or affect my financial responsibility for Ser­ vices. I understand that some uses and sharing of my information are authorized by law and do not require my consent.</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-2">
+                                <FormLabel>Client Signature/Responsible Party</FormLabel>
+                                <div className="rounded-md border bg-white">
+                                    <SignatureCanvas ref={sigPads.agreementClientSignature} canvasProps={{ className: 'w-full h-24' }} />
+                                </div>
+                                <Button type="button" variant="ghost" size="sm" onClick={() => clearSignature(sigPads.agreementClientSignature)}><RefreshCw className="mr-2" />Clear</Button>
+                            </div>
+                             <FormField control={form.control} name="agreementSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                        </div>
+                        <FormField control={form.control} name="agreementRelationship" render={({ field }) => ( <FormItem><FormLabel>Relationship if not Client</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-2">
+                                <FormLabel>FirstLight Home Care of Rancho Cucamonga Representative</FormLabel>
+                                <div className="rounded-md border bg-white">
+                                    <SignatureCanvas ref={sigPads.agreementRepSignature} canvasProps={{ className: 'w-full h-24' }} />
+                                </div>
+                                <Button type="button" variant="ghost" size="sm" onClick={() => clearSignature(sigPads.agreementRepSignature)}><RefreshCw className="mr-2" />Clear</Button>
+                            </div>
+                            <FormField control={form.control} name="agreementRepDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                        </div>
+                    </div>
+
 
                     <div className="flex justify-end gap-4 pt-6">
                         <Button type="button" variant="secondary" onClick={() => handleSave("INCOMPLETE")} disabled={isSaving || isSending}>
@@ -557,5 +605,3 @@ export default function ClientSignupForm({ signupId }: { signupId: string | null
     </Card>
   );
 }
-
-    
