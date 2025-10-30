@@ -24,7 +24,7 @@ export default function OwnerDashboardPage() {
         <div className="flex justify-between items-start">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight font-headline mb-2">
-                    Welcome, Owner!
+                    Welcome to the Assessment
                 </h1>
                 <p className="text-muted-foreground">
                     Manage new client intake forms and view their status.

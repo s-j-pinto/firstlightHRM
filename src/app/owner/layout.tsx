@@ -11,7 +11,7 @@ function OwnerAuthGuard({ children }: { children: React.ReactNode }) {
   const { user } = useUser();
   const router = useRouter();
   const pathname = usePathname();
-  const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL||"lpinto@firstlighthomecare.com";
+  const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL||"lpinto@firstlighthomecare.com" || "care-rc@firstlighthomecare.com";
 
   useEffect(() => {
     if (!user || user.email !== ownerEmail) {
