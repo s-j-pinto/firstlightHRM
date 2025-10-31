@@ -132,12 +132,12 @@ export async function generateClientIntakePdf(formData: any) {
     const contentWidth = rightMargin - leftMargin;
     let y = height - 75; // Start drawing below the header area.
 
-    const lineSpacing = 11;
-    const sectionSpacing = 16;
-    const mainFontSize = 8;
-    const headerFontSize = 10;
-    const fieldLabelFontSize = 8;
-    const smallFontSize = 7;
+    const lineSpacing = 12;
+    const sectionSpacing = 18;
+    const mainFontSize = 9;
+    const headerFontSize = 11;
+    const fieldLabelFontSize = 9;
+    const smallFontSize = 8;
 
     await drawHeader(page, pdfDoc, logoImage);
     await drawFooter(page, font);
@@ -205,7 +205,7 @@ export async function generateClientIntakePdf(formData: any) {
     y = drawWrappedText(page, introText, font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
     y -= sectionSpacing / 2;
 
-    drawSectionHeader("I. CLIENT INFORMATION", { centered: true });
+    drawSectionHeader("I. CLIENT INFORMATION");
     await drawField("Client Name", formData.clientName, leftMargin, y);
     await drawField("Address", `${formData.clientAddress || ''}, ${formData.clientCity || ''}, ${formData.clientState || ''} ${formData.clientPostalCode || ''}`, leftMargin + 250, y);
     y -= lineSpacing;
@@ -242,7 +242,7 @@ export async function generateClientIntakePdf(formData: any) {
     y = drawWrappedText(page, servicePlanText, font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
     y -= sectionSpacing;
 
-    drawSectionHeader("V. PAYMENTS FOR THE SERVICES", { centered: true });
+    drawSectionHeader("V. PAYMENTS FOR THE SERVICES");
     const paymentText = `The hourly rate for providing the Services is $${formData.hourlyRate || '__'} per hour. The rate is based on the Client utilizing the services of FirstLight Home Care of Rancho Cucamonga for a minimum of ${formData.minimumHoursPerShift || '__'} hours per shift. The rates are provided on a current rate card dated ${formatDate(formData.rateCardDate)} and will be used to calculate the Client's rate for Services. Rates are subject to change with two (2) weeks' written notice (See attached rate sheet.).`;
     y = drawWrappedText(page, paymentText, font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
     
