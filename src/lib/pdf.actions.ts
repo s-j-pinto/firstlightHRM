@@ -71,7 +71,7 @@ async function drawHeader(page: any, pdfDoc: PDFDocument, logoImage: any, font: 
     const redTextSize = 10;
     const redTextWidth = font.widthOfTextAtSize(redText, redTextSize);
     page.drawText(redText, {
-        x: width - margin - redTextWidth,
+        x: width - margin - redTextWidth - 5, // Added 5px gap
         y: page.getHeight() - 50,
         font: font,
         size: redTextSize,
@@ -234,10 +234,10 @@ export async function generateClientIntakePdf(formData: any) {
     y -= sectionSpacing;
 
     await drawField("Emergency Contact Name", formData.emergencyContactName, leftMargin, y, {valueXOffset: 120});
-    await drawField("Relationship", formData.emergencyContactRelationship, leftMargin + 300, y, {valueXOffset: 60});
+    await drawField("Relationship", formData.emergencyContactRelationship, leftMargin + 250, y, {valueXOffset: 60});
     y -= lineSpacing;
     await drawField("Contact Home Phone", formData.emergencyContactHomePhone, leftMargin, y, {valueXOffset: 120});
-    await drawField("Contact Work Phone", formData.emergencyContactWorkPhone, leftMargin + 300, y, {valueXOffset: 95});
+    await drawField("Contact Work Phone", formData.emergencyContactWorkPhone, leftMargin + 250, y, {valueXOffset: 95});
     y -= sectionSpacing;
 
     await drawField("2nd Emergency Contact", formData.secondEmergencyContactName, leftMargin, y, {valueXOffset: 110});
@@ -250,9 +250,9 @@ export async function generateClientIntakePdf(formData: any) {
     y -= sectionSpacing;
 
     await drawField("Scheduled Frequency", formData.scheduledFrequency, leftMargin, y, {valueXOffset: 100});
-    await drawField("Days/Wk", formData.daysPerWeek, leftMargin + 220, y, {valueXOffset: 45});
-    await drawField("Hrs/Day", formData.hoursPerDay, leftMargin + 320, y, {valueXOffset: 40});
-    await drawField("Contract Start Date", formData.contractStartDate, leftMargin + 420, y, {isDate: true, valueXOffset: 90});
+    await drawField("Days/Wk", formData.daysPerWeek, leftMargin + 200, y, {valueXOffset: 45});
+    await drawField("Hrs/Day", formData.hoursPerDay, leftMargin + 280, y, {valueXOffset: 40});
+    await drawField("Contract Start Date", formData.contractStartDate, leftMargin + 370, y, {isDate: true, valueXOffset: 90});
     y -= sectionSpacing;
     
     const servicePlanText = "FirstLight Home Care of Rancho Cucamonga will provide non-medical in-home services (the \"Services\") specified in the attached Service Plan Agreement (the \"Service Plan\")";
