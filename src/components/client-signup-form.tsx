@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import * as React from "react";
@@ -14,7 +13,7 @@ import SignatureCanvas from 'react-signature-canvas';
 import Image from "next/image";
 
 
-import { clientSignupFormSchema, type ClientSignupFormData } from "@/lib/types";
+import { clientSignupFormSchema, finalizationSchema, type ClientSignupFormData } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -326,7 +325,37 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
     });
   };
 
-  const handleFinalize = () => {
+  const handleFinalize = async () => {
+    Object.keys(sigPads).forEach(key => {
+        const padKey = key as keyof typeof sigPads;
+        const formKey = key as keyof ClientSignupFormData;
+        const pad = sigPads[padKey].current;
+        if (pad && !pad.isEmpty()) {
+            form.setValue(formKey, pad.toDataURL(), { shouldValidate: true });
+        }
+    });
+    
+    // Explicitly trigger validation against the stricter schema
+    const isValid = await form.trigger();
+    const validationResult = finalizationSchema.safeParse(form.getValues());
+    
+    if (!validationResult.success) {
+      console.error("Finalization validation errors:", validationResult.error.flatten().fieldErrors);
+      toast({
+        title: "Validation Failed",
+        description: "Please fill out all required fields before finalizing. Check all signatures, dates, initials and payment info.",
+        variant: "destructive",
+        duration: 8000,
+      });
+       // Manually set form errors to make them visible
+      for (const [key, messages] of Object.entries(validationResult.error.flatten().fieldErrors)) {
+        if (messages) {
+          form.setError(key as keyof ClientSignupFormData, { type: 'manual', message: messages.join(', ') });
+        }
+      }
+      return;
+    }
+
     startFinalizingTransition(async () => {
         if (!signupId) {
             toast({ title: "Error", description: "No document ID found to finalize." });
@@ -604,6 +633,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                                         </Button>
                                     )}
                                 </div>
+                                <FormMessage>{form.formState.errors.clientSignature?.message}</FormMessage>
                             </div>
                             <FormField control={form.control} name="clientPrintedName" render={({ field }) => ( <FormItem><FormLabel>(Client Printed Name)</FormLabel><FormControl><Input {...field} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
                             <FormField control={form.control} name="clientSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPublished}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
@@ -623,6 +653,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                                         </Button>
                                     )}
                                 </div>
+                                <FormMessage>{form.formState.errors.clientRepresentativeSignature?.message}</FormMessage>
                             </div>
                             <FormField control={form.control} name="clientRepresentativePrintedName" render={({ field }) => ( <FormItem><FormLabel>(Client Representative Printed Name and Relationship to Client)</FormLabel><FormControl><Input {...field} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
                             <FormField control={form.control} name="clientRepresentativeSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPublished}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
@@ -639,6 +670,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                                         </Button>
                                     )}
                                 </div>
+                                <FormMessage>{form.formState.errors.firstLightRepresentativeSignature?.message}</FormMessage>
                             </div>
                             <FormField control={form.control} name="firstLightRepresentativeTitle" render={({ field }) => ( <FormItem><FormLabel>(FirstLight Home Care of Rancho Cucamonga Representative Title)</FormLabel><FormControl><Input {...field} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
                             <FormField control={form.control} name="firstLightRepresentativeSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isClientMode || isPublished}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isClientMode || isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
@@ -679,12 +711,12 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                         <li><strong>SEVERABILITY:</strong> The invalidity or partial invalidity of any portion of this Agreement will not invalidate the remainder thereof, and said remainder will remain in full force and effect. Moreover, if one or more of the provisions contained in this Agreement will, for any reason, be held to be excessively broad as to scope, activity, subject or otherwise, so as to be unenforceable at law, such provision or provisions will be construed by the appropriate judicial body by limiting or reducing it or them, so as to be enforceable to the maximum extent compatible with then applicable law.</li>
                         <li><strong>INFORMATION AND DOCUMENTS RECEIVED:</strong> The Client acknowledges receipt of a copy of this Agreement, these Terms and Conditions and the following documents provided by FirstLight Home Care of Rancho Cucamonga and agrees to be bound by and comply with all of the same:
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                                <FormField control={form.control} name="receivedPrivacyPractices" render={({ field }) => (<FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isClientMode || isPublished} /></FormControl><FormLabel className="font-normal">Notice of Privacy Practices</FormLabel></FormItem>)} />
-                                <FormField control={form.control} name="receivedClientRights" render={({ field }) => (<FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isClientMode || isPublished} /></FormControl><FormLabel className="font-normal">Client Rights and Responsibilities</FormLabel></FormItem>)} />
-                                <FormField control={form.control} name="receivedAdvanceDirectives" render={({ field }) => (<FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isClientMode || isPublished} /></FormControl><FormLabel className="font-normal">Advance Directives</FormLabel></FormItem>)} />
-                                <FormField control={form.control} name="receivedRateSheet" render={({ field }) => (<FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isClientMode || isPublished} /></FormControl><FormLabel className="font-normal">Rate Sheet</FormLabel></FormItem>)} />
-                                <FormField control={form.control} name="receivedTransportationWaiver" render={({ field }) => (<FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isClientMode || isPublished} /></FormControl><FormLabel className="font-normal">Transportation Waiver</FormLabel></FormItem>)} />
-                                <FormField control={form.control} name="receivedPaymentAgreement" render={({ field }) => (<FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isClientMode || isPublished} /></FormControl><FormLabel className="font-normal">Agreement to Accept Payment Responsibility and Consent for Personal Information-Private Pay</FormLabel></FormItem>)} />
+                                <FormField control={form.control} name="receivedPrivacyPractices" render={({ field }) => (<FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isClientMode || isPublished} /></FormControl><FormLabel className="font-normal">Notice of Privacy Practices</FormLabel><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="receivedClientRights" render={({ field }) => (<FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isClientMode || isPublished} /></FormControl><FormLabel className="font-normal">Client Rights and Responsibilities</FormLabel><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="receivedAdvanceDirectives" render={({ field }) => (<FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isClientMode || isPublished} /></FormControl><FormLabel className="font-normal">Advance Directives</FormLabel><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="receivedRateSheet" render={({ field }) => (<FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isClientMode || isPublished} /></FormControl><FormLabel className="font-normal">Rate Sheet</FormLabel><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="receivedTransportationWaiver" render={({ field }) => (<FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isClientMode || isPublished} /></FormControl><FormLabel className="font-normal">Transportation Waiver</FormLabel><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="receivedPaymentAgreement" render={({ field }) => (<FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isClientMode || isPublished} /></FormControl><FormLabel className="font-normal">Agreement to Accept Payment Responsibility and Consent for Personal Information-Private Pay</FormLabel><FormMessage /></FormItem>)} />
                             </div>
                         </li>
                     </ol>
@@ -750,6 +782,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                                     </Button>
                                 )}
                             </div>
+                            <FormMessage>{form.formState.errors.agreementClientSignature?.message}</FormMessage>
                         </div>
                         <FormField control={form.control} name="agreementSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPublished}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
                     </div>
@@ -765,6 +798,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                                     </Button>
                                 )}
                             </div>
+                            <FormMessage>{form.formState.errors.agreementRepSignature?.message}</FormMessage>
                         </div>
                         <FormField control={form.control} name="agreementRepDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isClientMode || isPublished}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isClientMode || isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
                     </div>
@@ -785,7 +819,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                                 {isSending ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2" />}
                                 Save and Send for Signature
                             </Button>
-                            <Button type="button" variant="default" onClick={handleFinalize} disabled={isFinalizing || isPublished || existingSignupData?.status !== 'CLIENT_SIGNATURES_COMPLETED'}>
+                            <Button type="button" variant="default" onClick={handleFinalize} disabled={isFinalizing || isPublished}>
                                 {isFinalizing ? <Loader2 className="mr-2 animate-spin" /> : <FileCheck className="mr-2" />}
                                 Submit and Finalize
                             </Button>
@@ -830,10 +864,3 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
     </Card>
   );
 }
-
-
-
-
-
-
-
