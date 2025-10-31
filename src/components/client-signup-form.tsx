@@ -20,7 +20,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Loader2, Send, Save, BookUser, Calendar as CalendarIcon, RefreshCw, Briefcase, FileCheck, Signature, X, Printer, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { sendSignatureEmail, finalizeAndSubmit, submitClientSignature, previewClientIntakePdf } from "@/lib/client-signup.actions";
+import { sendSignatureEmail, finalizeAndSubmit, previewClientIntakePdf, submitClientSignature } from "@/lib/client-signup.actions";
 import { Textarea } from "./ui/textarea";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
@@ -371,7 +371,9 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
             toast({ title: "Finalization Failed", description: result.message, variant: "destructive" });
         } else {
             toast({ title: "Success!", description: result.message });
-            window.open(`/print/client-form/${signupId}`, '_blank');
+            if (result.completedPdfUrl) {
+                window.open(result.completedPdfUrl, '_blank');
+            }
         }
     });
   }
@@ -578,7 +580,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                 </p>
 
                 <div className="space-y-6">
-                    <h3 className="text-lg font-semibold text-center">V. PAYMENTS FOR THE SERVICES</h3>
+                    <h3 className="text-lg font-semibold text-center">II. PAYMENTS FOR THE SERVICES</h3>
                     <div className="space-y-4 rounded-md border p-4">
                         <div className="flex flex-wrap items-baseline gap-2">
                             <p className="text-sm">The hourly rate for providing the Services is $</p>
@@ -627,7 +629,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                 </div>
                 
                 <div className="space-y-6 break-before-page">
-                    <h3 className="text-lg font-semibold text-center">ACKNOWLEDGEMENT & AGREEMENT</h3>
+                    <h3 className="text-lg font-semibold text-center">III. ACKNOWLEDGEMENT & AGREEMENT</h3>
                      <p className="text-sm text-muted-foreground">
                         The Client, or his or her authorized representative, consents to receive the Services and acknowledges he or she or they have read, accept, and consent to this Agreement, including the "Terms and Conditions" and all other attached documents, all of which are incorporated into this Agreement.
                     </p>
@@ -772,7 +774,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                     </div>
                     <p className="text-sm text-muted-foreground">Firstlight Home Care of Rancho Cucamonga provides Personal Care Services as defined under Cal. Health & Safety Code § 1796.12 and does not provide medical services or function as a home health agency.</p>
                     <div className="w-1/3 mt-2">
-                        <FormField control={form.control} name="servicePlanClientInitials" render={({ field }) => ( <FormItem><FormLabel>Client Initials</FormLabel><FormControl><Input {...field} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="servicePlanClientInitials" render={({ field }) => ( <FormItem><FormLabel>Client Initials</FormLabel><FormControl><Input {...field} disabled={isPublished || mode === 'client-signing'} /></FormControl><FormMessage /></FormItem> )} />
                     </div>
                 </div>
                 

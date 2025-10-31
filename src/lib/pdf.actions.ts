@@ -3,6 +3,7 @@
 
 import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont } from 'pdf-lib';
 import { format } from 'date-fns';
+import { Buffer } from 'buffer';
 
 const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
 
@@ -222,7 +223,7 @@ export async function generateClientIntakePdf(formData: any) {
     y = drawWrappedText(page, introText, font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
     y -= sectionSpacing / 2;
 
-    drawSectionHeader("I. CLIENT INFORMATION");
+    drawSectionHeader("I. CLIENT INFORMATION", { centered: true });
     await drawField("Client Name", formData.clientName, leftMargin, y, {valueXOffset: 60});
     await drawField("Address", `${formData.clientAddress || ''}, ${formData.clientCity || ''}, ${formData.clientState || ''} ${formData.clientPostalCode || ''}`, leftMargin + 250, y, {valueXOffset: 45});
     y -= lineSpacing;
@@ -259,7 +260,7 @@ export async function generateClientIntakePdf(formData: any) {
     y = drawWrappedText(page, servicePlanText, font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
     y -= sectionSpacing;
 
-    drawSectionHeader("V. PAYMENTS FOR THE SERVICES");
+    drawSectionHeader("II. PAYMENTS FOR THE SERVICES", { centered: true });
     const paymentText = `The hourly rate for providing the Services is $${formData.hourlyRate || '__'} per hour. The rate is based on the Client utilizing the services of FirstLight Home Care of Rancho Cucamonga for a minimum of ${formData.minimumHoursPerShift || '__'} hours per shift. The rates are provided on a current rate card dated ${formatDate(formData.rateCardDate)} and will be used to calculate the Client's rate for Services. Rates are subject to change with two (2) weeks' written notice (See attached rate sheet.).`;
     y = drawWrappedText(page, paymentText, font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
     y -= lineSpacing;
@@ -272,7 +273,7 @@ export async function generateClientIntakePdf(formData: any) {
     y = drawWrappedText(page, cancellationText, boldFont, mainFontSize, leftMargin + 5, y - 5, contentWidth - 10, lineSpacing);
     y -= sectionSpacing * 1.5;
     
-    drawSectionHeader("ACKNOWLEDGEMENT & AGREEMENT", { centered: true });
+    drawSectionHeader("III. ACKNOWLEDGEMENT & AGREEMENT", { centered: true });
     const ackText = "The Client, or his or her authorized representative, consents to receive the Services and acknowledges he or she or they have read, accept, and consent to this Agreement, including the \"Terms and Conditions\" and all other attached documents, all of which are incorporated into this Agreement.";
     y = drawWrappedText(page, ackText, font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
     y -= lineSpacing * 1.5;
