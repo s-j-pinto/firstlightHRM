@@ -216,22 +216,24 @@ export async function generateClientIntakePdf(formData: any) {
     y -= lineSpacing;
     await drawField("SSN", formData.clientSSN, leftMargin, y, {valueXOffset: 60});
     await drawField("DOB", formData.clientDOB ? format(new Date(formData.clientDOB), 'MM/dd/yyyy') : '', leftMargin + 250, y, {valueXOffset: 45});
-    y -= lineSpacing * 1.5;
+    y -= sectionSpacing;
 
     await drawField("Emergency Contact Name", formData.emergencyContactName, leftMargin, y, {valueXOffset: 120});
     await drawField("Relationship", formData.emergencyContactRelationship, leftMargin + 300, y, {valueXOffset: 60});
     y -= lineSpacing;
     await drawField("Contact Home Phone", formData.emergencyContactHomePhone, leftMargin, y, {valueXOffset: 120});
     await drawField("Contact Work Phone", formData.emergencyContactWorkPhone, leftMargin + 300, y, {valueXOffset: 95});
-    y -= lineSpacing * 1.5;
+    y -= sectionSpacing;
+
     await drawField("2nd Emergency Contact", formData.secondEmergencyContactName, leftMargin, y, {valueXOffset: 110});
     await drawField("Relationship", formData.secondEmergencyContactRelationship, leftMargin + 250, y, {valueXOffset: 60});
     await drawField("Phone", formData.secondEmergencyContactPhone, leftMargin + 400, y, {valueXOffset: 35});
-    y -= lineSpacing * 1.5;
+    y -= sectionSpacing;
 
     await drawField("Homemaker/Companion", formData.homemakerCompanion, leftMargin, y, { isCheckbox: true, valueXOffset: 105 });
     await drawField("Personal Care", formData.personalCare, leftMargin + 250, y, { isCheckbox: true, valueXOffset: 70 });
-    y -= lineSpacing * 1.5;
+    y -= sectionSpacing;
+
     await drawField("Scheduled Frequency", formData.scheduledFrequency, leftMargin, y, {valueXOffset: 100});
     await drawField("Days/Wk", formData.daysPerWeek, leftMargin + 250, y, {valueXOffset: 45});
     await drawField("Hrs/Day", formData.hoursPerDay, leftMargin + 350, y, {valueXOffset: 40});
@@ -347,18 +349,18 @@ export async function generateClientIntakePdf(formData: any) {
         }
         
         if (term.title === "INFORMATION AND DOCUMENTS RECEIVED:") {
-             y -= termLineSpacing;
-             await drawField("Notice of Privacy Practices", formData.receivedPrivacyPractices, leftMargin + 20, y, { isCheckbox: true });
-             await drawField("Client Rights and Responsibilities", formData.receivedClientRights, leftMargin + 270, y, { isCheckbox: true });
-             y -= termLineSpacing;
-             await drawField("Advance Directives", formData.receivedAdvanceDirectives, leftMargin + 20, y, { isCheckbox: true });
-             await drawField("Rate Sheet", formData.receivedRateSheet, leftMargin + 270, y, { isCheckbox: true });
-             y -= termLineSpacing;
-             await drawField("Transportation Waiver", formData.receivedTransportationWaiver, leftMargin + 20, y, { isCheckbox: true });
-             y -= termLineSpacing;
-             const longLabel = "Agreement to Accept Payment Responsibility and Consent for Personal Information-Private Pay";
-             await drawField(longLabel, formData.receivedPaymentAgreement, leftMargin + 20, y, { isCheckbox: true });
-             y -= termLineSpacing * 1.5;
+            y -= termLineSpacing;
+            await drawField("Notice of Privacy Practices", formData.receivedPrivacyPractices, leftMargin + 20, y, { isCheckbox: true });
+            await drawField("Client Rights and Responsibilities", formData.receivedClientRights, leftMargin + 270, y, { isCheckbox: true });
+            y -= termLineSpacing;
+            await drawField("Advance Directives", formData.receivedAdvanceDirectives, leftMargin + 20, y, { isCheckbox: true });
+            await drawField("Rate Sheet", formData.receivedRateSheet, leftMargin + 270, y, { isCheckbox: true });
+            y -= termLineSpacing;
+            await drawField("Transportation Waiver", formData.receivedTransportationWaiver, leftMargin + 20, y, { isCheckbox: true });
+            y -= termLineSpacing;
+            const longLabel = "Agreement to Accept Payment Responsibility and Consent for Personal Information-Private Pay";
+            await drawField(longLabel, formData.receivedPaymentAgreement, leftMargin + 20, y, { isCheckbox: true });
+            y -= termLineSpacing * 1.5;
         }
     }
 
@@ -369,15 +371,6 @@ export async function generateClientIntakePdf(formData: any) {
     y = height - 75;
 
     drawSectionHeader("HOME CARE SERVICE PLAN AGREEMENT", { centered: true });
-    
-    // Office Use Only Box
-    page.drawRectangle({x: leftMargin, y: y-65, width: contentWidth, height: 60, borderColor: rgb(0,0,0), borderWidth: 1});
-    page.drawText("For Office Use Only", { x: (width / 2) - boldFont.widthOfTextAtSize("For Office Use Only", headerFontSize) / 2, y: y, font: boldFont, size: headerFontSize });
-    y -= lineSpacing * 2;
-    await drawField("TODAY'S DATE", formData.officeTodaysDate, leftMargin + 10, y, { isDate: true, valueXOffset: 80 });
-    await drawField("REFERRAL DATE", formData.officeReferralDate, leftMargin + 200, y, { isDate: true, valueXOffset: 80 });
-    await drawField("DATE OF INITIAL CLIENT CONTACT", formData.officeInitialContactDate, leftMargin + 380, y, { isDate: true, valueXOffset: 150 });
-    y -= sectionSpacing * 2;
 
     await drawField("Client Name", formData.clientName, leftMargin, y, { valueXOffset: 65 });
     y -= lineSpacing * 1.5;
@@ -438,6 +431,20 @@ export async function generateClientIntakePdf(formData: any) {
     y -= sectionSpacing;
 
     await drawField("Client Initials", formData.servicePlanClientInitials, leftMargin, y, { valueXOffset: 70 });
+    y -= sectionSpacing;
+    
+    // Office Use Only Box at the bottom
+    let boxY = bottomMargin + 80;
+    page.drawRectangle({x: leftMargin, y: boxY - 65, width: contentWidth / 2, height: 80, borderColor: rgb(0,0,0), borderWidth: 1});
+    page.drawText("For Office Use Only", { x: leftMargin + (contentWidth / 4) - boldFont.widthOfTextAtSize("For Office Use Only", headerFontSize) / 2, y: boxY, font: boldFont, size: headerFontSize });
+    
+    let officeY = boxY - (lineSpacing * 2);
+    await drawField("TODAY'S DATE", formData.officeTodaysDate, leftMargin + 10, officeY, { isDate: true, valueXOffset: 80 });
+    officeY -= lineSpacing * 1.5;
+    await drawField("REFERRAL DATE", formData.officeReferralDate, leftMargin + 10, officeY, { isDate: true, valueXOffset: 80 });
+    officeY -= lineSpacing * 1.5;
+    await drawField("DATE OF INITIAL CLIENT CONTACT", formData.officeInitialContactDate, leftMargin + 10, officeY, { isDate: true, valueXOffset: 150 });
+    
 
     const pdfBytes = await pdfDoc.save();
     return pdfBytes;
