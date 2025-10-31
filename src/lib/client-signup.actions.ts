@@ -3,9 +3,11 @@
 "use server";
 
 import { revalidatePath } from 'next/cache';
-import { serverDb } from '@/firebase/server-init';
+import { serverDb, serverAuth } from '@/firebase/server-init';
+import { getStorage } from 'firebase-admin/storage';
 import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
+import { generateClientIntakePdf } from './pdf.actions';
 
 const clientSignupSchema = z.object({
   signupId: z.string().nullable(),
@@ -72,7 +74,7 @@ const clientSignaturePayloadSchema = z.object({
   repPrintedName: z.string().optional(),
   repDate: z.date().optional(),
   initials: z.string().optional(),
-  servicePlanInitials: z.string().optional(),
+  servicePlanClientInitials: z.string().optional(),
   agreementRelationship: z.string().optional(),
   agreementDate: z.date().optional(),
 });
@@ -98,7 +100,7 @@ export async function submitClientSignature(payload: z.infer<typeof clientSignat
         if (signatureData.repPrintedName) updatePayload['formData.clientRepresentativePrintedName'] = signatureData.repPrintedName;
         if (signatureData.repDate) updatePayload['formData.clientRepresentativeSignatureDate'] = Timestamp.fromDate(signatureData.repDate);
         if (signatureData.initials) updatePayload['formData.clientInitials'] = signatureData.initials;
-        if (signatureData.servicePlanInitials) updatePayload['formData.servicePlanClientInitials'] = signatureData.servicePlanInitials;
+        if (signatureData.servicePlanClientInitials) updatePayload['formData.servicePlanClientInitials'] = signatureData.servicePlanClientInitials;
         if (signatureData.agreementSignature) updatePayload['formData.agreementClientSignature'] = signatureData.agreementSignature;
         if (signatureData.agreementRelationship) updatePayload['formData.agreementRelationship'] = signatureData.agreementRelationship;
         if (signatureData.agreementDate) updatePayload['formData.agreementSignatureDate'] = Timestamp.fromDate(signatureData.agreementDate);
@@ -134,33 +136,57 @@ export async function submitClientSignature(payload: z.infer<typeof clientSignat
 export async function finalizeAndSubmit(signupId: string) {
     const firestore = serverDb;
     const ownerEmail = process.env.OWNER_EMAIL;
+
     try {
         const signupRef = firestore.collection('client_signups').doc(signupId);
         const signupDoc = await signupRef.get();
         if (!signupDoc.exists) {
             return { message: "Signup document not found.", error: true };
         }
+        
+        const clientEmail = signupDoc.data()?.formData?.clientEmail;
+        const clientName = signupDoc.data()?.formData?.clientName || 'Client';
 
-        // 1. Update status to SIGNED AND PUBLISHED
+        // 1. Generate PDF
+        const pdfBytes = await generateClientIntakePdf(signupDoc.data()?.formData);
+        
+        // 2. Upload to Firebase Storage
+        const bucket = getStorage().bucket();
+        const fileName = `client-agreements/${clientName.replace(/ /g, '_')}_${signupId}.pdf`;
+        const file = bucket.file(fileName);
+        
+        await file.save(Buffer.from(pdfBytes), {
+            metadata: {
+                contentType: 'application/pdf',
+            },
+        });
+        
+        // The file is private by default, so we get a signed URL that expires.
+        const [signedUrl] = await file.getSignedUrl({
+            action: 'read',
+            expires: '03-09-2491', // A very distant future date
+        });
+
+        // 3. Update status and save PDF URL
         await signupRef.update({
             status: 'SIGNED AND PUBLISHED',
+            completedPdfUrl: signedUrl,
             lastUpdatedAt: Timestamp.now(),
         });
         
-        const clientEmail = signupDoc.data()?.formData?.clientEmail;
-        
-        // 2. Here you would trigger PDF generation and upload to GCS.
-        // For now, we will simulate this by preparing an email.
-        
+        // 4. Send confirmation emails with PDF link
         const emailRecipients = [ownerEmail, clientEmail].filter(Boolean) as string[];
 
         if (emailRecipients.length > 0) {
             const email = {
                 to: emailRecipients,
                 message: {
-                    subject: "Your FirstLight Home Care Service Agreement is Complete",
-                    html: `<p>The Client Service Agreement has been finalized. A PDF copy should be attached to this email.</p><p>Document ID: ${signupId}</p><p>(Note: PDF attachment is a placeholder for now.)</p>`,
-                    // attachments: [{ filename: '...', path: '...' }] // This would be added once PDF generation is live
+                    subject: `Your FirstLight Home Care Service Agreement for ${clientName} is Complete`,
+                    html: `
+                        <p>The Client Service Agreement has been finalized. A PDF copy is available for download at the link below.</p>
+                        <p><a href="${signedUrl}">Download Completed Agreement</a></p>
+                        <p>Document ID: ${signupId}</p>
+                    `,
                 }
             };
             await firestore.collection("mail").add(email);
@@ -168,7 +194,7 @@ export async function finalizeAndSubmit(signupId: string) {
 
         revalidatePath('/owner/dashboard');
         revalidatePath(`/owner/new-client-signup?signupId=${signupId}`);
-        return { message: 'Document has been finalized and emails have been sent.' };
+        return { message: 'Document has been finalized, PDF generated, and confirmation emails have been sent.' };
     } catch (error: any) {
         console.error("Error finalizing document:", error);
         return { message: `An error occurred during finalization: ${error.message}`, error: true };

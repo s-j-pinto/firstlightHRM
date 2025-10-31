@@ -10,6 +10,14 @@ function PrintFormPageContent() {
     const params = useParams();
     const signupId = params.signupId as string;
 
+    if (!signupId) {
+        return (
+            <div className="flex justify-center items-center h-screen">
+                <p>No document ID provided.</p>
+            </div>
+        );
+    }
+
     return <ClientSignupForm signupId={signupId} mode="print" />;
 }
 
