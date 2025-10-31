@@ -83,7 +83,7 @@ const clientSignaturePayloadSchema = z.object({
 export async function submitClientSignature(payload: z.infer<typeof clientSignaturePayloadSchema>) {
     const { signupId, ...signatureData } = payload;
     const firestore = serverDb;
-    const ownerEmail = process.env.OWNER_EMAIL;
+    const ownerEmail = process.env.OWNER_EMAIL||'lpinto@firstlighthomecare.com';
 
     try {
         const signupRef = firestore.collection('client_signups').doc(signupId);
@@ -135,7 +135,7 @@ export async function submitClientSignature(payload: z.infer<typeof clientSignat
 
 export async function finalizeAndSubmit(signupId: string) {
     const firestore = serverDb;
-    const ownerEmail = process.env.OWNER_EMAIL;
+    const ownerEmail = process.env.OWNER_EMAIL || 'lpinto@firstlighthomecare.com';;
 
     try {
         const signupRef = firestore.collection('client_signups').doc(signupId);
