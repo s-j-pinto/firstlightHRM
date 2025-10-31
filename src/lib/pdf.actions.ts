@@ -128,14 +128,16 @@ export async function generateClientIntakePdf(formData: any) {
     
     const leftMargin = 50;
     const rightMargin = width - 50;
+    const bottomMargin = 50;
     const contentWidth = rightMargin - leftMargin;
     let y = height - 75; // Start drawing below the header area.
 
-    const lineSpacing = 12;
-    const sectionSpacing = 18;
+    const lineSpacing = 11;
+    const sectionSpacing = 16;
     const mainFontSize = 8;
-    const headerFontSize = 11;
+    const headerFontSize = 10;
     const fieldLabelFontSize = 8;
+    const smallFontSize = 7;
 
     await drawHeader(page, pdfDoc, logoImage);
     await drawFooter(page, font);
@@ -171,17 +173,17 @@ export async function generateClientIntakePdf(formData: any) {
         // Signature Line
         page.drawLine({ start: { x: leftMargin, y: blockY - 15 }, end: { x: leftMargin + 200, y: blockY - 15 }, color: rgb(0, 0, 0), thickness: 0.5 });
         if(sigData) await drawSignature(page, sigData, leftMargin + 10, blockY - 10, 180, 40, pdfDoc);
-        page.drawText(sigLabel, { x: leftMargin, y: blockY - 25, font: font, size: 8 });
+        page.drawText(sigLabel, { x: leftMargin, y: blockY - 25, font: font, size: smallFontSize });
 
         // Name Line
         page.drawLine({ start: { x: leftMargin + 250, y: blockY - 15 }, end: { x: leftMargin + 400, y: blockY - 15 }, color: rgb(0, 0, 0), thickness: 0.5 });
         await drawText(page, nameData, leftMargin + 255, blockY - 10, font, mainFontSize);
-        page.drawText(nameLabel, { x: leftMargin + 250, y: blockY - 25, font: font, size: 8 });
+        page.drawText(nameLabel, { x: leftMargin + 250, y: blockY - 25, font: font, size: smallFontSize });
         
         // Date Line
         page.drawLine({ start: { x: leftMargin + 450, y: blockY - 15 }, end: { x: rightMargin, y: blockY - 15 }, color: rgb(0, 0, 0), thickness: 0.5 });
         await drawText(page, dateData ? formatDate(dateData) : '', leftMargin + 455, blockY-10, font, mainFontSize);
-        page.drawText(dateLabel, { x: leftMargin + 450, y: blockY - 25, font: font, size: 8 });
+        page.drawText(dateLabel, { x: leftMargin + 450, y: blockY - 25, font: font, size: smallFontSize });
 
         y -= 50;
     }
@@ -197,7 +199,7 @@ export async function generateClientIntakePdf(formData: any) {
     };
 
 
-    // --- START DRAWING CONTENT ---
+    // --- START PAGE 1 ---
     drawSectionHeader("CLIENT SERVICE AGREEMENT", { centered: true });
     const introText = "Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated. This Client Service Agreement (the \"Agreement\") is entered into between the client, or his or her authorized representative, (the \"Client\") and FirstLight Home Care of Rancho Cucamonga CA, address 9650 Business Center drive, Suite 132, Rancho Cucamonga CA 91730 phone number 9093214466 (\"FirstLight Home Care\")";
     y = drawWrappedText(page, introText, font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
@@ -224,14 +226,12 @@ export async function generateClientIntakePdf(formData: any) {
     await drawField("2nd Emergency Contact", formData.secondEmergencyContactName, leftMargin, y);
     await drawField("Relationship", formData.secondEmergencyContactRelationship, leftMargin + 250, y);
     await drawField("Phone", formData.secondEmergencyContactPhone, leftMargin + 400, y);
-    y -= lineSpacing;
+    y -= lineSpacing * 1.5;
 
-    // Service Type
-    await drawField("Homemaker/Companion", formData.homemakerCompanion, leftMargin + 100, y, { isCheckbox: true });
-    await drawField("Personal Care", formData.personalCare, leftMargin + 300, y, { isCheckbox: true });
+    // Service Type & Schedule
+    await drawField("Homemaker/Companion", formData.homemakerCompanion, leftMargin, y, { isCheckbox: true });
+    await drawField("Personal Care", formData.personalCare, leftMargin + 150, y, { isCheckbox: true });
     y -= lineSpacing;
-    
-    // Schedule
     await drawField("Scheduled Frequency", formData.scheduledFrequency, leftMargin, y);
     await drawField("Days/Wk", formData.daysPerWeek, leftMargin + 200, y);
     await drawField("Hrs/Day", formData.hoursPerDay, leftMargin + 300, y);
@@ -284,8 +284,83 @@ export async function generateClientIntakePdf(formData: any) {
         formData.firstLightRepresentativeSignatureDate
     );
 
+    // --- START PAGE 2: TERMS AND CONDITIONS ---
+    page = pdfDoc.addPage(PageSizes.Letter);
+    await drawHeader(page, pdfDoc, logoImage);
+    await drawFooter(page, font);
+    y = height - 75;
+
+    drawSectionHeader("TERMS AND CONDITIONS", { centered: true });
+
+    const terms = [
+        { title: "BUSINESS OPERATIONS:", text: "FirstLight Home Care of Rancho Cucamonga is independently owned and operated as a franchisee of FirstLight Home Care Franchising, LLC. FirstLight Home Care of Rancho Cucamonga is licensed by the California Department of Social Services as a Home Care Organization (as defined in Cal. Health & Safety Code § 1796.12) and is in compliance with California Department of Social Services requirements, including registration and background check requirements for home care aids who work for Home Care Organizations." },
+        { title: "FIRSTLIGHT CONTACT INFORMATION:", text: "If you have any questions, problems, needs or concerns, please contact the FirstLight Home Care of Rancho Cucamonga 's designated representative, Lolita Pinto at phone number 9093214466 or by mail sent to the address above." },
+        { title: "COMPLAINTS:", text: "To file a complaint, you may contact the FirstLight Home Care of Rancho Cucamonga 's representative listed above. You may also contact the California Department of Social Services at 1-877-424-5778." },
+        { title: "ABUSE REPORTING:", text: "Reports of abuse, neglect or financial exploitation may be made to local law enforcement or the county Adult Protective Services office or local law enforcement. FirstLight Home Care of Rancho Cucamonga will report any suspected or known dependent adult or elder abuse as required by Section 15630 of the Welfare and Institutions Code and suspected or known child abuse as required by Sections 11164 to 11174.3 of the Penal Code. A copy of each suspected abuse report shall be maintained." },
+        { title: "DEPOSIT FOR SERVICES:", text: "A deposit in the amount sufficient to pay for at least two weeks of the Services may be required prior to the initiation of Services. Services are billed weekly and are due seven days after receipt of invoice. If hours increase the Client may be requested to make an additional deposit equaling the amount of hours added. Should hours decrease, the deposit will not be refunded until completion of Services. If for any reason Services are provided and payment has not been made in full to FirstLight Home Care of Rancho Cucamonga it is agreed the Client will pay all reasonable costs incurred by FirstLight Home Care of Rancho Cucamonga to collect said monies due, including collection fees, attorney fees and any other expenses incurred in the collection of all charges on the Client's account. If the Client utilizes ACH or Credit Card as the payment source a deposit may not be required." },
+        { title: "HOLIDAY CHARGES:", text: "The 24 hour period constituting the following holidays may be billed at 1.5 times the regular hourly (or flat) rate. Please see RATE SHEET for additional information." },
+        { title: "OVERTIME CHARGES:", text: "FirstLight Home Care of Rancho Cucamonga 's work week begins on Monday at 12:00 am and ends 11:59 pm on Sunday. If the Client requests an In-Home Worker to work over 8 hours per work day the Client may be billed at 1.5 times the regular hourly rate or at such other amounts necessary for FirstLight Home Care of Rancho Cucamonga to meet its obligations under state and federal wage and hour laws. Additional fees may apply if the Client requests a \"live in\" employee." },
+        { title: "INFORMATION REQUESTS:", text: "FirstLight Home Care of Rancho Cucamonga will adhere to a written policy addressing the confidentiality and permitted uses and disclosure of client records. Response to an inquiry or information request is normally done during business hours; however, inquiries or information requests made during evenings, weekends, or holidays will be addressed on the next business day." },
+        { title: "EMERGENCY TREATMENT:", text: "FirstLight Home Care of Rancho Cucamonga In-Home Workers are not qualified or authorized to provide medical care or attention of any kind. If a medical emergency arises while a FirstLight Home Care of Rancho Cucamonga In-Home Worker is present, the In-Home Worker is instructed to call for emergency assistance. The Client holds harmless FirstLight Home Care of Rancho Cucamonga and its employees, agents, representatives, and affiliates for any medical attention provided resulting from instructions given by emergency service operators." },
+        { title: "EMERGENCY CONTACT:", text: "At the Client's instruction, or if it appears to a FirstLight Home Care of Rancho Cucamonga In-Home Worker that a life-threatening or medical emergency may have occurred while a FirstLight Home Care of Rancho Cucamonga In-Home Worker is present, FirstLight Home Care of Rancho Cucamonga will immediately notify the appropriate emergency responders (9-1-1) and, as soon as reasonably feasible, the Client's Emergency Contact(s) indicated above." },
+        { title: "INSURANCE:", text: `Client agrees to maintain homeowners or renters insurance on the Client's residence, which shall include coverages for dwelling, personal property and liability. Client agrees that such insurance shall be primary to and non- contributory with any other insurance that may cover claims, loss, or damages arising out of this Agreement or relating to the services provided hereunder. Client expressly releases and waives any and all rights of subrogation, contribution or indemnity the insurer may have against FirstLight Home Care of Rancho Cucamonga or its employees, agents, representatives, and affiliates. Client represents and certifies that the following insurance is in effect as of the date of this Agreement: Homeowners'/Renters' Insurance Company. The Client agrees not to entrust a FirstLight Home Care of Rancho Cucamonga In-Home Worker with unattended premises or any part thereof, or with the care, custody, or control of cash, negotiable, or other valuables without the prior written permission of FirstLight Home Care of Rancho Cucamonga and then only when the FirstLight Home Care of Rancho Cucamonga In-Home Worker's specific duties necessitate such activities.` },
+        { title: "USE OF PREMISES:", text: "Client shall not do or suffer or permit anything to be done in or about the location where the Services are to be provided (the \"Premises\") which would in any way subject FirstLight Home Care of Rancho Cucamonga, its employees, agents, representatives, and affiliates to any liability or cause a cancellation of, or give rise to any defense by an insurer to any claim under, any policies for homeowners' or renters' insurance. Client shall not do or permit anything to be done in or about the Premises which will in any way conflict with any law, ordinance or governmental requirement now in force or which may hereafter be enacted. Client shall immediately furnish FirstLight Home Care of Rancho Cucamonga with any notices received from any insurance company or governmental agency or inspection bureau regarding any unsafe or unlawful conditions within the Premises. Client will indemnify, defend and hold harmless FirstLight Home Care of Rancho Cucamonga, any related entities, its affiliates, and each of their directors, officers, and employees (\"Indemnified Persons\") from and against any and all claims, actions, demands, liabilities, losses, damages, judgments, costs and expenses, including but not to, reasonable attorneys' fees, costs and interest, asserted against, imposed upon or incurred by Indemnified Persons that arise out of, or in connection with, the Client's failure to perform the obligations of this Section 12." },
+        { title: "USE OF VEHICLE:", text: "FirstLight Home Care of Rancho Cucamonga will not operate a vehicle on the Client's behalf unless the Client executes the Transportation Waiver substantially in the form provided by FirstLight Home Care of Rancho Cucamonga as part of this Agreement." },
+        { title: "HIRING:", text: `The investment FirstLight Home Care of Rancho Cucamonga makes in maintaining our quality caregivers and employees is substantial; therefore, it is agreed for a period of one year from the last day worked or for a period of one year after the Client stops utilizing FirstLight Home Care of Rancho Cucamonga Services, the Client agrees not to hire directly, or hire through any other company or agency, FirstLight Home Care of Rancho Cucamonga employees directly or indirectly who have personally provided care for the Client. If the Client wishes to hire a FirstLight Home Care of Rancho Cucamonga employee directly, the Client will notify FirstLight Home Care of Rancho Cucamonga of this intent in writing and a flat fee of $15,000.00 will be required to hire that employee directly. A written request by said employee will be required and must be approved by FirstLight Home Care of Rancho Cucamonga` },
+        { title: "OTHER CONSIDERATIONS:", text: "The Client agrees that any claims made under the FirstLight Home Care of Rancho Cucamonga fidelity bond must be made in writing by the Client with ten (10) days of the occurrence. In addition, as a licensed California Home Care Organization FirstLight Home Care of Rancho Cucamonga maintains proof of general and professional liability insurance in the amount of $1 million per occurrence and $3 million in the aggregate and has an employee dishonesty bond with a minimum limit of $10,000, as required under Cal. Health & Safety Code § 1796.37; 1796.42." },
+        { title: "TERM; TERMINATION:", text: "The term of this Agreement will be from the Contract Start Date until this Agreement is terminated under this section. Either party may terminate this Agreement at any time by providing seven (7) days' prior written notice to the other party stating the reason for termination. In instances of safety risk/hazard to a Client or a FirstLight Home Care of Rancho Cucamonga In-Home Worker or provision of the Services is otherwise prohibited by law, termination will be immediate with a stated reason for termination provided to the other party at the time of notification." },
+        { title: "AMENDMENT; ENTIRE AGREEMENT:", text: "The Client agrees to notify FirstLight Home Care of Rancho Cucamonga of any requested changes in the duties of a FirstLight Home Care of Rancho Cucamonga employee from those agreed to on the Service Plan. This Agreement may be amended only upon the mutual written consent of the parties. This Agreement represents the entire agreement of the parties with respect to the subject matter hereof, and this Agreement supersedes all prior agreements and understandings with respect to such subject matter." },
+        { title: "SEVERABILITY:", text: "The invalidity or partial invalidity of any portion of this Agreement will not invalidate the remainder thereof, and said remainder will remain in full force and effect. Moreover, if one or more of the provisions contained in this Agreement will, for any reason, be held to be excessively broad as to scope, activity, subject or otherwise, so as to be unenforceable at law, such provision or provisions will be construed by the appropriate judicial body by limiting or reducing it or them, so as to be enforceable to the maximum extent compatible with then applicable law." },
+        { title: "INFORMATION AND DOCUMENTS RECEIVED:", text: "The Client acknowledges receipt of a copy of this Agreement, these Terms and Conditions and the following documents provided by FirstLight Home Care of Rancho Cucamonga and agrees to be bound by and comply with all of the same:" },
+    ];
+    
+    for (const [index, term] of terms.entries()) {
+        const fullText = `${index + 1}. ${term.title} ${term.text}`;
+        const textHeight = (font.heightAtSize(mainFontSize) + lineSpacing) * (Math.ceil(font.widthOfTextAtSize(fullText, mainFontSize) / contentWidth));
+
+        if (y - textHeight < bottomMargin) {
+            page = pdfDoc.addPage(PageSizes.Letter);
+            await drawHeader(page, pdfDoc, logoImage);
+            await drawFooter(page, font);
+            y = height - 75;
+        }
+
+        y = drawWrappedText(page, fullText, font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
+        y -= lineSpacing / 2;
+        
+        // Handle special cases within the loop
+        if (term.title === "INSURANCE:") {
+             y -= lineSpacing;
+             await drawField("Policy Number", formData.policyNumber, leftMargin + 10, y);
+             await drawField("Policy Period", formData.policyPeriod, leftMargin + 250, y);
+             y -= lineSpacing * 1.5;
+        }
+
+        if (term.title === "HIRING:") {
+             y -= lineSpacing;
+             await drawField("Client Initials", formData.clientInitials, leftMargin + 10, y);
+             y -= lineSpacing * 1.5;
+        }
+        
+        if (term.title === "INFORMATION AND DOCUMENTS RECEIVED:") {
+             y -= lineSpacing;
+             await drawField("Notice of Privacy Practices", formData.receivedPrivacyPractices, leftMargin + 10, y, { isCheckbox: true });
+             await drawField("Client Rights and Responsibilities", formData.receivedClientRights, leftMargin + 250, y, { isCheckbox: true });
+             y -= lineSpacing;
+             await drawField("Advance Directives", formData.receivedAdvanceDirectives, leftMargin + 10, y, { isCheckbox: true });
+             await drawField("Rate Sheet", formData.receivedRateSheet, leftMargin + 250, y, { isCheckbox: true });
+             y -= lineSpacing;
+             await drawField("Transportation Waiver", formData.receivedTransportationWaiver, leftMargin + 10, y, { isCheckbox: true });
+             await drawField("Agreement to Accept Payment Responsibility and Consent for Personal Information-Private Pay", formData.receivedPaymentAgreement, leftMargin + 250, y, { isCheckbox: true });
+             y -= lineSpacing * 1.5;
+        }
+    }
+
+
     const pdfBytes = await pdfDoc.save();
     return pdfBytes;
 }
+
+    
 
     
