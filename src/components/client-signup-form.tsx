@@ -172,9 +172,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
   // Watch the main clientName field and auto-populate others
   const clientNameValue = form.watch('clientName');
   useEffect(() => {
-    if (clientNameValue) {
-        form.setValue('agreementClientName', clientNameValue, { shouldValidate: true });
-    }
+    form.setValue('agreementClientName', clientNameValue, { shouldValidate: true });
   }, [clientNameValue, form]);
 
 
@@ -554,7 +552,9 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
 
                 <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
-                        <FormField control={form.control} name="scheduledFrequency" render={({ field }) => ( <FormItem><FormLabel>Scheduled Frequency</FormLabel><FormControl><Input {...field} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <div className="flex flex-col space-y-2 pt-2 self-end">
+                            <FormLabel>Scheduled Frequency:</FormLabel>
+                        </div>
                         <FormField control={form.control} name="daysPerWeek" render={({ field }) => ( <FormItem><FormLabel>Days/Wk</FormLabel><FormControl><Input {...field} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
                         <FormField control={form.control} name="hoursPerDay" render={({ field }) => ( <FormItem><FormLabel>Hrs/Day</FormLabel><FormControl><Input {...field} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
                         <FormField
@@ -637,7 +637,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                 </div>
                 
                 <div className="space-y-6 break-before-page">
-                    <h3 className="text-lg font-semibold text-center">III. ACKNOWLEDGEMENT &amp; AGREEMENT</h3>
+                    <h3 className="text-lg font-semibold text-center">III. ACKNOWLEDGEMENT & AGREEMENT</h3>
                      <p className="text-sm text-muted-foreground">
                         The Client, or his or her authorized representative, consents to receive the Services and acknowledges he or she or they have read, accept, and consent to this Agreement, including the "Terms and Conditions" and all other attached documents, all of which are incorporated into this Agreement.
                     </p>
@@ -888,5 +888,3 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
     </Card>
   );
 }
-
-    
