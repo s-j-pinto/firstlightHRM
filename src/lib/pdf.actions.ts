@@ -132,12 +132,12 @@ export async function generateClientIntakePdf(formData: any) {
     const contentWidth = rightMargin - leftMargin;
     let y = height - 75; // Start drawing below the header area.
 
-    const lineSpacing = 12;
-    const sectionSpacing = 18;
-    const mainFontSize = 9;
-    const headerFontSize = 11;
-    const fieldLabelFontSize = 9;
-    const smallFontSize = 8;
+    const lineSpacing = 11; // Reduced from 12
+    const sectionSpacing = 16; // Reduced from 18
+    const mainFontSize = 8.5; // Reduced from 9
+    const headerFontSize = 10; // Reduced from 11
+    const fieldLabelFontSize = 8.5; // Reduced from 9
+    const smallFontSize = 7; // Reduced from 8
 
     await drawHeader(page, pdfDoc, logoImage);
     await drawFooter(page, font);
@@ -149,10 +149,10 @@ export async function generateClientIntakePdf(formData: any) {
         y -= lineSpacing * 1.5;
     };
     
-    const drawField = async (label: string, value: any, x: number, currentY: number, options: { isCheckbox?: boolean, isDate?: boolean } = {}) => {
+    const drawField = async (label: string, value: any, x: number, currentY: number, options: { isCheckbox?: boolean, isDate?: boolean, valueXOffset?: number } = {}) => {
         page.drawText(`${label}:`, { x: x, y: currentY, font: boldFont, size: fieldLabelFontSize });
         const labelWidth = boldFont.widthOfTextAtSize(`${label}: `, fieldLabelFontSize);
-        const valueX = x + labelWidth + 5;
+        const valueX = x + (options.valueXOffset || labelWidth + 5);
         if (options.isCheckbox) {
             await drawCheckbox(page, value, valueX, currentY - 1, font);
         } else {
@@ -206,36 +206,36 @@ export async function generateClientIntakePdf(formData: any) {
     y -= sectionSpacing / 2;
 
     drawSectionHeader("I. CLIENT INFORMATION");
-    await drawField("Client Name", formData.clientName, leftMargin, y);
-    await drawField("Address", `${formData.clientAddress || ''}, ${formData.clientCity || ''}, ${formData.clientState || ''} ${formData.clientPostalCode || ''}`, leftMargin + 250, y);
+    await drawField("Client Name", formData.clientName, leftMargin, y, {valueXOffset: 60});
+    await drawField("Address", `${formData.clientAddress || ''}, ${formData.clientCity || ''}, ${formData.clientState || ''} ${formData.clientPostalCode || ''}`, leftMargin + 250, y, {valueXOffset: 45});
     y -= lineSpacing;
-    await drawField("Phone", formData.clientPhone, leftMargin, y);
-    await drawField("Email", formData.clientEmail, leftMargin + 250, y);
+    await drawField("Phone", formData.clientPhone, leftMargin, y, {valueXOffset: 60});
+    await drawField("Email", formData.clientEmail, leftMargin + 250, y, {valueXOffset: 45});
     y -= lineSpacing;
-    await drawField("SSN", formData.clientSSN, leftMargin, y);
-    await drawField("DOB", formData.clientDOB ? format(new Date(formData.clientDOB), 'MM/dd/yyyy') : '', leftMargin + 250, y);
+    await drawField("SSN", formData.clientSSN, leftMargin, y, {valueXOffset: 60});
+    await drawField("DOB", formData.clientDOB ? format(new Date(formData.clientDOB), 'MM/dd/yyyy') : '', leftMargin + 250, y, {valueXOffset: 45});
     y -= lineSpacing * 1.5;
 
     // Emergency Contact
-    await drawField("Emergency Contact Name", formData.emergencyContactName, leftMargin, y);
-    await drawField("Relationship", formData.emergencyContactRelationship, leftMargin + 250, y);
+    await drawField("Emergency Contact Name", formData.emergencyContactName, leftMargin, y, {valueXOffset: 120});
+    await drawField("Relationship", formData.emergencyContactRelationship, leftMargin + 300, y, {valueXOffset: 60});
     y -= lineSpacing;
-    await drawField("Contact Home Phone", formData.emergencyContactHomePhone, leftMargin, y);
-    await drawField("Contact Work Phone", formData.emergencyContactWorkPhone, leftMargin + 250, y);
+    await drawField("Contact Home Phone", formData.emergencyContactHomePhone, leftMargin, y, {valueXOffset: 120});
+    await drawField("Contact Work Phone", formData.emergencyContactWorkPhone, leftMargin + 300, y, {valueXOffset: 95});
     y -= lineSpacing * 1.5;
-    await drawField("2nd Emergency Contact", formData.secondEmergencyContactName, leftMargin, y);
-    await drawField("Relationship", formData.secondEmergencyContactRelationship, leftMargin + 250, y);
-    await drawField("Phone", formData.secondEmergencyContactPhone, leftMargin + 400, y);
+    await drawField("2nd Emergency Contact", formData.secondEmergencyContactName, leftMargin, y, {valueXOffset: 110});
+    await drawField("Relationship", formData.secondEmergencyContactRelationship, leftMargin + 250, y, {valueXOffset: 60});
+    await drawField("Phone", formData.secondEmergencyContactPhone, leftMargin + 400, y, {valueXOffset: 35});
     y -= lineSpacing * 1.5;
 
     // Service Type & Schedule
-    await drawField("Homemaker/Companion", formData.homemakerCompanion, leftMargin, y, { isCheckbox: true });
-    await drawField("Personal Care", formData.personalCare, leftMargin + 150, y, { isCheckbox: true });
-    y -= lineSpacing;
-    await drawField("Scheduled Frequency", formData.scheduledFrequency, leftMargin, y);
-    await drawField("Days/Wk", formData.daysPerWeek, leftMargin + 200, y);
-    await drawField("Hrs/Day", formData.hoursPerDay, leftMargin + 300, y);
-    await drawField("Contract Start Date", formData.contractStartDate, leftMargin + 400, y, {isDate: true});
+    await drawField("Homemaker/Companion", formData.homemakerCompanion, leftMargin, y, { isCheckbox: true, valueXOffset: 105 });
+    await drawField("Personal Care", formData.personalCare, leftMargin + 250, y, { isCheckbox: true, valueXOffset: 70 });
+    y -= lineSpacing * 1.5;
+    await drawField("Scheduled Frequency", formData.scheduledFrequency, leftMargin, y, {valueXOffset: 100});
+    await drawField("Days/Wk", formData.daysPerWeek, leftMargin + 250, y, {valueXOffset: 45});
+    await drawField("Hrs/Day", formData.hoursPerDay, leftMargin + 350, y, {valueXOffset: 40});
+    await drawField("Contract Start Date", formData.contractStartDate, leftMargin + 450, y, {isDate: true, valueXOffset: 90});
     y -= sectionSpacing;
     
     const servicePlanText = "FirstLight Home Care of Rancho Cucamonga will provide non-medical in-home services (the \"Services\") specified in the attached Service Plan Agreement (the \"Service Plan\")";
@@ -245,6 +245,7 @@ export async function generateClientIntakePdf(formData: any) {
     drawSectionHeader("V. PAYMENTS FOR THE SERVICES");
     const paymentText = `The hourly rate for providing the Services is $${formData.hourlyRate || '__'} per hour. The rate is based on the Client utilizing the services of FirstLight Home Care of Rancho Cucamonga for a minimum of ${formData.minimumHoursPerShift || '__'} hours per shift. The rates are provided on a current rate card dated ${formatDate(formData.rateCardDate)} and will be used to calculate the Client's rate for Services. Rates are subject to change with two (2) weeks' written notice (See attached rate sheet.).`;
     y = drawWrappedText(page, paymentText, font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
+    y -= lineSpacing;
     
     const paymentText2 = "Invoices are to be presented on a regular scheduled basis. Payment is due upon receipt or not more than seven days after an invoice has been received by the Client. The Client should submit payment to the address listed above. Full refunds of any advance deposit fees collected for unused services will occur within ten (10) business days of last date of service. FirstLight Home Care of Rancho Cucamonga does not participate in and is not credentialed with any government or commercial health insurance plans and therefore does not submit bills or claims for Services as in-network, out-of-network or any other status to any government or commercial health plans. Client acknowledges and agrees that Client does not have insurance through any government health insurance plan; that Client requests to pay for Services out-of-pocket; and that because FirstLight Home Care of Rancho Cucamonga does not participate in or accept any form of government or commercial health insurance, FirstLight Home Care of Rancho Cucamonga will bill Client directly for the Services and Client is responsible for paying such charges.";
     y = drawWrappedText(page, paymentText2, font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
@@ -289,6 +290,8 @@ export async function generateClientIntakePdf(formData: any) {
     await drawHeader(page, pdfDoc, logoImage);
     await drawFooter(page, font);
     y = height - 75;
+    const termFontSize = 8;
+    const termLineSpacing = 10;
 
     drawSectionHeader("TERMS AND CONDITIONS", { centered: true });
 
@@ -316,7 +319,19 @@ export async function generateClientIntakePdf(formData: any) {
     
     for (const [index, term] of terms.entries()) {
         const fullText = `${index + 1}. ${term.title} ${term.text}`;
-        const textHeight = (font.heightAtSize(mainFontSize) + lineSpacing) * (Math.ceil(font.widthOfTextAtSize(fullText, mainFontSize) / contentWidth));
+        
+        const lines = fullText.split(' ').reduce((acc, word) => {
+            let lastLine = acc[acc.length - 1];
+            const width = font.widthOfTextAtSize(lastLine + ' ' + word, termFontSize);
+            if (width > contentWidth) {
+                acc.push(word);
+            } else {
+                acc[acc.length - 1] = lastLine + (lastLine ? ' ' : '') + word;
+            }
+            return acc;
+        }, ['']);
+
+        const textHeight = lines.length * termLineSpacing;
 
         if (y - textHeight < bottomMargin) {
             page = pdfDoc.addPage(PageSizes.Letter);
@@ -325,34 +340,39 @@ export async function generateClientIntakePdf(formData: any) {
             y = height - 75;
         }
 
-        y = drawWrappedText(page, fullText, font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
-        y -= lineSpacing / 2;
+        page.drawText(`${index + 1}.`, { x: leftMargin, y, font: boldFont, size: termFontSize });
+        page.drawText(term.title, { x: leftMargin + 20, y, font: boldFont, size: termFontSize });
+        y -= termLineSpacing;
+        y = drawWrappedText(page, term.text, font, termFontSize, leftMargin + 20, y, contentWidth - 20, termLineSpacing);
+        y -= termLineSpacing * 0.5;
         
         // Handle special cases within the loop
         if (term.title === "INSURANCE:") {
-             y -= lineSpacing;
-             await drawField("Policy Number", formData.policyNumber, leftMargin + 10, y);
-             await drawField("Policy Period", formData.policyPeriod, leftMargin + 250, y);
-             y -= lineSpacing * 1.5;
+             y -= termLineSpacing;
+             await drawField("Policy Number", formData.policyNumber, leftMargin + 20, y);
+             await drawField("Policy Period", formData.policyPeriod, leftMargin + 270, y);
+             y -= termLineSpacing * 1.5;
         }
 
         if (term.title === "HIRING:") {
-             y -= lineSpacing;
-             await drawField("Client Initials", formData.clientInitials, leftMargin + 10, y);
-             y -= lineSpacing * 1.5;
+             y -= termLineSpacing;
+             await drawField("Client Initials", formData.clientInitials, leftMargin + 20, y);
+             y -= termLineSpacing * 1.5;
         }
         
         if (term.title === "INFORMATION AND DOCUMENTS RECEIVED:") {
-             y -= lineSpacing;
-             await drawField("Notice of Privacy Practices", formData.receivedPrivacyPractices, leftMargin + 10, y, { isCheckbox: true });
-             await drawField("Client Rights and Responsibilities", formData.receivedClientRights, leftMargin + 250, y, { isCheckbox: true });
-             y -= lineSpacing;
-             await drawField("Advance Directives", formData.receivedAdvanceDirectives, leftMargin + 10, y, { isCheckbox: true });
-             await drawField("Rate Sheet", formData.receivedRateSheet, leftMargin + 250, y, { isCheckbox: true });
-             y -= lineSpacing;
-             await drawField("Transportation Waiver", formData.receivedTransportationWaiver, leftMargin + 10, y, { isCheckbox: true });
-             await drawField("Agreement to Accept Payment Responsibility and Consent for Personal Information-Private Pay", formData.receivedPaymentAgreement, leftMargin + 250, y, { isCheckbox: true });
-             y -= lineSpacing * 1.5;
+             y -= termLineSpacing;
+             await drawField("Notice of Privacy Practices", formData.receivedPrivacyPractices, leftMargin + 20, y, { isCheckbox: true });
+             await drawField("Client Rights and Responsibilities", formData.receivedClientRights, leftMargin + 270, y, { isCheckbox: true });
+             y -= termLineSpacing;
+             await drawField("Advance Directives", formData.receivedAdvanceDirectives, leftMargin + 20, y, { isCheckbox: true });
+             await drawField("Rate Sheet", formData.receivedRateSheet, leftMargin + 270, y, { isCheckbox: true });
+             y -= termLineSpacing;
+             await drawField("Transportation Waiver", formData.receivedTransportationWaiver, leftMargin + 20, y, { isCheckbox: true });
+             y -= termLineSpacing;
+             const longLabel = "Agreement to Accept Payment Responsibility and Consent for Personal Information-Private Pay";
+             await drawField(longLabel, formData.receivedPaymentAgreement, leftMargin + 20, y, { isCheckbox: true });
+             y -= termLineSpacing * 1.5;
         }
     }
 
@@ -364,3 +384,4 @@ export async function generateClientIntakePdf(formData: any) {
     
 
     
+
