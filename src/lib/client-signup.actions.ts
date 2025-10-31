@@ -204,9 +204,9 @@ export async function finalizeAndSubmit(signupId: string) {
 export async function previewClientIntakePdf(formData: any) {
     try {
         const pdfBytes = await generateClientIntakePdf(formData);
-        // Convert Buffer to a plain object that can be serialized
-        const dataObject = JSON.parse(JSON.stringify(pdfBytes));
-        return { pdfData: dataObject };
+        // Convert Buffer to a Base64 string for safe transfer
+        const pdfBase64 = Buffer.from(pdfBytes).toString('base64');
+        return { pdfData: pdfBase64 };
     } catch (error: any) {
         console.error("Error generating PDF preview:", error);
         return { error: `Failed to generate PDF: ${error.message}` };
