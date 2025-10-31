@@ -758,7 +758,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                     </div>
                     <p className="text-sm text-muted-foreground">Firstlight Home Care of Rancho Cucamonga provides Personal Care Services as defined under Cal. Health & Safety Code § 1796.12 and does not provide medical services or function as a home health agency.</p>
                     <div className="w-1/3 mt-2">
-                        <FormField control={form.control} name="servicePlanClientInitials" render={({ field }) => ( <FormItem><FormLabel>Client Initials</FormLabel><FormControl><Input {...field} disabled={isPublished || mode === 'owner'} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="servicePlanClientInitials" render={({ field }) => ( <FormItem><FormLabel>Client Initials</FormLabel><FormControl><Input {...field} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
                     </div>
                 </div>
                 
