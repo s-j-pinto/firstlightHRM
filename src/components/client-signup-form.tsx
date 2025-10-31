@@ -169,6 +169,14 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
   
   const isPublished = existingSignupData?.status === 'SIGNED AND PUBLISHED';
 
+  // Watch the main clientName field and auto-populate others
+  const clientNameValue = form.watch('clientName');
+  useEffect(() => {
+    if (clientNameValue) {
+        form.setValue('agreementClientName', clientNameValue, { shouldValidate: true });
+    }
+  }, [clientNameValue, form]);
+
 
   useEffect(() => {
     if (existingSignupData?.formData) {
@@ -629,7 +637,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                 </div>
                 
                 <div className="space-y-6 break-before-page">
-                    <h3 className="text-lg font-semibold text-center">III. ACKNOWLEDGEMENT & AGREEMENT</h3>
+                    <h3 className="text-lg font-semibold text-center">III. ACKNOWLEDGEMENT &amp; AGREEMENT</h3>
                      <p className="text-sm text-muted-foreground">
                         The Client, or his or her authorized representative, consents to receive the Services and acknowledges he or she or they have read, accept, and consent to this Agreement, including the "Terms and Conditions" and all other attached documents, all of which are incorporated into this Agreement.
                     </p>
@@ -780,10 +788,10 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                 
                 <div className="space-y-6 break-before-page">
                     <h3 className="text-lg font-semibold text-center">AGREEMENT TO ACCEPT PAYMENT RESPONSIBILITY AND CONSENT FOR USE AND DISCLOSURE OF PERSONAL INFORMATION-PRIVATE PAY</h3>
-                    <FormField control={form.control} name="agreementClientName" render={({ field }) => ( <FormItem><FormLabel>Client Name</FormLabel><FormControl><Input {...field} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
-                    <p className="text-sm text-muted-foreground">I understand that Firstlight Home Care of Rancho Cucamonga may need to use or disclose my personal information to provide ser­vices to me, to obtain payment for its services and for all of the other reasons more fully described in Firstlight Home Care of Rancho Cucamonga Notice of Privacy Practices.</p>
+                    <FormField control={form.control} name="agreementClientName" render={({ field }) => ( <FormItem><FormLabel>Client Name</FormLabel><FormControl><Input {...field} disabled /></FormControl><FormMessage /></FormItem> )} />
+                    <p className="text-sm text-muted-foreground">I understand that Firstlight Home Care of Rancho Cucamonga may need to use or disclose my personal information to provide services to me, to obtain payment for its services and for all of the other reasons more fully described in Firstlight Home Care of Rancho Cucamonga Notice of Privacy Practices.</p>
                     <p className="text-sm text-muted-foreground">I acknowledge that I have received the Notice of Privacy Practices, and I consent to all of the uses and disclosures of my personal information as described in that document including, if applicable and as is necessary, for Firstlight Home Care of Rancho Cucamonga provide services to me; to coordinate with my other providers; to determine eligibility for payment, bill, and receive payment for services; and to make all other uses and disclosures described in the Notice of Privacy Practices.</p>
-                    <p className="text-sm text-muted-foreground">My consent will be valid for two (2) years from the date below. I may revoke my consent to share information, in writing, at any time. Revoking my consent does not apply to information that has already been shared or affect my financial responsibility for Ser­ vices. I understand that some uses and sharing of my information are authorized by law and do not require my consent.</p>
+                    <p className="text-sm text-muted-foreground">My consent will be valid for two (2) years from the date below. I may revoke my consent to share information, in writing, at any time. Revoking my consent does not apply to information that has already been shared or affect my financial responsibility for Services. I understand that some uses and sharing of my information are authorized by law and do not require my consent.</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
                         <div className="space-y-2">
                             <FormLabel>Client Signature/Responsible Party</FormLabel>
@@ -880,3 +888,5 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
     </Card>
   );
 }
+
+    
