@@ -3,7 +3,7 @@
 
 import { useUser, firestore, useCollection, useMemoFirebase } from "@/firebase";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, FileText, ChevronRight } from "lucide-react";
+import { Loader2, FileText, ChevronRight, CheckCircle } from "lucide-react";
 import Link from 'next/link';
 import { collection, query, where } from "firebase/firestore";
 import { format } from "date-fns";
@@ -16,8 +16,7 @@ export default function NewClientDashboardPage() {
     user?.email 
       ? query(
           collection(firestore, 'client_signups'), 
-          where('clientEmail', '==', user.email),
-          where('status', '==', 'PENDING CLIENT SIGNATURES')
+          where('clientEmail', '==', user.email)
         )
       : null,
     [user?.email]
@@ -26,10 +25,14 @@ export default function NewClientDashboardPage() {
   const { data: documents, isLoading: docsLoading } = useCollection<any>(signupsQuery);
 
   const isLoading = isUserLoading || docsLoading;
+  
+  const pendingDocuments = documents?.filter(doc => doc.status === 'PENDING CLIENT SIGNATURES');
+  const completedDocuments = documents?.filter(doc => doc.status === 'CLIENT_SIGNATURES_COMPLETED' || doc.status === 'SIGNED AND PUBLISHED');
+
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center">
+      <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-accent" />
       </div>
     );
@@ -44,41 +47,69 @@ export default function NewClientDashboardPage() {
         Please review and sign the documents below to complete your onboarding process.
       </p>
       
-      <Card>
-        <CardHeader>
-          <CardTitle>Documents Awaiting Your Signature</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-            {documents && documents.length > 0 ? (
-                documents.map(doc => (
-                    <Link href={`/client-sign/${doc.id}`} key={doc.id} className="block">
-                        <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                            <CardContent className="p-4 flex justify-between items-center">
-                                <div className="flex items-center gap-4">
-                                    <FileText className="h-8 w-8 text-accent" />
-                                    <div>
-                                        <h3 className="font-semibold">{doc.formData?.formName || 'Client Service Agreement'}</h3>
-                                        <p className="text-sm text-muted-foreground">
-                                            Sent on {format((doc.lastUpdatedAt as any).toDate(), 'PP')}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                     <Badge>Awaiting Signature</Badge>
-                                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </Link>
-                ))
-            ) : (
-                <div className="text-center py-16 border-dashed border-2 rounded-lg">
-                    <h3 className="text-lg font-medium">No Documents Found</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">There are no documents awaiting your signature at this time.</p>
-                </div>
-            )}
-        </CardContent>
-      </Card>
+      <div className="space-y-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Documents Awaiting Your Signature</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+              {pendingDocuments && pendingDocuments.length > 0 ? (
+                  pendingDocuments.map(doc => (
+                      <Link href={`/client-sign/${doc.id}`} key={doc.id} className="block">
+                          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                              <CardContent className="p-4 flex justify-between items-center">
+                                  <div className="flex items-center gap-4">
+                                      <FileText className="h-8 w-8 text-accent" />
+                                      <div>
+                                          <h3 className="font-semibold">{doc.formData?.formName || 'Client Service Agreement'}</h3>
+                                          <p className="text-sm text-muted-foreground">
+                                              Sent on {format((doc.lastUpdatedAt as any).toDate(), 'PP')}
+                                          </p>
+                                      </div>
+                                  </div>
+                                  <div className="flex items-center gap-4">
+                                      <Badge>Awaiting Signature</Badge>
+                                      <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                                  </div>
+                              </CardContent>
+                          </Card>
+                      </Link>
+                  ))
+              ) : (
+                  <div className="text-center py-16 border-dashed border-2 rounded-lg">
+                      <h3 className="text-lg font-medium">No Documents Found</h3>
+                      <p className="mt-1 text-sm text-muted-foreground">There are no documents awaiting your signature at this time.</p>
+                  </div>
+              )}
+          </CardContent>
+        </Card>
+
+        {completedDocuments && completedDocuments.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Completed Documents</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {completedDocuments.map(doc => (
+                <Card key={doc.id} className="bg-muted/50">
+                    <CardContent className="p-4 flex justify-between items-center">
+                        <div className="flex items-center gap-4">
+                            <CheckCircle className="h-8 w-8 text-green-500" />
+                            <div>
+                                <h3 className="font-semibold">{doc.formData?.formName || 'Client Service Agreement'}</h3>
+                                <p className="text-sm text-muted-foreground">
+                                    Completed on {format((doc.lastUpdatedAt as any).toDate(), 'PP')}
+                                </p>
+                            </div>
+                        </div>
+                        <Badge variant="secondary">{doc.status.replace(/_/g, ' ')}</Badge>
+                    </CardContent>
+                </Card>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }

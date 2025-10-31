@@ -1,83 +1,21 @@
 
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useDoc, useMemoFirebase, firestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import { Loader2, Signature, CheckCircle } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { GeneratedForm } from '@/lib/types';
-import { useForm, FormProvider } from 'react-hook-form';
-import { useRef, useState, useTransition } from 'react';
-import SignatureCanvas from 'react-signature-canvas';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { submitClientSignature } from '@/lib/client-signup.actions';
-
-const ReadOnlyFormRenderer = ({ formDefinition }: { formDefinition: GeneratedForm }) => {
-    return (
-        <div className="space-y-4">
-            {Object.entries(formDefinition.formData).map(([key, value]) => {
-                if (typeof value === 'object' && value !== null) return null; // Skip complex objects for now
-                if (!value) return null; // Don't render empty fields
-                
-                // A simple way to format the field name for display
-                const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-
-                return (
-                    <div key={key}>
-                        <h4 className="font-semibold text-sm text-muted-foreground">{label}</h4>
-                        <p className="text-md">{String(value)}</p>
-                    </div>
-                );
-            })}
-        </div>
-    );
-};
+import ClientSignupForm from '@/components/client-signup-form';
 
 
 export default function ClientSigningPage() {
     const params = useParams();
+    const router = useRouter();
     const signupId = params.signupId as string;
-    
-    const { toast } = useToast();
-    const [isPending, startTransition] = useTransition();
-    const [isSubmitted, setIsSubmitted] = useState(false);
-    const sigPadRef = useRef<SignatureCanvas>(null);
-    const initialsPadRef = useRef<SignatureCanvas>(null);
-    const [signature, setSignature] = useState<string | null>(null);
-    const [initials, setInitials] = useState<string | null>(null);
-    const [signatureDate, setSignatureDate] = useState<string>(new Date().toISOString().split('T')[0]);
-
 
     const signupRef = useMemoFirebase(() => signupId ? doc(firestore, 'client_signups', signupId) : null, [signupId]);
     const { data: signupData, isLoading } = useDoc<any>(signupRef);
-
-    const handleSubmitSignature = () => {
-        if (!signature || !initials) {
-            toast({ title: "Signature and Initials Required", description: "Please provide both your signature and initials.", variant: "destructive" });
-            return;
-        }
-
-        startTransition(async () => {
-            const result = await submitClientSignature({
-                signupId,
-                signature: signature,
-                initials: initials,
-                date: signatureDate,
-            });
-
-            if (result.error) {
-                toast({ title: "Submission Failed", description: result.message, variant: "destructive" });
-            } else {
-                toast({ title: "Submission Successful", description: result.message });
-                setIsSubmitted(true);
-            }
-        });
-    };
-    
 
     if (isLoading) {
         return (
@@ -89,100 +27,35 @@ export default function ClientSigningPage() {
 
     if (!signupData) {
         return (
-            <Card className="w-full max-w-2xl mx-auto my-8">
-                <CardHeader><CardTitle>Form Not Found</CardTitle></CardHeader>
-                <CardContent><p>The requested form could not be found or is no longer available.</p></CardContent>
-            </Card>
-        );
-    }
-    
-    const finalStatus = signupData.status === "SIGNED AND PUBLISHED" || signupData.status === "CLIENT_SIGNATURES_COMPLETED";
-
-    if (finalStatus || isSubmitted) {
-         return (
-            <Card className="w-full max-w-2xl mx-auto my-8 text-center">
-                <CardHeader>
-                    <div className="mx-auto w-fit p-4 bg-green-100 rounded-full mb-4">
-                        <CheckCircle className="h-10 w-10 text-green-600" />
-                    </div>
-                    <CardTitle>Document Submitted</CardTitle>
-                    <CardDescription>
-                        Thank you. Your signed document has been submitted for final review by our office.
-                    </CardDescription>
-                </CardHeader>
-                 <CardContent>
-                    <p className="text-sm text-muted-foreground">You may now close this window.</p>
-                </CardContent>
-            </Card>
+             <main className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+                <Card className="w-full max-w-2xl mx-auto my-8">
+                    <CardHeader>
+                        <CardTitle>Form Not Found</CardTitle>
+                        <CardDescription>The requested form could not be found, may have been completed, or is no longer available.</CardDescription>
+                    </CardHeader>
+                </Card>
+            </main>
         );
     }
 
+    if (signupData.status === 'SIGNED AND PUBLISHED' || signupData.status === 'CLIENT_SIGNATURES_COMPLETED') {
+        router.replace('/new-client/dashboard'); // Redirect to dashboard if already done.
+        return (
+             <div className="flex items-center justify-center min-h-screen">
+                <Loader2 className="h-12 w-12 animate-spin text-accent" />
+            </div>
+        );
+    }
 
     return (
-        <div className="max-w-4xl mx-auto py-8 px-4">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Review and Sign: {signupData.formData.formName}</CardTitle>
-                    <CardDescription>Please review the information below. Your signature is required to finalize this agreement.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <ReadOnlyFormRenderer formDefinition={signupData} />
-                </CardContent>
-            </Card>
-
-            <Card className="mt-8">
-                <CardHeader>
-                    <CardTitle>Signature Section</CardTitle>
-                    <CardDescription>Please provide your signature, initials, and date below.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-8">
-                     <div className="space-y-2 p-4 border-2 border-dashed border-orange-400 rounded-lg bg-orange-50/50">
-                        <Label htmlFor="client-signature" className="font-bold text-orange-600 flex items-center">
-                           <Signature className="mr-2"/> Client Signature
-                        </Label>
-                        <div className="relative w-full h-40 rounded-md border bg-white">
-                           <SignatureCanvas
-                                ref={sigPadRef}
-                                penColor='black'
-                                canvasProps={{ id: 'client-signature', className: 'w-full h-full' }}
-                                onEnd={() => setSignature(sigPadRef.current?.toDataURL() || null)}
-                           />
-                        </div>
-                        <Button variant="ghost" size="sm" onClick={() => { sigPadRef.current?.clear(); setSignature(null); }}>Clear</Button>
-                    </div>
-
-                     <div className="space-y-2 p-4 border-2 border-dashed border-orange-400 rounded-lg bg-orange-50/50">
-                        <Label htmlFor="client-initials" className="font-bold text-orange-600">Client Initials</Label>
-                         <div className="relative w-40 h-20 rounded-md border bg-white">
-                           <SignatureCanvas
-                                ref={initialsPadRef}
-                                penColor='black'
-                                canvasProps={{ id: 'client-initials', className: 'w-full h-full' }}
-                                onEnd={() => setInitials(initialsPadRef.current?.toDataURL() || null)}
-                           />
-                        </div>
-                        <Button variant="ghost" size="sm" onClick={() => { initialsPadRef.current?.clear(); setInitials(null); }}>Clear</Button>
-                    </div>
-
-                     <div className="space-y-2 p-4 border-2 border-dashed border-orange-400 rounded-lg bg-orange-50/50">
-                        <Label htmlFor="signature-date" className="font-bold text-orange-600">Date</Label>
-                        <Input 
-                            id="signature-date"
-                            type="date" 
-                            value={signatureDate}
-                            onChange={(e) => setSignatureDate(e.target.value)}
-                            className="w-full max-w-sm"
-                        />
-                    </div>
-                    
-                    <div className="flex justify-end pt-6">
-                        <Button size="lg" onClick={handleSubmitSignature} disabled={isPending}>
-                            {isPending && <Loader2 className="mr-2 animate-spin" />}
-                            Submit Signature
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
+        <div className="space-y-6">
+            <div>
+                <h1 className="text-3xl font-bold tracking-tight font-headline">Review and Sign Document</h1>
+                <p className="text-muted-foreground">
+                    Please review the information below and complete the required signature fields.
+                </p>
+            </div>
+            <ClientSignupForm signupId={signupId} mode="client-signing" />
         </div>
     );
 }

@@ -1,4 +1,5 @@
 
+
 "use server";
 
 import { revalidatePath } from 'next/cache';
@@ -61,22 +62,48 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
     }
 }
 
+const clientSignaturePayloadSchema = z.object({
+  signupId: z.string(),
+  signature: z.string().optional(),
+  repSignature: z.string().optional(),
+  agreementSignature: z.string().optional(),
+  printedName: z.string().optional(),
+  date: z.date().optional(),
+  repPrintedName: z.string().optional(),
+  repDate: z.date().optional(),
+  initials: z.string().optional(),
+  servicePlanInitials: z.string().optional(),
+  agreementRelationship: z.string().optional(),
+  agreementDate: z.date().optional(),
+});
 
-export async function submitClientSignature(payload: { signupId: string; signature: string; initials: string; date: string; }) {
-    const { signupId, signature, initials, date } = payload;
+
+export async function submitClientSignature(payload: z.infer<typeof clientSignaturePayloadSchema>) {
+    const { signupId, ...signatureData } = payload;
     const firestore = serverDb;
     const ownerEmail = process.env.OWNER_EMAIL;
 
     try {
         const signupRef = firestore.collection('client_signups').doc(signupId);
         
-        await signupRef.update({
-            'formData.clientSignature': signature,
-            'formData.clientInitials': initials,
-            'formData.clientSignatureDate': date,
+        const updatePayload: { [key: string]: any } = {
             status: 'CLIENT_SIGNATURES_COMPLETED',
             lastUpdatedAt: Timestamp.now(),
-        });
+        };
+
+        if (signatureData.signature) updatePayload['formData.clientSignature'] = signatureData.signature;
+        if (signatureData.printedName) updatePayload['formData.clientPrintedName'] = signatureData.printedName;
+        if (signatureData.date) updatePayload['formData.clientSignatureDate'] = Timestamp.fromDate(signatureData.date);
+        if (signatureData.repSignature) updatePayload['formData.clientRepresentativeSignature'] = signatureData.repSignature;
+        if (signatureData.repPrintedName) updatePayload['formData.clientRepresentativePrintedName'] = signatureData.repPrintedName;
+        if (signatureData.repDate) updatePayload['formData.clientRepresentativeSignatureDate'] = Timestamp.fromDate(signatureData.repDate);
+        if (signatureData.initials) updatePayload['formData.clientInitials'] = signatureData.initials;
+        if (signatureData.servicePlanInitials) updatePayload['formData.servicePlanClientInitials'] = signatureData.servicePlanInitials;
+        if (signatureData.agreementSignature) updatePayload['formData.agreementClientSignature'] = signatureData.agreementSignature;
+        if (signatureData.agreementRelationship) updatePayload['formData.agreementRelationship'] = signatureData.agreementRelationship;
+        if (signatureData.agreementDate) updatePayload['formData.agreementSignatureDate'] = Timestamp.fromDate(signatureData.agreementDate);
+        
+        await signupRef.update(updatePayload);
         
         // Notify owner to review and finalize
         const signupDoc = await signupRef.get();
