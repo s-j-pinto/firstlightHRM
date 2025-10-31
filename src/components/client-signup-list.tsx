@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useMemo } from 'react';
@@ -8,6 +7,7 @@ import { firestore, useCollection, useMemoFirebase } from '@/firebase';
 import { format } from 'date-fns';
 import { Loader2, FileText, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 import {
   Table,
@@ -29,11 +29,14 @@ import { cn } from '@/lib/utils';
 
 
 export default function ClientSignupList() {
+  const pathname = usePathname();
   const signupsQuery = useMemoFirebase(() => 
     query(collection(firestore, 'client_signups'), orderBy('createdAt', 'desc')),
     []
   );
   const { data: signups, isLoading } = useCollection<any>(signupsQuery);
+
+  const baseEditPath = pathname.includes('/admin') ? '/admin/new-client-signup' : '/owner/new-client-signup';
 
   const StatusBadge = ({ status }: { status: string }) => {
     const colorClass = 
@@ -88,7 +91,7 @@ export default function ClientSignupList() {
                     <StatusBadge status={signup.status} />
                   </TableCell>
                   <TableCell className="text-right">
-                    <Link href={`/owner/new-client-signup?signupId=${signup.id}`} className="flex items-center justify-end text-accent hover:underline">
+                    <Link href={`${baseEditPath}?signupId=${signup.id}`} className="flex items-center justify-end text-accent hover:underline">
                       Open <ChevronRight className="h-4 w-4 ml-1" />
                     </Link>
                   </TableCell>
