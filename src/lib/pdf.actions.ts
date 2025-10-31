@@ -1,4 +1,5 @@
 
+
 "use server";
 import { Buffer } from 'buffer';
 import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont } from 'pdf-lib';
@@ -130,6 +131,47 @@ function drawWrappedText(page: any, text: string, font: PDFFont, fontSize: numbe
     return line.trim() ? currentY - lineHeight : y; 
 }
 
+function drawTextWithBoldHighlight(page: any, text: string, boldText: string, font: PDFFont, boldFont: PDFFont, fontSize: number, x: number, y: number): void {
+    const parts = text.split(boldText);
+    let currentX = x;
+
+    for (let i = 0; i < parts.length; i++) {
+        const part = parts[i];
+        
+        page.drawText(part, { x: currentX, y, font, size: fontSize });
+        currentX += font.widthOfTextAtSize(part, fontSize);
+        
+        if (i < parts.length - 1) {
+            page.drawText(boldText, { x: currentX, y, font: boldFont, size: fontSize });
+            currentX += boldFont.widthOfTextAtSize(boldText, fontSize);
+        }
+    }
+}
+
+function drawWrappedTextWithBoldHighlight(page: any, text: string, boldText: string, font: PDFFont, boldFont: PDFFont, fontSize: number, x: number, y: number, maxWidth: number, lineHeight: number): number {
+    if (!text) return y;
+    const words = text.split(' ');
+    let line = '';
+    let currentY = y;
+
+    for (const word of words) {
+        const testLine = line + word + ' ';
+        const testWidth = font.widthOfTextAtSize(testLine.replace(new RegExp(boldText, 'g'), ' '.repeat(boldText.length)), fontSize) + boldFont.widthOfTextAtSize(boldText, fontSize) * (testLine.match(new RegExp(boldText, 'g')) || []).length;
+        
+        if (testWidth > maxWidth && line.length > 0) {
+            drawTextWithBoldHighlight(page, line, boldText, font, boldFont, fontSize, x, currentY);
+            line = word + ' ';
+            currentY -= lineHeight;
+        } else {
+            line = testLine;
+        }
+    }
+    if (line.trim().length > 0) {
+        drawTextWithBoldHighlight(page, line.trim(), boldText, font, boldFont, fontSize, x, currentY);
+    }
+    
+    return line.trim() ? currentY - lineHeight : y;
+}
 
 export async function generateClientIntakePdf(formData: any) {
     if (!formData) {
@@ -226,7 +268,7 @@ export async function generateClientIntakePdf(formData: any) {
     // --- PAGE 1 ---
     drawSectionHeader("CLIENT SERVICE AGREEMENT", { centered: true });
     const introText = "Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated. This Client Service Agreement (the \"Agreement\") is entered into between the client, or his or her authorized representative, (the \"Client\") and FirstLight Home Care of Rancho Cucamonga CA, address 9650 Business Center drive, Suite 132, Rancho Cucamonga CA 91730 phone number 9093214466 (\"FirstLight Home Care\")";
-    y = drawWrappedText(page, introText, font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
+    y = drawWrappedTextWithBoldHighlight(page, introText, "FirstLight Home Care of Rancho Cucamonga", font, boldFont, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
     y -= sectionSpacing / 2;
 
     drawSectionHeader("I. CLIENT INFORMATION", { centered: true });
@@ -255,24 +297,18 @@ export async function generateClientIntakePdf(formData: any) {
     await drawField("Homemaker/Companion", formData.homemakerCompanion, leftMargin, y, { isCheckbox: true, valueXOffset: 105 });
     await drawField("Personal Care", formData.personalCare, leftMargin + 250, y, { isCheckbox: true, valueXOffset: 70 });
     y -= sectionSpacing;
-
-    await drawField("Scheduled Frequency", formData.scheduledFrequency, leftMargin, y, {valueXOffset: 100});
-    await drawField("Days/Wk", formData.daysPerWeek, leftMargin + 200, y, {valueXOffset: 45});
-    await drawField("Hrs/Day", formData.hoursPerDay, leftMargin + 280, y, {valueXOffset: 40});
-    await drawField("Contract Start Date", formData.contractStartDate, leftMargin + 370, y, {isDate: true, valueXOffset: 90});
-    y -= sectionSpacing;
     
     const servicePlanText = "FirstLight Home Care of Rancho Cucamonga will provide non-medical in-home services (the \"Services\") specified in the attached Service Plan Agreement (the \"Service Plan\")";
-    y = drawWrappedText(page, servicePlanText, font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
+    y = drawWrappedTextWithBoldHighlight(page, servicePlanText, "FirstLight Home Care of Rancho Cucamonga", font, boldFont, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
     y -= sectionSpacing;
 
     drawSectionHeader("II. PAYMENTS FOR THE SERVICES", { centered: true });
     const paymentText = `The hourly rate for providing the Services is $${formData.hourlyRate || '__'} per hour. The rate is based on the Client utilizing the services of FirstLight Home Care of Rancho Cucamonga for a minimum of ${formData.minimumHoursPerShift || '__'} hours per shift. The rates are provided on a current rate card dated ${formatDate(formData.rateCardDate)} and will be used to calculate the Client's rate for Services. Rates are subject to change with two (2) weeks' written notice (See attached rate sheet.).`;
-    y = drawWrappedText(page, paymentText, font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
+    y = drawWrappedTextWithBoldHighlight(page, paymentText, "FirstLight Home Care of Rancho Cucamonga", font, boldFont, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
     y -= lineSpacing;
     
     const paymentText2 = "Invoices are to be presented on a regular scheduled basis. Payment is due upon receipt or not more than seven days after an invoice has been received by the Client. The Client should submit payment to the address listed above. Full refunds of any advance deposit fees collected for unused services will occur within ten (10) business days of last date of service. FirstLight Home Care of Rancho Cucamonga does not participate in and is not credentialed with any government or commercial health insurance plans and therefore does not submit bills or claims for Services as in-network, out-of-network or any other status to any government or commercial health plans. Client acknowledges and agrees that Client does not have insurance through any government health insurance plan; that Client requests to pay for Services out-of-pocket; and that because FirstLight Home Care of Rancho Cucamonga does not participate in or accept any form of government or commercial health insurance, FirstLight Home Care of Rancho Cucamonga will bill Client directly for the Services and Client is responsible for paying such charges.";
-    y = drawWrappedText(page, paymentText2, font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
+    y = drawWrappedTextWithBoldHighlight(page, paymentText2, "FirstLight Home Care of Rancho Cucamonga", font, boldFont, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
     y -= lineSpacing / 2;
     page.drawRectangle({x: leftMargin, y: y-20, width: contentWidth, height: 25, color: rgb(1, 0.9, 0.6)});
     const cancellationText = "If there is same day cancellation, client will be charged for full scheduled hours, except if there is a medical emergency.";
@@ -285,7 +321,7 @@ export async function generateClientIntakePdf(formData: any) {
     y -= lineSpacing * 1.5;
 
     await drawSignatureBlock("(Client Signature)","(Client Printed Name)","Date",formData.clientSignature,formData.clientPrintedName,formData.clientSignatureDate);
-    await drawSignatureBlock("(Client Representative Signature)","(Client Representative Printed Name and Relationship to Client)","Date",formData.clientRepresentativeSignature,formData.clientRepresentativePrintedName,formData.clientRepresentativeSignatureDate);
+    await drawSignatureBlock("(Client Representative Signature)","(Client Representative Printed Name and Relationship to Client)","",formData.clientRepresentativeSignature,formData.clientRepresentativePrintedName,formData.clientRepresentativeSignatureDate);
     await drawSignatureBlock("(FirstLight Home Care of Representative Signature)","(FirstLight Home Care of Rancho Cucamonga Representative Title)","Date",formData.firstLightRepresentativeSignature,formData.firstLightRepresentativeTitle,formData.firstLightRepresentativeSignatureDate);
 
     // --- PAGE 2 & 3: TERMS AND CONDITIONS ---
@@ -300,12 +336,12 @@ export async function generateClientIntakePdf(formData: any) {
 
     const terms = [
         { title: "BUSINESS OPERATIONS:", text: "FirstLight Home Care of Rancho Cucamonga is independently owned and operated as a franchisee of FirstLight Home Care Franchising, LLC. FirstLight Home Care of Rancho Cucamonga is licensed by the California Department of Social Services as a Home Care Organization (as defined in Cal. Health & Safety Code § 1796.12) and is in compliance with California Department of Social Services requirements, including registration and background check requirements for home care aids who work for Home Care Organizations." },
-        { title: "FIRSTLIGHT CONTACT INFORMATION:", text: "If you have any questions, problems, needs or concerns, please contact the FirstLight Home Care of Rancho Cucamonga 's designated representative, Lolita Pinto at phone number 9093214466 or by mail sent to the address above." },
-        { title: "COMPLAINTS:", text: "To file a complaint, you may contact the FirstLight Home Care of Rancho Cucamonga 's representative listed above. You may also contact the California Department of Social Services at 1-877-424-5778." },
+        { title: "FIRSTLIGHT CONTACT INFORMATION:", text: "If you have any questions, problems, needs or concerns, please contact the FirstLight Home Care of Rancho Cucamonga's designated representative, Lolita Pinto at phone number 9093214466 or by mail sent to the address above." },
+        { title: "COMPLAINTS:", text: "To file a complaint, you may contact the FirstLight Home Care of Rancho Cucamonga's representative listed above. You may also contact the California Department of Social Services at 1-877-424-5778." },
         { title: "ABUSE REPORTING:", text: "Reports of abuse, neglect or financial exploitation may be made to local law enforcement or the county Adult Protective Services office or local law enforcement. FirstLight Home Care of Rancho Cucamonga will report any suspected or known dependent adult or elder abuse as required by Section 15630 of the Welfare and Institutions Code and suspected or known child abuse as required by Sections 11164 to 11174.3 of the Penal Code. A copy of each suspected abuse report shall be maintained." },
         { title: "DEPOSIT FOR SERVICES:", text: "A deposit in the amount sufficient to pay for at least two weeks of the Services may be required prior to the initiation of Services. Services are billed weekly and are due seven days after receipt of invoice. If hours increase the Client may be requested to make an additional deposit equaling the amount of hours added. Should hours decrease, the deposit will not be refunded until completion of Services. If for any reason Services are provided and payment has not been made in full to FirstLight Home Care of Rancho Cucamonga it is agreed the Client will pay all reasonable costs incurred by FirstLight Home Care of Rancho Cucamonga to collect said monies due, including collection fees, attorney fees and any other expenses incurred in the collection of all charges on the Client's account. If the Client utilizes ACH or Credit Card as the payment source a deposit may not be required." },
         { title: "HOLIDAY CHARGES:", text: "The 24 hour period constituting the following holidays may be billed at 1.5 times the regular hourly (or flat) rate. Please see RATE SHEET for additional information." },
-        { title: "OVERTIME CHARGES:", text: "FirstLight Home Care of Rancho Cucamonga 's work week begins on Monday at 12:00 am and ends 11:59 pm on Sunday. If the Client requests an In-Home Worker to work over 8 hours per work day the Client may be billed at 1.5 times the regular hourly rate or at such other amounts necessary for FirstLight Home Care of Rancho Cucamonga to meet its obligations under state and federal wage and hour laws. Additional fees may apply if the Client requests a \"live in\" employee." },
+        { title: "OVERTIME CHARGES:", text: "FirstLight Home Care of Rancho Cucamonga's work week begins on Monday at 12:00 am and ends 11:59 pm on Sunday. If the Client requests an In-Home Worker to work over 8 hours per work day the Client may be billed at 1.5 times the regular hourly rate or at such other amounts necessary for FirstLight Home Care of Rancho Cucamonga to meet its obligations under state and federal wage and hour laws. Additional fees may apply if the Client requests a \"live in\" employee." },
         { title: "INFORMATION REQUESTS:", text: "FirstLight Home Care of Rancho Cucamonga will adhere to a written policy addressing the confidentiality and permitted uses and disclosure of client records. Response to an inquiry or information request is normally done during business hours; however, inquiries or information requests made during evenings, weekends, or holidays will be addressed on the next business day." },
         { title: "EMERGENCY TREATMENT:", text: "FirstLight Home Care of Rancho Cucamonga In-Home Workers are not qualified or authorized to provide medical care or attention of any kind. If a medical emergency arises while a FirstLight Home Care of Rancho Cucamonga In-Home Worker is present, the In-Home Worker is instructed to call for emergency assistance. The Client holds harmless FirstLight Home Care of Rancho Cucamonga and its employees, agents, representatives, and affiliates for any medical attention provided resulting from instructions given by emergency service operators." },
         { title: "EMERGENCY CONTACT:", text: "At the Client's instruction, or if it appears to a FirstLight Home Care of Rancho Cucamonga In-Home Worker that a life-threatening or medical emergency may have occurred while a FirstLight Home Care of Rancho Cucamonga In-Home Worker is present, FirstLight Home Care of Rancho Cucamonga will immediately notify the appropriate emergency responders (9-1-1) and, as soon as reasonably feasible, the Client's Emergency Contact(s) indicated above." },
@@ -354,7 +390,7 @@ export async function generateClientIntakePdf(formData: any) {
         page.drawText(`${index + 1}.`, { x: leftMargin, y, font: boldFont, size: termFontSize });
         page.drawText(term.title, { x: leftMargin + 20, y, font: boldFont, size: termFontSize });
         y -= termLineSpacing;
-        y = drawWrappedText(page, term.text, font, termFontSize, leftMargin + 20, y, contentWidth - 20, termLineSpacing);
+        y = drawWrappedTextWithBoldHighlight(page, term.text, "FirstLight Home Care of Rancho Cucamonga", font, boldFont, termFontSize, leftMargin + 20, y, contentWidth - 20, termLineSpacing);
         y -= termLineSpacing * 0.5;
         
         if (term.title === "INSURANCE:") {
@@ -450,7 +486,7 @@ export async function generateClientIntakePdf(formData: any) {
     y -= sectionSpacing;
 
     const disclaimerText = "Firstlight Home Care of Rancho Cucamonga provides Personal Care Services as defined under Cal. Health & Safety Code § 1796.12 and does not provide medical services or function as a home health agency.";
-    y = drawWrappedText(page, disclaimerText, font, smallFontSize, leftMargin, y, contentWidth, lineSpacing);
+    y = drawWrappedTextWithBoldHighlight(page, disclaimerText, "Firstlight Home Care of Rancho Cucamonga", font, boldFont, smallFontSize, leftMargin, y, contentWidth, lineSpacing);
     y -= sectionSpacing;
 
     await drawField("Client Initials", formData.servicePlanClientInitials, leftMargin, y, { valueXOffset: 70 });
@@ -480,13 +516,13 @@ export async function generateClientIntakePdf(formData: any) {
     await drawField("Client Name", formData.agreementClientName, leftMargin, y, { valueXOffset: 70 });
     y -= sectionSpacing;
     
-    const paymentPara1 = "I understand that Firstlight Home Care of Rancho Cucamonga may need to use or disclose my personal information to provide ser­vices to me, to obtain payment for its services and for all of the other reasons more fully described in Firstlight Home Care of Rancho Cucamonga Notice of Privacy Practices.";
+    const paymentPara1 = "I understand that Firstlight Home Care of Rancho Cucamonga may need to use or disclose my personal information to provide services to me, to obtain payment for its services and for all of the other reasons more fully described in Firstlight Home Care of Rancho Cucamonga Notice of Privacy Practices.";
     const paymentPara2 = "I acknowledge that I have received the Notice of Privacy Practices, and I consent to all of the uses and disclosures of my personal information as described in that document including, if applicable and as is necessary, for Firstlight Home Care of Rancho Cucamonga provide services to me; to coordinate with my other providers; to determine eligibility for payment, bill, and receive payment for services; and to make all other uses and disclosures described in the Notice of Privacy Practices.";
-    const paymentPara3 = "My consent will be valid for two (2) years from the date below. I may revoke my consent to share information, in writing, at any time. Revoking my consent does not apply to information that has already been shared or affect my financial responsibility for Ser­ vices. I understand that some uses and sharing of my information are authorized by law and do not require my consent.";
+    const paymentPara3 = "My consent will be valid for two (2) years from the date below. I may revoke my consent to share information, in writing, at any time. Revoking my consent does not apply to information that has already been shared or affect my financial responsibility for Services. I understand that some uses and sharing of my information are authorized by law and do not require my consent.";
     
-    y = drawWrappedText(page, paymentPara1, font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
+    y = drawWrappedTextWithBoldHighlight(page, paymentPara1, "Firstlight Home Care of Rancho Cucamonga", font, boldFont, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
     y -= lineSpacing;
-    y = drawWrappedText(page, paymentPara2, font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
+    y = drawWrappedTextWithBoldHighlight(page, paymentPara2, "Firstlight Home Care of Rancho Cucamonga", font, boldFont, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
     y -= lineSpacing;
     y = drawWrappedText(page, paymentPara3, font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
     y -= sectionSpacing * 2;

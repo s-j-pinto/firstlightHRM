@@ -1,4 +1,5 @@
 
+
 import { z } from "zod";
 
 export const generalInfoSchema = z.object({
@@ -322,8 +323,8 @@ export const finalizationSchema = clientSignupFormSchema.extend({
   minimumHoursPerShift: z.coerce.number().min(1, "Minimum hours per shift is required."),
   rateCardDate: z.date({ required_error: "Rate card date is required." }),
 
-  policyNumber: z.string().min(1, "Policy number is required."),
-  policyPeriod: z.string().min(1, "Policy period is required."),
+  policyNumber: z.string().optional(),
+  policyPeriod: z.string().optional(),
   clientInitials: z.string().min(1, "Client initials for the hiring clause are required."),
 
   receivedPrivacyPractices: z.literal(true, { errorMap: () => ({ message: "Must be acknowledged" }) }),
@@ -342,6 +343,8 @@ export const finalizationSchema = clientSignupFormSchema.extend({
   agreementClientName: z.string().min(1, "Client name for payment agreement is required."),
   agreementRepSignature: z.string().min(1, "FirstLight representative signature for payment agreement is required."),
   agreementRepDate: z.date({ required_error: "Date for payment agreement is required." }),
+  agreementRelationship: z.string().optional(),
+
 }).superRefine((data, ctx) => {
   if (!data.clientSignature && !data.clientRepresentativeSignature) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Either client or representative signature is required.", path: ["clientSignature"] });
@@ -357,9 +360,8 @@ export const finalizationSchema = clientSignupFormSchema.extend({
    if (!data.agreementClientSignature) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Client signature for payment agreement is required.", path: ["agreementClientSignature"] });
    }
-   if (data.agreementClientSignature && (!data.agreementSignatureDate || !data.agreementRelationship)) {
-     if (!data.agreementSignatureDate) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date is required.", path: ["agreementSignatureDate"] });
-     if (!data.agreementRelationship) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Relationship is required.", path: ["agreementRelationship"] });
+   if (data.agreementClientSignature && !data.agreementSignatureDate) {
+     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date is required.", path: ["agreementSignatureDate"] });
    }
 });
 
