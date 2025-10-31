@@ -19,9 +19,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Loader2, Send, Save, BookUser, Calendar as CalendarIcon, RefreshCw, Briefcase, FileCheck, Signature, X, Printer } from "lucide-react";
+import { Loader2, Send, Save, BookUser, Calendar as CalendarIcon, RefreshCw, Briefcase, FileCheck, Signature, X, Printer, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { sendSignatureEmail, finalizeAndSubmit, submitClientSignature } from "@/lib/client-signup.actions";
+import { sendSignatureEmail, finalizeAndSubmit, submitClientSignature, previewClientIntakePdf } from "@/lib/client-signup.actions";
 import { Textarea } from "./ui/textarea";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
@@ -59,6 +59,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
   const [isSending, startSendingTransition] = useTransition();
   const [isFinalizing, startFinalizingTransition] = useTransition();
   const [isSubmitting, startSubmittingTransition] = useTransition();
+  const [isPreviewing, startPreviewingTransition] = useTransition();
   const { toast } = useToast();
   const router = useRouter();
 
@@ -210,7 +211,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
 
   useEffect(() => {
     if (isPrintMode && !isSignupLoading) {
-      window.print();
+      setTimeout(() => window.print(), 500); // Small delay to ensure content renders
     }
   }, [isPrintMode, isSignupLoading]);
 
@@ -337,6 +338,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
             toast({ title: "Finalization Failed", description: result.message, variant: "destructive" });
         } else {
             toast({ title: "Success!", description: result.message });
+            window.open(`/print/client-form/${signupId}`, '_blank');
         }
     });
   }
@@ -372,6 +374,25 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
             toast({ title: "Submission Successful", description: result.message });
             router.push('/new-client/dashboard');
         }
+    });
+  };
+
+  const handlePreviewPdf = () => {
+    startPreviewingTransition(async () => {
+      const formData = form.getValues();
+      const result = await previewClientIntakePdf(formData);
+
+      if (result.pdfData) {
+        const blob = new Blob([new Uint8Array(Object.values(result.pdfData))], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        window.open(url);
+      } else {
+        toast({
+          title: "Preview Failed",
+          description: result.error || "Could not generate PDF preview.",
+          variant: "destructive"
+        });
+      }
     });
   };
 
@@ -581,8 +602,8 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                                     )}
                                 </div>
                             </div>
-                            <FormField control={form.control} name="clientPrintedName" render={({ field }) => ( <FormItem><FormLabel>(Client Printed Name)</FormLabel><FormControl><Input {...field} disabled={isPublished || mode === 'owner'} /></FormControl><FormMessage /></FormItem> )} />
-                            <FormField control={form.control} name="clientSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPublished || mode === 'owner'}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isPublished || mode === 'owner'} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="clientPrintedName" render={({ field }) => ( <FormItem><FormLabel>(Client Printed Name)</FormLabel><FormControl><Input {...field} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="clientSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPublished}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
                         </div>
                         {/* Representative Signature Section */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
@@ -591,7 +612,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                                 <div className="relative rounded-md border bg-white">
                                      {form.getValues('clientRepresentativeSignature') && (isClientMode || isPublished) ?
                                         <Image src={form.getValues('clientRepresentativeSignature')} alt="Signature" width={200} height={100} className="w-full h-24 object-contain" /> :
-                                        <SignatureCanvas ref={sigPads.clientRepresentativeSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isPublished || mode === 'owner'} />
+                                        <SignatureCanvas ref={sigPads.clientRepresentativeSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isPublished} />
                                     }
                                     {!isPublished && (
                                         <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => clearSignature(sigPads.clientRepresentativeSignature)}>
@@ -600,8 +621,8 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                                     )}
                                 </div>
                             </div>
-                            <FormField control={form.control} name="clientRepresentativePrintedName" render={({ field }) => ( <FormItem><FormLabel>(Client Representative Printed Name and Relationship to Client)</FormLabel><FormControl><Input {...field} disabled={isPublished || mode === 'owner'} /></FormControl><FormMessage /></FormItem> )} />
-                            <FormField control={form.control} name="clientRepresentativeSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPublished || mode === 'owner'}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isPublished || mode === 'owner'} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="clientRepresentativePrintedName" render={({ field }) => ( <FormItem><FormLabel>(Client Representative Printed Name and Relationship to Client)</FormLabel><FormControl><Input {...field} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="clientRepresentativeSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPublished}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
                         </div>
                         {/* FirstLight Signature Section */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
@@ -718,7 +739,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                             <div className="relative rounded-md border bg-white">
                                 {form.getValues('agreementClientSignature') && (isClientMode || isPublished) ?
                                     <Image src={form.getValues('agreementClientSignature')} alt="Signature" width={200} height={100} className="w-full h-24 object-contain" /> :
-                                    <SignatureCanvas ref={sigPads.agreementClientSignature} canvasProps={{ className: 'w-full h-24' }} disabled={mode === 'owner' || isPublished} />
+                                    <SignatureCanvas ref={sigPads.agreementClientSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isPublished} />
                                 }
                                 {!isPublished && (
                                     <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => clearSignature(sigPads.agreementClientSignature)}>
@@ -727,9 +748,9 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                                 )}
                             </div>
                         </div>
-                        <FormField control={form.control} name="agreementSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPublished || mode === 'owner'}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isPublished || mode === 'owner'} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="agreementSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPublished}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
                     </div>
-                    <FormField control={form.control} name="agreementRelationship" render={({ field }) => ( <FormItem><FormLabel>Relationship if not Client</FormLabel><FormControl><Input {...field} disabled={isPublished || mode === 'owner'} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="agreementRelationship" render={({ field }) => ( <FormItem><FormLabel>Relationship if not Client</FormLabel><FormControl><Input {...field} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
                         <div className="space-y-2">
                             <FormLabel>FirstLight Home Care of Rancho Cucamonga Representative</FormLabel>
@@ -752,6 +773,10 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                             <Button type="button" variant="secondary" onClick={() => handleSave("INCOMPLETE")} disabled={isSaving || isSending || isPublished}>
                                 {isSaving ? <Loader2 className="mr-2 animate-spin" /> : <Save className="mr-2" />}
                                 Save as Incomplete
+                            </Button>
+                            <Button type="button" onClick={handlePreviewPdf} disabled={isPreviewing || isPublished}>
+                                {isPreviewing ? <Loader2 className="mr-2 animate-spin" /> : <Eye className="mr-2" />}
+                                View PDF
                             </Button>
                             <Button type="button" onClick={() => handleSave("PENDING CLIENT SIGNATURES")} disabled={isSaving || isSending || isPublished}>
                                 {isSending ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2" />}
@@ -802,6 +827,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
     </Card>
   );
 }
+
 
 
 

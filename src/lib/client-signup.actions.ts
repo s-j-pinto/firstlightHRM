@@ -200,3 +200,15 @@ export async function finalizeAndSubmit(signupId: string) {
         return { message: `An error occurred during finalization: ${error.message}`, error: true };
     }
 }
+
+export async function previewClientIntakePdf(formData: any) {
+    try {
+        const pdfBytes = await generateClientIntakePdf(formData);
+        // Convert Buffer to a plain object that can be serialized
+        const dataObject = JSON.parse(JSON.stringify(pdfBytes));
+        return { pdfData: dataObject };
+    } catch (error: any) {
+        console.error("Error generating PDF preview:", error);
+        return { error: `Failed to generate PDF: ${error.message}` };
+    }
+}
