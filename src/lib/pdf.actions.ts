@@ -51,17 +51,33 @@ async function drawSignature(page: any, dataUrl: string | undefined, x: number, 
     }
 }
 
-async function drawHeader(page: any, pdfDoc: PDFDocument, logoImage: any) {
+async function drawHeader(page: any, pdfDoc: PDFDocument, logoImage: any, font: PDFFont) {
     const { width } = page.getSize();
     const logoWidth = 150;
     const logoHeight = 30;
+    const margin = 50;
+
+    // Draw logo on the left
     page.drawImage(logoImage, {
-        x: (width / 2) - (logoWidth / 2),
+        x: margin,
         y: page.getHeight() - 55,
         width: logoWidth,
         height: logoHeight,
     });
+
+    // Draw red text on the right
+    const redText = "NO. 00000";
+    const redTextSize = 10;
+    const redTextWidth = font.widthOfTextAtSize(redText, redTextSize);
+    page.drawText(redText, {
+        x: width - margin - redTextWidth,
+        y: page.getHeight() - 50,
+        font: font,
+        size: redTextSize,
+        color: rgb(0.8, 0, 0), // Red color
+    });
 }
+
 
 async function drawFooter(page: any, font: PDFFont) {
     const { width } = page.getSize();
@@ -142,7 +158,7 @@ export async function generateClientIntakePdf(formData: any) {
     const fieldLabelFontSize = 8.5;
     const smallFontSize = 7;
 
-    await drawHeader(page, pdfDoc, logoImage);
+    await drawHeader(page, pdfDoc, logoImage, boldFont);
     await drawFooter(page, font);
     
     const drawSectionHeader = (text: string, options: { centered?: boolean } = {}) => {
@@ -266,7 +282,7 @@ export async function generateClientIntakePdf(formData: any) {
 
     // --- PAGE 2 & 3: TERMS AND CONDITIONS ---
     page = pdfDoc.addPage(PageSizes.Letter);
-    await drawHeader(page, pdfDoc, logoImage);
+    await drawHeader(page, pdfDoc, logoImage, boldFont);
     await drawFooter(page, font);
     y = height - 75;
     const termFontSize = 8;
@@ -322,7 +338,7 @@ export async function generateClientIntakePdf(formData: any) {
 
         if (y - blockHeight < bottomMargin) {
             page = pdfDoc.addPage(PageSizes.Letter);
-            await drawHeader(page, pdfDoc, logoImage);
+            await drawHeader(page, pdfDoc, logoImage, boldFont);
             await drawFooter(page, font);
             y = height - 75;
         }
@@ -365,7 +381,7 @@ export async function generateClientIntakePdf(formData: any) {
 
     // --- PAGE 4: SERVICE PLAN ---
     page = pdfDoc.addPage(PageSizes.Letter);
-    await drawHeader(page, pdfDoc, logoImage);
+    await drawHeader(page, pdfDoc, logoImage, boldFont);
     await drawFooter(page, font);
     y = height - 75;
 
@@ -445,7 +461,7 @@ export async function generateClientIntakePdf(formData: any) {
 
     // --- PAGE 5: PAYMENT RESPONSIBILITY ---
     page = pdfDoc.addPage(PageSizes.Letter);
-    await drawHeader(page, pdfDoc, logoImage);
+    await drawHeader(page, pdfDoc, logoImage, boldFont);
     await drawFooter(page, font);
     y = height - 75;
 
