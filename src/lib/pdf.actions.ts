@@ -1,9 +1,8 @@
 
 "use server";
-
+import { Buffer } from 'buffer';
 import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont } from 'pdf-lib';
 import { format } from 'date-fns';
-import { Buffer } from 'buffer';
 
 const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
 
@@ -167,6 +166,12 @@ export async function generateClientIntakePdf(formData: any) {
         const textWidth = boldFont.widthOfTextAtSize(text, headerFontSize);
         const xPos = options.centered ? (width / 2) - (textWidth / 2) : leftMargin;
         page.drawText(text, { x: xPos, y, font: boldFont, size: headerFontSize, color: rgb(0.1, 0.1, 0.1) });
+        page.drawLine({
+            start: { x: xPos, y: y - 2 },
+            end: { x: xPos + textWidth, y: y - 2 },
+            thickness: 0.5,
+            color: rgb(0.1, 0.1, 0.1)
+        });
         y -= lineSpacing * 1.5;
     };
     
@@ -199,9 +204,10 @@ export async function generateClientIntakePdf(formData: any) {
         await drawText(page, nameData, leftMargin + 255, blockY - 10, font, mainFontSize);
         page.drawText(nameLabel, { x: leftMargin + 250, y: blockY - 25, font: font, size: smallFontSize });
         
-        page.drawLine({ start: { x: leftMargin + 450, y: blockY - 15 }, end: { x: rightMargin, y: blockY - 15 }, color: rgb(0, 0, 0), thickness: 0.5 });
-        await drawText(page, dateData ? formatDate(dateData) : '', leftMargin + 455, blockY-10, font, mainFontSize);
-        page.drawText(dateLabel, { x: leftMargin + 450, y: blockY - 25, font: font, size: smallFontSize });
+        const dateX = leftMargin + 410;
+        page.drawLine({ start: { x: dateX, y: blockY - 15 }, end: { x: dateX + 100, y: blockY - 15 }, color: rgb(0, 0, 0), thickness: 0.5 });
+        await drawText(page, dateData ? formatDate(dateData) : '', dateX + 5, blockY - 10, font, mainFontSize);
+        page.drawText(dateLabel, { x: dateX, y: blockY - 25, font: font, size: smallFontSize });
 
         y -= 50;
     }
