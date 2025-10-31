@@ -1,3 +1,4 @@
+
 "use server";
 
 import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont } from 'pdf-lib';
@@ -151,11 +152,11 @@ export async function generateClientIntakePdf(formData: any) {
     const contentWidth = rightMargin - leftMargin;
     let y = height - 75;
 
-    const lineSpacing = 11;
-    const sectionSpacing = 16;
-    const mainFontSize = 8.5;
-    const headerFontSize = 10;
-    const fieldLabelFontSize = 8.5;
+    const lineSpacing = 9.5;
+    const sectionSpacing = 14;
+    const mainFontSize = 8;
+    const headerFontSize = 9.5;
+    const fieldLabelFontSize = 8;
     const smallFontSize = 7;
 
     await drawHeader(page, pdfDoc, logoImage, boldFont);
@@ -249,9 +250,9 @@ export async function generateClientIntakePdf(formData: any) {
     y -= sectionSpacing;
 
     await drawField("Scheduled Frequency", formData.scheduledFrequency, leftMargin, y, {valueXOffset: 100});
-    await drawField("Days/Wk", formData.daysPerWeek, leftMargin + 250, y, {valueXOffset: 45});
-    await drawField("Hrs/Day", formData.hoursPerDay, leftMargin + 350, y, {valueXOffset: 40});
-    await drawField("Contract Start Date", formData.contractStartDate, leftMargin + 450, y, {isDate: true, valueXOffset: 90});
+    await drawField("Days/Wk", formData.daysPerWeek, leftMargin + 220, y, {valueXOffset: 45});
+    await drawField("Hrs/Day", formData.hoursPerDay, leftMargin + 320, y, {valueXOffset: 40});
+    await drawField("Contract Start Date", formData.contractStartDate, leftMargin + 420, y, {isDate: true, valueXOffset: 90});
     y -= sectionSpacing;
     
     const servicePlanText = "FirstLight Home Care of Rancho Cucamonga will provide non-medical in-home services (the \"Services\") specified in the attached Service Plan Agreement (the \"Service Plan\")";
