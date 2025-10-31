@@ -171,59 +171,8 @@ export async function generateClientIntakePdf(formData: any) {
     await drawField("2nd Phone", formData.secondEmergencyContactPhone);
     y -= sectionSpacing;
     
-    await drawSectionHeader("III. TYPE OF SERVICE");
-    await drawField("Homemaker/Companion", formData.homemakerCompanion, true);
-    await drawField("Personal Care", formData.personalCare, true);
-    y -= sectionSpacing;
-    
-    await drawSectionHeader("IV. SCHEDULE");
-    await drawField("Frequency", formData.scheduledFrequency);
-    await drawField("Days/Week", formData.daysPerWeek);
-    await drawField("Hours/Day", formData.hoursPerDay);
-    await drawField("Contract Start Date", formatDate(formData.contractStartDate));
-    y -= sectionSpacing;
-
-    await drawSectionHeader("V. PAYMENTS FOR THE SERVICES");
-    await drawField("Hourly Rate", `$${formData.hourlyRate || 0}`);
-    await drawField("Minimum Hours/Shift", `${formData.minimumHoursPerShift || 0}`);
-    await drawField("Rate Card Date", formatDate(formData.rateCardDate));
-    await drawField("Insurance Policy Number", formData.policyNumber);
-    await drawField("Insurance Policy Period", formData.policyPeriod);
-    y -= sectionSpacing;
-
-    await checkY(250);
-
-    await drawSectionHeader("ACKNOWLEDGEMENT & AGREEMENT");
-    if(formData.clientSignature) {
-        await drawField("Client Signature", "");
-        await drawSignature(page, formData.clientSignature, leftMargin + 150, y, 150, 40, pdfDoc);
-        y -= 30;
-    }
-    await drawField("Client Printed Name", formData.clientPrintedName);
-    await drawField("Client Signature Date", formatDate(formData.clientSignatureDate));
-    y -= lineSpacing;
-
-    if(formData.clientRepresentativeSignature) {
-        await drawField("Representative Signature", "");
-        await drawSignature(page, formData.clientRepresentativeSignature, leftMargin + 150, y, 150, 40, pdfDoc);
-        y -= 30;
-    }
-    await drawField("Representative Name", formData.clientRepresentativePrintedName);
-    await drawField("Rep. Signature Date", formatDate(formData.clientRepresentativeSignatureDate));
-    y -= lineSpacing;
-    
-    if(formData.firstLightRepresentativeSignature) {
-        await drawField("FirstLight Rep. Signature", "");
-        await drawSignature(page, formData.firstLightRepresentativeSignature, leftMargin + 150, y, 150, 40, pdfDoc);
-        y -= 30;
-    }
-    await drawField("FirstLight Rep. Title", formData.firstLightRepresentativeTitle);
-    await drawField("FirstLight Rep. Sig. Date", formatDate(formData.firstLightRepresentativeSignatureDate));
-    
     // Continue with other pages...
 
     const pdfBytes = await pdfDoc.save();
     return pdfBytes;
 }
-
-    
