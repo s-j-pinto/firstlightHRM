@@ -571,7 +571,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                             <div className="space-y-2">
                                 <FormLabel>(Client Signature)</FormLabel>
                                 <div className="relative rounded-md border bg-white">
-                                    {form.getValues('clientSignature') && (isClientMode || isPublished) ?
+                                    {form.getValues('clientSignature') && isPublished ?
                                         <Image src={form.getValues('clientSignature')} alt="Signature" width={200} height={100} className="w-full h-24 object-contain" /> :
                                         <SignatureCanvas ref={sigPads.clientSignature} canvasProps={{ className: 'w-full h-24' }} disabled={mode === 'owner' || isPublished} />
                                     }
@@ -582,17 +582,17 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                                     )}
                                 </div>
                             </div>
-                            <FormField control={form.control} name="clientPrintedName" render={({ field }) => ( <FormItem><FormLabel>(Client Printed Name)</FormLabel><FormControl><Input {...field} disabled={mode === 'owner' || isPublished} /></FormControl><FormMessage /></FormItem> )} />
-                            <FormField control={form.control} name="clientSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={mode === 'owner' || isPublished}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={mode === 'owner' || isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="clientPrintedName" render={({ field }) => ( <FormItem><FormLabel>(Client Printed Name)</FormLabel><FormControl><Input {...field} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="clientSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPublished}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
                         </div>
                         {/* Representative Signature Section */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
                             <div className="space-y-2">
                                 <FormLabel>(Client Representative Signature)</FormLabel>
                                 <div className="relative rounded-md border bg-white">
-                                     {form.getValues('clientRepresentativeSignature') && (isClientMode || isPublished) ?
+                                     {form.getValues('clientRepresentativeSignature') && isPublished ?
                                         <Image src={form.getValues('clientRepresentativeSignature')} alt="Signature" width={200} height={100} className="w-full h-24 object-contain" /> :
-                                        <SignatureCanvas ref={sigPads.clientRepresentativeSignature} canvasProps={{ className: 'w-full h-24' }} disabled={mode === 'owner' || isPublished} />
+                                        <SignatureCanvas ref={sigPads.clientRepresentativeSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isPublished} />
                                     }
                                     {!isPublished && (
                                         <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => clearSignature(sigPads.clientRepresentativeSignature)}>
@@ -601,8 +601,8 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                                     )}
                                 </div>
                             </div>
-                            <FormField control={form.control} name="clientRepresentativePrintedName" render={({ field }) => ( <FormItem><FormLabel>(Client Representative Printed Name and Relationship to Client)</FormLabel><FormControl><Input {...field} disabled={mode === 'owner' || isPublished} /></FormControl><FormMessage /></FormItem> )} />
-                            <FormField control={form.control} name="clientRepresentativeSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={mode === 'owner' || isPublished}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={mode === 'owner' || isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="clientRepresentativePrintedName" render={({ field }) => ( <FormItem><FormLabel>(Client Representative Printed Name and Relationship to Client)</FormLabel><FormControl><Input {...field} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="clientRepresentativeSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPublished}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
                         </div>
                         {/* FirstLight Signature Section */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
@@ -647,7 +647,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                         <li><strong>USE OF VEHICLE:</strong> FirstLight Home Care of Rancho Cucamonga will not operate a vehicle on the Client's behalf unless the Client executes the Transportation Waiver substantially in the form provided by FirstLight Home Care of Rancho Cucamonga as part of this Agreement.</li>
                         <li><strong>HIRING:</strong> The investment FirstLight Home Care of Rancho Cucamonga makes in maintaining our quality caregivers and employees is substantial; therefore, it is agreed for a period of one year from the last day worked or for a period of one year after the Client stops utilizing FirstLight Home Care of Rancho Cucamonga Services, the Client agrees not to hire directly, or hire through any other company or agency, FirstLight Home Care of Rancho Cucamonga employees directly or indirectly who have personally provided care for the Client. If the Client wishes to hire a FirstLight Home Care of Rancho Cucamonga employee directly, the Client will notify FirstLight Home Care of Rancho Cucamonga of this intent in writing and a flat fee of $15,000.00 will be required to hire that employee directly. A written request by said employee will be required and must be approved by FirstLight Home Care of Rancho Cucamonga
                             <div className="w-1/3 mt-2">
-                                <FormField control={form.control} name="clientInitials" render={({ field }) => ( <FormItem><FormLabel>Client Initials</FormLabel><FormControl><Input {...field} disabled={mode === 'owner' || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                                <FormField control={form.control} name="clientInitials" render={({ field }) => ( <FormItem><FormLabel>Client Initials</FormLabel><FormControl><Input {...field} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
                             </div>
                         </li>
                         <li><strong>OTHER CONSIDERATIONS:</strong> The Client agrees that any claims made under the FirstLight Home Care of Rancho Cucamonga fidelity bond must be made in writing by the Client with ten (10) days of the occurrence. In addition, as a licensed California Home Care Organization FirstLight Home Care of Rancho Cucamonga maintains proof of general and professional liability insurance in the amount of $1 million per occurrence and $3 million in the aggregate and has an employee dishonesty bond with a minimum limit of $10,000, as required under Cal. Health & Safety Code § 1796.37; 1796.42.</li>
@@ -703,7 +703,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                     </div>
                     <p className="text-sm text-muted-foreground">Firstlight Home Care of Rancho Cucamonga provides Personal Care Services as defined under Cal. Health & Safety Code § 1796.12 and does not provide medical services or function as a home health agency.</p>
                     <div className="w-1/3 mt-2">
-                        <FormField control={form.control} name="servicePlanClientInitials" render={({ field }) => ( <FormItem><FormLabel>Client Initials</FormLabel><FormControl><Input {...field} disabled={mode === 'owner' || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="servicePlanClientInitials" render={({ field }) => ( <FormItem><FormLabel>Client Initials</FormLabel><FormControl><Input {...field} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
                     </div>
                 </div>
                 
@@ -717,7 +717,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                         <div className="space-y-2">
                             <FormLabel>Client Signature/Responsible Party</FormLabel>
                             <div className="relative rounded-md border bg-white">
-                                {form.getValues('agreementClientSignature') && (isClientMode || isPublished) ?
+                                {form.getValues('agreementClientSignature') && isPublished ?
                                     <Image src={form.getValues('agreementClientSignature')} alt="Signature" width={200} height={100} className="w-full h-24 object-contain" /> :
                                     <SignatureCanvas ref={sigPads.agreementClientSignature} canvasProps={{ className: 'w-full h-24' }} disabled={mode === 'owner' || isPublished} />
                                 }
@@ -728,9 +728,9 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                                 )}
                             </div>
                         </div>
-                        <FormField control={form.control} name="agreementSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={mode === 'owner' || isPublished}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={mode === 'owner' || isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="agreementSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPublished}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
                     </div>
-                    <FormField control={form.control} name="agreementRelationship" render={({ field }) => ( <FormItem><FormLabel>Relationship if not Client</FormLabel><FormControl><Input {...field} disabled={mode === 'owner' || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="agreementRelationship" render={({ field }) => ( <FormItem><FormLabel>Relationship if not Client</FormLabel><FormControl><Input {...field} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
                         <div className="space-y-2">
                             <FormLabel>FirstLight Home Care of Rancho Cucamonga Representative</FormLabel>
@@ -797,5 +797,6 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
     </Card>
   );
 }
+
 
 
