@@ -1,4 +1,5 @@
 
+
 "use server";
 
 import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont } from 'pdf-lib';
@@ -130,22 +131,25 @@ export async function generateClientIntakePdf(formData: any) {
     const contentWidth = rightMargin - leftMargin;
     let y = height - 75; // Start drawing below the header area.
 
-    const lineSpacing = 14;
-    const sectionSpacing = 20;
+    const lineSpacing = 12;
+    const sectionSpacing = 18;
+    const mainFontSize = 8;
+    const headerFontSize = 11;
+    const fieldLabelFontSize = 8;
 
     await drawHeader(page, pdfDoc, logoImage);
     await drawFooter(page, font);
     
     const drawSectionHeader = (text: string, options: { centered?: boolean } = {}) => {
-        const textWidth = boldFont.widthOfTextAtSize(text, 12);
+        const textWidth = boldFont.widthOfTextAtSize(text, headerFontSize);
         const xPos = options.centered ? (width / 2) - (textWidth / 2) : leftMargin;
-        page.drawText(text, { x: xPos, y, font: boldFont, size: 12, color: rgb(0.1, 0.1, 0.1) });
+        page.drawText(text, { x: xPos, y, font: boldFont, size: headerFontSize, color: rgb(0.1, 0.1, 0.1) });
         y -= lineSpacing * 1.5;
     };
     
     const drawField = async (label: string, value: any, x: number, currentY: number, options: { isCheckbox?: boolean, isDate?: boolean } = {}) => {
-        page.drawText(`${label}:`, { x: x, y: currentY, font: boldFont, size: 9 });
-        const labelWidth = boldFont.widthOfTextAtSize(`${label}: `, 9);
+        page.drawText(`${label}:`, { x: x, y: currentY, font: boldFont, size: fieldLabelFontSize });
+        const labelWidth = boldFont.widthOfTextAtSize(`${label}: `, fieldLabelFontSize);
         const valueX = x + labelWidth + 5;
         if (options.isCheckbox) {
             await drawCheckbox(page, value, valueX, currentY - 1, font);
@@ -158,7 +162,7 @@ export async function generateClientIntakePdf(formData: any) {
                     displayValue = '';
                 }
             }
-            await drawText(page, displayValue, valueX, currentY, font, 9);
+            await drawText(page, displayValue, valueX, currentY, font, mainFontSize);
         }
     };
     
@@ -171,15 +175,15 @@ export async function generateClientIntakePdf(formData: any) {
 
         // Name Line
         page.drawLine({ start: { x: leftMargin + 250, y: blockY - 15 }, end: { x: leftMargin + 400, y: blockY - 15 }, color: rgb(0, 0, 0), thickness: 0.5 });
-        await drawText(page, nameData, leftMargin + 255, blockY - 10, font, 9);
+        await drawText(page, nameData, leftMargin + 255, blockY - 10, font, mainFontSize);
         page.drawText(nameLabel, { x: leftMargin + 250, y: blockY - 25, font: font, size: 8 });
         
         // Date Line
         page.drawLine({ start: { x: leftMargin + 450, y: blockY - 15 }, end: { x: rightMargin, y: blockY - 15 }, color: rgb(0, 0, 0), thickness: 0.5 });
-        await drawText(page, dateData ? formatDate(dateData) : '', leftMargin + 455, blockY-10, font, 9);
+        await drawText(page, dateData ? formatDate(dateData) : '', leftMargin + 455, blockY-10, font, mainFontSize);
         page.drawText(dateLabel, { x: leftMargin + 450, y: blockY - 25, font: font, size: 8 });
 
-        y -= 60;
+        y -= 50;
     }
     
     const formatDate = (date: any) => {
@@ -196,7 +200,7 @@ export async function generateClientIntakePdf(formData: any) {
     // --- START DRAWING CONTENT ---
     drawSectionHeader("CLIENT SERVICE AGREEMENT", { centered: true });
     const introText = "Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated. This Client Service Agreement (the \"Agreement\") is entered into between the client, or his or her authorized representative, (the \"Client\") and FirstLight Home Care of Rancho Cucamonga CA, address 9650 Business Center drive, Suite 132, Rancho Cucamonga CA 91730 phone number 9093214466 (\"FirstLight Home Care\")";
-    y = drawWrappedText(page, introText, font, 9, leftMargin, y, contentWidth, lineSpacing);
+    y = drawWrappedText(page, introText, font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
     y -= sectionSpacing / 2;
 
     drawSectionHeader("I. CLIENT INFORMATION", { centered: true });
@@ -208,9 +212,9 @@ export async function generateClientIntakePdf(formData: any) {
     y -= lineSpacing;
     await drawField("SSN", formData.clientSSN, leftMargin, y);
     await drawField("DOB", formData.clientDOB ? format(new Date(formData.clientDOB), 'MM/dd/yyyy') : '', leftMargin + 250, y);
-    y -= sectionSpacing;
+    y -= lineSpacing * 1.5;
 
-    drawSectionHeader("II. EMERGENCY CONTACT INFORMATION", { centered: true });
+    // Emergency Contact
     await drawField("Emergency Contact Name", formData.emergencyContactName, leftMargin, y);
     await drawField("Relationship", formData.emergencyContactRelationship, leftMargin + 250, y);
     y -= lineSpacing;
@@ -220,38 +224,39 @@ export async function generateClientIntakePdf(formData: any) {
     await drawField("2nd Emergency Contact", formData.secondEmergencyContactName, leftMargin, y);
     await drawField("Relationship", formData.secondEmergencyContactRelationship, leftMargin + 250, y);
     await drawField("Phone", formData.secondEmergencyContactPhone, leftMargin + 400, y);
-    y -= sectionSpacing;
-    
-    drawSectionHeader("III. TYPE OF SERVICE", { centered: true });
+    y -= lineSpacing;
+
+    // Service Type
     await drawField("Homemaker/Companion", formData.homemakerCompanion, leftMargin + 100, y, { isCheckbox: true });
     await drawField("Personal Care", formData.personalCare, leftMargin + 300, y, { isCheckbox: true });
-    y -= sectionSpacing;
+    y -= lineSpacing;
     
-    drawSectionHeader("IV. SCHEDULE", { centered: true });
+    // Schedule
     await drawField("Scheduled Frequency", formData.scheduledFrequency, leftMargin, y);
     await drawField("Days/Wk", formData.daysPerWeek, leftMargin + 200, y);
     await drawField("Hrs/Day", formData.hoursPerDay, leftMargin + 300, y);
     await drawField("Contract Start Date", formData.contractStartDate, leftMargin + 400, y, {isDate: true});
-    y -= lineSpacing;
+    y -= sectionSpacing;
+    
     const servicePlanText = "FirstLight Home Care of Rancho Cucamonga will provide non-medical in-home services (the \"Services\") specified in the attached Service Plan Agreement (the \"Service Plan\")";
-    y = drawWrappedText(page, servicePlanText, font, 9, leftMargin, y, contentWidth, lineSpacing);
+    y = drawWrappedText(page, servicePlanText, font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
     y -= sectionSpacing;
 
     drawSectionHeader("V. PAYMENTS FOR THE SERVICES", { centered: true });
     const paymentText = `The hourly rate for providing the Services is $${formData.hourlyRate || '__'} per hour. The rate is based on the Client utilizing the services of FirstLight Home Care of Rancho Cucamonga for a minimum of ${formData.minimumHoursPerShift || '__'} hours per shift. The rates are provided on a current rate card dated ${formatDate(formData.rateCardDate)} and will be used to calculate the Client's rate for Services. Rates are subject to change with two (2) weeks' written notice (See attached rate sheet.).`;
-    y = drawWrappedText(page, paymentText, font, 9, leftMargin, y, contentWidth, lineSpacing);
+    y = drawWrappedText(page, paymentText, font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
     
     const paymentText2 = "Invoices are to be presented on a regular scheduled basis. Payment is due upon receipt or not more than seven days after an invoice has been received by the Client. The Client should submit payment to the address listed above. Full refunds of any advance deposit fees collected for unused services will occur within ten (10) business days of last date of service. FirstLight Home Care of Rancho Cucamonga does not participate in and is not credentialed with any government or commercial health insurance plans and therefore does not submit bills or claims for Services as in-network, out-of-network or any other status to any government or commercial health plans. Client acknowledges and agrees that Client does not have insurance through any government health insurance plan; that Client requests to pay for Services out-of-pocket; and that because FirstLight Home Care of Rancho Cucamonga does not participate in or accept any form of government or commercial health insurance, FirstLight Home Care of Rancho Cucamonga will bill Client directly for the Services and Client is responsible for paying such charges.";
-    y = drawWrappedText(page, paymentText2, font, 9, leftMargin, y, contentWidth, lineSpacing);
+    y = drawWrappedText(page, paymentText2, font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
     y -= lineSpacing / 2;
     page.drawRectangle({x: leftMargin, y: y-20, width: contentWidth, height: 25, color: rgb(1, 0.9, 0.6)});
     const cancellationText = "If there is same day cancellation, client will be charged for full scheduled hours, except if there is a medical emergency.";
-    y = drawWrappedText(page, cancellationText, boldFont, 9, leftMargin + 5, y - 5, contentWidth - 10, lineSpacing);
+    y = drawWrappedText(page, cancellationText, boldFont, mainFontSize, leftMargin + 5, y - 5, contentWidth - 10, lineSpacing);
     y -= sectionSpacing * 1.5;
     
     drawSectionHeader("ACKNOWLEDGEMENT & AGREEMENT", { centered: true });
     const ackText = "The Client, or his or her authorized representative, consents to receive the Services and acknowledges he or she or they have read, accept, and consent to this Agreement, including the \"Terms and Conditions\" and all other attached documents, all of which are incorporated into this Agreement.";
-    y = drawWrappedText(page, ackText, font, 9, leftMargin, y, contentWidth, lineSpacing);
+    y = drawWrappedText(page, ackText, font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
     y -= lineSpacing * 1.5;
 
     await drawSignatureBlock(
