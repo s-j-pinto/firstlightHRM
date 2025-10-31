@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useDoc, useMemoFirebase, firestore, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { doc, addDoc, updateDoc, collection, serverTimestamp, Timestamp } from 'firebase/firestore';
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { format } from "date-fns";
 import SignatureCanvas from 'react-signature-canvas';
 import Image from "next/image";
@@ -61,6 +61,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
   const [isPreviewing, startPreviewingTransition] = useTransition();
   const { toast } = useToast();
   const router = useRouter();
+  const pathname = usePathname();
 
   const isClientMode = mode === 'client-signing';
   const isPrintMode = mode === 'print';
@@ -300,11 +301,14 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
           docId = newDoc.id;
           console.log("New document created with ID:", docId);
         }
+
+        const dashboardPath = pathname.includes('/admin') ? '/admin/assessments' : '/owner/dashboard';
   
         if (status === 'INCOMPLETE') {
           toast({ title: "Draft Saved", description: "The client intake form has been saved as a draft." });
           if (!signupId) {
-            router.push(`/owner/new-client-signup?signupId=${docId}`);
+             const newPath = pathname.includes('/admin') ? `/admin/new-client-signup?signupId=${docId}` : `/owner/new-client-signup?signupId=${docId}`;
+             router.push(newPath);
           }
         } else {
           const emailResult = await sendSignatureEmail(docId!, sanitizedFormData.clientEmail);
@@ -313,7 +317,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
           } else {
             toast({ title: "Success", description: "Form saved and signature link sent to the client." });
           }
-          router.push('/owner/dashboard');
+          router.push(dashboardPath);
         }
   
       } catch (error: any) {
@@ -409,22 +413,32 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
   const handlePreviewPdf = () => {
     startPreviewingTransition(async () => {
       const formData = form.getValues();
-      const result = await previewClientIntakePdf(formData);
-
-      if (result.pdfData) {
-        const byteCharacters = atob(result.pdfData);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
+      try {
+        const result = await previewClientIntakePdf(formData);
+        
+        if (result.pdfData) {
+          const byteCharacters = atob(result.pdfData);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: 'application/pdf' });
+          const url = URL.createObjectURL(blob);
+          window.open(url, '_blank');
+        } else {
+          console.error("Preview failed, error:", result.error);
+          toast({
+            title: "Preview Failed",
+            description: result.error || "Could not generate PDF preview.",
+            variant: "destructive"
+          });
         }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: 'application/pdf' });
-        const url = URL.createObjectURL(blob);
-        window.open(url);
-      } else {
+      } catch (e: any) {
+        console.error("Caught error during preview:", e);
         toast({
-          title: "Preview Failed",
-          description: result.error || "Could not generate PDF preview.",
+          title: "Preview Generation Error",
+          description: `An unexpected client-side error occurred: ${e.message}`,
           variant: "destructive"
         });
       }

@@ -62,6 +62,9 @@ export function AppHeader() {
                 <Link href="/admin/manage-interviews" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
                     Manage Interviews
                 </Link>
+                 <Link href="/admin/assessments" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
+                    Assessments
+                </Link>
                 <Link href="/admin/manage-applications" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
                     Manage Applications
                 </Link>
