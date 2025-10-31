@@ -15,9 +15,20 @@ async function drawText(page: any, text: string | undefined, x: number, y: numbe
 
 // Helper to draw a checkbox
 async function drawCheckbox(page: any, checked: boolean | undefined, x: number, y: number, font: PDFFont) {
-    const checkMark = '✔';
     if (checked) {
-        page.drawText(checkMark, { x: x + 1, y: y + 1, font, size: 10, color: rgb(0, 0, 0) });
+        // Draw a checkmark manually with lines instead of using a text character
+        page.drawLine({
+            start: { x: x + 2, y: y + 5 },
+            end: { x: x + 5, y: y + 2 },
+            thickness: 1,
+            color: rgb(0, 0, 0),
+        });
+        page.drawLine({
+            start: { x: x + 5, y: y + 2 },
+            end: { x: x + 8, y: y + 8 },
+            thickness: 1,
+            color: rgb(0, 0, 0),
+        });
     }
     page.drawRectangle({
         x: x,
