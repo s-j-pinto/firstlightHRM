@@ -1,5 +1,3 @@
-
-
 "use server";
 
 import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont } from 'pdf-lib';
@@ -319,7 +317,7 @@ export async function generateClientIntakePdf(formData: any) {
         // Adjust block height for special cases with form fields
         if (term.title === "INSURANCE:") blockHeight += termLineSpacing * 2.5;
         if (term.title === "HIRING:") blockHeight += termLineSpacing * 2.5;
-        if (term.title === "INFORMATION AND DOCUMENTS RECEIVED:") blockHeight += termLineSpacing * 5;
+        if (term.title === "INFORMATION AND DOCUMENTS RECEIVED:") blockHeight += termLineSpacing * 4;
 
 
         if (y - blockHeight < bottomMargin) {
@@ -359,7 +357,8 @@ export async function generateClientIntakePdf(formData: any) {
             await drawField("Transportation Waiver", formData.receivedTransportationWaiver, leftMargin + 20, y, { isCheckbox: true });
             y -= termLineSpacing;
             const longLabel = "Agreement to Accept Payment Responsibility and Consent for Personal Information-Private Pay";
-            await drawField(longLabel, formData.receivedPaymentAgreement, leftMargin + 20, y, { isCheckbox: true });
+            await drawCheckbox(page, formData.receivedPaymentAgreement, leftMargin + 20, y, font);
+            await drawText(page, longLabel, leftMargin + 35, y, font, termFontSize);
             y -= termLineSpacing * 1.5;
         }
     }
@@ -431,7 +430,6 @@ export async function generateClientIntakePdf(formData: any) {
     y -= sectionSpacing;
 
     await drawField("Client Initials", formData.servicePlanClientInitials, leftMargin, y, { valueXOffset: 70 });
-    y -= sectionSpacing;
     
     // Office Use Only Box at the bottom
     let boxY = bottomMargin + 80;
@@ -444,6 +442,36 @@ export async function generateClientIntakePdf(formData: any) {
     await drawField("REFERRAL DATE", formData.officeReferralDate, leftMargin + 10, officeY, { isDate: true, valueXOffset: 80 });
     officeY -= lineSpacing * 1.5;
     await drawField("DATE OF INITIAL CLIENT CONTACT", formData.officeInitialContactDate, leftMargin + 10, officeY, { isDate: true, valueXOffset: 150 });
+
+    // --- PAGE 5: PAYMENT RESPONSIBILITY ---
+    page = pdfDoc.addPage(PageSizes.Letter);
+    await drawHeader(page, pdfDoc, logoImage);
+    await drawFooter(page, font);
+    y = height - 75;
+
+    const paymentTitle = "AGREEMENT TO ACCEPT PAYMENT RESPONSIBILITY AND CONSENT FOR USE AND DISCLOSURE OF PERSONAL INFORMATION-PRIVATE PAY";
+    y = drawWrappedText(page, paymentTitle, boldFont, headerFontSize, leftMargin, y, contentWidth, lineSpacing * 1.2);
+    y -= sectionSpacing;
+
+    await drawField("Client Name", formData.agreementClientName, leftMargin, y, { valueXOffset: 70 });
+    y -= sectionSpacing;
+    
+    const paymentPara1 = "I understand that Firstlight Home Care of Rancho Cucamonga may need to use or disclose my personal information to provide ser­vices to me, to obtain payment for its services and for all of the other reasons more fully described in Firstlight Home Care of Rancho Cucamonga Notice of Privacy Practices.";
+    const paymentPara2 = "I acknowledge that I have received the Notice of Privacy Practices, and I consent to all of the uses and disclosures of my personal information as described in that document including, if applicable and as is necessary, for Firstlight Home Care of Rancho Cucamonga provide services to me; to coordinate with my other providers; to determine eligibility for payment, bill, and receive payment for services; and to make all other uses and disclosures described in the Notice of Privacy Practices.";
+    const paymentPara3 = "My consent will be valid for two (2) years from the date below. I may revoke my consent to share information, in writing, at any time. Revoking my consent does not apply to information that has already been shared or affect my financial responsibility for Ser­ vices. I understand that some uses and sharing of my information are authorized by law and do not require my consent.";
+    
+    y = drawWrappedText(page, paymentPara1, font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
+    y -= lineSpacing;
+    y = drawWrappedText(page, paymentPara2, font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
+    y -= lineSpacing;
+    y = drawWrappedText(page, paymentPara3, font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
+    y -= sectionSpacing * 2;
+
+    await drawSignatureBlock("Client Signature/Responsible Party", "", "Date", formData.agreementClientSignature, "", formData.agreementSignatureDate);
+    y -= sectionSpacing;
+    await drawField("Relationship if not Client", formData.agreementRelationship, leftMargin, y, { valueXOffset: 120 });
+    y -= sectionSpacing * 2;
+    await drawSignatureBlock("FirstLight Home Care of Rancho Cucamonga Representative", "", "Date", formData.agreementRepSignature, "", formData.agreementRepDate);
     
 
     const pdfBytes = await pdfDoc.save();
