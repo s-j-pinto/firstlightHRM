@@ -30,7 +30,8 @@ const initializeServerApp = () => {
             // This 'require' is now safely inside the 'else' block, so it only runs locally.
             const serviceAccount = require('../../service-account.json');
             const app = admin.initializeApp({
-                credential: admin.credential.cert(serviceAccount)
+                credential: admin.credential.cert(serviceAccount),
+                storageBucket: 'firstlighthomecare-hrm.appspot.com'
             });
             console.log("[Firebase Admin] SDK initialized successfully for local development.");
             return app;
