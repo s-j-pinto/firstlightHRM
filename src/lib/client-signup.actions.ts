@@ -1,5 +1,4 @@
 
-
 "use server";
 
 import { revalidatePath } from 'next/cache';
@@ -29,7 +28,7 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
     }
     const firestore = serverDb;
     try {
-        const signingLink = `${process.env.NEXT_PUBLIC_BASE_URL}/new-client-login`;
+        const signingLink = `${process.env.NEXT_PUBLIC_BASE_URL}/new-client-login?redirect=/client-sign/${signupId}`;
         console.log('Generated signing link:', signingLink);
       
         const email = {
@@ -41,7 +40,7 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
                 <div style="max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
                     <h1 style="color: #333;">Complete Your Onboarding</h1>
                     <p>Hello,</p>
-                    <p>Thank you for choosing FirstLight Home Care. To finalize your service agreement, please log in to your secure portal to review and sign the pending documents by clicking the button below.</p>
+                    <p>Thank you for choosing FirstLight Home Care. To finalize your service agreement, please click the button below to log in to your secure portal and sign the pending documents.</p>
                     <div style="text-align: center; margin: 30px 0;">
                     <a href="${signingLink}" style="background-color: #E07A5F; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-size: 16px; display: inline-block;">
                         Log In to Sign Documents

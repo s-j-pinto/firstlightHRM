@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useTransition } from "react";
+import { useTransition, Suspense } from "react";
 import Image from "next/image";
 import { signInWithCustomToken } from "firebase/auth";
 import { useAuth } from "@/firebase";
@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -27,11 +27,13 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
-export default function NewClientLoginPage() {
+function NewClientLoginContent() {
   const [isPending, startTransition] = useTransition();
   const auth = useAuth();
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get('redirect');
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -59,10 +61,10 @@ export default function NewClientLoginPage() {
         
         toast({
           title: "Login Successful",
-          description: "Welcome! You are now being redirected to your dashboard.",
+          description: "Welcome! You are now being redirected.",
         });
         
-        router.push('/new-client/dashboard');
+        router.push(redirectUrl || '/new-client/dashboard');
 
       } catch (error) {
         console.error("Custom Token Sign-In Error:", error);
@@ -135,4 +137,12 @@ export default function NewClientLoginPage() {
       </Card>
     </main>
   );
+}
+
+export default function NewClientLoginPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <NewClientLoginContent />
+        </Suspense>
+    )
 }
