@@ -28,7 +28,8 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
     }
     const firestore = serverDb;
     try {
-        const signingLink = `${process.env.NEXT_PUBLIC_BASE_URL}/new-client-login?redirect=/client-sign/${signupId}`;
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://care-connect-360--firstlighthomecare-hrm.us-central1.hosted.app';
+        const signingLink = `${baseUrl}/new-client-login?redirect=/client-sign/${signupId}`;
         console.log('Generated signing link:', signingLink);
       
         const email = {
