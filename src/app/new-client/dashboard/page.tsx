@@ -3,7 +3,7 @@
 
 import { useUser, firestore, useCollection, useMemoFirebase } from "@/firebase";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, FileText, ChevronRight, CheckCircle } from "lucide-react";
+import { Loader2, FileText, ChevronRight } from "lucide-react";
 import Link from 'next/link';
 import { collection, query, where } from "firebase/firestore";
 import { format } from "date-fns";
@@ -27,7 +27,6 @@ export default function NewClientDashboardPage() {
   const isLoading = isUserLoading || docsLoading;
   
   const pendingDocuments = documents?.filter(doc => doc.status === 'PENDING CLIENT SIGNATURES');
-  const completedDocuments = documents?.filter(doc => doc.status === 'CLIENT_SIGNATURES_COMPLETED' || doc.status === 'SIGNED AND PUBLISHED');
 
 
   if (isLoading) {
@@ -83,32 +82,6 @@ export default function NewClientDashboardPage() {
               )}
           </CardContent>
         </Card>
-
-        {completedDocuments && completedDocuments.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Completed Documents</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {completedDocuments.map(doc => (
-                <Card key={doc.id} className="bg-muted/50">
-                    <CardContent className="p-4 flex justify-between items-center">
-                        <div className="flex items-center gap-4">
-                            <CheckCircle className="h-8 w-8 text-green-500" />
-                            <div>
-                                <h3 className="font-semibold">{doc.formData?.formName || 'Client Service Agreement'}</h3>
-                                <p className="text-sm text-muted-foreground">
-                                    Completed on {format((doc.lastUpdatedAt as any).toDate(), 'PP')}
-                                </p>
-                            </div>
-                        </div>
-                        <Badge variant="secondary">{doc.status.replace(/_/g, ' ')}</Badge>
-                    </CardContent>
-                </Card>
-              ))}
-            </CardContent>
-          </Card>
-        )}
       </div>
     </div>
   );
