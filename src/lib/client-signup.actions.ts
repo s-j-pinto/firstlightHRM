@@ -1,4 +1,5 @@
 
+
 "use server";
 
 import { revalidatePath } from 'next/cache';
@@ -28,8 +29,8 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
     }
     const firestore = serverDb;
     try {
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://care-connect-360--firstlighthomecare-hrm.us-central1.hosted.app';
-        const signingLink = `${baseUrl}/new-client-login?redirect=/client-sign/${signupId}`;
+        const redirectPath = `/client-sign/${signupId}`;
+        const signingLink = `/new-client-login?redirect=${encodeURIComponent(redirectPath)}`;
         console.log('Generated signing link:', signingLink);
       
         const email = {
@@ -68,7 +69,7 @@ const clientSignaturePayloadSchema = z.object({
   signupId: z.string(),
   signature: z.string().optional(),
   repSignature: z.string().optional(),
-  agreementSignature: z.string().optional(),
+  agreementSignature: z.string().min(1, "Client signature in the payment agreement section is required."),
   printedName: z.string().optional(),
   date: z.date().optional(),
   repPrintedName: z.string().optional(),
@@ -77,11 +78,28 @@ const clientSignaturePayloadSchema = z.object({
   servicePlanClientInitials: z.string().optional(),
   agreementRelationship: z.string().optional(),
   agreementDate: z.date().optional(),
+}).superRefine((data, ctx) => {
+    if (!data.signature && !data.repSignature) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Either the client's or the representative's signature is required in the Acknowledgement section.",
+            path: ["signature"], 
+        });
+    }
 });
 
 
 export async function submitClientSignature(payload: z.infer<typeof clientSignaturePayloadSchema>) {
-    const { signupId, ...signatureData } = payload;
+    
+    const validationResult = clientSignaturePayloadSchema.safeParse(payload);
+
+    if (!validationResult.success) {
+        const firstError = validationResult.error.errors[0];
+        return { message: `${firstError.path.join('.')}: ${firstError.message}`, error: true };
+    }
+
+    const { signupId, ...signatureData } = validationResult.data;
+
     const firestore = serverDb;
     const ownerEmail = process.env.OWNER_EMAIL||'lpinto@firstlighthomecare.com';
 
@@ -195,7 +213,7 @@ export async function finalizeAndSubmit(signupId: string) {
 
         revalidatePath('/owner/dashboard');
         revalidatePath(`/owner/new-client-signup?signupId=${signupId}`);
-        return { message: 'Document has been finalized, PDF generated, and confirmation emails have been sent.' };
+        return { message: 'Document has been finalized, PDF generated, and confirmation emails have been sent.', completedPdfUrl: signedUrl };
     } catch (error: any) {
         console.error("Error finalizing document:", error);
         return { message: `An error occurred during finalization: ${error.message}`, error: true };

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from "react";
@@ -91,7 +92,6 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
       secondEmergencyContactPhone: '',
       homemakerCompanion: false,
       personalCare: false,
-      scheduledFrequency: '',
       daysPerWeek: '',
       hoursPerDay: '',
       contractStartDate: undefined,
@@ -173,7 +173,10 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
   const clientNameValue = form.watch('clientName');
   useEffect(() => {
     form.setValue('agreementClientName', clientNameValue, { shouldValidate: true });
-  }, [clientNameValue, form]);
+    if(isClientMode){
+        form.setValue('clientPrintedName', clientNameValue, { shouldValidate: true });
+    }
+  }, [clientNameValue, form, isClientMode]);
 
 
   useEffect(() => {
@@ -200,6 +203,19 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                 convertedData[field] = undefined;
             }
         });
+        
+        if (isClientMode) {
+            // Pre-populate dates for client signing if they aren't already set
+            if (!convertedData.clientSignatureDate) {
+                convertedData.clientSignatureDate = new Date();
+            }
+             if (!convertedData.clientRepresentativeSignatureDate) {
+                convertedData.clientRepresentativeSignatureDate = new Date();
+            }
+            if (!convertedData.agreementSignatureDate) {
+                convertedData.agreementSignatureDate = new Date();
+            }
+        }
 
       form.reset(convertedData);
 
@@ -213,7 +229,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
         }
       });
     }
-  }, [existingSignupData, form]);
+  }, [existingSignupData, form, isClientMode]);
 
   useEffect(() => {
     if (isPrintMode && !isSignupLoading) {
@@ -551,8 +567,8 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                 </div>
 
                 <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
-                        <div className="flex flex-col space-y-2 pt-2 self-end">
+                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
+                         <div className="flex flex-col space-y-2 pt-2 self-end">
                             <FormLabel>Scheduled Frequency:</FormLabel>
                         </div>
                         <FormField control={form.control} name="daysPerWeek" render={({ field }) => ( <FormItem><FormLabel>Days/Wk</FormLabel><FormControl><Input {...field} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
@@ -643,11 +659,11 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                     </p>
                     <div className="space-y-8">
                         {/* Client Signature Section */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                        <div className={cn("grid grid-cols-1 md:grid-cols-3 gap-6 items-end p-4 rounded-md", isClientMode && "border border-orange-400")}>
                             <div className="space-y-2">
                                 <FormLabel>(Client Signature)</FormLabel>
                                 <div className="relative rounded-md border bg-white">
-                                    {form.getValues('clientSignature') && (isClientMode || isPublished || mode === 'owner') ?
+                                    {form.getValues('clientSignature') && (isPublished || mode === 'owner') ?
                                         <Image src={form.getValues('clientSignature')} alt="Signature" width={200} height={100} className="w-full h-24 object-contain" /> :
                                         <SignatureCanvas ref={sigPads.clientSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isPublished} />
                                     }
@@ -663,11 +679,11 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                             <FormField control={form.control} name="clientSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPublished}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
                         </div>
                         {/* Representative Signature Section */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                        <div className={cn("grid grid-cols-1 md:grid-cols-3 gap-6 items-end p-4 rounded-md", isClientMode && "border border-orange-400")}>
                             <div className="space-y-2">
                                 <FormLabel>(Client Representative Signature)</FormLabel>
                                 <div className="relative rounded-md border bg-white">
-                                     {form.getValues('clientRepresentativeSignature') && (isClientMode || isPublished || mode === 'owner') ?
+                                     {form.getValues('clientRepresentativeSignature') && (isPublished || mode === 'owner') ?
                                         <Image src={form.getValues('clientRepresentativeSignature')} alt="Signature" width={200} height={100} className="w-full h-24 object-contain" /> :
                                         <SignatureCanvas ref={sigPads.clientRepresentativeSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isPublished} />
                                     }
@@ -792,11 +808,11 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                     <p className="text-sm text-muted-foreground">I understand that Firstlight Home Care of Rancho Cucamonga may need to use or disclose my personal information to provide services to me, to obtain payment for its services and for all of the other reasons more fully described in Firstlight Home Care of Rancho Cucamonga Notice of Privacy Practices.</p>
                     <p className="text-sm text-muted-foreground">I acknowledge that I have received the Notice of Privacy Practices, and I consent to all of the uses and disclosures of my personal information as described in that document including, if applicable and as is necessary, for Firstlight Home Care of Rancho Cucamonga provide services to me; to coordinate with my other providers; to determine eligibility for payment, bill, and receive payment for services; and to make all other uses and disclosures described in the Notice of Privacy Practices.</p>
                     <p className="text-sm text-muted-foreground">My consent will be valid for two (2) years from the date below. I may revoke my consent to share information, in writing, at any time. Revoking my consent does not apply to information that has already been shared or affect my financial responsibility for Services. I understand that some uses and sharing of my information are authorized by law and do not require my consent.</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
+                    <div className={cn("grid grid-cols-1 md:grid-cols-2 gap-8 items-end p-4 rounded-md", isClientMode && "border border-orange-400")}>
                         <div className="space-y-2">
                             <FormLabel>Client Signature/Responsible Party</FormLabel>
                             <div className="relative rounded-md border bg-white">
-                                {form.getValues('agreementClientSignature') && (isClientMode || isPublished || mode === 'owner') ?
+                                {form.getValues('agreementClientSignature') && (isPublished || mode === 'owner') ?
                                     <Image src={form.getValues('agreementClientSignature')} alt="Signature" width={200} height={100} className="w-full h-24 object-contain" /> :
                                     <SignatureCanvas ref={sigPads.agreementClientSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isPublished} />
                                 }
@@ -810,7 +826,9 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                         </div>
                         <FormField control={form.control} name="agreementSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPublished}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
                     </div>
-                    <FormField control={form.control} name="agreementRelationship" render={({ field }) => ( <FormItem><FormLabel>Relationship if not Client</FormLabel><FormControl><Input {...field} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                     <div className={cn("p-4 rounded-md", isClientMode && "border border-orange-400")}>
+                        <FormField control={form.control} name="agreementRelationship" render={({ field }) => ( <FormItem><FormLabel>Relationship if not Client</FormLabel><FormControl><Input {...field} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
                         <div className="space-y-2">
                             <FormLabel>FirstLight Home Care of Rancho Cucamonga Representative</FormLabel>
@@ -888,3 +906,4 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
     </Card>
   );
 }
+
