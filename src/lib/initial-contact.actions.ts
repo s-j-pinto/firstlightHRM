@@ -37,6 +37,7 @@ const initialContactSchema = z.object({
   advanceDirective: z.boolean().optional(),
   contactPhone: z.string().optional(),
   languagePreference: z.string().optional(),
+  additionalEmail: z.string().email("Please enter a valid email.").optional().or(z.literal('')),
 });
 
 interface SubmitPayload {

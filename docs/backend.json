@@ -38,7 +38,8 @@
             "ltci": { "type": "string" },
             "advanceDirective": { "type": "boolean" },
             "contactPhone": { "type": "string" },
-            "languagePreference": { "type": "string" }
+            "languagePreference": { "type": "string" },
+            "additionalEmail": { "type": "string", "format": "email" }
         },
         "required": [
             "clientName", "clientAddress", "clientPhone", 
@@ -384,5 +385,3 @@
     }
   }
 }
-
-    
