@@ -13,9 +13,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
 import {
   Form,
@@ -37,6 +34,26 @@ import { useDoc, useMemoFirebase, firestore } from "@/firebase";
 import { doc } from 'firebase/firestore';
 import { Checkbox } from "./ui/checkbox";
 
+const companionCareCheckboxes = [
+    { id: 'companionCare_mealPreparation', label: 'Meal preparation and clean up' },
+    { id: 'companionCare_cleanKitchen', label: 'Clean kitchen - appliances, sinks, mop floors' },
+    { id: 'companionCare_assistWithLaundry', label: 'Assist with laundry and ironing' },
+    { id: 'companionCare_dustFurniture', label: 'Dust furniture - living room, bedrooms, dining room' },
+    { id: 'companionCare_assistWithEating', label: 'Assist with eating and proper nutrition' },
+    { id: 'companionCare_provideAlzheimersRedirection', label: "Provide Alzheimer's redirection - for safety" },
+    { id: 'companionCare_assistWithHomeManagement', label: 'Assist with home management - mail, plants, calendar' },
+    { id: 'companionCare_preparationForBathing', label: 'Preparation for bathing and hair care' },
+    { id: 'companionCare_groceryShopping', label: 'Grocery shopping' },
+    { id: 'companionCare_cleanBathrooms', label: 'Clean bathrooms - sink, tub, toilet' },
+    { id: 'companionCare_changeBedLinens', label: 'Change bed linens and make bed' },
+    { id: 'companionCare_runErrands', label: 'Run errands - pick up prescription' },
+    { id: 'companionCare_escortAndTransportation', label: 'Escort and transportation' },
+    { id: 'companionCare_provideRemindersAndAssistWithToileting', label: 'Provide reminders and assist with toileting' },
+    { id: 'companionCare_provideRespiteCare', label: 'Provide respite care' },
+    { id: 'companionCare_stimulateMentalAwareness', label: 'Stimulate mental awareness - read' },
+    { id: 'companionCare_assistWithDressingAndGrooming', label: 'Assist with dressing and grooming' },
+    { id: 'companionCare_assistWithShavingAndOralCare', label: 'Assist with shaving and oral care' },
+];
 
 const initialContactSchema = z.object({
   clientName: z.string().min(1, "Client's Name is required."),
@@ -54,7 +71,6 @@ const initialContactSchema = z.object({
   timeOfVisit: z.string().optional(),
   referredBy: z.string().optional(),
   promptedCall: z.string().min(1, "This field is required."),
-  companionCareNotes: z.string().optional(),
   personalCareNotes: z.string().optional(),
   estimatedHours: z.string().optional(),
   estimatedStartDate: z.date().optional(),
@@ -69,6 +85,42 @@ const initialContactSchema = z.object({
   contactPhone: z.string().optional(),
   languagePreference: z.string().optional(),
   additionalEmail: z.string().email("Please enter a valid email.").optional().or(z.literal('')),
+  companionCare_mealPreparation: z.boolean().optional(),
+    companionCare_cleanKitchen: z.boolean().optional(),
+    companionCare_assistWithLaundry: z.boolean().optional(),
+    companionCare_dustFurniture: z.boolean().optional(),
+    companionCare_assistWithEating: z.boolean().optional(),
+    companionCare_provideAlzheimersRedirection: z.boolean().optional(),
+    companionCare_assistWithHomeManagement: z.boolean().optional(),
+    companionCare_preparationForBathing: z.boolean().optional(),
+    companionCare_groceryShopping: z.boolean().optional(),
+    companionCare_cleanBathrooms: z.boolean().optional(),
+    companionCare_changeBedLinens: z.boolean().optional(),
+    companionCare_runErrands: z.boolean().optional(),
+    companionCare_escortAndTransportation: z.boolean().optional(),
+    companionCare_provideRemindersAndAssistWithToileting: z.boolean().optional(),
+    companionCare_provideRespiteCare: z.boolean().optional(),
+    companionCare_stimulateMentalAwareness: z.boolean().optional(),
+    companionCare_assistWithDressingAndGrooming: z.boolean().optional(),
+    companionCare_assistWithShavingAndOralCare: z.boolean().optional(),
+    companionCare_other: z.string().optional()
+}).superRefine((data, ctx) => {
+    if (data.inHomeVisitSet === "Yes") {
+        if (!data.dateOfHomeVisit) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Date of Home Visit is required when a visit is set.",
+                path: ["dateOfHomeVisit"],
+            });
+        }
+        if (!data.timeOfVisit) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Time of Visit is required when a visit is set.",
+                path: ["timeOfVisit"],
+            });
+        }
+    }
 });
 
 type InitialContactFormData = z.infer<typeof initialContactSchema>;
@@ -95,7 +147,6 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
       pets: "",
       referredBy: "",
       promptedCall: "",
-      companionCareNotes: "",
       personalCareNotes: "",
       estimatedHours: "",
       inHomeVisitSetNoReason: "",
@@ -108,6 +159,7 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
       contactPhone: "",
       languagePreference: "",
       additionalEmail: "",
+      companionCare_other: ""
     },
   });
   
@@ -215,7 +267,6 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
                     <FormField control={form.control} name="clientPhone" render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Client's Phone Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                     <FormField control={form.control} name="clientEmail" render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Client's Email</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                 </div>
-                <FormField control={form.control} name="rateOffered" render={({ field }) => ( <FormItem><FormLabel>Rate Offered</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )} />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField control={form.control} name="allergies" render={({ field }) => ( <FormItem><FormLabel>Allergies</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                   <FormField control={form.control} name="pets" render={({ field }) => ( <FormItem><FormLabel>Pets</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
@@ -268,13 +319,49 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
                         <FormField control={form.control} name="languagePreference" render={({ field }) => ( <FormItem><FormLabel>Language Preference:</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                     </div>
                 </Card>
+                <FormField control={form.control} name="rateOffered" render={({ field }) => ( <FormItem><FormLabel>Rate Offered</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )} />
               </div>
             </div>
             
             <FormField control={form.control} name="promptedCall" render={({ field }) => ( <FormItem><FormLabel>What Prompted the Call In Today:</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem> )} />
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <FormField control={form.control} name="companionCareNotes" render={({ field }) => ( <FormItem><FormLabel>COMPANION CARE</FormLabel><FormControl><Textarea {...field} rows={8} placeholder="Notes on companion care needs..." /></FormControl><FormMessage /></FormItem> )} />
+                <div>
+                  <FormLabel>COMPANION CARE</FormLabel>
+                  <div className="p-4 border rounded-md mt-2 space-y-2 grid grid-cols-2">
+                    {companionCareCheckboxes.map(item => (
+                      <FormField
+                        key={item.id}
+                        control={form.control}
+                        name={item.id as keyof InitialContactFormData}
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value as boolean}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <FormLabel className="font-normal text-sm">{item.label}</FormLabel>
+                          </FormItem>
+                        )}
+                      />
+                    ))}
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="companionCare_other"
+                    render={({ field }) => (
+                      <FormItem className="mt-4">
+                        <FormLabel>Other Companion Care Needs</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 <FormField control={form.control} name="personalCareNotes" render={({ field }) => ( <FormItem><FormLabel>Personal Care</FormLabel><FormControl><Textarea {...field} rows={8} placeholder="Notes on personal care needs..."/></FormControl><FormMessage /></FormItem> )} />
             </div>
 
