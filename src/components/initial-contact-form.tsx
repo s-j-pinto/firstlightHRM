@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
@@ -148,7 +149,7 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
               </div>
               {/* Right Column */}
               <div className="space-y-6">
-                 <Card className="bg-muted/50 p-4">
+                 <Card className="bg-green-100 p-4">
                     <div className="space-y-4">
                         <FormField
                             control={form.control}
@@ -245,3 +246,5 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
     </Card>
   );
 }
+
+    
