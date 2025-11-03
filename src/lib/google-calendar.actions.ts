@@ -1,4 +1,5 @@
 
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -127,5 +128,84 @@ export async function saveAdminSettings({ googleAuthCode }: { googleAuthCode: st
         console.error("Error in saveAdminSettings:", error);
         const errorMessage = error.response?.data?.error_description || "Failed to get refresh token. Check logs.";
         return { message: errorMessage, error: true };
+    }
+}
+
+
+interface HomeVisitPayload {
+    clientName: string;
+    clientAddress: string;
+    clientEmail: string;
+    additionalEmail?: string | null;
+    dateOfHomeVisit: Date;
+    timeOfVisit: string;
+}
+
+export async function sendHomeVisitInvite(payload: HomeVisitPayload) {
+    const { clientName, clientAddress, clientEmail, additionalEmail, dateOfHomeVisit, timeOfVisit } = payload;
+    
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
+    const ownerEmail = process.env.OWNER_EMAIL;
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:9002/admin/settings';
+
+    if (!clientId || !clientSecret || !refreshToken || !ownerEmail || !adminEmail) {
+        console.error("Missing required environment variables for sending calendar invite.");
+        throw new Error("Server is not configured to send calendar invites. Please contact support.");
+    }
+
+    const oAuth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
+    oAuth2Client.setCredentials({ refresh_token: refreshToken });
+
+    try {
+        await oAuth2Client.getAccessToken(); // Ensure token is valid
+        const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
+
+        const [hours, minutes] = timeOfVisit.split(':').map(Number);
+        const startDateTime = new Date(dateOfHomeVisit);
+        startDateTime.setHours(hours, minutes);
+        const endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000); // 1-hour duration
+
+        const attendees = [
+            { email: ownerEmail },
+            { email: adminEmail },
+        ];
+        if (clientEmail) attendees.push({ email: clientEmail });
+        if (additionalEmail) attendees.push({ email: additionalEmail });
+
+        const event = {
+            summary: `Home Visit with ${clientName}`,
+            location: clientAddress,
+            description: `In-home assessment and consultation for ${clientName}.`,
+            start: {
+                dateTime: startDateTime.toISOString(),
+                timeZone: 'America/Los_Angeles',
+            },
+            end: {
+                dateTime: endDateTime.toISOString(),
+                timeZone: 'America/Los_Angeles',
+            },
+            attendees: attendees,
+            reminders: {
+                useDefault: false,
+                overrides: [{ method: 'email', minutes: 24 * 60 }, { method: 'popup', minutes: 120 }],
+            },
+        };
+
+        await calendar.events.insert({
+            calendarId: 'primary',
+            requestBody: event,
+            sendNotifications: true,
+        });
+
+        return { message: "Home visit calendar invite sent successfully." };
+
+    } catch (err: any) {
+        console.error("Error sending home visit invite:", err);
+        // We can check for specific auth errors like in the other function if needed
+        const errorMessage = err.response?.data?.error?.message || err.message || "Failed to send invite.";
+        throw new Error(errorMessage);
     }
 }

@@ -7,6 +7,7 @@ import { serverDb, serverAuth } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { cookies } from 'next/headers';
+import { sendHomeVisitInvite } from './google-calendar.actions';
 
 const initialContactSchema = z.object({
   clientName: z.string().min(1, "Client's Name is required."),
@@ -41,6 +42,23 @@ const initialContactSchema = z.object({
   additionalEmail: z.string().email("Please enter a valid email.").optional().or(z.literal('')),
   createdAt: z.any().optional(),
   createdBy: z.string().optional(),
+}).superRefine((data, ctx) => {
+    if (data.inHomeVisitSet === "Yes") {
+        if (!data.dateOfHomeVisit) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Date of Home Visit is required when a visit is set.",
+                path: ["dateOfHomeVisit"],
+            });
+        }
+        if (!data.timeOfVisit) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Time of Visit is required when a visit is set.",
+                path: ["timeOfVisit"],
+            });
+        }
+    }
 });
 
 interface SubmitPayload {
@@ -75,16 +93,26 @@ export async function submitInitialContact(payload: SubmitPayload) {
         ...validation.data,
         status: "INITIAL PHONE CONTACT COMPLETED",
         lastUpdatedAt: now,
-        createdBy: userEmail,
-        createdAt: now,
     };
     
     try {
-        if (contactId) {
+        let docId = contactId;
+        if (docId) {
             // Update existing document
-            const contactRef = firestore.collection('initial_contacts').doc(contactId);
-            await contactRef.update(dataToSave);
+            const contactRef = firestore.collection('initial_contacts').doc(docId);
+            await contactRef.update({
+                ...dataToSave,
+                createdBy: userEmail,
+            });
         } else {
+            // Create a new document
+            const contactRef = await firestore.collection('initial_contacts').add({
+                ...dataToSave,
+                createdBy: userEmail,
+                createdAt: now,
+            });
+            docId = contactRef.id;
+
             // Create a new client_signup document as well to show on the dashboard
             const signupRef = firestore.collection('client_signups').doc();
             await signupRef.set({
@@ -105,6 +133,25 @@ export async function submitInitialContact(payload: SubmitPayload) {
                 createdAt: now,
                 lastUpdatedAt: now,
             });
+        }
+
+        // Check if we need to send a calendar invite
+        if (dataToSave.inHomeVisitSet === "Yes" && dataToSave.dateOfHomeVisit && dataToSave.timeOfVisit) {
+             try {
+                await sendHomeVisitInvite({
+                    clientName: dataToSave.clientName,
+                    clientAddress: dataToSave.clientAddress,
+                    clientEmail: dataToSave.clientEmail,
+                    additionalEmail: dataToSave.additionalEmail,
+                    dateOfHomeVisit: dataToSave.dateOfHomeVisit,
+                    timeOfVisit: dataToSave.timeOfVisit,
+                });
+                console.log("Calendar invite sent successfully.");
+            } catch (calendarError: any) {
+                console.error("Failed to send calendar invite:", calendarError);
+                // Don't block the success of the form submission, but log the error.
+                // A toast could be shown on the client if we return this error info.
+            }
         }
         
         revalidatePath('/admin/assessments');
