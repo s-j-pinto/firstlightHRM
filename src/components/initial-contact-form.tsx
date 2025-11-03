@@ -187,52 +187,6 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
                 <FormField control={form.control} name="companionCareNotes" render={({ field }) => ( <FormItem><FormLabel>COMPANION CARE</FormLabel><FormControl><Textarea {...field} rows={8} placeholder="Notes on companion care needs..." /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="personalCareNotes" render={({ field }) => ( <FormItem><FormLabel>Personal Care</FormLabel><FormControl><Textarea {...field} rows={8} placeholder="Notes on personal care needs..."/></FormControl><FormMessage /></FormItem> )} />
             </div>
-            
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                 <FormField control={form.control} name="estimatedHours" render={({ field }) => ( <FormItem><FormLabel>Estimated Hours:</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                  <FormField
-                    control={form.control}
-                    name="estimatedStartDate"
-                    render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                            <FormLabel>Estimated Start Date:</FormLabel>
-                            <Popover>
-                            <PopoverTrigger asChild>
-                                <FormControl>
-                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                                </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                            </PopoverContent>
-                            </Popover>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-            </div>
-            
-            <div className="space-y-4">
-                 <FormField control={form.control} name="inHomeVisitSet" render={({ field }) => (
-                    <FormItem className="space-y-3">
-                        <FormLabel>Was an In-Home Visit Set?</FormLabel>
-                        <FormControl>
-                            <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4">
-                                <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="Yes" /></FormControl><FormLabel className="font-normal">Yes</FormLabel></FormItem>
-                                <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="No" /></FormControl><FormLabel className="font-normal">No</FormLabel></FormItem>
-                            </RadioGroup>
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )} />
-                 {inHomeVisitSet === "No" && (
-                    <FormField control={form.control} name="inHomeVisitSetNoReason" render={({ field }) => ( <FormItem><FormLabel>If NO, Why?</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                )}
-            </div>
-
 
             <div className="flex justify-end pt-4">
               <Button type="submit" disabled={isSubmitting}>
@@ -246,5 +200,3 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
     </Card>
   );
 }
-
-    
