@@ -1,10 +1,9 @@
-
 'use client';
 
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from 'next/navigation';
-import { LogIn, LogOut } from "lucide-react";
+import { LogIn, LogOut, Phone } from "lucide-react";
 import { signOut } from "firebase/auth";
 import { Button } from "./ui/button";
 import { useUser, useAuth } from "@/firebase";
@@ -64,6 +63,9 @@ export function AppHeader() {
                 </Link>
                  <Link href="/admin/assessments" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
                     Assessments
+                </Link>
+                 <Link href="/admin/initial-contact" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
+                    New Contact
                 </Link>
                 <Link href="/admin/manage-applications" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
                     Manage Applications

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo } from 'react';
@@ -43,6 +42,7 @@ export default function ClientSignupList() {
         status === 'SIGNED AND PUBLISHED' ? 'bg-green-500' :
         status === 'CLIENT_SIGNATURES_COMPLETED' ? 'bg-blue-500' :
         status === 'PENDING CLIENT SIGNATURES' ? 'bg-yellow-500' :
+        status === 'INITIAL PHONE CONTACT COMPLETED' ? 'bg-purple-500' :
         'bg-gray-500';
 
     return <Badge className={cn("text-white", colorClass)}>{status.replace(/_/g, ' ')}</Badge>;
@@ -60,7 +60,7 @@ export default function ClientSignupList() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Client Signup Documents</CardTitle>
+        <CardTitle>Client Intake Documents</CardTitle>
         <CardDescription>
           A list of all client intake forms that have been created or sent.
         </CardDescription>

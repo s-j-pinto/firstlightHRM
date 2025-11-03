@@ -245,7 +245,6 @@ export const clientSignupFormSchema = clientSignupDraftSchema.extend({
   // Service and Schedule
   homemakerCompanion: z.boolean().optional(),
   personalCare: z.boolean().optional(),
-  scheduledFrequency: z.string().optional(),
   daysPerWeek: z.string().optional(),
   hoursPerDay: z.string().optional(),
   contractStartDate: z.date().optional(),
@@ -322,9 +321,6 @@ export const finalizationSchema = clientSignupFormSchema.extend({
   hourlyRate: z.coerce.number().min(1, "Hourly rate is required."),
   minimumHoursPerShift: z.coerce.number().min(1, "Minimum hours per shift is required."),
   rateCardDate: z.date({ required_error: "Rate card date is required." }),
-
-  policyNumber: z.string().optional(),
-  policyPeriod: z.string().optional(),
   clientInitials: z.string().min(1, "Client initials for the hiring clause are required."),
 
   receivedPrivacyPractices: z.literal(true, { errorMap: () => ({ message: "Must be acknowledged" }) }),
@@ -343,8 +339,6 @@ export const finalizationSchema = clientSignupFormSchema.extend({
   agreementClientName: z.string().min(1, "Client name for payment agreement is required."),
   agreementRepSignature: z.string().min(1, "FirstLight representative signature for payment agreement is required."),
   agreementRepDate: z.date({ required_error: "Date for payment agreement is required." }),
-  agreementRelationship: z.string().optional(),
-
 }).superRefine((data, ctx) => {
   if (!data.clientSignature && !data.clientRepresentativeSignature) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Either client or representative signature is required.", path: ["clientSignature"] });

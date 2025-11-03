@@ -1,6 +1,36 @@
-
 {
   "entities": {
+    "InitialContact": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "InitialContact",
+        "type": "object",
+        "description": "Stores information from the initial phone contact with a potential client.",
+        "properties": {
+            "callerName": { "type": "string" },
+            "callerRelationship": { "type": "string" },
+            "clientName": { "type": "string" },
+            "clientAddress": { "type": "string" },
+            "clientPhone": { "type": "string" },
+            "clientEmail": { "type": "string", "format": "email" },
+            "dateOfHomeVisit": { "type": "string", "format": "date-time" },
+            "timeOfVisit": { "type": "string" },
+            "referredBy": { "type": "string" },
+            "promptedCall": { "type": "string" },
+            "companionCareNotes": { "type": "string" },
+            "personalCareNotes": { "type": "string" },
+            "estimatedHours": { "type": "string" },
+            "estimatedStartDate": { "type": "string", "format": "date-time" },
+            "inHomeVisitSet": { "type": "string", "enum": ["Yes", "No"] },
+            "inHomeVisitSetNoReason": { "type": "string" },
+            "status": { "type": "string", "enum": ["INITIAL PHONE CONTACT COMPLETED"] },
+            "createdAt": { "type": "string", "format": "date-time" },
+            "lastUpdatedAt": { "type": "string", "format": "date-time" }
+        },
+        "required": [
+            "callerName", "callerRelationship", "clientName", "clientAddress", "clientPhone", 
+            "clientEmail", "promptedCall", "status", "createdAt", "lastUpdatedAt"
+        ]
+    },
     "CaregiverProfile": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "CaregiverProfile",
@@ -256,7 +286,7 @@
         "formData": { "type": "object", "description": "The partially or fully completed form data." },
         "clientEmail": { "type": "string", "format": "email", "description": "The primary email of the client signing up." },
         "clientPhone": { "type": "string", "description": "The primary phone number of the client signing up." },
-        "status": { "type": "string", "enum": ["INCOMPLETE", "PENDING CLIENT SIGNATURES", "CLIENT_SIGNATURES_COMPLETED", "SIGNED AND PUBLISHED"], "description": "The current status of the signup process." },
+        "status": { "type": "string", "enum": ["INITIAL PHONE CONTACT COMPLETED", "INCOMPLETE", "PENDING CLIENT SIGNATURES", "CLIENT_SIGNATURES_COMPLETED", "SIGNED AND PUBLISHED"], "description": "The current status of the signup process." },
         "formTemplateId": { "type": "string", "description": "The ID of the form template used for this signup." },
         "completedPdfUrl": { "type": "string", "format": "uri", "description": "The URL to the final, signed PDF in Google Cloud Storage." },
         "createdAt": { "type": "string", "format": "date-time" },
@@ -290,6 +320,10 @@
     ]
   },
   "firestore": {
+    "/initial_contacts/{contactId}": {
+        "schema": { "$ref": "#/entities/InitialContact" },
+        "description": "Stores initial client inquiry information."
+    },
     "/caregiver_profiles/{caregiverProfileId}": {
       "schema": { "$ref": "#/entities/CaregiverProfile" },
       "description": "Stores caregiver profile information."
