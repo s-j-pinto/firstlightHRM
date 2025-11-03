@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
@@ -55,6 +56,16 @@ const companionCareCheckboxes = [
     { id: 'companionCare_assistWithShavingAndOralCare', label: 'Assist with shaving and oral care' },
 ];
 
+const personalCareCheckboxes = [
+    { id: 'personalCare_provideAlzheimersCare', label: "Provide Alzheimer's care, cognitive impairment" },
+    { id: 'personalCare_provideMedicationReminders', label: 'Provide medication reminders' },
+    { id: 'personalCare_assistWithDressingGrooming', label: 'Assist with dressing, grooming' },
+    { id: 'personalCare_assistWithBathingHairCare', label: 'Assist with bathing, hair care' },
+    { id: 'personalCare_assistWithFeedingSpecialDiets', label: 'Assist with feeding, special diets' },
+    { id: 'personalCare_assistWithMobilityAmbulationTransfer', label: 'Assist with mobility, ambulation and transfer' },
+    { id: 'personalCare_assistWithIncontinenceCare', label: 'Assist with incontinence care' },
+] as const;
+
 const initialContactSchema = z.object({
   clientName: z.string().min(1, "Client's Name is required."),
   clientAddress: z.string().min(1, "Client's Address is required."),
@@ -103,7 +114,15 @@ const initialContactSchema = z.object({
     companionCare_stimulateMentalAwareness: z.boolean().optional(),
     companionCare_assistWithDressingAndGrooming: z.boolean().optional(),
     companionCare_assistWithShavingAndOralCare: z.boolean().optional(),
-    companionCare_other: z.string().optional()
+    companionCare_other: z.string().optional(),
+    personalCare_provideAlzheimersCare: z.boolean().optional(),
+    personalCare_provideMedicationReminders: z.boolean().optional(),
+    personalCare_assistWithDressingGrooming: z.boolean().optional(),
+    personalCare_assistWithBathingHairCare: z.boolean().optional(),
+    personalCare_assistWithFeedingSpecialDiets: z.boolean().optional(),
+    personalCare_assistWithMobilityAmbulationTransfer: z.boolean().optional(),
+    personalCare_assistWithIncontinenceCare: z.boolean().optional(),
+    personalCare_assistWithOther: z.string().optional(),
 }).superRefine((data, ctx) => {
     if (data.inHomeVisitSet === "Yes") {
         if (!data.dateOfHomeVisit) {
@@ -147,7 +166,6 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
       pets: "",
       referredBy: "",
       promptedCall: "",
-      personalCareNotes: "",
       estimatedHours: "",
       inHomeVisitSetNoReason: "",
       medicalIns: "",
@@ -159,7 +177,8 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
       contactPhone: "",
       languagePreference: "",
       additionalEmail: "",
-      companionCare_other: ""
+      companionCare_other: "",
+      personalCare_assistWithOther: "",
     },
   });
   
@@ -325,7 +344,7 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
             
             <FormField control={form.control} name="promptedCall" render={({ field }) => ( <FormItem><FormLabel>What Prompted the Call In Today:</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem> )} />
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
                 <div>
                   <FormLabel>COMPANION CARE</FormLabel>
                   <div className="p-4 border rounded-md mt-2 space-y-2 grid grid-cols-2">
@@ -362,7 +381,42 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
                     )}
                   />
                 </div>
-                <FormField control={form.control} name="personalCareNotes" render={({ field }) => ( <FormItem><FormLabel>Personal Care</FormLabel><FormControl><Textarea {...field} rows={8} placeholder="Notes on personal care needs..."/></FormControl><FormMessage /></FormItem> )} />
+                <div>
+                  <FormLabel>PERSONAL CARE</FormLabel>
+                  <div className="p-4 border rounded-md mt-2 space-y-2 grid grid-cols-1">
+                    {personalCareCheckboxes.map(item => (
+                      <FormField
+                        key={item.id}
+                        control={form.control}
+                        name={item.id as keyof InitialContactFormData}
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value as boolean}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <FormLabel className="font-normal text-sm">{item.label}</FormLabel>
+                          </FormItem>
+                        )}
+                      />
+                    ))}
+                  </div>
+                   <FormField
+                    control={form.control}
+                    name="personalCare_assistWithOther"
+                    render={({ field }) => (
+                      <FormItem className="mt-4">
+                        <FormLabel>Assist with other</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
