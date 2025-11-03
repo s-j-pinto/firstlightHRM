@@ -1,9 +1,8 @@
-
 "use client";
 
 import { useUser } from "@/firebase";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, UserPlus } from "lucide-react";
+import { Loader2, Phone } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import ClientSignupList from "@/components/client-signup-list";
@@ -31,9 +30,9 @@ export default function OwnerDashboardPage() {
                 </p>
             </div>
             <Button asChild>
-                <Link href="/owner/new-client-signup">
-                    <UserPlus className="mr-2" />
-                    Sign Up New Client
+                <Link href="/admin/initial-contact">
+                    <Phone className="mr-2" />
+                    New Initial Contact
                 </Link>
             </Button>
         </div>
