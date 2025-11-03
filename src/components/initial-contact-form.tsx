@@ -278,6 +278,7 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
                     )}
                   />
                 </div>
+                 <FormField control={form.control} name="rateOffered" render={({ field }) => ( <FormItem><FormLabel>Rate Offered</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )} />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                    <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                   <FormField control={form.control} name="zip" render={({ field }) => ( <FormItem><FormLabel>Zip</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
@@ -338,7 +339,6 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
                         <FormField control={form.control} name="languagePreference" render={({ field }) => ( <FormItem><FormLabel>Language Preference:</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                     </div>
                 </Card>
-                <FormField control={form.control} name="rateOffered" render={({ field }) => ( <FormItem><FormLabel>Rate Offered</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )} />
               </div>
             </div>
             
