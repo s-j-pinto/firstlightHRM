@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
@@ -156,13 +155,7 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Initial Phone Contact Form</CardTitle>
-        <CardDescription>
-          Document the initial phone call with a potential new client.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
