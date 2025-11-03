@@ -45,6 +45,9 @@ const initialContactSchema = z.object({
   clientAddress: z.string().min(1, "Client's Address is required."),
   clientPhone: z.string().min(1, "Client's Phone is required."),
   clientEmail: z.string().email("A valid email is required."),
+  mainContact: z.string().optional(),
+  allergies: z.string().optional(),
+  pets: z.string().optional(),
   dateOfHomeVisit: z.date().optional(),
   timeOfVisit: z.string().optional(),
   referredBy: z.string().optional(),
@@ -84,6 +87,9 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
       clientAddress: "",
       clientPhone: "",
       clientEmail: "",
+      mainContact: "",
+      allergies: "",
+      pets: "",
       referredBy: "",
       promptedCall: "",
       companionCareNotes: "",
@@ -167,6 +173,9 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
                 <FormField control={form.control} name="clientAddress" render={({ field }) => ( <FormItem><FormLabel>Client's Address</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="clientPhone" render={({ field }) => ( <FormItem><FormLabel>Client's Phone Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="clientEmail" render={({ field }) => ( <FormItem><FormLabel>Client's Email</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="mainContact" render={({ field }) => ( <FormItem><FormLabel>Main Contact</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="allergies" render={({ field }) => ( <FormItem><FormLabel>Allergies</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="pets" render={({ field }) => ( <FormItem><FormLabel>Pets</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
               </div>
               {/* Right Column */}
               <div className="space-y-6">
@@ -233,5 +242,3 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
     </Card>
   );
 }
-
-    

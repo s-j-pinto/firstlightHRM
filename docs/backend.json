@@ -12,6 +12,9 @@
             "clientAddress": { "type": "string" },
             "clientPhone": { "type": "string" },
             "clientEmail": { "type": "string", "format": "email" },
+            "mainContact": { "type": "string" },
+            "allergies": { "type": "string" },
+            "pets": { "type": "string" },
             "dateOfHomeVisit": { "type": "string", "format": "date-time" },
             "timeOfVisit": { "type": "string" },
             "referredBy": { "type": "string" },
@@ -378,5 +381,3 @@
     }
   }
 }
-
-    
