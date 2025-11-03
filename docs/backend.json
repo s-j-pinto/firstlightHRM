@@ -7,10 +7,11 @@
         "type": "object",
         "description": "Stores information from the initial phone contact with a potential client.",
         "properties": {
-            "callerName": { "type": "string" },
-            "callerRelationship": { "type": "string" },
             "clientName": { "type": "string" },
             "clientAddress": { "type": "string" },
+            "aptUnit": { "type": "string" },
+            "city": { "type": "string" },
+            "zip": { "type": "string" },
             "clientPhone": { "type": "string" },
             "clientEmail": { "type": "string", "format": "email" },
             "mainContact": { "type": "string" },
@@ -39,7 +40,7 @@
             "languagePreference": { "type": "string" }
         },
         "required": [
-            "callerName", "callerRelationship", "clientName", "clientAddress", "clientPhone", 
+            "clientName", "clientAddress", "clientPhone", 
             "clientEmail", "promptedCall", "status", "createdAt", "lastUpdatedAt"
         ]
     },

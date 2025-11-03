@@ -8,10 +8,11 @@ import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
 
 const initialContactSchema = z.object({
-  callerName: z.string().min(1, "Caller's Name is required."),
-  callerRelationship: z.string().min(1, "Caller's Relationship to Client is required."),
   clientName: z.string().min(1, "Client's Name is required."),
   clientAddress: z.string().min(1, "Client's Address is required."),
+  aptUnit: z.string().optional(),
+  city: z.string().optional(),
+  zip: z.string().optional(),
   clientPhone: z.string().min(1, "Client's Phone is required."),
   clientEmail: z.string().email("A valid email is required."),
   mainContact: z.string().optional(),
@@ -74,6 +75,9 @@ export async function submitInitialContact(payload: SubmitPayload) {
                     clientPhone: validation.data.clientPhone,
                     clientEmail: validation.data.clientEmail,
                     clientAddress: validation.data.clientAddress,
+                    aptUnit: validation.data.aptUnit,
+                    city: validation.data.city,
+                    zip: validation.data.zip,
                 },
                 clientEmail: validation.data.clientEmail,
                 clientPhone: validation.data.clientPhone,
@@ -92,5 +96,3 @@ export async function submitInitialContact(payload: SubmitPayload) {
         return { message: `An error occurred: ${error.message}`, error: true };
     }
 }
-
-    

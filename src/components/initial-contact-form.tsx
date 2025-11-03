@@ -39,10 +39,11 @@ import { Checkbox } from "./ui/checkbox";
 
 
 const initialContactSchema = z.object({
-  callerName: z.string().min(1, "Caller's Name is required."),
-  callerRelationship: z.string().min(1, "Caller's Relationship to Client is required."),
   clientName: z.string().min(1, "Client's Name is required."),
   clientAddress: z.string().min(1, "Client's Address is required."),
+  aptUnit: z.string().optional(),
+  city: z.string().optional(),
+  zip: z.string().optional(),
   clientPhone: z.string().min(1, "Client's Phone is required."),
   clientEmail: z.string().email("A valid email is required."),
   mainContact: z.string().optional(),
@@ -81,10 +82,11 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
   const form = useForm<InitialContactFormData>({
     resolver: zodResolver(initialContactSchema),
     defaultValues: {
-      callerName: "",
-      callerRelationship: "",
       clientName: "",
       clientAddress: "",
+      aptUnit: "",
+      city: "",
+      zip: "",
       clientPhone: "",
       clientEmail: "",
       mainContact: "",
@@ -161,10 +163,15 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
               {/* Left Column */}
               <div className="space-y-6">
-                <FormField control={form.control} name="callerName" render={({ field }) => ( <FormItem><FormLabel>Caller's Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                <FormField control={form.control} name="callerRelationship" render={({ field }) => ( <FormItem><FormLabel>Caller's Relationship to Client</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="clientName" render={({ field }) => ( <FormItem><FormLabel>Client's Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                <FormField control={form.control} name="clientAddress" render={({ field }) => ( <FormItem><FormLabel>Client's Address</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField control={form.control} name="clientAddress" render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                  <FormField control={form.control} name="aptUnit" render={({ field }) => ( <FormItem><FormLabel>Apt/Unit #</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                   <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                  <FormField control={form.control} name="zip" render={({ field }) => ( <FormItem><FormLabel>Zip</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                </div>
                 <div className="flex gap-4">
                     <FormField control={form.control} name="clientPhone" render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Client's Phone Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                     <FormField control={form.control} name="clientEmail" render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Client's Email</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
