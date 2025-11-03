@@ -156,7 +156,7 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Client Inquiry Form</CardTitle>
+        <CardTitle>Initial Phone Contact Form</CardTitle>
         <CardDescription>
           Document the initial phone call with a potential new client.
         </CardDescription>
