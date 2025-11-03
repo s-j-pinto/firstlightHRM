@@ -41,7 +41,8 @@ import { Checkbox } from "./ui/checkbox";
 const initialContactSchema = z.object({
   clientName: z.string().min(1, "Client's Name is required."),
   clientAddress: z.string().min(1, "Client's Address is required."),
-  aptUnit: z.string().optional(),
+  dateOfBirth: z.date().optional(),
+  rateOffered: z.coerce.number().optional(),
   city: z.string().optional(),
   zip: z.string().optional(),
   clientPhone: z.string().min(1, "Client's Phone is required."),
@@ -84,7 +85,6 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
     defaultValues: {
       clientName: "",
       clientAddress: "",
-      aptUnit: "",
       city: "",
       zip: "",
       clientPhone: "",
@@ -111,7 +111,7 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
   
   useEffect(() => {
     if (existingData) {
-        const dateFields = ['dateOfHomeVisit', 'estimatedStartDate'];
+        const dateFields = ['dateOfHomeVisit', 'estimatedStartDate', 'dateOfBirth'];
         const convertedData = { ...existingData };
         dateFields.forEach(field => {
             if (existingData[field] && typeof existingData[field].toDate === 'function') {
@@ -166,7 +166,44 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
                 <FormField control={form.control} name="clientName" render={({ field }) => ( <FormItem><FormLabel>Client's Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField control={form.control} name="clientAddress" render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                  <FormField control={form.control} name="aptUnit" render={({ field }) => ( <FormItem><FormLabel>Apt/Unit #</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                   <FormField
+                    control={form.control}
+                    name="dateOfBirth"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Date of Birth</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  format(field.value, "PPP")
+                                ) : (
+                                  <span>Pick a date</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                    <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
@@ -236,7 +273,7 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
                 <div className="space-y-6">
                     <FormField control={form.control} name="estimatedHours" render={({ field }) => ( <FormItem><FormLabel>Estimated Hours:</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                    <FormField
+                     <FormField
                         control={form.control}
                         name="estimatedStartDate"
                         render={({ field }) => (
@@ -259,6 +296,7 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
                             </FormItem>
                         )}
                     />
+                    <FormField control={form.control} name="rateOffered" render={({ field }) => ( <FormItem><FormLabel>Rate Offered</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )} />
                 </div>
                  <div className="space-y-6">
                     <FormField control={form.control} name="inHomeVisitSet" render={({ field }) => (
@@ -291,3 +329,5 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
     </Card>
   );
 }
+
+    

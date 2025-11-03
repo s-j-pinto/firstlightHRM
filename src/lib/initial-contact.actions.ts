@@ -10,7 +10,8 @@ import { z } from 'zod';
 const initialContactSchema = z.object({
   clientName: z.string().min(1, "Client's Name is required."),
   clientAddress: z.string().min(1, "Client's Address is required."),
-  aptUnit: z.string().optional(),
+  dateOfBirth: z.date().optional(),
+  rateOffered: z.coerce.number().optional(),
   city: z.string().optional(),
   zip: z.string().optional(),
   clientPhone: z.string().min(1, "Client's Phone is required."),
@@ -75,7 +76,8 @@ export async function submitInitialContact(payload: SubmitPayload) {
                     clientPhone: validation.data.clientPhone,
                     clientEmail: validation.data.clientEmail,
                     clientAddress: validation.data.clientAddress,
-                    aptUnit: validation.data.aptUnit,
+                    dateOfBirth: validation.data.dateOfBirth,
+                    rateOffered: validation.data.rateOffered,
                     city: validation.data.city,
                     zip: validation.data.zip,
                 },
@@ -96,3 +98,5 @@ export async function submitInitialContact(payload: SubmitPayload) {
         return { message: `An error occurred: ${error.message}`, error: true };
     }
 }
+
+    

@@ -9,7 +9,8 @@
         "properties": {
             "clientName": { "type": "string" },
             "clientAddress": { "type": "string" },
-            "aptUnit": { "type": "string" },
+            "dateOfBirth": { "type": "string", "format": "date" },
+            "rateOffered": { "type": "number" },
             "city": { "type": "string" },
             "zip": { "type": "string" },
             "clientPhone": { "type": "string" },
@@ -383,3 +384,5 @@
     }
   }
 }
+
+    
