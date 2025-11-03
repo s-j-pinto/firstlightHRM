@@ -30,6 +30,7 @@
             "inHomeVisitSetNoReason": { "type": "string" },
             "status": { "type": "string", "enum": ["INITIAL PHONE CONTACT COMPLETED"] },
             "createdAt": { "type": "string", "format": "date-time" },
+            "createdBy": { "type": "string", "format": "email" },
             "lastUpdatedAt": { "type": "string", "format": "date-time" },
             "medicalIns": { "type": "string" },
             "dnr": { "type": "boolean" },

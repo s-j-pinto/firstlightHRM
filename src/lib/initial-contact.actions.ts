@@ -3,9 +3,10 @@
 "use server";
 
 import { revalidatePath } from 'next/cache';
-import { serverDb } from '@/firebase/server-init';
+import { serverDb, serverAuth } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
+import { cookies } from 'next/headers';
 
 const initialContactSchema = z.object({
   clientName: z.string().min(1, "Client's Name is required."),
@@ -38,6 +39,8 @@ const initialContactSchema = z.object({
   contactPhone: z.string().optional(),
   languagePreference: z.string().optional(),
   additionalEmail: z.string().email("Please enter a valid email.").optional().or(z.literal('')),
+  createdAt: z.any().optional(),
+  createdBy: z.string().optional(),
 });
 
 interface SubmitPayload {
@@ -56,11 +59,24 @@ export async function submitInitialContact(payload: SubmitPayload) {
 
     const firestore = serverDb;
     const now = Timestamp.now();
+    let userEmail = 'unknown';
+
+    try {
+        const sessionCookie = cookies().get("__session")?.value;
+        if (sessionCookie) {
+            const decodedToken = await serverAuth.verifySessionCookie(sessionCookie);
+            userEmail = decodedToken.email || 'unknown';
+        }
+    } catch (e) {
+        console.warn('Could not get user from session cookie for createdBy field.');
+    }
 
     const dataToSave = {
         ...validation.data,
         status: "INITIAL PHONE CONTACT COMPLETED",
         lastUpdatedAt: now,
+        createdBy: userEmail,
+        createdAt: now,
     };
     
     try {
@@ -85,6 +101,7 @@ export async function submitInitialContact(payload: SubmitPayload) {
                 clientEmail: validation.data.clientEmail,
                 clientPhone: validation.data.clientPhone,
                 status: 'INITIAL PHONE CONTACT COMPLETED',
+                createdBy: userEmail,
                 createdAt: now,
                 lastUpdatedAt: now,
             });
@@ -99,5 +116,3 @@ export async function submitInitialContact(payload: SubmitPayload) {
         return { message: `An error occurred: ${error.message}`, error: true };
     }
 }
-
-    
