@@ -30,7 +30,7 @@ export default function OwnerDashboardPage() {
                 </p>
             </div>
             <Button asChild>
-                <Link href="/admin/initial-contact">
+                <Link href="/owner/initial-contact">
                     <Phone className="mr-2" />
                     New Initial Contact
                 </Link>
