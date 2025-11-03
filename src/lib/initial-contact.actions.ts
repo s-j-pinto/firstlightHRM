@@ -1,3 +1,4 @@
+
 "use server";
 
 import { revalidatePath } from 'next/cache';
@@ -6,22 +7,30 @@ import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
 
 const initialContactSchema = z.object({
-  callerName: z.string().min(1),
-  callerRelationship: z.string().min(1),
-  clientName: z.string().min(1),
-  clientAddress: z.string().min(1),
-  clientPhone: z.string().min(1),
-  clientEmail: z.string().email(),
+  callerName: z.string().min(1, "Caller's Name is required."),
+  callerRelationship: z.string().min(1, "Caller's Relationship to Client is required."),
+  clientName: z.string().min(1, "Client's Name is required."),
+  clientAddress: z.string().min(1, "Client's Address is required."),
+  clientPhone: z.string().min(1, "Client's Phone is required."),
+  clientEmail: z.string().email("A valid email is required."),
   dateOfHomeVisit: z.date().optional(),
   timeOfVisit: z.string().optional(),
   referredBy: z.string().optional(),
-  promptedCall: z.string().min(1),
+  promptedCall: z.string().min(1, "This field is required."),
   companionCareNotes: z.string().optional(),
   personalCareNotes: z.string().optional(),
   estimatedHours: z.string().optional(),
   estimatedStartDate: z.date().optional(),
   inHomeVisitSet: z.enum(["Yes", "No"]).optional(),
   inHomeVisitSetNoReason: z.string().optional(),
+  medicalIns: z.string().optional(),
+  dnr: z.boolean().optional(),
+  va: z.string().optional(),
+  hasPoa: z.enum(["Yes", "No"]).optional(),
+  ltci: z.string().optional(),
+  advanceDirective: z.boolean().optional(),
+  contactPhone: z.string().optional(),
+  languagePreference: z.string().optional(),
 });
 
 interface SubmitPayload {
@@ -71,6 +80,7 @@ export async function submitInitialContact(payload: SubmitPayload) {
         }
         
         revalidatePath('/admin/assessments');
+        revalidatePath('/owner/dashboard');
         return { message: "Initial contact saved successfully." };
 
     } catch (error: any) {
@@ -78,3 +88,5 @@ export async function submitInitialContact(payload: SubmitPayload) {
         return { message: `An error occurred: ${error.message}`, error: true };
     }
 }
+
+    

@@ -35,6 +35,7 @@ import { cn } from "@/lib/utils";
 import { submitInitialContact } from "@/lib/initial-contact.actions";
 import { useDoc, useMemoFirebase, firestore } from "@/firebase";
 import { doc } from 'firebase/firestore';
+import { Checkbox } from "./ui/checkbox";
 
 
 const initialContactSchema = z.object({
@@ -54,6 +55,14 @@ const initialContactSchema = z.object({
   estimatedStartDate: z.date().optional(),
   inHomeVisitSet: z.enum(["Yes", "No"]).optional(),
   inHomeVisitSetNoReason: z.string().optional(),
+  medicalIns: z.string().optional(),
+  dnr: z.boolean().optional(),
+  va: z.string().optional(),
+  hasPoa: z.enum(["Yes", "No"]).optional(),
+  ltci: z.string().optional(),
+  advanceDirective: z.boolean().optional(),
+  contactPhone: z.string().optional(),
+  languagePreference: z.string().optional(),
 });
 
 type InitialContactFormData = z.infer<typeof initialContactSchema>;
@@ -81,6 +90,14 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
       personalCareNotes: "",
       estimatedHours: "",
       inHomeVisitSetNoReason: "",
+      medicalIns: "",
+      dnr: false,
+      va: "",
+      hasPoa: undefined,
+      ltci: "",
+      advanceDirective: false,
+      contactPhone: "",
+      languagePreference: "",
     },
   });
   
@@ -115,7 +132,11 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
           title: "Success",
           description: "Initial contact information has been saved.",
         });
-        router.push('/admin/assessments');
+        if(window.location.pathname.includes('/admin')) {
+          router.push('/admin/assessments');
+        } else {
+          router.push('/owner/dashboard');
+        }
       }
     });
   };
@@ -178,6 +199,18 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
                         <FormField control={form.control} name="referredBy" render={({ field }) => ( <FormItem><FormLabel>Referred By</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                     </div>
                 </Card>
+                <Card className="p-4">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+                        <FormField control={form.control} name="medicalIns" render={({ field }) => ( <FormItem><FormLabel>Medical Ins</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="dnr" render={({ field }) => ( <FormItem className="flex items-center gap-2 pt-8"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="!mt-0">DNR</FormLabel><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="va" render={({ field }) => ( <FormItem><FormLabel>VA</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="hasPoa" render={({ field }) => ( <FormItem><FormLabel>Has POA</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center gap-4"><FormItem className="flex items-center space-x-1 space-y-0"><FormControl><RadioGroupItem value="Yes"/></FormControl><FormLabel className="font-normal">Y</FormLabel></FormItem><FormItem className="flex items-center space-x-1 space-y-0"><FormControl><RadioGroupItem value="No"/></FormControl><FormLabel className="font-normal">N</FormLabel></FormItem></RadioGroup></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="ltci" render={({ field }) => ( <FormItem><FormLabel>LTCI- No</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="advanceDirective" render={({ field }) => ( <FormItem className="flex items-center gap-2 pt-8"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="!mt-0">Advance Directive</FormLabel><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="contactPhone" render={({ field }) => ( <FormItem><FormLabel>Contact Phone:</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="languagePreference" render={({ field }) => ( <FormItem><FormLabel>Language Preference:</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    </div>
+                </Card>
               </div>
             </div>
             
@@ -200,3 +233,5 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
     </Card>
   );
 }
+
+    

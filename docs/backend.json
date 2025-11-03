@@ -24,7 +24,15 @@
             "inHomeVisitSetNoReason": { "type": "string" },
             "status": { "type": "string", "enum": ["INITIAL PHONE CONTACT COMPLETED"] },
             "createdAt": { "type": "string", "format": "date-time" },
-            "lastUpdatedAt": { "type": "string", "format": "date-time" }
+            "lastUpdatedAt": { "type": "string", "format": "date-time" },
+            "medicalIns": { "type": "string" },
+            "dnr": { "type": "boolean" },
+            "va": { "type": "string" },
+            "hasPoa": { "type": "string", "enum": ["Yes", "No"] },
+            "ltci": { "type": "string" },
+            "advanceDirective": { "type": "boolean" },
+            "contactPhone": { "type": "string" },
+            "languagePreference": { "type": "string" }
         },
         "required": [
             "callerName", "callerRelationship", "clientName", "clientAddress", "clientPhone", 
@@ -370,3 +378,5 @@
     }
   }
 }
+
+    
