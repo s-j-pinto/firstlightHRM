@@ -372,7 +372,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
               </div>
               {/* Right Column */}
               <div className="space-y-6">
-                 <Card className="bg-muted/30 p-4">
+                 <Card className="bg-green-100 p-4">
                     <div className="space-y-4">
                         <FormField
                             control={form.control}
