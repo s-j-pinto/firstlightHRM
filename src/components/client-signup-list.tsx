@@ -1,9 +1,10 @@
+
 "use client";
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { firestore, useCollection, useMemoFirebase } from '@/firebase';
-import { format } from 'date-fns';
+import { format, subDays, subMonths, isAfter } from 'date-fns';
 import { Loader2, ChevronRight, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -23,41 +24,64 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from './ui/badge';
 import { cn } from '@/lib/utils';
 
+const intakeStatuses = [
+    "INITIAL PHONE CONTACT COMPLETED",
+    "INCOMPLETE",
+    "PENDING CLIENT SIGNATURES",
+    "CLIENT_SIGNATURES_COMPLETED",
+    "SIGNED AND PUBLISHED",
+];
+
+const dateRanges = {
+    'last_week': { label: 'Last Week', days: 7 },
+    'last_2_weeks': { label: 'Last 2 Weeks', days: 14 },
+    'last_month': { label: 'Last Month', days: 30 },
+    'last_quarter': { label: 'Last Quarter', days: 90 },
+    'last_6_months': { label: 'Last 6 Months', days: 180 },
+    'all_time': { label: 'All Time', days: -1 },
+};
+
+type DateRangeKey = keyof typeof dateRanges;
+
 export default function ClientSignupList() {
   const pathname = usePathname();
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [dateFilter, setDateFilter] = useState<DateRangeKey>('last_month');
   
-  // 1. Fetch all initial contacts, ordered by creation date
   const contactsQuery = useMemoFirebase(() => 
     query(collection(firestore, 'initial_contacts'), orderBy('createdAt', 'desc')),
     []
   );
   const { data: contacts, isLoading: contactsLoading } = useCollection<any>(contactsQuery);
 
-  // 2. Fetch all client signups
   const signupsQuery = useMemoFirebase(() => 
     query(collection(firestore, 'client_signups')),
     []
   );
   const { data: signups, isLoading: signupsLoading } = useCollection<any>(signupsQuery);
 
-  // 3. Perform the client-side join and create a unified list
   const unifiedIntakeList = useMemo(() => {
     if (!contacts) return [];
 
-    // Create a map of signups for efficient lookup
     const signupsMap = new Map(signups?.map(s => [s.initialContactId, s]) || []);
 
-    return contacts.map(contact => {
+    const allIntakes = contacts.map(contact => {
       const signup = signupsMap.get(contact.id);
-      
       const status = signup?.status || "INITIAL PHONE CONTACT COMPLETED";
       
       return {
-        id: contact.id, // Use contact ID as the key
-        signupId: signup?.id, // Pass signupId if it exists
+        id: contact.id,
+        signupId: signup?.id,
         clientName: contact.clientName || 'N/A',
         clientPhone: contact.clientPhone || 'N/A',
         clientAddress: contact.clientAddress ? `${contact.clientAddress}, ${contact.city || ''}` : 'N/A',
@@ -65,7 +89,24 @@ export default function ClientSignupList() {
         status: status,
       };
     });
-  }, [contacts, signups]);
+
+    // Apply filters
+    const filteredIntakes = allIntakes.filter(item => {
+        const statusMatch = statusFilter === 'ALL' || item.status === statusFilter;
+        if (!statusMatch) return false;
+
+        if (dateFilter === 'all_time') return true;
+        
+        const days = dateRanges[dateFilter].days;
+        const cutoffDate = subDays(new Date(), days);
+        const itemDate = item.createdAt?.toDate();
+        
+        return itemDate && isAfter(itemDate, cutoffDate);
+    });
+
+    return filteredIntakes;
+
+  }, [contacts, signups, statusFilter, dateFilter]);
 
   const baseEditPath = pathname.includes('/admin') ? '/admin/initial-contact' : '/owner/initial-contact';
   const csaBasePath = pathname.includes('/admin') ? '/admin/new-client-signup' : '/owner/new-client-signup';
@@ -94,10 +135,37 @@ export default function ClientSignupList() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Client Intake Documents</CardTitle>
-        <CardDescription>
-          A unified list of all client intake forms from initial contact to final signature.
-        </CardDescription>
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+            <div>
+                <CardTitle>Client Intake Documents</CardTitle>
+                <CardDescription>
+                A unified list of all client intake forms from initial contact to final signature.
+                </CardDescription>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-full sm:w-[240px]">
+                        <SelectValue placeholder="Filter by status..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="ALL">All Statuses</SelectItem>
+                        {intakeStatuses.map(status => (
+                            <SelectItem key={status} value={status}>{status.replace(/_/g, ' ')}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <Select value={dateFilter} onValueChange={(value) => setDateFilter(value as DateRangeKey)}>
+                    <SelectTrigger className="w-full sm:w-[180px]">
+                        <SelectValue placeholder="Filter by date..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {Object.entries(dateRanges).map(([key, { label }]) => (
+                             <SelectItem key={key} value={key}>{label}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+        </div>
       </CardHeader>
       <CardContent>
         <Table>
@@ -139,7 +207,7 @@ export default function ClientSignupList() {
             ) : (
               <TableRow>
                 <TableCell colSpan={6} className="h-24 text-center">
-                  No intake documents found.
+                  No intake documents found with the selected filters.
                 </TableCell>
               </TableRow>
             )}
