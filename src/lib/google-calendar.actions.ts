@@ -7,7 +7,7 @@ import { google } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
 import { serverDb } from "@/firebase/server-init";
 import type { Appointment } from "./types";
-import { format, toZonedTime } from 'date-fns-tz';
+import { format, toZonedTime, formatInTimeZone } from 'date-fns-tz';
 
 export async function sendCalendarInvite(appointment: Appointment & { caregiver: any }) {
     const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -181,10 +181,21 @@ export async function sendHomeVisitInvite(payload: HomeVisitPayload) {
         const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
         const pacificTimeZone = 'America/Los_Angeles';
 
-        const dateString = format(dateOfHomeVisit, 'yyyy-MM-dd');
-        const startDateTimeString = `${dateString}T${timeOfVisit}:00`;
-        const startDateTime = toZonedTime(startDateTimeString, pacificTimeZone);
+        // 1. Get the date part and time part.
+        const datePart = format(dateOfHomeVisit, 'yyyy-MM-dd');
+        const timePart = timeOfVisit; // e.g., "14:30"
+        
+        // 2. Combine them into a single string.
+        const dateTimeString = `${datePart} ${timePart}`;
+
+        // 3. Format this combined string into a full ISO 8601 string *with* the correct timezone offset.
+        const startDateTimeIso = formatInTimeZone(dateTimeString, pacificTimeZone, "yyyy-MM-dd'T'HH:mm:ssXXX");
+
+        // 4. Calculate end time based on the correct start time.
+        const startDateTime = new Date(startDateTimeIso);
         const endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000); // 1-hour duration
+        const endDateTimeIso = endDateTime.toISOString();
+
 
         const signatureHtml = `
             <br><br><br>
@@ -212,11 +223,11 @@ export async function sendHomeVisitInvite(payload: HomeVisitPayload) {
             location: clientAddress,
             description: `In-home assessment and consultation for ${clientName}.${signatureHtml}`,
             start: {
-                dateTime: startDateTime.toISOString(),
+                dateTime: startDateTimeIso,
                 timeZone: pacificTimeZone,
             },
             end: {
-                dateTime: endDateTime.toISOString(),
+                dateTime: endDateTimeIso,
                 timeZone: pacificTimeZone,
             },
             attendees: attendees,
