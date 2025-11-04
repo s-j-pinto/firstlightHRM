@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { firestore, useCollection, useMemoFirebase } from '@/firebase';
 import { format } from 'date-fns';
-import { Loader2, ChevronRight } from 'lucide-react';
+import { Loader2, ChevronRight, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -57,6 +57,7 @@ export default function ClientSignupList() {
       
       return {
         id: contact.id, // Use contact ID as the key
+        signupId: signup?.id, // Pass signupId if it exists
         clientName: contact.clientName || 'N/A',
         clientPhone: contact.clientPhone || 'N/A',
         clientAddress: contact.clientAddress ? `${contact.clientAddress}, ${contact.city || ''}` : 'N/A',
@@ -67,6 +68,7 @@ export default function ClientSignupList() {
   }, [contacts, signups]);
 
   const baseEditPath = pathname.includes('/admin') ? '/admin/initial-contact' : '/owner/initial-contact';
+  const csaBasePath = pathname.includes('/admin') ? '/admin/new-client-signup' : '/owner/new-client-signup';
   const isLoading = contactsLoading || signupsLoading;
 
   const StatusBadge = ({ status }: { status: string }) => {
@@ -122,10 +124,15 @@ export default function ClientSignupList() {
                   <TableCell>
                     <StatusBadge status={item.status} />
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right space-y-1">
                     <Link href={`${baseEditPath}?contactId=${item.id}`} className="flex items-center justify-end text-accent hover:underline">
                       Open Intake <ChevronRight className="h-4 w-4 ml-1" />
                     </Link>
+                    {item.signupId && (
+                      <Link href={`${csaBasePath}?signupId=${item.signupId}`} className="flex items-center justify-end text-accent hover:underline">
+                        <FileText className="h-4 w-4 mr-1" /> Open CSA <ChevronRight className="h-4 w-4 ml-1" />
+                      </Link>
+                    )}
                   </TableCell>
                 </TableRow>
               ))
