@@ -167,6 +167,14 @@ export async function sendHomeVisitInvite(payload: HomeVisitPayload) {
     
     oAuth2Client.setCredentials({ refresh_token: refreshToken });
 
+    const attendees: { email: string }[] = [];
+    if (ownerEmail) attendees.push({ email: ownerEmail });
+    if (adminEmail) attendees.push({ email: adminEmail });
+    if (clientEmail) attendees.push({ email: clientEmail });
+    if (additionalEmail && additionalEmail.trim() !== '') {
+        attendees.push({ email: additionalEmail });
+    }
+
     try {
         await oAuth2Client.getAccessToken(); // Ensure token is valid
         const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
@@ -175,12 +183,6 @@ export async function sendHomeVisitInvite(payload: HomeVisitPayload) {
         const startDateTime = new Date(dateOfHomeVisit);
         startDateTime.setHours(hours, minutes);
         const endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000); // 1-hour duration
-
-        const attendees = [];
-        if(ownerEmail) attendees.push({ email: ownerEmail });
-        if(adminEmail) attendees.push({ email: adminEmail });
-        if (clientEmail) attendees.push({ email: clientEmail });
-        if (additionalEmail) attendees.push({ email: additionalEmail });
 
         const signatureHtml = `
             <br><br><br>
@@ -232,13 +234,22 @@ export async function sendHomeVisitInvite(payload: HomeVisitPayload) {
 
     } catch (err: any) {
         console.error("Error sending home visit invite:", err);
-        if (err.message?.includes('invalid_grant') || err.message?.includes('revoked')) {
+        
+        let errorMessage = `Failed to send invite. Check server logs.`;
+        if (err.message?.includes('Invalid attendee')) {
+             const attendeeEmails = `Owner: ${ownerEmail}, Admin: ${adminEmail}, Client: ${clientEmail}, Additional: ${additionalEmail || 'N/A'}`;
+             errorMessage = `Google API Error: One of the attendee emails is invalid. Please check the client and additional email fields. Attempted emails: [${attendeeEmails}]`;
+        } else if (err.message?.includes('invalid_grant') || err.message?.includes('revoked')) {
             const authUrl = oAuth2Client.generateAuthUrl({
                 access_type: 'offline', prompt: 'consent', scope: ['https://www.googleapis.com/auth/calendar.events'],
             });
             return { message: "Google authentication token is invalid. Please re-authorize.", error: true, authUrl };
+        } else if (err.response?.data?.error?.message) {
+             errorMessage = `Google API Error: ${err.response.data.error.message}`;
+        } else {
+             errorMessage = `Google API Error: ${err.message}`;
         }
-        const errorMessage = err.response?.data?.error?.message || err.message || "Failed to send invite.";
+        
         return { message: errorMessage, error: true };
     }
 }
