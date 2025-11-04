@@ -511,7 +511,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                         <FormItem className="space-y-3">
                             <FormLabel>Was an In-Home Visit Set?</FormLabel>
                             <FormControl>
-                                <RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center gap-4">
+                                <RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center gap-4" disabled={isCsaCreated}>
                                     <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes"/></FormControl><FormLabel className="font-normal">Yes</FormLabel></FormItem>
                                     <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No"/></FormControl><FormLabel className="font-normal">No</FormLabel></FormItem>
                                 </RadioGroup>
@@ -548,5 +548,3 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
     </Card>
   );
 }
-
-    
