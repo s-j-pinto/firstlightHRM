@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useTransition, useEffect, useMemo } from "react";
@@ -157,6 +156,8 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
   const contactDocRef = useMemoFirebase(() => contactId ? doc(firestore, 'initial_contacts', contactId) : null, [contactId]);
   const { data: existingData, isLoading } = useDoc<any>(contactDocRef);
 
+  const isCsaCreated = !!signupDocId;
+
   useEffect(() => {
     const findSignupDoc = async () => {
       if (contactId) {
@@ -241,12 +242,6 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
         });
         if (result.docId && !contactId) {
           setContactId(result.docId);
-          // Manually refetch the signupDocId
-          const q = query(collection(firestore, 'client_signups'), where('initialContactId', '==', result.docId));
-          const querySnapshot = await getDocs(q);
-          if (!querySnapshot.empty) {
-            setSignupDocId(querySnapshot.docs[0].id);
-          }
         }
       }
     });
@@ -256,7 +251,6 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
     let finalSignupId = signupDocId;
 
     if (!finalSignupId && contactId) {
-        // If no signup doc exists, create one.
         const result = await createCsaFromContact(contactId);
         if (result.error || !result.signupId) {
             toast({ title: "Error", description: result.error || "Could not create the Client Service Agreement document." });
@@ -291,9 +285,9 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
               {/* Left Column */}
               <div className="space-y-6">
-                <FormField control={form.control} name="clientName" render={({ field }) => ( <FormItem><FormLabel>Client's Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="clientName" render={({ field }) => ( <FormItem><FormLabel>Client's Name</FormLabel><FormControl><Input {...field} disabled={isCsaCreated} /></FormControl><FormMessage /></FormItem> )} />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <FormField control={form.control} name="clientAddress" render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                  <FormField control={form.control} name="clientAddress" render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} disabled={isCsaCreated} /></FormControl><FormMessage /></FormItem> )} />
                    <FormField
                     control={form.control}
                     name="dateOfBirth"
@@ -309,6 +303,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                                   "pl-3 text-left font-normal",
                                   !field.value && "text-muted-foreground"
                                 )}
+                                disabled={isCsaCreated}
                               >
                                 {field.value ? (
                                   format(field.value, "PPP")
@@ -325,6 +320,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                               selected={field.value}
                               onSelect={field.onChange}
                               initialFocus
+                              disabled={isCsaCreated}
                             />
                           </PopoverContent>
                         </Popover>
@@ -334,21 +330,21 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                   />
                 </div>
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                   <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                  <FormField control={form.control} name="zip" render={({ field }) => ( <FormItem><FormLabel>Zip</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                   <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} disabled={isCsaCreated} /></FormControl><FormMessage /></FormItem> )} />
+                  <FormField control={form.control} name="zip" render={({ field }) => ( <FormItem><FormLabel>Zip</FormLabel><FormControl><Input {...field} disabled={isCsaCreated} /></FormControl><FormMessage /></FormItem> )} />
                 </div>
                 <FormField control={form.control} name="rateOffered" render={({ field }) => ( <FormItem><FormLabel>Rate Offered</FormLabel><FormControl><Input type="number" {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem> )} />
                 <div className="flex gap-4">
-                    <FormField control={form.control} name="clientPhone" render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Client's Phone Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                    <FormField control={form.control} name="clientEmail" render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Client's Email</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="clientPhone" render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Client's Phone Number</FormLabel><FormControl><Input {...field} disabled={isCsaCreated} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="clientEmail" render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Client's Email</FormLabel><FormControl><Input {...field} disabled={isCsaCreated} /></FormControl><FormMessage /></FormItem> )} />
                 </div>
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <FormField control={form.control} name="mainContact" render={({ field }) => ( <FormItem><FormLabel>Main Contact</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                    <FormField control={form.control} name="additionalEmail" render={({ field }) => ( <FormItem><FormLabel>Additional Email</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="mainContact" render={({ field }) => ( <FormItem><FormLabel>Main Contact</FormLabel><FormControl><Input {...field} disabled={isCsaCreated} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="additionalEmail" render={({ field }) => ( <FormItem><FormLabel>Additional Email</FormLabel><FormControl><Input {...field} disabled={isCsaCreated} /></FormControl><FormMessage /></FormItem> )} />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <FormField control={form.control} name="allergies" render={({ field }) => ( <FormItem><FormLabel>Allergies</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                  <FormField control={form.control} name="pets" render={({ field }) => ( <FormItem><FormLabel>Pets</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                  <FormField control={form.control} name="allergies" render={({ field }) => ( <FormItem><FormLabel>Allergies</FormLabel><FormControl><Input {...field} disabled={isCsaCreated} /></FormControl><FormMessage /></FormItem> )} />
+                  <FormField control={form.control} name="pets" render={({ field }) => ( <FormItem><FormLabel>Pets</FormLabel><FormControl><Input {...field} disabled={isCsaCreated} /></FormControl><FormMessage /></FormItem> )} />
                 </div>
               </div>
               {/* Right Column */}
@@ -397,7 +393,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                         <FormField control={form.control} name="hasPoa" render={({ field }) => ( <FormItem><FormLabel>Has POA</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center gap-4"><FormItem className="flex items-center space-x-1 space-y-0"><FormControl><RadioGroupItem value="Yes"/></FormControl><FormLabel className="font-normal">Y</FormLabel></FormItem><FormItem className="flex items-center space-x-1 space-y-0"><FormControl><RadioGroupItem value="No"/></FormControl><FormLabel className="font-normal">N</FormLabel></FormItem></RadioGroup></FormControl><FormMessage /></FormItem> )} />
                         <FormField control={form.control} name="ltci" render={({ field }) => ( <FormItem><FormLabel>LTCI- No</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                         <FormField control={form.control} name="advanceDirective" render={({ field }) => ( <FormItem className="flex items-center gap-2 pt-8"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="!mt-0">Advance Directive</FormLabel><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="contactPhone" render={({ field }) => ( <FormItem><FormLabel>Contact Phone:</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="contactPhone" render={({ field }) => ( <FormItem><FormLabel>Contact Phone:</FormLabel><FormControl><Input {...field} disabled={isCsaCreated} /></FormControl><FormMessage /></FormItem> )} />
                         <FormField control={form.control} name="languagePreference" render={({ field }) => ( <FormItem><FormLabel>Language Preference:</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                     </div>
                 </Card>
@@ -421,6 +417,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                               <Checkbox
                                 checked={field.value as boolean}
                                 onCheckedChange={field.onChange}
+                                disabled={isCsaCreated}
                               />
                             </FormControl>
                             <FormLabel className="font-normal text-sm">{item.label}</FormLabel>
@@ -436,7 +433,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                       <FormItem className="mt-4">
                         <FormLabel>Other Companion Care Needs</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input {...field} disabled={isCsaCreated} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -457,6 +454,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                               <Checkbox
                                 checked={field.value as boolean}
                                 onCheckedChange={field.onChange}
+                                disabled={isCsaCreated}
                               />
                             </FormControl>
                             <FormLabel className="font-normal text-sm">{item.label}</FormLabel>
@@ -472,7 +470,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                       <FormItem className="mt-4">
                         <FormLabel>Assist with other</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input {...field} disabled={isCsaCreated} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -533,7 +531,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                       type="button"
                       variant="outline"
                       onClick={handleOpenCsa}
-                      disabled={!contactId}
+                      disabled={!contactId || isSubmitting}
                   >
                       <FileText className="mr-2" />
                       Open Client Service Agreement
@@ -550,3 +548,5 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
     </Card>
   );
 }
+
+    
