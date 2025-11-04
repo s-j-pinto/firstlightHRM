@@ -7,6 +7,7 @@ import { google } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
 import { serverDb } from "@/firebase/server-init";
 import type { Appointment } from "./types";
+import { format, toZonedTime } from 'date-fns-tz';
 
 export async function sendCalendarInvite(appointment: Appointment & { caregiver: any }) {
     const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -178,10 +179,13 @@ export async function sendHomeVisitInvite(payload: HomeVisitPayload) {
     try {
         await oAuth2Client.getAccessToken(); // Ensure token is valid
         const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
+        const pacificTimeZone = 'America/Los_Angeles';
 
         const [hours, minutes] = timeOfVisit.split(':').map(Number);
-        const startDateTime = new Date(dateOfHomeVisit);
-        startDateTime.setHours(hours, minutes);
+        
+        const dateString = format(dateOfHomeVisit, 'yyyy-MM-dd');
+        const startDateTimeString = `${dateString}T${timeOfVisit}:00`;
+        const startDateTime = toZonedTime(startDateTimeString, pacificTimeZone);
         const endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000); // 1-hour duration
 
         const signatureHtml = `
@@ -211,11 +215,11 @@ export async function sendHomeVisitInvite(payload: HomeVisitPayload) {
             description: `In-home assessment and consultation for ${clientName}.${signatureHtml}`,
             start: {
                 dateTime: startDateTime.toISOString(),
-                timeZone: 'America/Los_Angeles',
+                timeZone: pacificTimeZone,
             },
             end: {
                 dateTime: endDateTime.toISOString(),
-                timeZone: 'America/Los_Angeles',
+                timeZone: pacificTimeZone,
             },
             attendees: attendees,
             reminders: {
