@@ -210,7 +210,7 @@ export async function submitClientSignature(payload: z.infer<typeof clientSignat
     const { signupId, ...signatureData } = validationResult.data;
 
     const firestore = serverDb;
-    const ownerEmail = process.env.OWNER_EMAIL||'lpinto@firstlighthomecare.com';
+    const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL||'lpinto@firstlighthomecare.com';
 
     try {
         const signupRef = firestore.collection('client_signups').doc(signupId);
@@ -262,7 +262,7 @@ export async function submitClientSignature(payload: z.infer<typeof clientSignat
 
 export async function finalizeAndSubmit(signupId: string) {
     const firestore = serverDb;
-    const ownerEmail = process.env.OWNER_EMAIL || 'lpinto@firstlighthomecare.com';;
+    const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL || 'lpinto@firstlighthomecare.com';;
 
     try {
         const signupRef = firestore.collection('client_signups').doc(signupId);

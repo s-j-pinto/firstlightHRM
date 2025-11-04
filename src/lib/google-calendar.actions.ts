@@ -148,7 +148,7 @@ export async function sendHomeVisitInvite(payload: HomeVisitPayload) {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
     const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
-    const ownerEmail = process.env.OWNER_EMAIL || 'lpinto@firstlighthomecare.com';
+    const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL || 'lpinto@firstlighthomecare.com';
     const adminEmail = process.env.ADMIN_EMAIL || 'care-rc@firstlighthomecare.com';
     const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:9002/admin/settings';
 
