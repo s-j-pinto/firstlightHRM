@@ -33,7 +33,7 @@ import { cn } from "@/lib/utils";
 import { submitInitialContact } from "@/lib/initial-contact.actions";
 import { useDoc, useMemoFirebase, firestore } from "@/firebase";
 import { doc, query, collection, where, getDocs } from 'firebase/firestore';
-import { Checkbox } from "./ui/checkbox";
+import { Checkbox } from "./checkbox";
 import { createCsaFromContact } from "@/lib/client-signup.actions";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 
@@ -252,6 +252,17 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
   };
 
   const handleOpenCsa = async () => {
+    const { dateOfHomeVisit, timeOfVisit } = form.getValues();
+    if (!dateOfHomeVisit || !timeOfVisit) {
+        toast({
+            title: "Missing Information",
+            description: "Please set the Date and Time of Home Visit, then click 'Save Initial Contact' before proceeding.",
+            variant: "destructive",
+            duration: 7000
+        });
+        return;
+    }
+    
     let finalSignupId = signupDocId;
 
     if (!finalSignupId && contactId) {
@@ -546,7 +557,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                       type="button"
                       variant="outline"
                       onClick={handleOpenCsa}
-                      disabled={!contactId || isSubmitting}
+                      disabled={isSubmitting}
                   >
                       <FileText className="mr-2" />
                       Open Client Service Agreement
