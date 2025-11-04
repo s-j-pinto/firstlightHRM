@@ -377,7 +377,7 @@ export async function generateClientIntakePdf(formData: any) {
         // Adjust block height for special cases with form fields
         if (term.title === "INSURANCE:") blockHeight += termLineSpacing * 2.5;
         if (term.title === "HIRING:") blockHeight += termLineSpacing * 2.5;
-        if (term.title === "INFORMATION AND DOCUMENTS RECEIVED:") blockHeight += termLineSpacing * 4;
+        if (term.title === "INFORMATION AND DOCUMENTS RECEIVED:") blockHeight += termLineSpacing * 3;
 
 
         if (y - blockHeight < bottomMargin) {
@@ -411,9 +411,6 @@ export async function generateClientIntakePdf(formData: any) {
             await drawField("Notice of Privacy Practices", formData.receivedPrivacyPractices, leftMargin + 20, y, { isCheckbox: true });
             await drawField("Client Rights and Responsibilities", formData.receivedClientRights, leftMargin + 270, y, { isCheckbox: true });
             y -= termLineSpacing;
-            await drawField("Advance Directives", formData.receivedAdvanceDirectives, leftMargin + 20, y, { isCheckbox: true });
-            await drawField("Rate Sheet", formData.receivedRateSheet, leftMargin + 270, y, { isCheckbox: true });
-            y -= termLineSpacing;
             await drawField("Transportation Waiver", formData.receivedTransportationWaiver, leftMargin + 20, y, { isCheckbox: true });
             y -= termLineSpacing;
             const longLabel = "Agreement to Accept Payment Responsibility and Consent for Personal Information-Private Pay";
@@ -421,6 +418,32 @@ export async function generateClientIntakePdf(formData: any) {
             await drawText(page, longLabel, leftMargin + 35, y, font, termFontSize);
             y -= termLineSpacing * 1.5;
         }
+    }
+
+    if (formData.receivedTransportationWaiver) {
+        page = pdfDoc.addPage(PageSizes.Letter);
+        await drawHeader(page, pdfDoc, logoImage, boldFont);
+        await drawFooter(page, font);
+        y = height - 75;
+
+        drawSectionHeader("Transportation Waiver", { centered: true });
+        
+        y = drawWrappedText(page, "FirstLight HomeCare offers transportation as a convenience to our clients, not as a standalone service.", font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
+        y -= lineSpacing;
+        y = drawWrappedText(page, "Upon signing of this waiver, I understand I am authorizing an employee of FirstLight HomeCare to furnish transportation for me as a passenger in either their automobile or my own.", font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
+        y -= lineSpacing;
+        y = drawWrappedText(page, "I will follow all applicable laws, including, but not limited to, the wearing of my seatbelt.", font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
+        y -= lineSpacing;
+        y = drawWrappedText(page, "When the FirstLight HomeCare employee drives my vehicle, I certify current insurance for both liability and physical damage.", font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
+        y -= lineSpacing;
+        y = drawWrappedText(page, "Further, I accept responsibility for any deductibles on my personal automobile insurance coverage incurred as a result of this service.", font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
+        y -= lineSpacing;
+        y = drawWrappedText(page, "I specifically accept these risks and waive any claim that I might otherwise have against FirstLight HomeCare with respect to bodily injury or property damage sustained by me in connection with said transportation, and hereby expressly release FirstLight HomeCare and their employees from any and all liability therewith.", font, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
+        y -= sectionSpacing * 3;
+
+        await drawSignatureBlock("Signed (Client or Responsible Party)", "Printed Name", "Date", formData.transportationWaiverClientSignature, formData.transportationWaiverClientPrintedName, formData.transportationWaiverDate);
+        y -= sectionSpacing;
+        await drawSignatureBlock("Witness (FirstLight Home Care Representative)", "", "", formData.transportationWaiverWitnessSignature, "", undefined);
     }
 
     // --- PAGE 4: SERVICE PLAN ---
@@ -537,3 +560,5 @@ export async function generateClientIntakePdf(formData: any) {
     const pdfBytes = await pdfDoc.save();
     return pdfBytes;
 }
+
+    

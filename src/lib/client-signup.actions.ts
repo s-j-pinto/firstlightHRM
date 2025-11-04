@@ -187,6 +187,10 @@ const clientSignaturePayloadSchema = z.object({
   servicePlanClientInitials: z.string().optional(),
   agreementRelationship: z.string().optional(),
   agreementDate: z.date().optional(),
+  transportationWaiverClientSignature: z.string().optional(),
+  transportationWaiverClientPrintedName: z.string().optional(),
+  transportationWaiverWitnessSignature: z.string().optional(),
+  transportationWaiverDate: z.date().optional(),
 }).superRefine((data, ctx) => {
     if (!data.signature && !data.repSignature) {
         ctx.addIssue({
@@ -198,7 +202,7 @@ const clientSignaturePayloadSchema = z.object({
 });
 
 
-export async function submitClientSignature(payload: z.infer<typeof clientSignaturePayloadSchema>) {
+export async function submitClientSignature(payload: any) {
     
     const validationResult = clientSignaturePayloadSchema.safeParse(payload);
 
@@ -231,7 +235,11 @@ export async function submitClientSignature(payload: z.infer<typeof clientSignat
         if (signatureData.agreementSignature) updatePayload['formData.agreementClientSignature'] = signatureData.agreementSignature;
         if (signatureData.agreementRelationship) updatePayload['formData.agreementRelationship'] = signatureData.agreementRelationship;
         if (signatureData.agreementDate) updatePayload['formData.agreementSignatureDate'] = Timestamp.fromDate(signatureData.agreementDate);
-        
+        if (signatureData.transportationWaiverClientSignature) updatePayload['formData.transportationWaiverClientSignature'] = signatureData.transportationWaiverClientSignature;
+        if (signatureData.transportationWaiverClientPrintedName) updatePayload['formData.transportationWaiverClientPrintedName'] = signatureData.transportationWaiverClientPrintedName;
+        if (signatureData.transportationWaiverWitnessSignature) updatePayload['formData.transportationWaiverWitnessSignature'] = signatureData.transportationWaiverWitnessSignature;
+        if (signatureData.transportationWaiverDate) updatePayload['formData.transportationWaiverDate'] = Timestamp.fromDate(signatureData.transportationWaiverDate);
+
         await signupRef.update(updatePayload);
         
         // Notify owner to review and finalize
@@ -340,3 +348,5 @@ export async function previewClientIntakePdf(formData: any) {
         return { error: `Failed to generate PDF: ${error.message}` };
     }
 }
+
+    

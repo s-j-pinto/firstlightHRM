@@ -311,6 +311,12 @@ export const clientSignupFormSchema = clientSignupDraftSchema.extend({
   agreementRelationship: z.string().optional(),
   agreementRepSignature: z.string().optional(),
   agreementRepDate: z.date().optional(),
+
+  // Transportation Waiver
+  transportationWaiverClientSignature: z.string().optional(),
+  transportationWaiverClientPrintedName: z.string().optional(),
+  transportationWaiverWitnessSignature: z.string().optional(),
+  transportationWaiverDate: z.date().optional(),
 });
 export type ClientSignupFormData = z.infer<typeof clientSignupFormSchema>;
 
@@ -323,7 +329,6 @@ export const finalizationSchema = clientSignupFormSchema.extend({
 
   receivedPrivacyPractices: z.literal(true, { errorMap: () => ({ message: "Must be acknowledged" }) }),
   receivedClientRights: z.literal(true, { errorMap: () => ({ message: "Must be acknowledged" }) }),
-  receivedTransportationWaiver: z.literal(true, { errorMap: () => ({ message: "Must be acknowledged" }) }),
   receivedPaymentAgreement: z.literal(true, { errorMap: () => ({ message: "Must be acknowledged" }) }),
 
   firstLightRepresentativeSignature: z.string().min(1, "FirstLight representative signature is required."),
@@ -336,7 +341,7 @@ export const finalizationSchema = clientSignupFormSchema.extend({
   agreementRepSignature: z.string().min(1, "FirstLight representative signature for payment agreement is required."),
   agreementRepDate: z.date({ required_error: "Date for payment agreement is required." }),
 }).superRefine((data, ctx) => {
-    if (!data.clientSignature && !data.clientRepresentativeSignature) {
+    if (data.clientSignature?.trim() === '' && data.clientRepresentativeSignature?.trim() === '') {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: "Either client or representative signature is required in the Acknowledgement section.",
@@ -356,6 +361,12 @@ export const finalizationSchema = clientSignupFormSchema.extend({
    }
    if (data.agreementClientSignature && !data.agreementSignatureDate) {
      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date is required.", path: ["agreementSignatureDate"] });
+   }
+   if(data.receivedTransportationWaiver) {
+    if (!data.transportationWaiverClientSignature) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Client signature is required for the waiver.", path: ["transportationWaiverClientSignature"] });
+    if (!data.transportationWaiverClientPrintedName) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Printed name is required for the waiver.", path: ["transportationWaiverClientPrintedName"] });
+    if (!data.transportationWaiverWitnessSignature) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Witness signature is required for the waiver.", path: ["transportationWaiverWitnessSignature"] });
+    if (!data.transportationWaiverDate) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date is required for the waiver.", path: ["transportationWaiverDate"] });
    }
 });
 
@@ -411,3 +422,5 @@ export interface GeneratedForm {
   blocks: FormBlock[];
   formData: any;
 }
+
+    

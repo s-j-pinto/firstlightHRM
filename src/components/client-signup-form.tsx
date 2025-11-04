@@ -154,6 +154,11 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
       agreementRelationship: "",
       agreementRepSignature: "",
       agreementRepDate: undefined,
+      // Transportation Waiver
+      transportationWaiverClientSignature: "",
+      transportationWaiverClientPrintedName: "",
+      transportationWaiverWitnessSignature: "",
+      transportationWaiverDate: undefined,
     },
   });
 
@@ -163,6 +168,8 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
     firstLightRepresentativeSignature: useRef<SignatureCanvas>(null),
     agreementClientSignature: useRef<SignatureCanvas>(null),
     agreementRepSignature: useRef<SignatureCanvas>(null),
+    transportationWaiverClientSignature: useRef<SignatureCanvas>(null),
+    transportationWaiverWitnessSignature: useRef<SignatureCanvas>(null),
   };
   
   const isPublished = existingSignupData?.status === 'SIGNED AND PUBLISHED';
@@ -173,6 +180,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
     form.setValue('agreementClientName', clientNameValue, { shouldValidate: true });
     if(isClientMode){
         form.setValue('clientPrintedName', clientNameValue, { shouldValidate: true });
+        form.setValue('transportationWaiverClientPrintedName', clientNameValue, { shouldValidate: true });
     }
   }, [clientNameValue, form, isClientMode]);
 
@@ -184,7 +192,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
             'contractStartDate', 'rateCardDate', 'clientSignatureDate',
             'clientRepresentativeSignatureDate', 'firstLightRepresentativeSignatureDate',
             'officeTodaysDate', 'officeReferralDate', 'officeInitialContactDate',
-            'agreementSignatureDate', 'agreementRepDate'
+            'agreementSignatureDate', 'agreementRepDate', 'transportationWaiverDate'
         ];
 
         const convertedData: { [key: string]: any } = { ...formData };
@@ -226,6 +234,9 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
             }
             if (!convertedData.agreementSignatureDate) {
                 convertedData.agreementSignatureDate = new Date();
+            }
+             if (convertedData.receivedTransportationWaiver && !convertedData.transportationWaiverDate) {
+                convertedData.transportationWaiverDate = new Date();
             }
         }
 
@@ -414,15 +425,20 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
     startSubmittingTransition(async () => {
         if (!signupId) return;
         
-        const sigPadClient = sigPads.clientSignature.current;
-        const sigPadRep = sigPads.clientRepresentativeSignature.current;
-        const sigPadAgreement = sigPads.agreementClientSignature.current;
+        Object.keys(sigPads).forEach(key => {
+            const padKey = key as keyof typeof sigPads;
+            const formKey = key as keyof ClientSignupFormData;
+            const pad = sigPads[padKey].current;
+            if (pad && !pad.isEmpty()) {
+                form.setValue(formKey, pad.toDataURL(), { shouldValidate: true });
+            }
+        });
 
         const payload = {
             signupId,
-            signature: sigPadClient && !sigPadClient.isEmpty() ? sigPadClient.toDataURL() : form.getValues('clientSignature'),
-            repSignature: sigPadRep && !sigPadRep.isEmpty() ? sigPadRep.toDataURL() : form.getValues('clientRepresentativeSignature'),
-            agreementSignature: sigPadAgreement && !sigPadAgreement.isEmpty() ? sigPadAgreement.toDataURL() : form.getValues('agreementClientSignature'),
+            signature: form.getValues('clientSignature'),
+            repSignature: form.getValues('clientRepresentativeSignature'),
+            agreementSignature: form.getValues('agreementClientSignature'),
             printedName: form.getValues('clientPrintedName'),
             date: form.getValues('clientSignatureDate') || new Date(),
             repPrintedName: form.getValues('clientRepresentativePrintedName'),
@@ -431,6 +447,10 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
             servicePlanClientInitials: form.getValues('servicePlanClientInitials'),
             agreementRelationship: form.getValues('agreementRelationship'),
             agreementDate: form.getValues('agreementSignatureDate'),
+            transportationWaiverClientSignature: form.getValues('transportationWaiverClientSignature'),
+            transportationWaiverClientPrintedName: form.getValues('transportationWaiverClientPrintedName'),
+            transportationWaiverWitnessSignature: form.getValues('transportationWaiverWitnessSignature'),
+            transportationWaiverDate: form.getValues('transportationWaiverDate'),
         };
 
         const result = await submitClientSignature(payload);
@@ -483,6 +503,8 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
   const clearSignature = (sigPadRef: React.RefObject<SignatureCanvas>) => {
     sigPadRef.current?.clear();
   };
+  
+  const receivedTransportationWaiver = form.watch('receivedTransportationWaiver');
 
   const companionCareCheckboxes = [
     { id: 'companionCare_mealPreparation', label: 'Meal preparation and clean up' },
@@ -769,6 +791,51 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                         </li>
                     </ol>
                 </div>
+                
+                {receivedTransportationWaiver && (
+                    <div className="space-y-6 break-before-page">
+                        <h3 className="text-lg font-semibold text-center">Transportation Waiver</h3>
+                        <p className="text-sm">FirstLight HomeCare offers transportation as a convenience to our clients, not as a standalone service.</p>
+                        <p className="text-sm">Upon signing of this waiver, I understand I am authorizing an employee of FirstLight HomeCare to furnish transportation for me as a passenger in either their automobile or my own.</p>
+                        <p className="text-sm">I will follow all applicable laws, including, but not limited to, the wearing of my seatbelt.</p>
+                        <p className="text-sm">When the FirstLight HomeCare employee drives my vehicle, I certify current insurance for both liability and physical damage.</p>
+                        <p className="text-sm">Further, I accept responsibility for any deductibles on my personal automobile insurance coverage incurred as a result of this service.</p>
+                        <p className="text-sm">I specifically accept these risks and waive any claim that I might otherwise have against FirstLight HomeCare with respect to bodily injury or property damage sustained by me in connection with said transportation, and hereby expressly release FirstLight HomeCare and their employees from any and all liability therewith.</p>
+                        
+                        <div className="space-y-8 pt-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
+                                <FormField control={form.control} name="transportationWaiverClientPrintedName" render={({ field }) => ( <FormItem><FormLabel>Printed Name</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                                <div className="space-y-2">
+                                    <FormLabel>Signed (Client or Responsible Party)</FormLabel>
+                                    <div className="relative rounded-md border bg-white">
+                                        <SignatureCanvas ref={sigPads.transportationWaiverClientSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isPublished} />
+                                        {!isPublished && (
+                                            <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => clearSignature(sigPads.transportationWaiverClientSignature)}>
+                                                <RefreshCw className="w-4 h-4" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                    <FormMessage>{form.formState.errors.transportationWaiverClientSignature?.message}</FormMessage>
+                                </div>
+                            </div>
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
+                                <div className="space-y-2">
+                                    <FormLabel>Witness (FirstLight Home Care Representative)</FormLabel>
+                                    <div className="relative rounded-md border bg-white">
+                                        <SignatureCanvas ref={sigPads.transportationWaiverWitnessSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isClientMode || isPublished} />
+                                        {!isPublished && !isClientMode && (
+                                            <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => clearSignature(sigPads.transportationWaiverWitnessSignature)}>
+                                                <RefreshCw className="w-4 h-4" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                    <FormMessage>{form.formState.errors.transportationWaiverWitnessSignature?.message}</FormMessage>
+                                </div>
+                                <FormField control={form.control} name="transportationWaiverDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPublished}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <div className="space-y-6 break-before-page">
                     <h3 className="text-lg font-semibold text-center">HOME CARE SERVICE PLAN AGREEMENT</h3>
@@ -806,7 +873,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                     </div>
                     <p className="text-sm text-muted-foreground">Firstlight Home Care of Rancho Cucamonga provides Personal Care Services as defined under Cal. Health & Safety Code § 1796.12 and does not provide medical services or function as a home health agency.</p>
                     <div className="w-1/3 mt-2">
-                        <FormField control={form.control} name="servicePlanClientInitials" render={({ field }) => ( <FormItem><FormLabel>Client Initials</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isPublished || mode === 'client-signing'} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="servicePlanClientInitials" render={({ field }) => ( <FormItem><FormLabel>Client Initials</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
                     </div>
                 </div>
                 
