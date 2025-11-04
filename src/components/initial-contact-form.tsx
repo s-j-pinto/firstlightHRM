@@ -2,13 +2,13 @@
 
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter, usePathname } from "next/navigation";
 import { format } from "date-fns";
-import { CalendarIcon, Loader2, Save, FileText } from "lucide-react";
+import { CalendarIcon, Loader2, Save, FileText, AlertCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +34,9 @@ import { submitInitialContact } from "@/lib/initial-contact.actions";
 import { useDoc, useMemoFirebase, firestore } from "@/firebase";
 import { doc, query, collection, where, getDocs } from 'firebase/firestore';
 import { Checkbox } from "./ui/checkbox";
+import { createCsaFromContact } from "@/lib/client-signup.actions";
+import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
+
 
 const companionCareCheckboxes = [
     { id: 'companionCare_mealPreparation', label: 'Meal preparation and clean up' },
@@ -143,11 +146,12 @@ const initialContactSchema = z.object({
 
 type InitialContactFormData = z.infer<typeof initialContactSchema>;
 
-export function InitialContactForm({ contactId }: { contactId: string | null }) {
+export function InitialContactForm({ contactId: initialContactId }: { contactId: string | null }) {
   const [isSubmitting, startSubmittingTransition] = useTransition();
   const { toast } = useToast();
   const router = useRouter();
   const pathname = usePathname();
+  const [contactId, setContactId] = useState(initialContactId);
   const [signupDocId, setSignupDocId] = useState<string | null>(null);
 
   const contactDocRef = useMemoFirebase(() => contactId ? doc(firestore, 'initial_contacts', contactId) : null, [contactId]);
@@ -160,6 +164,8 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
         const querySnapshot = await getDocs(q);
         if (!querySnapshot.empty) {
           setSignupDocId(querySnapshot.docs[0].id);
+        } else {
+            setSignupDocId(null);
         }
       }
     };
@@ -178,6 +184,7 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
       clientPhone: "",
       clientEmail: "",
       mainContact: "",
+      contactPhone: "",
       allergies: "",
       pets: "",
       dateOfHomeVisit: undefined,
@@ -194,7 +201,6 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
       hasPoa: undefined,
       ltci: "",
       advanceDirective: false,
-      contactPhone: "",
       languagePreference: "",
       additionalEmail: "",
       companionCare_other: "",
@@ -231,25 +237,42 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
       } else {
         toast({
           title: "Success",
-          description: "Initial contact information has been saved.",
+          description: result.message,
         });
-        if(window.location.pathname.includes('/admin')) {
-          router.push('/admin/assessments');
-        } else {
-          router.push('/owner/dashboard');
+        if (result.docId && !contactId) {
+          setContactId(result.docId);
+          // Manually refetch the signupDocId
+          const q = query(collection(firestore, 'client_signups'), where('initialContactId', '==', result.docId));
+          const querySnapshot = await getDocs(q);
+          if (!querySnapshot.empty) {
+            setSignupDocId(querySnapshot.docs[0].id);
+          }
         }
       }
     });
   };
 
-  const handleOpenCsa = () => {
-    if (signupDocId) {
+  const handleOpenCsa = async () => {
+    let finalSignupId = signupDocId;
+
+    if (!finalSignupId && contactId) {
+        // If no signup doc exists, create one.
+        const result = await createCsaFromContact(contactId);
+        if (result.error || !result.signupId) {
+            toast({ title: "Error", description: result.error || "Could not create the Client Service Agreement document." });
+            return;
+        }
+        finalSignupId = result.signupId;
+        setSignupDocId(finalSignupId);
+    }
+    
+    if (finalSignupId) {
         const url = pathname.includes('/admin')
-            ? `/admin/new-client-signup?signupId=${signupDocId}`
-            : `/owner/new-client-signup?signupId=${signupDocId}`;
+            ? `/admin/new-client-signup?signupId=${finalSignupId}`
+            : `/owner/new-client-signup?signupId=${finalSignupId}`;
         router.push(url);
     } else {
-        toast({ title: "Error", description: "Could not find the associated Client Service Agreement document." });
+        toast({ title: "Error", description: "Cannot open Client Service Agreement without a saved Initial Contact." });
     }
   };
 
@@ -332,6 +355,13 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
               <div className="space-y-6">
                  <Card className="bg-green-100 p-4">
                     <div className="space-y-4">
+                         <Alert variant="default">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertTitle className="text-xs font-semibold">Calendar Invite Feature</AlertTitle>
+                            <AlertDescription className="text-xs">
+                                To send calendar invites, ensure `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`, `OWNER_EMAIL`, and `ADMIN_EMAIL` are set in your environment.
+                            </AlertDescription>
+                        </Alert>
                         <FormField
                             control={form.control}
                             name="dateOfHomeVisit"
@@ -503,7 +533,7 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
                       type="button"
                       variant="outline"
                       onClick={handleOpenCsa}
-                      disabled={!contactId || !signupDocId}
+                      disabled={!contactId}
                   >
                       <FileText className="mr-2" />
                       Open Client Service Agreement

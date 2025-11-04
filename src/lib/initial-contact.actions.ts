@@ -97,7 +97,7 @@ export async function submitInitialContact(payload: SubmitPayload) {
     const validation = initialContactSchema.safeParse(formData);
     if (!validation.success) {
         console.error("Server-side validation failed:", validation.error.flatten());
-        return { message: "Invalid data provided.", error: true };
+        return { message: "Invalid data provided.", error: true, docId: contactId };
     }
 
     const firestore = serverDb;
@@ -127,7 +127,6 @@ export async function submitInitialContact(payload: SubmitPayload) {
             const contactRef = firestore.collection('initial_contacts').doc(docId);
             await contactRef.update({
                 ...dataToSave,
-                createdBy: userEmail,
             });
         } else {
             // Create a new document
@@ -137,28 +136,6 @@ export async function submitInitialContact(payload: SubmitPayload) {
                 createdAt: now,
             });
             docId = contactRef.id;
-
-            // Create a new client_signup document as well to show on the dashboard
-            const signupRef = firestore.collection('client_signups').doc();
-            await signupRef.set({
-                initialContactId: docId, // Link to the initial contact document
-                formData: {
-                    clientName: validation.data.clientName,
-                    clientPhone: validation.data.clientPhone,
-                    clientEmail: validation.data.clientEmail,
-                    clientAddress: validation.data.clientAddress,
-                    dateOfBirth: validation.data.dateOfBirth,
-                    rateOffered: validation.data.rateOffered,
-                    city: validation.data.city,
-                    zip: validation.data.zip,
-                },
-                clientEmail: validation.data.clientEmail,
-                clientPhone: validation.data.clientPhone,
-                status: 'INITIAL PHONE CONTACT COMPLETED',
-                createdBy: userEmail,
-                createdAt: now,
-                lastUpdatedAt: now,
-            });
         }
 
         // Check if we need to send a calendar invite
@@ -177,15 +154,16 @@ export async function submitInitialContact(payload: SubmitPayload) {
                 console.error("Failed to send calendar invite:", calendarError);
                 // Don't block the success of the form submission, but log the error.
                 // A toast could be shown on the client if we return this error info.
+                return { message: "Contact saved, but failed to send calendar invite. Check server configuration.", error: true, docId: docId };
             }
         }
         
         revalidatePath('/admin/assessments');
         revalidatePath('/owner/dashboard');
-        return { message: "Initial contact saved successfully." };
+        return { message: "Initial contact saved successfully.", docId: docId };
 
     } catch (error: any) {
         console.error("Error saving initial contact:", error);
-        return { message: `An error occurred: ${error.message}`, error: true };
+        return { message: `An error occurred: ${error.message}`, error: true, docId: contactId };
     }
 }

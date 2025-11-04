@@ -16,6 +16,111 @@ const clientSignupSchema = z.object({
   status: z.enum(["INCOMPLETE", "PENDING CLIENT SIGNATURES"]),
 });
 
+export async function createCsaFromContact(initialContactId: string) {
+    if (!initialContactId) {
+        return { error: "Initial Contact ID is required." };
+    }
+
+    const firestore = serverDb;
+    const now = Timestamp.now();
+
+    try {
+        // 1. Check if a signup document already exists for this contact
+        const existingSignupQuery = await firestore.collection('client_signups')
+            .where('initialContactId', '==', initialContactId)
+            .limit(1)
+            .get();
+
+        if (!existingSignupQuery.empty) {
+            const existingSignupId = existingSignupQuery.docs[0].id;
+            console.log(`CSA already exists for contact ${initialContactId} with ID: ${existingSignupId}`);
+            return { signupId: existingSignupId };
+        }
+
+        // 2. Fetch the initial contact data
+        const contactRef = firestore.collection('initial_contacts').doc(initialContactId);
+        const contactDoc = await contactRef.get();
+        if (!contactDoc.exists) {
+            return { error: "Initial contact record not found." };
+        }
+        const contactData = contactDoc.data()!;
+
+        // 3. Prepare the pre-populated form data for the new signup document
+        const formDataForSignup = {
+            clientName: contactData.clientName || '',
+            clientAddress: contactData.clientAddress || '',
+            clientCity: contactData.city || '',
+            clientState: contactData.state || '', // Assuming state is part of the form
+            clientPostalCode: contactData.zip || '',
+            clientPhone: contactData.clientPhone || '',
+            clientEmail: contactData.clientEmail || '',
+            clientDOB: contactData.dateOfBirth ? formatDateForInput(contactData.dateOfBirth) : '',
+            // Companion Care Fields
+            companionCare_mealPreparation: contactData.companionCare_mealPreparation || false,
+            companionCare_cleanKitchen: contactData.companionCare_cleanKitchen || false,
+            companionCare_assistWithLaundry: contactData.companionCare_assistWithLaundry || false,
+            companionCare_dustFurniture: contactData.companionCare_dustFurniture || false,
+            companionCare_assistWithEating: contactData.companionCare_assistWithEating || false,
+            companionCare_provideAlzheimersRedirection: contactData.companionCare_provideAlzheimersRedirection || false,
+            companionCare_assistWithHomeManagement: contactData.companionCare_assistWithHomeManagement || false,
+            companionCare_preparationForBathing: contactData.companionCare_preparationForBathing || false,
+            companionCare_groceryShopping: contactData.companionCare_groceryShopping || false,
+            companionCare_cleanBathrooms: contactData.companionCare_cleanBathrooms || false,
+            companionCare_changeBedLinens: contactData.companionCare_changeBedLinens || false,
+            companionCare_runErrands: contactData.companionCare_runErrands || false,
+            companionCare_escortAndTransportation: contactData.companionCare_escortAndTransportation || false,
+            companionCare_provideRemindersAndAssistWithToileting: contactData.companionCare_provideRemindersAndAssistWithToileting || false,
+            companionCare_provideRespiteCare: contactData.companionCare_provideRespiteCare || false,
+            companionCare_stimulateMentalAwareness: contactData.companionCare_stimulateMentalAwareness || false,
+            companionCare_assistWithDressingAndGrooming: contactData.companionCare_assistWithDressingAndGrooming || false,
+            companionCare_assistWithShavingAndOralCare: contactData.companionCare_assistWithShavingAndOralCare || false,
+            companionCare_other: contactData.companionCare_other || '',
+            // Personal Care Fields
+            personalCare_provideAlzheimersCare: contactData.personalCare_provideAlzheimersCare || false,
+            personalCare_provideMedicationReminders: contactData.personalCare_provideMedicationReminders || false,
+            personalCare_assistWithDressingGrooming: contactData.personalCare_assistWithDressingGrooming || false,
+            personalCare_assistWithBathingHairCare: contactData.personalCare_assistWithBathingHairCare || false,
+            personalCare_assistWithFeedingSpecialDiets: contactData.personalCare_assistWithFeedingSpecialDiets || false,
+            personalCare_assistWithMobilityAmbulationTransfer: contactData.personalCare_assistWithMobilityAmbulationTransfer || false,
+            personalCare_assistWithIncontinenceCare: contactData.personalCare_assistWithIncontinenceCare || false,
+            personalCare_assistWithOther: contactData.personalCare_assistWithOther || '',
+        };
+
+        // 4. Create the new client_signup document
+        const signupRef = firestore.collection('client_signups').doc();
+        await signupRef.set({
+            initialContactId: initialContactId,
+            formData: formDataForSignup,
+            clientEmail: contactData.clientEmail,
+            clientPhone: contactData.clientPhone,
+            status: 'INCOMPLETE', // Start as incomplete until sent
+            createdAt: now,
+            lastUpdatedAt: now,
+        });
+
+        console.log(`Created new CSA document ${signupRef.id} from contact ${initialContactId}`);
+        return { signupId: signupRef.id };
+
+    } catch (error: any) {
+        console.error("Error creating CSA from contact:", error);
+        return { error: `An error occurred: ${error.message}` };
+    }
+}
+
+// Helper to format date for HTML date input
+const formatDateForInput = (date: any) => {
+    if (!date) return '';
+    try {
+        const d = date.toDate ? date.toDate() : new Date(date);
+        const year = d.getFullYear();
+        const month = (d.getMonth() + 1).toString().padStart(2, '0');
+        const day = d.getDate().toString().padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    } catch {
+        return '';
+    }
+};
+
 export async function saveClientSignupForm(payload: z.infer<typeof clientSignupSchema>) {
   // This server action is now deprecated as writes are handled on the client.
   // It can be repurposed for just sending the email in a future step.
@@ -30,7 +135,11 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
     const firestore = serverDb;
     try {
         const redirectPath = `/client-sign/${signupId}`;
-        const signingLink = `/new-client-login?redirect=${encodeURIComponent(redirectPath)}`;
+        const loginUrl = new URL(`${process.env.NEXT_PUBLIC_BASE_URL}/new-client-login`);
+        loginUrl.searchParams.set('redirect', redirectPath);
+
+        const signingLink = loginUrl.toString();
+        
         console.log('Generated signing link:', signingLink);
       
         const email = {
