@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useTransition, useEffect, useMemo } from "react";
@@ -93,7 +94,6 @@ const initialContactSchema = z.object({
   va: z.string().optional(),
   hasPoa: z.enum(["Yes", "No"]).optional(),
   ltci: z.string().optional(),
-  advanceDirective: z.boolean().optional(),
   contactPhone: z.string().min(1, "Contact Phone is required."),
   languagePreference: z.string().optional(),
   additionalEmail: z.string().email("Please enter a valid email.").optional().or(z.literal('')),
@@ -202,7 +202,6 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
       va: "",
       hasPoa: undefined,
       ltci: "",
-      advanceDirective: false,
       languagePreference: "",
       additionalEmail: "",
       companionCare_other: "",
@@ -409,7 +408,6 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                         <FormField control={form.control} name="va" render={({ field }) => ( <FormItem><FormLabel>VA</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                         <FormField control={form.control} name="hasPoa" render={({ field }) => ( <FormItem><FormLabel>Has POA</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center gap-4"><FormItem className="flex items-center space-x-1 space-y-0"><FormControl><RadioGroupItem value="Yes"/></FormControl><FormLabel className="font-normal">Y</FormLabel></FormItem><FormItem className="flex items-center space-x-1 space-y-0"><FormControl><RadioGroupItem value="No"/></FormControl><FormLabel className="font-normal">N</FormLabel></FormItem></RadioGroup></FormControl><FormMessage /></FormItem> )} />
                         <FormField control={form.control} name="ltci" render={({ field }) => ( <FormItem><FormLabel>LTCI- No</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="advanceDirective" render={({ field }) => ( <FormItem className="flex items-center gap-2 pt-8"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="!mt-0">Advance Directive</FormLabel><FormMessage /></FormItem> )} />
                         <FormField control={form.control} name="contactPhone" render={({ field }) => ( <FormItem><FormLabel>Contact Phone:</FormLabel><FormControl><Input {...field} disabled={isCsaCreated} /></FormControl><FormMessage /></FormItem> )} />
                         <FormField control={form.control} name="languagePreference" render={({ field }) => ( <FormItem><FormLabel>Language Preference:</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                     </div>

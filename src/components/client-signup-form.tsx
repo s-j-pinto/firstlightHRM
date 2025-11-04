@@ -69,7 +69,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
 
 
   const signupDocRef = useMemoFirebase(() => signupId ? doc(firestore, 'client_signups', signupId) : null, [signupId]);
-  const { data: existingSignupData, isLoading: isSignupLoading } = useDoc<any>(signupDocRef);
+  const { data: existingSignupData, isLoading } = useDoc<any>(signupDocRef);
 
   const form = useForm<ClientSignupFormData>({
     resolver: zodResolver(clientSignupFormSchema),
@@ -103,8 +103,6 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
       clientInitials: "",
       receivedPrivacyPractices: false,
       receivedClientRights: false,
-      receivedAdvanceDirectives: false,
-      receivedRateSheet: false,
       receivedTransportationWaiver: false,
       receivedPaymentAgreement: false,
       clientSignature: "",
@@ -246,10 +244,10 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
   }, [existingSignupData, form, isClientMode]);
 
   useEffect(() => {
-    if (isPrintMode && !isSignupLoading) {
+    if (isPrintMode && !isLoading) {
       setTimeout(() => window.print(), 500); // Small delay to ensure content renders
     }
-  }, [isPrintMode, isSignupLoading]);
+  }, [isPrintMode, isLoading]);
 
 
   const handleSave = async (status: "INCOMPLETE" | "PENDING CLIENT SIGNATURES") => {
@@ -517,7 +515,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
     { id: 'personalCare_assistWithIncontinenceCare', label: 'Assist with incontinence care' },
   ] as const;
 
-  if (isSignupLoading) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-accent" />
@@ -765,8 +763,6 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                                 <FormField control={form.control} name="receivedPrivacyPractices" render={({ field }) => (<FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isClientMode || isPublished} /></FormControl><FormLabel className="font-normal">Notice of Privacy Practices</FormLabel><FormMessage /></FormItem>)} />
                                 <FormField control={form.control} name="receivedClientRights" render={({ field }) => (<FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isClientMode || isPublished} /></FormControl><FormLabel className="font-normal">Client Rights and Responsibilities</FormLabel><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name="receivedAdvanceDirectives" render={({ field }) => (<FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isClientMode || isPublished} /></FormControl><FormLabel className="font-normal">Advance Directives</FormLabel><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name="receivedRateSheet" render={({ field }) => (<FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isClientMode || isPublished} /></FormControl><FormLabel className="font-normal">Rate Sheet</FormLabel><FormMessage /></FormItem>)} />
                                 <FormField control={form.control} name="receivedTransportationWaiver" render={({ field }) => (<FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isClientMode || isPublished} /></FormControl><FormLabel className="font-normal">Transportation Waiver</FormLabel><FormMessage /></FormItem>)} />
                                 <FormField control={form.control} name="receivedPaymentAgreement" render={({ field }) => (<FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isClientMode || isPublished} /></FormControl><FormLabel className="font-normal">Agreement to Accept Payment Responsibility and Consent for Personal Information-Private Pay</FormLabel><FormMessage /></FormItem>)} />
                             </div>

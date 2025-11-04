@@ -36,7 +36,6 @@
             "va": { "type": "string" },
             "hasPoa": { "type": "string", "enum": ["Yes", "No"] },
             "ltci": { "type": "string" },
-            "advanceDirective": { "type": "boolean" },
             "contactPhone": { "type": "string" },
             "languagePreference": { "type": "string" },
             "additionalEmail": { "type": "string", "format": "email" },
@@ -317,6 +316,7 @@
       "type": "object",
       "description": "Tracks the state of a new client intake form.",
       "properties": {
+        "initialContactId": { "type": "string", "description": "The ID of the initial contact document." },
         "formData": { "type": "object", "description": "The partially or fully completed form data." },
         "clientEmail": { "type": "string", "format": "email", "description": "The primary email of the client signing up." },
         "clientPhone": { "type": "string", "description": "The primary phone number of the client signing up." },

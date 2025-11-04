@@ -260,8 +260,6 @@ export const clientSignupFormSchema = clientSignupDraftSchema.extend({
   clientInitials: z.string().optional(),
   receivedPrivacyPractices: z.boolean().optional(),
   receivedClientRights: z.boolean().optional(),
-  receivedAdvanceDirectives: z.boolean().optional(),
-  receivedRateSheet: z.boolean().optional(),
   receivedTransportationWaiver: z.boolean().optional(),
   receivedPaymentAgreement: z.boolean().optional(),
 
@@ -325,8 +323,6 @@ export const finalizationSchema = clientSignupFormSchema.extend({
 
   receivedPrivacyPractices: z.literal(true, { errorMap: () => ({ message: "Must be acknowledged" }) }),
   receivedClientRights: z.literal(true, { errorMap: () => ({ message: "Must be acknowledged" }) }),
-  receivedAdvanceDirectives: z.literal(true, { errorMap: () => ({ message: "Must be acknowledged" }) }),
-  receivedRateSheet: z.literal(true, { errorMap: () => ({ message: "Must be acknowledged" }) }),
   receivedTransportationWaiver: z.literal(true, { errorMap: () => ({ message: "Must be acknowledged" }) }),
   receivedPaymentAgreement: z.literal(true, { errorMap: () => ({ message: "Must be acknowledged" }) }),
 
@@ -340,17 +336,21 @@ export const finalizationSchema = clientSignupFormSchema.extend({
   agreementRepSignature: z.string().min(1, "FirstLight representative signature for payment agreement is required."),
   agreementRepDate: z.date({ required_error: "Date for payment agreement is required." }),
 }).superRefine((data, ctx) => {
-  if (!data.clientSignature && !data.clientRepresentativeSignature) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Either client or representative signature is required.", path: ["clientSignature"] });
-  }
-  if (data.clientSignature && (!data.clientPrintedName || !data.clientSignatureDate)) {
-    if (!data.clientPrintedName) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Printed name is required.", path: ["clientPrintedName"] });
-    if (!data.clientSignatureDate) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date is required.", path: ["clientSignatureDate"] });
-  }
-  if (data.clientRepresentativeSignature && (!data.clientRepresentativePrintedName || !data.clientRepresentativeSignatureDate)) {
-    if (!data.clientRepresentativePrintedName) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Representative printed name is required.", path: ["clientRepresentativePrintedName"] });
-    if (!data.clientRepresentativeSignatureDate) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date is required.", path: ["clientRepresentativeSignatureDate"] });
-  }
+    if (!data.clientSignature && !data.clientRepresentativeSignature) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Either client or representative signature is required in the Acknowledgement section.",
+            path: ["clientSignature"], 
+        });
+    }
+    if (data.clientSignature && (!data.clientPrintedName || !data.clientSignatureDate)) {
+        if (!data.clientPrintedName) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Printed name is required.", path: ["clientPrintedName"] });
+        if (!data.clientSignatureDate) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date is required.", path: ["clientSignatureDate"] });
+    }
+    if (data.clientRepresentativeSignature && (!data.clientRepresentativePrintedName || !data.clientRepresentativeSignatureDate)) {
+        if (!data.clientRepresentativePrintedName) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Representative printed name is required.", path: ["clientRepresentativePrintedName"] });
+        if (!data.clientRepresentativeSignatureDate) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date is required.", path: ["clientRepresentativeSignatureDate"] });
+    }
    if (!data.agreementClientSignature) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Client signature for payment agreement is required.", path: ["agreementClientSignature"] });
    }
