@@ -1,5 +1,4 @@
 
-
 "use server";
 
 import { revalidatePath } from 'next/cache';
@@ -151,14 +150,14 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
         const attachments = [];
         if (formData?.receivedPrivacyPractices) {
             attachments.push({
-                filename: 'FirstLight-Notice-of-Privacy-Practices.pdf',
-                path: 'gs://firstlighthomecare-hrm.appspot.com/waivers/FLHC_Privacy_Policy_NoticeRancho.pdf',
+                filename: 'Notice-of-Privacy-Practices.pdf',
+                path: 'https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.appspot.com/o/waivers%2FFLHC_Privacy_Policy_NoticeRancho.pdf?alt=media&token=a86e1c8b-5e6f-4e56-91e8-32ce6f809a93',
             });
         }
         if (formData?.receivedClientRights) {
             attachments.push({
                 filename: 'Client-Rights-and-Responsibilities.pdf',
-                path: 'gs://firstlighthomecare-hrm.appspot.com/waivers/Client Rights and Responsibilities revised 3-11-24.pdf',
+                path: 'https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.appspot.com/o/waivers%2FClient%20Rights%20and%20Responsibilities%20revised%203-11-24.pdf?alt=media&token=0b6e1599-28c1-4b47-97a6-1072a245a49c',
             });
         }
       
@@ -341,14 +340,14 @@ export async function finalizeAndSubmit(signupId: string) {
              const attachments = [];
             if (formData?.receivedPrivacyPractices) {
                 attachments.push({
-                    filename: 'FirstLight-Notice-of-Privacy-Practices.pdf',
-                    path: 'gs://firstlighthomecare-hrm.appspot.com/waivers/FLHC_Privacy_Policy_NoticeRancho.pdf',
+                    filename: 'Notice-of-Privacy-Practices.pdf',
+                    path: 'https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.appspot.com/o/waivers%2FFLHC_Privacy_Policy_NoticeRancho.pdf?alt=media&token=a86e1c8b-5e6f-4e56-91e8-32ce6f809a93',
                 });
             }
             if (formData?.receivedClientRights) {
                 attachments.push({
                     filename: 'Client-Rights-and-Responsibilities.pdf',
-                    path: 'gs://firstlighthomecare-hrm.appspot.com/waivers/Client Rights and Responsibilities revised 3-11-24.pdf',
+                    path: 'https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.appspot.com/o/waivers%2FClient%20Rights%20and%20Responsibilities%20revised%203-11-24.pdf?alt=media&token=0b6e1599-28c1-4b47-97a6-1072a245a49c',
                 });
             }
 
@@ -391,6 +390,8 @@ export async function previewClientIntakePdf(formData: any) {
         return { error: `Failed to generate PDF: ${error.message}` };
     }
 }
+
+    
 
     
 
