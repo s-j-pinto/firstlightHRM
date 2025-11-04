@@ -134,6 +134,12 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
     }
     const firestore = serverDb;
     try {
+        const signupDoc = await firestore.collection('client_signups').doc(signupId).get();
+        if (!signupDoc.exists) {
+            return { message: "Signup document not found.", error: true };
+        }
+        const formData = signupDoc.data()?.formData;
+
         const redirectPath = `/client-sign/${signupId}`;
         const loginUrl = new URL(`${process.env.NEXT_PUBLIC_BASE_URL}/new-client-login`);
         loginUrl.searchParams.set('redirect', redirectPath);
@@ -141,8 +147,16 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
         const signingLink = loginUrl.toString();
         
         console.log('Generated signing link:', signingLink);
+
+        const attachments = [];
+        if (formData?.receivedPrivacyPractices) {
+            attachments.push({
+                filename: 'FirstLight-Notice-of-Privacy-Practices.pdf',
+                path: 'gs://firstlighthomecare-hrm.appspot.com/waivers/FLHC_Privacy_Policy_NoticeRancho.pdf',
+            });
+        }
       
-        const email = {
+        const email: { [key: string]: any } = {
             to: [clientEmail],
             message: {
                 subject: "Action Required: Please Sign Your FirstLight Home Care Agreement",
@@ -164,6 +178,10 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
             `,
             },
         };
+
+        if (attachments.length > 0) {
+            email.attachments = attachments;
+        }
 
         await firestore.collection("mail").add(email);
         return { message: "Signature email sent successfully.", error: false };
@@ -279,14 +297,14 @@ export async function finalizeAndSubmit(signupId: string) {
             return { message: "Signup document not found.", error: true };
         }
         
-        const clientEmail = signupDoc.data()?.formData?.clientEmail;
-        const clientName = signupDoc.data()?.formData?.clientName || 'Client';
+        const formData = signupDoc.data()?.formData;
+        const clientEmail = formData?.clientEmail;
+        const clientName = formData?.clientName || 'Client';
 
         // 1. Generate PDF
-        const pdfBytes = await generateClientIntakePdf(signupDoc.data()?.formData);
+        const pdfBytes = await generateClientIntakePdf(formData);
         
         // 2. Upload to Firebase Storage
-        //const bucket = getStorage().bucket("firstlighthomecare-hrm.appspot.com");
         const bucket = getStorage().bucket("gs://firstlighthomecare-hrm.firebasestorage.app");
         const fileName = `client-agreements/${clientName.replace(/ /g, '_')}_${signupId}.pdf`;
         const file = bucket.file(fileName);
@@ -314,7 +332,15 @@ export async function finalizeAndSubmit(signupId: string) {
         const emailRecipients = [ownerEmail, clientEmail].filter(Boolean) as string[];
 
         if (emailRecipients.length > 0) {
-            const email = {
+             const attachments = [];
+            if (formData?.receivedPrivacyPractices) {
+                attachments.push({
+                    filename: 'FirstLight-Notice-of-Privacy-Practices.pdf',
+                    path: 'gs://firstlighthomecare-hrm.appspot.com/waivers/FLHC_Privacy_Policy_NoticeRancho.pdf',
+                });
+            }
+
+            const email: { [key: string]: any } = {
                 to: emailRecipients,
                 message: {
                     subject: `Your FirstLight Home Care Service Agreement for ${clientName} is Complete`,
@@ -325,6 +351,11 @@ export async function finalizeAndSubmit(signupId: string) {
                     `,
                 }
             };
+
+            if (attachments.length > 0) {
+                email.attachments = attachments;
+            }
+
             await firestore.collection("mail").add(email);
         }
 
@@ -348,5 +379,7 @@ export async function previewClientIntakePdf(formData: any) {
         return { error: `Failed to generate PDF: ${error.message}` };
     }
 }
+
+    
 
     
