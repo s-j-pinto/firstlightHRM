@@ -71,11 +71,11 @@ const initialContactSchema = z.object({
   clientAddress: z.string().min(1, "Client's Address is required."),
   dateOfBirth: z.date().optional(),
   rateOffered: z.coerce.number().optional(),
-  city: z.string().optional(),
-  zip: z.string().optional(),
+  city: z.string().min(1, "City is required."),
+  zip: z.string().min(1, "Zip code is required."),
   clientPhone: z.string().min(1, "Client's Phone is required."),
   clientEmail: z.string().email("A valid email is required."),
-  mainContact: z.string().optional(),
+  mainContact: z.string().min(1, "Main Contact is required."),
   allergies: z.string().optional(),
   pets: z.string().optional(),
   dateOfHomeVisit: z.date().optional(),
@@ -92,7 +92,7 @@ const initialContactSchema = z.object({
   hasPoa: z.enum(["Yes", "No"]).optional(),
   ltci: z.string().optional(),
   advanceDirective: z.boolean().optional(),
-  contactPhone: z.string().optional(),
+  contactPhone: z.string().min(1, "Contact Phone is required."),
   languagePreference: z.string().optional(),
   additionalEmail: z.string().email("Please enter a valid email.").optional().or(z.literal('')),
   companionCare_mealPreparation: z.boolean().optional(),
@@ -314,7 +314,7 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
                    <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                   <FormField control={form.control} name="zip" render={({ field }) => ( <FormItem><FormLabel>Zip</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                 </div>
-                <FormField control={form.control} name="rateOffered" render={({ field }) => ( <FormItem><FormLabel>Rate Offered</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="rateOffered" render={({ field }) => ( <FormItem><FormLabel>Rate Offered</FormLabel><FormControl><Input type="number" {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem> )} />
                 <div className="flex gap-4">
                     <FormField control={form.control} name="clientPhone" render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Client's Phone Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                     <FormField control={form.control} name="clientEmail" render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Client's Email</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
@@ -355,7 +355,7 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
                                 </FormItem>
                             )}
                         />
-                        <FormField control={form.control} name="timeOfVisit" render={({ field }) => ( <FormItem><FormLabel>Time of Visit</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="timeOfVisit" render={({ field }) => ( <FormItem><FormLabel>Time of Visit</FormLabel><FormControl><Input type="time" {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem> )} />
                         <FormField control={form.control} name="referredBy" render={({ field }) => ( <FormItem><FormLabel>Referred By</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                     </div>
                 </Card>
@@ -498,7 +498,7 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
             </div>
 
             <div className="flex justify-end pt-4 gap-4">
-              {contactId && (
+              {contactId && inHomeVisitSet === 'Yes' && (
                 <Button type="button" variant="outline" onClick={handleOpenCsa} disabled={!signupDocId}>
                     <FileText className="mr-2" />
                     Open Client Service Agreement
