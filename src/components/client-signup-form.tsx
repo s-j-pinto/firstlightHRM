@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from "react";
@@ -204,8 +205,8 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                 } else if (!value) {
                     convertedData[typedKey] = undefined;
                 }
-            } else if (value === null || value === undefined) {
-                // Determine default empty value based on schema type if possible
+            } else if (value === null) {
+                 // Determine default empty value based on schema type if possible
                 const fieldSchema = (clientSignupFormSchema.shape as any)[typedKey];
                 if (fieldSchema && fieldSchema._def.typeName === 'ZodNumber') {
                     convertedData[typedKey] = 0;
@@ -283,11 +284,18 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
       const finalFormData = form.getValues();
       const sanitizedDataForFirestore: {[key: string]: any} = { ...finalFormData };
       
-      // Sanitize undefined/empty values to null for Firestore
+       // Sanitize data for Firestore
       Object.keys(sanitizedDataForFirestore).forEach(key => {
         const typedKey = key as keyof typeof sanitizedDataForFirestore;
-        if (sanitizedDataForFirestore[typedKey] === undefined || sanitizedDataForFirestore[typedKey] === '') {
+        const value = sanitizedDataForFirestore[typedKey];
+        if (value === undefined) {
           (sanitizedDataForFirestore as any)[typedKey] = null;
+        } else if (value === '') {
+          // Keep empty strings for text fields but nullify for optional numbers if needed
+          const fieldSchema = (clientSignupFormSchema.shape as any)[typedKey];
+          if (fieldSchema && fieldSchema._def.typeName === 'ZodOptional' && fieldSchema.unwrap()._def.typeName === 'ZodNumber') {
+            (sanitizedDataForFirestore as any)[typedKey] = null;
+          }
         }
       });
   
@@ -533,29 +541,29 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                 <div className="space-y-6">
                     <h3 className="text-lg font-semibold text-center">I. CLIENT INFORMATION</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <FormField control={form.control} name="clientName" render={({ field }) => ( <FormItem><FormLabel>Client Name</FormLabel><FormControl><Input {...field} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="clientAddress" render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="clientCity" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="clientState" render={({ field }) => ( <FormItem><FormLabel>State</FormLabel><FormControl><Input {...field} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="clientPostalCode" render={({ field }) => ( <FormItem><FormLabel>Postal Code</FormLabel><FormControl><Input {...field} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="clientPhone" render={({ field }) => ( <FormItem><FormLabel>Phone</FormLabel><FormControl><Input {...field} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="clientSSN" render={({ field }) => ( <FormItem><FormLabel>Social Security #</FormLabel><FormControl><Input {...field} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="clientDOB" render={({ field }) => ( <FormItem><FormLabel>DOB</FormLabel><FormControl><Input {...field} type="date" disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="clientEmail" render={({ field }) => ( <FormItem><FormLabel>Client Email</FormLabel><FormControl><Input {...field} type="email" disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="clientName" render={({ field }) => ( <FormItem><FormLabel>Client Name</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="clientAddress" render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="clientCity" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="clientState" render={({ field }) => ( <FormItem><FormLabel>State</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="clientPostalCode" render={({ field }) => ( <FormItem><FormLabel>Postal Code</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="clientPhone" render={({ field }) => ( <FormItem><FormLabel>Phone</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="clientSSN" render={({ field }) => ( <FormItem><FormLabel>Social Security #</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="clientDOB" render={({ field }) => ( <FormItem><FormLabel>DOB</FormLabel><FormControl><Input {...field} type="date" value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="clientEmail" render={({ field }) => ( <FormItem><FormLabel>Client Email</FormLabel><FormControl><Input {...field} type="email" value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
                     </div>
                 </div>
 
                 <div className="space-y-6">
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <FormField control={form.control} name="emergencyContactName" render={({ field }) => ( <FormItem><FormLabel>Emergency Contact Name</FormLabel><FormControl><Input {...field} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="emergencyContactRelationship" render={({ field }) => ( <FormItem><FormLabel>Relationship</FormLabel><FormControl><Input {...field} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="emergencyContactHomePhone" render={({ field }) => ( <FormItem><FormLabel>Contact Home Phone</FormLabel><FormControl><Input {...field} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="emergencyContactWorkPhone" render={({ field }) => ( <FormItem><FormLabel>Contact Work Phone</FormLabel><FormControl><Input {...field} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="emergencyContactName" render={({ field }) => ( <FormItem><FormLabel>Emergency Contact Name</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="emergencyContactRelationship" render={({ field }) => ( <FormItem><FormLabel>Relationship</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="emergencyContactHomePhone" render={({ field }) => ( <FormItem><FormLabel>Contact Home Phone</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="emergencyContactWorkPhone" render={({ field }) => ( <FormItem><FormLabel>Contact Work Phone</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <FormField control={form.control} name="secondEmergencyContactName" render={({ field }) => ( <FormItem><FormLabel>2nd Emergency Contact</FormLabel><FormControl><Input {...field} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="secondEmergencyContactRelationship" render={({ field }) => ( <FormItem><FormLabel>Relationship</FormLabel><FormControl><Input {...field} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="secondEmergencyContactPhone" render={({ field }) => ( <FormItem><FormLabel>Phone</FormLabel><FormControl><Input {...field} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="secondEmergencyContactName" render={({ field }) => ( <FormItem><FormLabel>2nd Emergency Contact</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="secondEmergencyContactRelationship" render={({ field }) => ( <FormItem><FormLabel>Relationship</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="secondEmergencyContactPhone" render={({ field }) => ( <FormItem><FormLabel>Phone</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
                     </div>
                 </div>
 
@@ -575,8 +583,8 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                          <div className="flex flex-col space-y-2 pt-2 self-end">
                             <FormLabel>Scheduled Frequency:</FormLabel>
                         </div>
-                        <FormField control={form.control} name="daysPerWeek" render={({ field }) => ( <FormItem><FormLabel>Days/Wk</FormLabel><FormControl><Input {...field} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="hoursPerDay" render={({ field }) => ( <FormItem><FormLabel>Hrs/Day</FormLabel><FormControl><Input {...field} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="daysPerWeek" render={({ field }) => ( <FormItem><FormLabel>Days/Wk</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="hoursPerDay" render={({ field }) => ( <FormItem><FormLabel>Hrs/Day</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
                         <FormField
                             control={form.control}
                             name="contractStartDate"
@@ -614,14 +622,14 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                             <p className="text-sm">The hourly rate for providing the Services is $</p>
                             <FormField control={form.control} name="hourlyRate" render={({ field }) => (
                                 <FormItem className="inline-flex">
-                                    <FormControl><Input {...field} type="number" className="w-24 h-8" disabled={isClientMode || isPublished} /></FormControl>
+                                    <FormControl><Input {...field} type="number" className="w-24 h-8" value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )} />
                             <p className="text-sm">per hour. The rate is based on the Client utilizing the services of FirstLight Home Care of Rancho Cucamonga for a minimum of</p>
                             <FormField control={form.control} name="minimumHoursPerShift" render={({ field }) => (
                                 <FormItem className="inline-flex">
-                                    <FormControl><Input {...field} type="number" className="w-20 h-8" disabled={isClientMode || isPublished} /></FormControl>
+                                    <FormControl><Input {...field} type="number" className="w-20 h-8" value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )} />
@@ -679,7 +687,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                                 </div>
                                 <FormMessage>{form.formState.errors.clientSignature?.message}</FormMessage>
                             </div>
-                            <FormField control={form.control} name="clientPrintedName" render={({ field }) => ( <FormItem><FormLabel>(Client Printed Name)</FormLabel><FormControl><Input {...field} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="clientPrintedName" render={({ field }) => ( <FormItem><FormLabel>(Client Printed Name)</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
                             <FormField control={form.control} name="clientSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPublished}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
                         </div>
                         {/* Representative Signature Section */}
@@ -699,7 +707,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                                 </div>
                                 <FormMessage>{form.formState.errors.clientRepresentativeSignature?.message}</FormMessage>
                             </div>
-                            <FormField control={form.control} name="clientRepresentativePrintedName" render={({ field }) => ( <FormItem><FormLabel>(Client Representative Printed Name and Relationship to Client)</FormLabel><FormControl><Input {...field} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="clientRepresentativePrintedName" render={({ field }) => ( <FormItem><FormLabel>(Client Representative Printed Name and Relationship to Client)</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
                             <FormField control={form.control} name="clientRepresentativeSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPublished}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
                         </div>
                         {/* FirstLight Signature Section */}
@@ -716,7 +724,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                                 </div>
                                 <FormMessage>{form.formState.errors.firstLightRepresentativeSignature?.message}</FormMessage>
                             </div>
-                            <FormField control={form.control} name="firstLightRepresentativeTitle" render={({ field }) => ( <FormItem><FormLabel>(FirstLight Home Care of Rancho Cucamonga Representative Title)</FormLabel><FormControl><Input {...field} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="firstLightRepresentativeTitle" render={({ field }) => ( <FormItem><FormLabel>(FirstLight Home Care of Rancho Cucamonga Representative Title)</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
                             <FormField control={form.control} name="firstLightRepresentativeSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isClientMode || isPublished}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isClientMode || isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
                         </div>
                     </div>
@@ -737,8 +745,8 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                         <li><strong>EMERGENCY CONTACT:</strong> At the Client's instruction, or if it appears to a FirstLight Home Care of Rancho Cucamonga In-Home Worker that a life-threatening or medical emergency may have occurred while a FirstLight Home Care of Rancho Cucamonga In-Home Worker is present, FirstLight Home Care of Rancho Cucamonga will immediately notify the appropriate emergency responders (9-1-1) and, as soon as reasonably feasible, the Client's Emergency Contact(s) indicated above.</li>
                         <li><strong>INSURANCE:</strong> Client agrees to maintain homeowners or renters insurance on the Client's residence, which shall include coverages for dwelling, personal property and liability. Client agrees that such insurance shall be primary to and non- contributory with any other insurance that may cover claims, loss, or damages arising out of this Agreement or relating to the services provided hereunder. Client expressly releases and waives any and all rights of subrogation, contribution or indemnity the insurer may have against FirstLight Home Care of Rancho Cucamonga or its employees, agents, representatives, and affiliates. Client represents and certifies that the following insurance is in effect as of the date of this Agreement: Homeowners'/Renters' Insurance Company
                             <div className="grid grid-cols-2 gap-4 my-2">
-                                <FormField control={form.control} name="policyNumber" render={({ field }) => ( <FormItem><FormLabel>Policy Number</FormLabel><FormControl><Input {...field} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
-                                <FormField control={form.control} name="policyPeriod" render={({ field }) => ( <FormItem><FormLabel>Policy Period</FormLabel><FormControl><Input {...field} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                                <FormField control={form.control} name="policyNumber" render={({ field }) => ( <FormItem><FormLabel>Policy Number</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                                <FormField control={form.control} name="policyPeriod" render={({ field }) => ( <FormItem><FormLabel>Policy Period</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
                             </div>
                             The Client agrees not to entrust a FirstLight Home Care of Rancho Cucamonga In-Home Worker with unattended premises or any part thereof, or with the care, custody, or control of cash, negotiable, or other valuables without the prior written permission of FirstLight Home Care of Rancho Cucamonga and then only when the FirstLight Home Care of Rancho Cucamonga In-Home Worker's specific duties necessitate such activities.
                         </li>
@@ -746,7 +754,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                         <li><strong>USE OF VEHICLE:</strong> FirstLight Home Care of Rancho Cucamonga will not operate a vehicle on the Client's behalf unless the Client executes the Transportation Waiver substantially in the form provided by FirstLight Home Care of Rancho Cucamonga as part of this Agreement.</li>
                         <li><strong>HIRING:</strong> The investment FirstLight Home Care of Rancho Cucamonga makes in maintaining our quality caregivers and employees is substantial; therefore, it is agreed for a period of one year from the last day worked or for a period of one year after the Client stops utilizing FirstLight Home Care of Rancho Cucamonga Services, the Client agrees not to hire directly, or hire through any other company or agency, FirstLight Home Care of Rancho Cucamonga employees directly or indirectly who have personally provided care for the Client. If the Client wishes to hire a FirstLight Home Care of Rancho Cucamonga employee directly, the Client will notify FirstLight Home Care of Rancho Cucamonga of this intent in writing and a flat fee of $15,000.00 will be required to hire that employee directly. A written request by said employee will be required and must be approved by FirstLight Home Care of Rancho Cucamonga
                             <div className="w-1/3 mt-2">
-                                <FormField control={form.control} name="clientInitials" render={({ field }) => ( <FormItem><FormLabel>Client Initials</FormLabel><FormControl><Input {...field} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                                <FormField control={form.control} name="clientInitials" render={({ field }) => ( <FormItem><FormLabel>Client Initials</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
                             </div>
                         </li>
                         <li><strong>OTHER CONSIDERATIONS:</strong> The Client agrees that any claims made under the FirstLight Home Care of Rancho Cucamonga fidelity bond must be made in writing by the Client with ten (10) days of the occurrence. In addition, as a licensed California Home Care Organization FirstLight Home Care of Rancho Cucamonga maintains proof of general and professional liability insurance in the amount of $1 million per occurrence and $3 million in the aggregate and has an employee dishonesty bond with a minimum limit of $10,000, as required under Cal. Health & Safety Code § 1796.37; 1796.42.</li>
@@ -776,7 +784,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                             <FormField control={form.control} name="officeInitialContactDate" render={({ field }) => ( <FormItem><FormLabel>DATE OF INITIAL CLIENT CONTACT</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isClientMode || isPublished}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isClientMode || isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
                         </div>
                     </div>
-                    <FormField control={form.control} name="clientName" render={({ field }) => ( <FormItem><FormLabel>Client Name:</FormLabel><FormControl><Input {...field} disabled /></FormControl></FormItem> )} />
+                    <FormField control={form.control} name="clientName" render={({ field }) => ( <FormItem><FormLabel>Client Name:</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled /></FormControl></FormItem> )} />
                     <p className="text-sm text-muted-foreground">Frequency and duration of Services to be identified on individualized Client Service Plan</p>
                     <div className="space-y-4">
                         <h4 className="font-semibold">Companion Care Services</h4>
@@ -787,7 +795,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                                 )} />
                             ))}
                         </div>
-                        <FormField control={form.control} name="companionCare_other" render={({ field }) => ( <FormItem><FormLabel>Other:</FormLabel><FormControl><Input {...field} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="companionCare_other" render={({ field }) => ( <FormItem><FormLabel>Other:</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
                     </div>
                     <div className="space-y-4">
                         <h4 className="font-semibold">Personal Care Services</h4>
@@ -798,17 +806,17 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                                 )} />
                             ))}
                         </div>
-                        <FormField control={form.control} name="personalCare_assistWithOther" render={({ field }) => ( <FormItem><FormLabel>Assist with other:</FormLabel><FormControl><Input {...field} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="personalCare_assistWithOther" render={({ field }) => ( <FormItem><FormLabel>Assist with other:</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
                     </div>
                     <p className="text-sm text-muted-foreground">Firstlight Home Care of Rancho Cucamonga provides Personal Care Services as defined under Cal. Health & Safety Code § 1796.12 and does not provide medical services or function as a home health agency.</p>
                     <div className="w-1/3 mt-2">
-                        <FormField control={form.control} name="servicePlanClientInitials" render={({ field }) => ( <FormItem><FormLabel>Client Initials</FormLabel><FormControl><Input {...field} disabled={isPublished || mode === 'client-signing'} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="servicePlanClientInitials" render={({ field }) => ( <FormItem><FormLabel>Client Initials</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isPublished || mode === 'client-signing'} /></FormControl><FormMessage /></FormItem> )} />
                     </div>
                 </div>
                 
                 <div className="space-y-6 break-before-page">
                     <h3 className="text-lg font-semibold text-center">AGREEMENT TO ACCEPT PAYMENT RESPONSIBILITY AND CONSENT FOR USE AND DISCLOSURE OF PERSONAL INFORMATION-PRIVATE PAY</h3>
-                    <FormField control={form.control} name="agreementClientName" render={({ field }) => ( <FormItem><FormLabel>Client Name</FormLabel><FormControl><Input {...field} disabled /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="agreementClientName" render={({ field }) => ( <FormItem><FormLabel>Client Name</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled /></FormControl><FormMessage /></FormItem> )} />
                     <p className="text-sm text-muted-foreground">I understand that Firstlight Home Care of Rancho Cucamonga may need to use or disclose my personal information to provide services to me, to obtain payment for its services and for all of the other reasons more fully described in Firstlight Home Care of Rancho Cucamonga Notice of Privacy Practices.</p>
                     <p className="text-sm text-muted-foreground">I acknowledge that I have received the Notice of Privacy Practices, and I consent to all of the uses and disclosures of my personal information as described in that document including, if applicable and as is necessary, for Firstlight Home Care of Rancho Cucamonga provide services to me; to coordinate with my other providers; to determine eligibility for payment, bill, and receive payment for services; and to make all other uses and disclosures described in the Notice of Privacy Practices.</p>
                     <p className="text-sm text-muted-foreground">My consent will be valid for two (2) years from the date below. I may revoke my consent to share information, in writing, at any time. Revoking my consent does not apply to information that has already been shared or affect my financial responsibility for Services. I understand that some uses and sharing of my information are authorized by law and do not require my consent.</p>
@@ -831,7 +839,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                         <FormField control={form.control} name="agreementSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPublished}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
                     </div>
                      <div className={cn("p-4 rounded-md", isClientMode && "border border-orange-400")}>
-                        <FormField control={form.control} name="agreementRelationship" render={({ field }) => ( <FormItem><FormLabel>Relationship if not Client</FormLabel><FormControl><Input {...field} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="agreementRelationship" render={({ field }) => ( <FormItem><FormLabel>Relationship if not Client</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
                         <div className="space-y-2">
