@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import * as React from "react";
@@ -22,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2, Send, Save, BookUser, Calendar as CalendarIcon, RefreshCw, Briefcase, FileCheck, Signature, X, Printer, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { sendSignatureEmail, finalizeAndSubmit, previewClientIntakePdf, submitClientSignature } from "@/lib/client-signup.actions";
-import { Textarea } from "./ui/textarea";
+import { Textarea } from "./textarea";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Calendar } from "./ui/calendar";
@@ -190,17 +189,26 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
         ];
 
         const convertedData = { ...formData };
-        dateFields.forEach(field => {
-            const value = formData[field];
-            if (value && typeof value.toDate === 'function') { // Firestore Timestamp
-                convertedData[field] = value.toDate();
-            } else if (value && typeof value === 'string') { // ISO String
-                const parsedDate = new Date(value);
-                if (!isNaN(parsedDate.getTime())) {
-                    convertedData[field] = parsedDate;
+        
+        // Convert Timestamps to Dates and nulls to empty strings
+        Object.keys(convertedData).forEach(key => {
+            const typedKey = key as keyof typeof convertedData;
+            const value = convertedData[typedKey];
+
+            if (dateFields.includes(typedKey)) {
+                if (value && typeof (value as any).toDate === 'function') {
+                    convertedData[typedKey] = (value as any).toDate();
+                } else if (value && typeof value === 'string') {
+                    const parsedDate = new Date(value);
+                    if (!isNaN(parsedDate.getTime())) {
+                        convertedData[typedKey] = parsedDate;
+                    }
+                } else if (!value) {
+                    convertedData[typedKey] = undefined;
                 }
-            } else {
-                convertedData[field] = undefined;
+            } else if (value === null) {
+                // Convert null values for non-date fields to empty strings
+                convertedData[typedKey] = '';
             }
         });
         
@@ -903,3 +911,5 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
     </Card>
   );
 }
+
+    
