@@ -1,4 +1,5 @@
 
+
 "use server";
 
 import { revalidatePath } from 'next/cache';
@@ -138,6 +139,8 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
             return { message: "Signup document not found.", error: true };
         }
         const formData = signupDoc.data()?.formData;
+        console.log("[DEBUG] sendSignatureEmail: formData received:", formData);
+
 
         const redirectPath = `/client-sign/${signupId}`;
         const loginUrl = new URL(`${process.env.NEXT_PUBLIC_BASE_URL}/new-client-login`);
@@ -145,7 +148,7 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
 
         const signingLink = loginUrl.toString();
         
-        console.log('Generated signing link:', signingLink);
+        console.log('[DEBUG] sendSignatureEmail: Generated signing link:', signingLink);
 
         const attachments = [];
         if (formData?.receivedPrivacyPractices) {
@@ -160,6 +163,8 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
                 path: 'https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.appspot.com/o/waivers%2FClient%20Rights%20and%20Responsibilities%20revised%203-11-24.pdf?alt=media&token=0b6e1599-28c1-4b47-97a6-1072a245a49c',
             });
         }
+        console.log("[DEBUG] sendSignatureEmail: Attachments array constructed:", attachments);
+
       
         const email: { [key: string]: any } = {
             to: [clientEmail],
@@ -187,6 +192,8 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
         if (attachments.length > 0) {
             email.attachments = attachments;
         }
+        console.log("[DEBUG] sendSignatureEmail: Final email object before sending:", email);
+
 
         await firestore.collection("mail").add(email);
         return { message: "Signature email sent successfully.", error: false };
@@ -305,6 +312,8 @@ export async function finalizeAndSubmit(signupId: string) {
         const formData = signupDoc.data()?.formData;
         const clientEmail = formData?.clientEmail;
         const clientName = formData?.clientName || 'Client';
+        console.log("[DEBUG] finalizeAndSubmit: formData received:", formData);
+
 
         // 1. Generate PDF
         const pdfBytes = await generateClientIntakePdf(formData);
@@ -350,6 +359,8 @@ export async function finalizeAndSubmit(signupId: string) {
                     path: 'https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.appspot.com/o/waivers%2FClient%20Rights%20and%20Responsibilities%20revised%203-11-24.pdf?alt=media&token=0b6e1599-28c1-4b47-97a6-1072a245a49c',
                 });
             }
+            console.log("[DEBUG] finalizeAndSubmit: Attachments array constructed:", attachments);
+
 
             const email: { [key: string]: any } = {
                 to: emailRecipients,
@@ -366,6 +377,8 @@ export async function finalizeAndSubmit(signupId: string) {
             if (attachments.length > 0) {
                 email.attachments = attachments;
             }
+            console.log("[DEBUG] finalizeAndSubmit: Final email object before sending:", email);
+
 
             await firestore.collection("mail").add(email);
         }
