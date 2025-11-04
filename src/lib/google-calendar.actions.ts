@@ -181,8 +181,6 @@ export async function sendHomeVisitInvite(payload: HomeVisitPayload) {
         const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
         const pacificTimeZone = 'America/Los_Angeles';
 
-        const [hours, minutes] = timeOfVisit.split(':').map(Number);
-        
         const dateString = format(dateOfHomeVisit, 'yyyy-MM-dd');
         const startDateTimeString = `${dateString}T${timeOfVisit}:00`;
         const startDateTime = toZonedTime(startDateTimeString, pacificTimeZone);
