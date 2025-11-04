@@ -22,6 +22,7 @@
             "timeOfVisit": { "type": "string" },
             "referredBy": { "type": "string" },
             "promptedCall": { "type": "string" },
+            "personalCareNotes": { "type": "string" },
             "estimatedHours": { "type": "string" },
             "estimatedStartDate": { "type": "string", "format": "date-time" },
             "inHomeVisitSet": { "type": "string", "enum": ["Yes", "No"] },
@@ -57,15 +58,7 @@
             "companionCare_stimulateMentalAwareness": { "type": "boolean" },
             "companionCare_assistWithDressingAndGrooming": { "type": "boolean" },
             "companionCare_assistWithShavingAndOralCare": { "type": "boolean" },
-            "companionCare_other": { "type": "string" },
-            "personalCare_provideAlzheimersCare": { "type": "boolean" },
-            "personalCare_provideMedicationReminders": { "type": "boolean" },
-            "personalCare_assistWithDressingGrooming": { "type": "boolean" },
-            "personalCare_assistWithBathingHairCare": { "type": "boolean" },
-            "personalCare_assistWithFeedingSpecialDiets": { "type": "boolean" },
-            "personalCare_assistWithMobilityAmbulationTransfer": { "type": "boolean" },
-            "personalCare_assistWithIncontinenceCare": { "type": "boolean" },
-            "personalCare_assistWithOther": { "type": "string" }
+            "companionCare_other": { "type": "string" }
         },
         "required": [
             "clientName", "clientAddress", "clientPhone", 
