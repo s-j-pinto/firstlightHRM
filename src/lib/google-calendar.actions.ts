@@ -143,6 +143,7 @@ interface HomeVisitPayload {
 
 export async function sendHomeVisitInvite(payload: HomeVisitPayload) {
     const { clientName, clientAddress, clientEmail, additionalEmail, dateOfHomeVisit, timeOfVisit } = payload;
+    const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
     
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
@@ -181,10 +182,31 @@ export async function sendHomeVisitInvite(payload: HomeVisitPayload) {
         if (clientEmail) attendees.push({ email: clientEmail });
         if (additionalEmail) attendees.push({ email: additionalEmail });
 
+        const signatureHtml = `
+            <br><br><br>
+            <p>Best Wishes,</p>
+            <p>
+                <strong>Lolita Pinto</strong><br>
+                Owner<br>
+                Managing Director<br>
+                Office (909)-321-4466<br>
+                Fax (909)-694-2474
+            </p>
+            <p>CALIFORNIA HCO LICENSE # 364700059</p>
+            <p>9650 Business Center Drive, Suite #132 | Rancho Cucamonga, CA 91730</p>
+            <br>
+            <img src="${logoUrl}" alt="FirstLight Home Care Logo" style="width: 200px; height: auto;"/>
+            <br><br>
+            <p style="font-size: 10px; color: #888;">
+                <strong>CONFIDENTIALITY NOTICE</strong><br>
+                This email, including any attachments or files transmitted with it, is intended to be confidential and solely for the use of the individual or entity to whom it is addressed. If you received it in error, or if you are not the intended recipient(s), please notify the sender by reply e-mail and delete/destroy the original message and any attachments, and any copies. Any unauthorized review, use, disclosure or distribution of this e-mail or information is prohibited and may be a violation of applicable laws.
+            </p>
+        `;
+
         const event = {
             summary: `Home Visit with ${clientName}`,
             location: clientAddress,
-            description: `In-home assessment and consultation for ${clientName}.`,
+            description: `In-home assessment and consultation for ${clientName}.${signatureHtml}`,
             start: {
                 dateTime: startDateTime.toISOString(),
                 timeZone: 'America/Los_Angeles',
