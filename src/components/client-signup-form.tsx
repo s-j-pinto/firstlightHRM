@@ -270,17 +270,14 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
       });
 
       const formData = form.getValues();
-      const sanitizedFormData: any = { ...formData };
-      const dateFields = [
-          'contractStartDate', 'rateCardDate', 'clientSignatureDate',
-          'clientRepresentativeSignatureDate', 'firstLightRepresentativeSignatureDate',
-          'officeTodaysDate', 'officeReferralDate', 'officeInitialContactDate',
-          'agreementSignatureDate', 'agreementRepDate'
-      ];
-      dateFields.forEach(key => {
-          if (sanitizedFormData[key] === undefined) {
-              sanitizedFormData[key] = null;
-          }
+      const sanitizedFormData = { ...formData };
+      
+      // Sanitize undefined values to null for Firestore
+      Object.keys(sanitizedFormData).forEach(key => {
+        const typedKey = key as keyof typeof sanitizedFormData;
+        if (sanitizedFormData[typedKey] === undefined) {
+          (sanitizedFormData as any)[typedKey] = null;
+        }
       });
   
       try {
@@ -333,7 +330,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
              router.push(newPath);
           }
         } else {
-          const emailResult = await sendSignatureEmail(docId!, sanitizedFormData.clientEmail);
+          const emailResult = await sendSignatureEmail(docId!, sanitizedFormData.clientEmail!);
           if (emailResult.error) {
             toast({ title: "Email Error", description: emailResult.message, variant: "destructive" });
           } else {
@@ -556,7 +553,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                 </div>
 
                 <div className="space-y-6">
-                    <div className="flex gap-8 justify-center">
+                     <div className="flex gap-8 justify-center">
                         <FormField control={form.control} name="homemakerCompanion" render={({ field }) => (
                             <FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isClientMode || isPublished} /></FormControl><FormLabel className="font-normal">Homemaker/Companion</FormLabel></FormItem>
                         )} />
