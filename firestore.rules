@@ -120,13 +120,13 @@ service cloud.firestore {
     }
     /**
      * @description Controls access to initial_contacts. Open for all.
-     * @path /initial_contacts/{contactId}
+     * @path /initial_contacts/{initialContactId}
      * @allow (get, list) - Any user can view care logs.
      * @allow (create) - Any authenticated user can create a initial_contacts.
      * @deny (update, delete) - No user can update or delete a initial_contacts.
      * @principle Open read access.
      */
-    match /initial_contacts/{contactId} {
+    match /initial_contacts/{initialContactId} {
       allow get, list: if true;
       allow create, update: if isSignedIn();
       allow delete: if false;
