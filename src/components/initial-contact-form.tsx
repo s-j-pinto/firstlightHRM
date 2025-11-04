@@ -6,9 +6,9 @@ import { useState, useTransition, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { format } from "date-fns";
-import { CalendarIcon, Loader2, Save } from "lucide-react";
+import { CalendarIcon, Loader2, Save, FileText } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -32,7 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { submitInitialContact } from "@/lib/initial-contact.actions";
 import { useDoc, useMemoFirebase, firestore } from "@/firebase";
-import { doc } from 'firebase/firestore';
+import { doc, query, collection, where, getDocs } from 'firebase/firestore';
 import { Checkbox } from "./ui/checkbox";
 
 const companionCareCheckboxes = [
@@ -82,7 +82,6 @@ const initialContactSchema = z.object({
   timeOfVisit: z.string().optional(),
   referredBy: z.string().optional(),
   promptedCall: z.string().min(1, "This field is required."),
-  personalCareNotes: z.string().optional(),
   estimatedHours: z.string().optional(),
   estimatedStartDate: z.date().optional(),
   inHomeVisitSet: z.enum(["Yes", "No"]).optional(),
@@ -148,9 +147,24 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
   const [isSubmitting, startSubmittingTransition] = useTransition();
   const { toast } = useToast();
   const router = useRouter();
+  const pathname = usePathname();
+  const [signupDocId, setSignupDocId] = useState<string | null>(null);
 
   const contactDocRef = useMemoFirebase(() => contactId ? doc(firestore, 'initial_contacts', contactId) : null, [contactId]);
   const { data: existingData, isLoading } = useDoc<any>(contactDocRef);
+
+  useEffect(() => {
+    const findSignupDoc = async () => {
+      if (contactId) {
+        const q = query(collection(firestore, 'client_signups'), where('initialContactId', '==', contactId));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          setSignupDocId(querySnapshot.docs[0].id);
+        }
+      }
+    };
+    findSignupDoc();
+  }, [contactId]);
 
   const form = useForm<InitialContactFormData>({
     resolver: zodResolver(initialContactSchema),
@@ -228,6 +242,18 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
     });
   };
 
+  const handleOpenCsa = () => {
+    if (signupDocId) {
+        const url = pathname.includes('/admin')
+            ? `/admin/new-client-signup?signupId=${signupDocId}`
+            : `/owner/new-client-signup?signupId=${signupDocId}`;
+        router.push(url);
+    } else {
+        toast({ title: "Error", description: "Could not find the associated Client Service Agreement document." });
+    }
+  };
+
+
   const inHomeVisitSet = form.watch("inHomeVisitSet");
 
   if(isLoading) {
@@ -293,7 +319,7 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
                     <FormField control={form.control} name="clientPhone" render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Client's Phone Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                     <FormField control={form.control} name="clientEmail" render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Client's Email</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField control={form.control} name="mainContact" render={({ field }) => ( <FormItem><FormLabel>Main Contact</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                     <FormField control={form.control} name="additionalEmail" render={({ field }) => ( <FormItem><FormLabel>Additional Email</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                 </div>
@@ -471,7 +497,13 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
                 </div>
             </div>
 
-            <div className="flex justify-end pt-4">
+            <div className="flex justify-end pt-4 gap-4">
+              {contactId && (
+                <Button type="button" variant="outline" onClick={handleOpenCsa} disabled={!signupDocId}>
+                    <FileText className="mr-2" />
+                    Open Client Service Agreement
+                </Button>
+              )}
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 Save Initial Contact

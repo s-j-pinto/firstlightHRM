@@ -25,7 +25,6 @@ const initialContactSchema = z.object({
   timeOfVisit: z.string().optional(),
   referredBy: z.string().optional(),
   promptedCall: z.string().min(1, "This field is required."),
-  personalCareNotes: z.string().optional(),
   estimatedHours: z.string().optional(),
   estimatedStartDate: z.date().optional(),
   inHomeVisitSet: z.enum(["Yes", "No"]).optional(),
@@ -60,6 +59,14 @@ const initialContactSchema = z.object({
   companionCare_assistWithDressingAndGrooming: z.boolean().optional(),
   companionCare_assistWithShavingAndOralCare: z.boolean().optional(),
   companionCare_other: z.string().optional(),
+  personalCare_provideAlzheimersCare: z.boolean().optional(),
+  personalCare_provideMedicationReminders: z.boolean().optional(),
+  personalCare_assistWithDressingGrooming: z.boolean().optional(),
+  personalCare_assistWithBathingHairCare: z.boolean().optional(),
+  personalCare_assistWithFeedingSpecialDiets: z.boolean().optional(),
+  personalCare_assistWithMobilityAmbulationTransfer: z.boolean().optional(),
+  personalCare_assistWithIncontinenceCare: z.boolean().optional(),
+  personalCare_assistWithOther: z.string().optional(),
 }).superRefine((data, ctx) => {
     if (data.inHomeVisitSet === "Yes") {
         if (!data.dateOfHomeVisit) {
@@ -134,6 +141,7 @@ export async function submitInitialContact(payload: SubmitPayload) {
             // Create a new client_signup document as well to show on the dashboard
             const signupRef = firestore.collection('client_signups').doc();
             await signupRef.set({
+                initialContactId: docId, // Link to the initial contact document
                 formData: {
                     clientName: validation.data.clientName,
                     clientPhone: validation.data.clientPhone,

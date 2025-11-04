@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo } from 'react';
@@ -35,7 +36,7 @@ export default function ClientSignupList() {
   );
   const { data: signups, isLoading } = useCollection<any>(signupsQuery);
 
-  const baseEditPath = pathname.includes('/admin') ? '/admin/new-client-signup' : '/owner/new-client-signup';
+  const baseEditPath = pathname.includes('/admin') ? '/admin/initial-contact' : '/owner/initial-contact';
 
   const StatusBadge = ({ status }: { status: string }) => {
     const colorClass = 
@@ -91,8 +92,8 @@ export default function ClientSignupList() {
                     <StatusBadge status={signup.status} />
                   </TableCell>
                   <TableCell className="text-right">
-                    <Link href={`${baseEditPath}?signupId=${signup.id}`} className="flex items-center justify-end text-accent hover:underline">
-                      Open <ChevronRight className="h-4 w-4 ml-1" />
+                    <Link href={`${baseEditPath}?contactId=${signup.initialContactId}`} className="flex items-center justify-end text-accent hover:underline">
+                      Open Intake <ChevronRight className="h-4 w-4 ml-1" />
                     </Link>
                   </TableCell>
                 </TableRow>

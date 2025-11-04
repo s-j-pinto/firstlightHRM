@@ -1,0 +1,414 @@
+
+{
+  "entities": {
+    "InitialContact": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "InitialContact",
+        "type": "object",
+        "description": "Stores information from the initial phone contact with a potential client.",
+        "properties": {
+            "clientName": { "type": "string" },
+            "clientAddress": { "type": "string" },
+            "dateOfBirth": { "type": "string", "format": "date" },
+            "rateOffered": { "type": "number" },
+            "city": { "type": "string" },
+            "zip": { "type": "string" },
+            "clientPhone": { "type": "string" },
+            "clientEmail": { "type": "string", "format": "email" },
+            "mainContact": { "type": "string" },
+            "allergies": { "type": "string" },
+            "pets": { "type": "string" },
+            "dateOfHomeVisit": { "type": "string", "format": "date-time" },
+            "timeOfVisit": { "type": "string" },
+            "referredBy": { "type": "string" },
+            "promptedCall": { "type": "string" },
+            "estimatedHours": { "type": "string" },
+            "estimatedStartDate": { "type": "string", "format": "date-time" },
+            "inHomeVisitSet": { "type": "string", "enum": ["Yes", "No"] },
+            "inHomeVisitSetNoReason": { "type": "string" },
+            "status": { "type": "string", "enum": ["INITIAL PHONE CONTACT COMPLETED"] },
+            "createdAt": { "type": "string", "format": "date-time" },
+            "createdBy": { "type": "string", "format": "email" },
+            "lastUpdatedAt": { "type": "string", "format": "date-time" },
+            "medicalIns": { "type": "string" },
+            "dnr": { "type": "boolean" },
+            "va": { "type": "string" },
+            "hasPoa": { "type": "string", "enum": ["Yes", "No"] },
+            "ltci": { "type": "string" },
+            "advanceDirective": { "type": "boolean" },
+            "contactPhone": { "type": "string" },
+            "languagePreference": { "type": "string" },
+            "additionalEmail": { "type": "string", "format": "email" },
+            "companionCare_mealPreparation": { "type": "boolean" },
+            "companionCare_cleanKitchen": { "type": "boolean" },
+            "companionCare_assistWithLaundry": { "type": "boolean" },
+            "companionCare_dustFurniture": { "type": "boolean" },
+            "companionCare_assistWithEating": { "type": "boolean" },
+            "companionCare_provideAlzheimersRedirection": { "type": "boolean" },
+            "companionCare_assistWithHomeManagement": { "type": "boolean" },
+            "companionCare_preparationForBathing": { "type": "boolean" },
+            "companionCare_groceryShopping": { "type": "boolean" },
+            "companionCare_cleanBathrooms": { "type": "boolean" },
+            "companionCare_changeBedLinens": { "type": "boolean" },
+            "companionCare_runErrands": { "type": "boolean" },
+            "companionCare_escortAndTransportation": { "type": "boolean" },
+            "companionCare_provideRemindersAndAssistWithToileting": { "type": "boolean" },
+            "companionCare_provideRespiteCare": { "type": "boolean" },
+            "companionCare_stimulateMentalAwareness": { "type": "boolean" },
+            "companionCare_assistWithDressingAndGrooming": { "type": "boolean" },
+            "companionCare_assistWithShavingAndOralCare": { "type": "boolean" },
+            "companionCare_other": { "type": "string" },
+            "personalCare_provideAlzheimersCare": { "type": "boolean" },
+            "personalCare_provideMedicationReminders": { "type": "boolean" },
+            "personalCare_assistWithDressingGrooming": { "type": "boolean" },
+            "personalCare_assistWithBathingHairCare": { "type": "boolean" },
+            "personalCare_assistWithFeedingSpecialDiets": { "type": "boolean" },
+            "personalCare_assistWithMobilityAmbulationTransfer": { "type": "boolean" },
+            "personalCare_assistWithIncontinenceCare": { "type": "boolean" },
+            "personalCare_assistWithOther": { "type": "string" }
+        },
+        "required": [
+            "clientName", "clientAddress", "clientPhone", 
+            "clientEmail", "promptedCall", "status", "createdAt", "lastUpdatedAt"
+        ]
+    },
+    "CaregiverProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CaregiverProfile",
+      "type": "object",
+      "description": "Represents a caregiver's profile with detailed information.",
+      "properties": {
+        "fullName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "city": { "type": "string" },
+        "state": { "type": "string" },
+        "zip": { "type": "string" },
+        "gender": { "type": "string", "enum": ["Male", "Female", "Other"] },
+        "yearsExperience": { "type": "number" },
+        "previousRoles": { "type": "string" },
+        "summary": { "type": "string" },
+        "canChangeBrief": { "type": "boolean" },
+        "canTransfer": { "type": "boolean" },
+        "canPrepareMeals": { "type": "boolean" },
+        "canDoBedBath": { "type": "boolean" },
+        "canUseHoyerLift": { "type": "boolean" },
+        "canUseGaitBelt": { "type": "boolean" },
+        "canUsePurwick": { "type": "boolean" },
+        "canEmptyCatheter": { "type": "boolean" },
+        "canEmptyColostomyBag": { "type": "boolean" },
+        "canGiveMedication": { "type": "boolean" },
+        "canTakeBloodPressure": { "type": "boolean" },
+        "hasDementiaExperience": { "type": "boolean" },
+        "hasHospiceExperience": { "type": "boolean" },
+        "hca": { "type": "boolean" },
+        "hha": { "type": "boolean" },
+        "cna": { "type": "boolean" },
+        "liveScan": { "type": "boolean" },
+        "otherLanguages": { "type": "string" },
+        "negativeTbTest": { "type": "boolean" },
+        "cprFirstAid": { "type": "boolean" },
+        "canWorkWithCovid": { "type": "boolean" },
+        "covidVaccine": { "type": "boolean" },
+        "cnaLicense": { "type": "string" },
+        "otherCertifications": { "type": "string" },
+        "availability": {
+          "type": "object",
+          "properties": {
+            "monday": { "type": "array", "items": { "type": "string" } },
+            "tuesday": { "type": "array", "items": { "type": "string" } },
+            "wednesday": { "type": "array", "items": { "type": "string" } },
+            "thursday": { "type": "array", "items": { "type": "string" } },
+            "friday": { "type": "array", "items": { "type": "string" } },
+            "saturday": { "type": "array", "items": { "type": "string" } },
+            "sunday": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "hasCar": { "type": "string", "enum": ["yes", "no"] },
+        "validLicense": { "type": "string", "enum": ["yes", "no"] }
+      },
+      "required": [
+        "fullName",
+        "email",
+        "phone",
+        "address",
+        "city",
+        "state",
+        "zip",
+        "yearsExperience",
+        "availability",
+        "hasCar",
+        "validLicense"
+      ]
+    },
+    "AppointmentSlot": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AppointmentSlot",
+      "type": "object",
+      "description": "Represents a scheduled appointment slot for caregiver interviews.",
+      "properties": {
+        "caregiverId": { "type": "string" },
+        "startTime": { "type": "string", "format": "date-time" },
+        "endTime": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "caregiverId",
+        "startTime",
+        "endTime"
+      ]
+    },
+    "Interview": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Interview",
+      "type": "object",
+      "description": "Stores details about a caregiver interview session.",
+      "properties": {
+        "caregiverProfileId": { "type": "string" },
+        "caregiverUid": { "type": "string" },
+        "interviewDateTime": { "type": "string", "format": "date-time" },
+        "interviewType": { "type": "string", "enum": ["Phone", "In-Person", "Google Meet", "Orientation"] },
+        "interviewPathway": { "type": "string", "enum": ["separate", "combined"] },
+        "interviewNotes": { "type": "string" },
+        "candidateRating": { "type": "number", "minimum": 0, "maximum": 5 },
+        "phoneScreenPassed": { "type": "string", "enum": ["Yes", "No", "N/A"] },
+        "aiGeneratedInsight": { "type": "string" },
+        "finalInterviewStatus": {
+          "type": "string",
+          "enum": ["Passed", "Failed", "Pending"],
+          "description": "The status of the final interview, if applicable."
+        },
+        "orientationScheduled": {
+          "type": "boolean",
+          "description": "Indicates if an orientation has been scheduled."
+        },
+        "orientationDateTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date and time of the scheduled orientation."
+        }
+      },
+      "required": [
+        "caregiverProfileId",
+        "interviewDateTime",
+        "interviewType",
+        "phoneScreenPassed"
+      ]
+    },
+    "CaregiverEmployee": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CaregiverEmployee",
+      "type": "object",
+      "description": "Stores hiring information for a caregiver who has become an employee.",
+      "properties": {
+        "caregiverProfileId": { "type": "string" },
+        "interviewId": { "type": "string" },
+        "inPersonInterviewDate": { "type": "string", "format": "date-time" },
+        "hireDate": { "type": "string", "format": "date-time" },
+        "hiringComments": { "type": "string" },
+        "hiringManager": { "type": "string" },
+        "teletrackPin": { "type": "string", "description": "The TeleTrack PIN for the employee." }
+      },
+      "required": [
+        "caregiverProfileId",
+        "interviewId",
+        "hireDate",
+        "hiringManager",
+        "teletrackPin"
+      ]
+    },
+    "ActiveCaregiver": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ActiveCaregiver",
+      "type": "object",
+      "description": "Represents an active caregiver's information, typically from an external system.",
+      "properties": {
+        "Name": { "type": "string" },
+        "dob": { "type": "string" },
+        "Address": { "type": "string" },
+        "Apt": { "type": "string" },
+        "City": { "type": "string" },
+        "State": { "type": "string" },
+        "Zip": { "type": "string" },
+        "Mobile": { "type": "string" },
+        "Hire Date": { "type": "string" },
+        "Email": { "type": "string", "format": "email" },
+        "Drivers Lic": { "type": "string" },
+        "Caregiver Lic": { "type": "string" },
+        "TTiD-PIN": { "type": "string" },
+        "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastUpdatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["Name", "Email", "status"]
+    },
+    "Client": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Client",
+      "type": "object",
+      "description": "Represents a client's information.",
+      "properties": {
+        "Client Name": { "type": "string" },
+        "DOB": { "type": "string" },
+        "Address": { "type": "string" },
+        "aptUnit": { "type": "string" },
+        "City": { "type": "string" },
+        "Zip": { "type": "string" },
+        "Mobile": { "type": "string" },
+        "Email": { "type": "string", "format": "email" },
+        "ContactName": { "type": "string" },
+        "ContactMobile": { "type": "string" },
+        "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastUpdatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["Client Name", "Address", "City", "Zip", "Mobile", "status"]
+    },
+    "CareLogGroup": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CareLogGroup",
+      "type": "object",
+      "description": "A group that links a client to one or more active caregivers.",
+      "properties": {
+        "clientId": { "type": "string", "description": "The document ID of the linked client from the 'Clients' collection." },
+        "clientName": { "type": "string", "description": "The name of the linked client, stored for easy display." },
+        "caregiverEmails": { "type": "array", "items": { "type": "string", "format": "email" }, "description": "An array of emails for the linked caregivers from the 'caregivers_active' collection." },
+        "careLogTemplateId": { "type": "string", "description": "The document ID of the linked CareLogTemplate." },
+        "clientAccessEnabled": { "type": "boolean", "description": "If true, the client associated with this group can log in to view care logs." },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastUpdatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["clientId", "clientName", "caregiverEmails", "createdAt", "lastUpdatedAt"]
+    },
+    "CareLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CareLog",
+      "type": "object",
+      "description": "Stores a single care log entry from a caregiver for a specific client group.",
+      "properties": {
+        "careLogGroupId": { "type": "string", "description": "The document ID of the linked CareLogGroup." },
+        "caregiverId": { "type": "string", "format": "email", "description": "The email of the caregiver who submitted the log." },
+        "caregiverName": { "type": "string", "description": "The name of the caregiver who submitted the log." },
+        "shiftDateTime": { "type": "string", "format": "date-time", "description": "The start date and time of the shift." },
+        "shiftEndDateTime": { "type": "string", "format": "date-time", "description": "The end date and time of the shift." },
+        "logNotes": { "type": "string", "description": "The text notes for the care log, either manually entered or extracted from an image." },
+        "templateData": { "type": "object", "description": "Structured data from a filled-out CareLog template." },
+        "logImages": { "type": "array", "items": { "type": "string", "contentEncoding": "base64" }, "description": "An array of data URIs for scanned log images." },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastUpdatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["careLogGroupId", "caregiverId", "caregiverName", "createdAt", "lastUpdatedAt"]
+    },
+    "ClientCareRequest": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "ClientCareRequest",
+        "type": "object",
+        "description": "Stores a request from a client for additional care hours.",
+        "properties": {
+          "clientId": { "type": "string", "description": "The document ID of the client making the request." },
+          "clientName": { "type": "string", "description": "The name of the client." },
+          "clientEmail": { "type": "string", "format": "email", "description": "The contact email of the client at the time of request." },
+          "preferredDateTime": { "type": "string", "format": "date-time", "description": "The client's preferred start date and time for the additional care." },
+          "duration": { "type": "string", "description": "The requested duration of the care (e.g., '4 hours', 'Overnight')." },
+          "reason": { "type": "string", "description": "The reason provided by the client for the request." },
+          "preferredCaregiver": { "type": "string", "description": "The name of a preferred caregiver, if any." },
+          "urgency": { "type": "string", "description": "The urgency level of the request (e.g., 'ASAP', 'Flexible')." },
+          "status": { "type": "string", "enum": ["pending", "reviewed", "scheduled", "denied"], "description": "The status of the request, managed by the admin." },
+          "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when the request was created." }
+        },
+        "required": ["clientId", "clientName", "preferredDateTime", "duration", "reason", "urgency", "status", "createdAt"]
+    },
+    "ClientSignup": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ClientSignup",
+      "type": "object",
+      "description": "Tracks the state of a new client intake form.",
+      "properties": {
+        "initialContactId": { "type": "string", "description": "The ID of the initial contact document." },
+        "formData": { "type": "object", "description": "The partially or fully completed form data." },
+        "clientEmail": { "type": "string", "format": "email", "description": "The primary email of the client signing up." },
+        "clientPhone": { "type": "string", "description": "The primary phone number of the client signing up." },
+        "status": { "type": "string", "enum": ["INITIAL PHONE CONTACT COMPLETED", "INCOMPLETE", "PENDING CLIENT SIGNATURES", "CLIENT_SIGNATURES_COMPLETED", "SIGNED AND PUBLISHED"], "description": "The current status of the signup process." },
+        "formTemplateId": { "type": "string", "description": "The ID of the form template used for this signup." },
+        "completedPdfUrl": { "type": "string", "format": "uri", "description": "The URL to the final, signed PDF in Google Cloud Storage." },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastUpdatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["formData", "clientEmail", "clientPhone", "status", "createdAt", "lastUpdatedAt"]
+    },
+    "CareLogTemplate": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "CareLogTemplate",
+        "type": "object",
+        "description": "Defines a reusable template for structured CareLog entries.",
+        "properties": {
+            "name": { "type": "string", "description": "The name of the template." },
+            "description": { "type": "string", "description": "A brief description of the template's purpose." },
+            "subsections": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "An array of subsection keys to include in this template."
+            },
+            "createdAt": { "type": "string", "format": "date-time" },
+            "lastUpdatedAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["name", "subsections", "createdAt", "lastUpdatedAt"]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "/initial_contacts/{contactId}": {
+        "schema": { "$ref": "#/entities/InitialContact" },
+        "description": "Stores initial client inquiry information."
+    },
+    "/caregiver_profiles/{caregiverProfileId}": {
+      "schema": { "$ref": "#/entities/CaregiverProfile" },
+      "description": "Stores caregiver profile information."
+    },
+    "/appointments/{appointmentId}": {
+      "schema": { "$ref": "#/entities/AppointmentSlot" },
+      "description": "Stores appointment slots for interviews."
+    },
+    "/interviews/{interviewId}": {
+        "schema": { "$ref": "#/entities/Interview" },
+        "description": "Stores details of an interview conducted with a caregiver."
+    },
+    "/caregiver_employees/{employeeId}": {
+      "schema": { "$ref": "#/entities/CaregiverEmployee" },
+      "description": "Stores hiring and employment details for caregivers."
+    },
+    "/caregivers_active/{caregiverId}": {
+      "schema": { "$ref": "#/entities/ActiveCaregiver" },
+      "description": "Stores active caregiver information from an external system."
+    },
+    "/Clients/{clientId}": {
+      "schema": { "$ref": "#/entities/Client" },
+      "description": "Stores client information from an external system."
+    },
+    "/carelog_groups/{groupId}": {
+      "schema": { "$ref": "#/entities/CareLogGroup" },
+      "description": "Stores groups linking clients to their assigned active caregivers."
+    },
+    "/carelogs/{logId}": {
+      "schema": { "$ref": "#/entities/CareLog" },
+      "description": "Stores individual care log entries submitted by caregivers."
+    },
+    "/client_additional_care_requests/{requestId}": {
+      "schema": { "$ref": "#/entities/ClientCareRequest" },
+      "description": "Stores requests from clients for additional care hours."
+    },
+    "/client_signups/{signupId}": {
+      "schema": { "$ref": "#/entities/ClientSignup" },
+      "description": "Tracks the state of a new client intake form through the signing process."
+    },
+    "/carelog_templates/{templateId}": {
+      "schema": { "$ref": "#/entities/CareLogTemplate" },
+      "description": "Stores reusable templates for structured CareLog entries."
+    }
+  }
+}
