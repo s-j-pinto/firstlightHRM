@@ -242,15 +242,19 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
 
       form.reset(convertedData);
 
-      Object.keys(sigPads).forEach(key => {
-        const padKey = key as keyof typeof sigPads;
-        const formKey = key as keyof ClientSignupFormData;
-        const sigPad = sigPads[padKey].current;
-        const sigData = formData[formKey];
-        if (sigPad && sigData) {
-            setTimeout(() => sigPad.fromDataURL(sigData), 100);
-        }
-      });
+      setTimeout(() => {
+            Object.keys(sigPads).forEach(key => {
+                const padKey = key as keyof typeof sigPads;
+                const formKey = key as keyof ClientSignupFormData;
+                const sigPad = sigPads[padKey].current;
+                const sigData = formData[formKey];
+                if (sigPad && sigData && !sigPad.isEmpty()) {
+                    sigPad.fromDataURL(sigData);
+                } else if (sigPad && sigData) {
+                    sigPad.fromDataURL(sigData);
+                }
+            });
+        }, 200); // Increased timeout slightly
     }
   }, [existingSignupData, form, isClientMode]);
 
@@ -808,7 +812,10 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                                 <div className="space-y-2">
                                     <FormLabel>Signed (Client or Responsible Party)</FormLabel>
                                     <div className="relative rounded-md border bg-white">
-                                        <SignatureCanvas ref={sigPads.transportationWaiverClientSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isPublished} />
+                                        {form.getValues('transportationWaiverClientSignature') && (isPublished || mode === 'owner') ?
+                                            <Image src={form.getValues('transportationWaiverClientSignature')} alt="Signature" width={200} height={100} className="w-full h-24 object-contain" /> :
+                                            <SignatureCanvas ref={sigPads.transportationWaiverClientSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isPublished} />
+                                        }
                                         {!isPublished && (
                                             <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => clearSignature(sigPads.transportationWaiverClientSignature)}>
                                                 <RefreshCw className="w-4 h-4" />
@@ -984,3 +991,4 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
     </Card>
   );
 }
+
