@@ -243,18 +243,20 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
       form.reset(convertedData);
 
       setTimeout(() => {
-            Object.keys(sigPads).forEach(key => {
-                const padKey = key as keyof typeof sigPads;
-                const formKey = key as keyof ClientSignupFormData;
-                const sigPad = sigPads[padKey].current;
-                const sigData = formData[formKey];
-                if (sigPad && sigData && !sigPad.isEmpty()) {
-                    sigPad.fromDataURL(sigData);
-                } else if (sigPad && sigData) {
-                    sigPad.fromDataURL(sigData);
-                }
-            });
-        }, 200); // Increased timeout slightly
+        for (const key in sigPads) {
+            const padKey = key as keyof typeof sigPads;
+            const formKey = key as keyof ClientSignupFormData;
+            const sigPad = sigPads[padKey].current;
+            const sigData = formData[formKey];
+
+            if (sigPad && sigData) {
+                // Ensure the pad is clear before attempting to load new data
+                sigPad.clear();
+                // fromDataURL will draw the signature if the data is valid
+                sigPad.fromDataURL(sigData);
+            }
+        }
+    }, 250); // Small delay to ensure canvas elements are ready
     }
   }, [existingSignupData, form, isClientMode]);
 
@@ -697,13 +699,13 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                         {/* Client Signature Section */}
                         <div className={cn("grid grid-cols-1 md:grid-cols-3 gap-6 items-end p-4 rounded-md", isClientMode && "border border-orange-400")}>
                             <div className="space-y-2">
-                                <FormLabel>(Client Signature)</FormLabel>
+                                <FormLabel>Signed (Client)</FormLabel>
                                 <div className="relative rounded-md border bg-white">
-                                    {form.getValues('clientSignature') && (isPublished || mode === 'owner') ?
+                                    {form.getValues('clientSignature') && (isPublished || (mode === 'owner' && !isClientMode)) ?
                                         <Image src={form.getValues('clientSignature')} alt="Signature" width={200} height={100} className="w-full h-24 object-contain" /> :
-                                        <SignatureCanvas ref={sigPads.clientSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isPublished} />
+                                        <SignatureCanvas ref={sigPads.clientSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isPublished || (mode === 'owner' && isClientMode)} />
                                     }
-                                    {!isPublished && (
+                                    {!(isPublished || (mode === 'owner' && isClientMode)) && (
                                         <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => clearSignature(sigPads.clientSignature)}>
                                             <RefreshCw className="w-4 h-4" />
                                         </Button>
@@ -711,19 +713,19 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                                 </div>
                                 <FormMessage>{form.formState.errors.clientSignature?.message}</FormMessage>
                             </div>
-                            <FormField control={form.control} name="clientPrintedName" render={({ field }) => ( <FormItem><FormLabel>(Client Printed Name)</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="clientPrintedName" render={({ field }) => ( <FormItem><FormLabel>Printed Name (Client)</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
                             <FormField control={form.control} name="clientSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPublished}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
                         </div>
                         {/* Representative Signature Section */}
                         <div className={cn("grid grid-cols-1 md:grid-cols-3 gap-6 items-end p-4 rounded-md", isClientMode && "border border-orange-400")}>
                             <div className="space-y-2">
-                                <FormLabel>(Client Representative Signature)</FormLabel>
+                                <FormLabel>Signed (Client or Responsible Party)</FormLabel>
                                 <div className="relative rounded-md border bg-white">
-                                     {form.getValues('clientRepresentativeSignature') && (isPublished || mode === 'owner') ?
+                                     {form.getValues('clientRepresentativeSignature') && (isPublished || (mode === 'owner' && !isClientMode)) ?
                                         <Image src={form.getValues('clientRepresentativeSignature')} alt="Signature" width={200} height={100} className="w-full h-24 object-contain" /> :
-                                        <SignatureCanvas ref={sigPads.clientRepresentativeSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isPublished} />
+                                        <SignatureCanvas ref={sigPads.clientRepresentativeSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isPublished || (mode === 'owner' && isClientMode)} />
                                     }
-                                    {!isPublished && (
+                                    {!(isPublished || (mode === 'owner' && isClientMode)) && (
                                         <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => clearSignature(sigPads.clientRepresentativeSignature)}>
                                             <RefreshCw className="w-4 h-4" />
                                         </Button>
@@ -731,7 +733,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                                 </div>
                                 <FormMessage>{form.formState.errors.clientRepresentativeSignature?.message}</FormMessage>
                             </div>
-                            <FormField control={form.control} name="clientRepresentativePrintedName" render={({ field }) => ( <FormItem><FormLabel>(Client Representative Printed Name and Relationship to Client)</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="clientRepresentativePrintedName" render={({ field }) => ( <FormItem><FormLabel>Printed Name (Client Representative)</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
                             <FormField control={form.control} name="clientRepresentativeSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPublished}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
                         </div>
                         {/* FirstLight Signature Section */}
@@ -812,11 +814,11 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                                 <div className="space-y-2">
                                     <FormLabel>Signed (Client or Responsible Party)</FormLabel>
                                     <div className="relative rounded-md border bg-white">
-                                        {form.getValues('transportationWaiverClientSignature') && (isPublished || mode === 'owner') ?
+                                        {form.getValues('transportationWaiverClientSignature') && (isPublished || (mode === 'owner' && !isClientMode)) ?
                                             <Image src={form.getValues('transportationWaiverClientSignature')} alt="Signature" width={200} height={100} className="w-full h-24 object-contain" /> :
-                                            <SignatureCanvas ref={sigPads.transportationWaiverClientSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isPublished} />
+                                            <SignatureCanvas ref={sigPads.transportationWaiverClientSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isPublished || (mode === 'owner' && isClientMode)} />
                                         }
-                                        {!isPublished && (
+                                        {!(isPublished || (mode === 'owner' && isClientMode)) && (
                                             <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => clearSignature(sigPads.transportationWaiverClientSignature)}>
                                                 <RefreshCw className="w-4 h-4" />
                                             </Button>
@@ -897,11 +899,11 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                         <div className="space-y-2">
                             <FormLabel>Client Signature/Responsible Party</FormLabel>
                             <div className="relative rounded-md border bg-white">
-                                {form.getValues('agreementClientSignature') && (isPublished || mode === 'owner') ?
+                                {form.getValues('agreementClientSignature') && (isPublished || (mode === 'owner' && !isClientMode)) ?
                                     <Image src={form.getValues('agreementClientSignature')} alt="Signature" width={200} height={100} className="w-full h-24 object-contain" /> :
-                                    <SignatureCanvas ref={sigPads.agreementClientSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isPublished} />
+                                    <SignatureCanvas ref={sigPads.agreementClientSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isPublished || (mode === 'owner' && isClientMode)} />
                                 }
-                                {!isPublished && (
+                                {!(isPublished || (mode === 'owner' && isClientMode)) && (
                                     <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => clearSignature(sigPads.agreementClientSignature)}>
                                         <RefreshCw className="w-4 h-4" />
                                     </Button>
@@ -991,4 +993,5 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
     </Card>
   );
 }
+
 
