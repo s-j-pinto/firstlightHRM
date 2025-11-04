@@ -22,7 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2, Send, Save, BookUser, Calendar as CalendarIcon, RefreshCw, Briefcase, FileCheck, Signature, X, Printer, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { sendSignatureEmail, finalizeAndSubmit, previewClientIntakePdf, submitClientSignature, createCsaFromContact } from "@/lib/client-signup.actions";
-import { Textarea } from "./textarea";
+import { Textarea } from "./ui/textarea";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Calendar } from "./ui/calendar";
@@ -822,7 +822,10 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                                 <div className="space-y-2">
                                     <FormLabel>Witness (FirstLight Home Care Representative)</FormLabel>
                                     <div className="relative rounded-md border bg-white">
-                                        <SignatureCanvas ref={sigPads.transportationWaiverWitnessSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isClientMode || isPublished} />
+                                        {form.getValues('transportationWaiverWitnessSignature') && (isPublished || isClientMode) ?
+                                            <Image src={form.getValues('transportationWaiverWitnessSignature')} alt="Signature" width={200} height={100} className="w-full h-24 object-contain" /> :
+                                            <SignatureCanvas ref={sigPads.transportationWaiverWitnessSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isClientMode || isPublished} />
+                                        }
                                         {!isPublished && !isClientMode && (
                                             <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => clearSignature(sigPads.transportationWaiverWitnessSignature)}>
                                                 <RefreshCw className="w-4 h-4" />
@@ -981,5 +984,3 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
     </Card>
   );
 }
-
-    
