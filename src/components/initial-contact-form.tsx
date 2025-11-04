@@ -498,11 +498,16 @@ export function InitialContactForm({ contactId }: { contactId: string | null }) 
             </div>
 
             <div className="flex justify-end pt-4 gap-4">
-              {contactId && inHomeVisitSet === 'Yes' && (
-                <Button type="button" variant="outline" onClick={handleOpenCsa} disabled={!signupDocId}>
-                    <FileText className="mr-2" />
-                    Open Client Service Agreement
-                </Button>
+              {inHomeVisitSet === 'Yes' && (
+                  <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleOpenCsa}
+                      disabled={!contactId || !signupDocId}
+                  >
+                      <FileText className="mr-2" />
+                      Open Client Service Agreement
+                  </Button>
               )}
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
