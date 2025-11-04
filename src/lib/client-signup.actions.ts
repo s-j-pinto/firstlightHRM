@@ -155,6 +155,12 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
                 path: 'gs://firstlighthomecare-hrm.appspot.com/waivers/FLHC_Privacy_Policy_NoticeRancho.pdf',
             });
         }
+        if (formData?.receivedClientRights) {
+            attachments.push({
+                filename: 'Client-Rights-and-Responsibilities.pdf',
+                path: 'gs://firstlighthomecare-hrm.appspot.com/waivers/Client Rights and Responsibilities revised 3-11-24.pdf',
+            });
+        }
       
         const email: { [key: string]: any } = {
             to: [clientEmail],
@@ -337,6 +343,12 @@ export async function finalizeAndSubmit(signupId: string) {
                 attachments.push({
                     filename: 'FirstLight-Notice-of-Privacy-Practices.pdf',
                     path: 'gs://firstlighthomecare-hrm.appspot.com/waivers/FLHC_Privacy_Policy_NoticeRancho.pdf',
+                });
+            }
+            if (formData?.receivedClientRights) {
+                attachments.push({
+                    filename: 'Client-Rights-and-Responsibilities.pdf',
+                    path: 'gs://firstlighthomecare-hrm.appspot.com/waivers/Client Rights and Responsibilities revised 3-11-24.pdf',
                 });
             }
 
