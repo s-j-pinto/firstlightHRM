@@ -24,7 +24,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -33,9 +32,10 @@ import { cn } from "@/lib/utils";
 import { submitInitialContact } from "@/lib/initial-contact.actions";
 import { useDoc, useMemoFirebase, firestore } from "@/firebase";
 import { doc, query, collection, where, getDocs } from 'firebase/firestore';
-import { Checkbox } from "./checkbox";
 import { createCsaFromContact } from "@/lib/client-signup.actions";
-import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 
 const companionCareCheckboxes = [
