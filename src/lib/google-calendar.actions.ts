@@ -151,12 +151,19 @@ export async function sendHomeVisitInvite(payload: HomeVisitPayload) {
     const adminEmail = process.env.ADMIN_EMAIL;
     const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:9002/admin/settings';
 
-    if (!clientId || !clientSecret || !refreshToken || !ownerEmail || !adminEmail) {
-        console.error("Missing required environment variables for sending calendar invite.");
-        throw new Error("Server is not configured to send calendar invites. Please contact support.");
+    if (!clientId || !clientSecret) {
+        return { message: "Google credentials not configured.", error: true };
     }
 
     const oAuth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
+    
+    if (!refreshToken) {
+        const authUrl = oAuth2Client.generateAuthUrl({
+            access_type: 'offline', prompt: 'consent', scope: ['https://www.googleapis.com/auth/calendar.events'],
+        });
+        return { message: "Admin authorization required for Google Calendar.", error: true, authUrl };
+    }
+    
     oAuth2Client.setCredentials({ refresh_token: refreshToken });
 
     try {
@@ -168,10 +175,9 @@ export async function sendHomeVisitInvite(payload: HomeVisitPayload) {
         startDateTime.setHours(hours, minutes);
         const endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000); // 1-hour duration
 
-        const attendees = [
-            { email: ownerEmail },
-            { email: adminEmail },
-        ];
+        const attendees = [];
+        if(ownerEmail) attendees.push({ email: ownerEmail });
+        if(adminEmail) attendees.push({ email: adminEmail });
         if (clientEmail) attendees.push({ email: clientEmail });
         if (additionalEmail) attendees.push({ email: additionalEmail });
 
@@ -204,8 +210,13 @@ export async function sendHomeVisitInvite(payload: HomeVisitPayload) {
 
     } catch (err: any) {
         console.error("Error sending home visit invite:", err);
-        // We can check for specific auth errors like in the other function if needed
+        if (err.message?.includes('invalid_grant') || err.message?.includes('revoked')) {
+            const authUrl = oAuth2Client.generateAuthUrl({
+                access_type: 'offline', prompt: 'consent', scope: ['https://www.googleapis.com/auth/calendar.events'],
+            });
+            return { message: "Google authentication token is invalid. Please re-authorize.", error: true, authUrl };
+        }
         const errorMessage = err.response?.data?.error?.message || err.message || "Failed to send invite.";
-        throw new Error(errorMessage);
+        return { message: errorMessage, error: true };
     }
 }

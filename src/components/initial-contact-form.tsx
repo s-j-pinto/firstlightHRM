@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter, usePathname } from "next/navigation";
 import { format } from "date-fns";
-import { CalendarIcon, Loader2, Save, FileText, AlertCircle } from "lucide-react";
+import { CalendarIcon, Loader2, Save, FileText, AlertCircle, ExternalLink } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -152,6 +152,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
   const pathname = usePathname();
   const [contactId, setContactId] = useState(initialContactId);
   const [signupDocId, setSignupDocId] = useState<string | null>(null);
+  const [authUrl, setAuthUrl] = useState<string | null>(null);
 
   const contactDocRef = useMemoFirebase(() => contactId ? doc(firestore, 'initial_contacts', contactId) : null, [contactId]);
   const { data: existingData, isLoading } = useDoc<any>(contactDocRef);
@@ -224,6 +225,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
 
   const onSubmit = (data: InitialContactFormData) => {
     startSubmittingTransition(async () => {
+      setAuthUrl(null);
       const result = await submitInitialContact({
         contactId: contactId,
         formData: data
@@ -235,6 +237,9 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
           description: result.message,
           variant: "destructive",
         });
+        if (result.authUrl) {
+          setAuthUrl(result.authUrl);
+        }
       } else {
         toast({
           title: "Success",
@@ -282,6 +287,25 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
       <CardContent className="pt-6">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            
+            {authUrl && (
+                <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Action Required: Authorize Google Calendar</AlertTitle>
+                <AlertDescription>
+                    <p className="mb-2">
+                    To send calendar invites, you must grant permission. Click the button below to authorize.
+                    </p>
+                    <Button asChild>
+                        <a href={authUrl} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="mr-2 h-4 w-4" />
+                            Open Authorization Page
+                        </a>
+                    </Button>
+                </AlertDescription>
+                </Alert>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
               {/* Left Column */}
               <div className="space-y-6">
@@ -349,15 +373,8 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
               </div>
               {/* Right Column */}
               <div className="space-y-6">
-                 <Card className="bg-green-100 p-4">
+                 <Card className="bg-muted/30 p-4">
                     <div className="space-y-4">
-                         <Alert variant="default">
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertTitle className="text-xs font-semibold">Calendar Invite Feature</AlertTitle>
-                            <AlertDescription className="text-xs">
-                                To send calendar invites, ensure `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`, `OWNER_EMAIL`, and `ADMIN_EMAIL` are set in your environment.
-                            </AlertDescription>
-                        </Alert>
                         <FormField
                             control={form.control}
                             name="dateOfHomeVisit"

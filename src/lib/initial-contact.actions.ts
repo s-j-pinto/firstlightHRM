@@ -140,22 +140,25 @@ export async function submitInitialContact(payload: SubmitPayload) {
 
         // Check if we need to send a calendar invite
         if (dataToSave.inHomeVisitSet === "Yes" && dataToSave.dateOfHomeVisit && dataToSave.timeOfVisit) {
-             try {
-                await sendHomeVisitInvite({
-                    clientName: dataToSave.clientName,
-                    clientAddress: dataToSave.clientAddress,
-                    clientEmail: dataToSave.clientEmail,
-                    additionalEmail: dataToSave.additionalEmail,
-                    dateOfHomeVisit: dataToSave.dateOfHomeVisit,
-                    timeOfVisit: dataToSave.timeOfVisit,
-                });
-                console.log("Calendar invite sent successfully.");
-            } catch (calendarError: any) {
-                console.error("Failed to send calendar invite:", calendarError);
-                // Don't block the success of the form submission, but log the error.
-                // A toast could be shown on the client if we return this error info.
-                return { message: "Contact saved, but failed to send calendar invite. Check server configuration.", error: true, docId: docId };
+            const calendarResult = await sendHomeVisitInvite({
+                clientName: dataToSave.clientName,
+                clientAddress: dataToSave.clientAddress,
+                clientEmail: dataToSave.clientEmail,
+                additionalEmail: dataToSave.additionalEmail,
+                dateOfHomeVisit: dataToSave.dateOfHomeVisit,
+                timeOfVisit: dataToSave.timeOfVisit,
+            });
+            
+            if (calendarResult.error) {
+                console.error("Failed to send calendar invite:", calendarResult.message);
+                return { 
+                    message: `Contact saved, but calendar invite failed: ${calendarResult.message}`, 
+                    error: true, 
+                    docId: docId,
+                    authUrl: calendarResult.authUrl 
+                };
             }
+            console.log("Calendar invite sent successfully.");
         }
         
         revalidatePath('/admin/assessments');
