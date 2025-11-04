@@ -822,7 +822,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                                 <div className="space-y-2">
                                     <FormLabel>Witness (FirstLight Home Care Representative)</FormLabel>
                                     <div className="relative rounded-md border bg-white">
-                                        {form.getValues('transportationWaiverWitnessSignature') && (isPublished || isClientMode) ?
+                                        {form.getValues('transportationWaiverWitnessSignature') ?
                                             <Image src={form.getValues('transportationWaiverWitnessSignature')} alt="Signature" width={200} height={100} className="w-full h-24 object-contain" /> :
                                             <SignatureCanvas ref={sigPads.transportationWaiverWitnessSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isClientMode || isPublished} />
                                         }
