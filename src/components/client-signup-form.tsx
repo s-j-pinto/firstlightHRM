@@ -6,7 +6,7 @@ import { useState, useTransition, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useDoc, useMemoFirebase, firestore, errorEmitter, FirestorePermissionError } from "@/firebase";
-import { doc, addDoc, updateDoc, collection, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { doc, addDoc, updateDoc, collection, serverTimestamp, Timestamp, getDocs, query, where } from 'firebase/firestore';
 import { useRouter, usePathname } from "next/navigation";
 import { format } from "date-fns";
 import SignatureCanvas from 'react-signature-canvas';
@@ -20,7 +20,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Loader2, Send, Save, BookUser, Calendar as CalendarIcon, RefreshCw, Briefcase, FileCheck, Signature, X, Printer, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { sendSignatureEmail, finalizeAndSubmit, previewClientIntakePdf, submitClientSignature } from "@/lib/client-signup.actions";
+import { sendSignatureEmail, finalizeAndSubmit, previewClientIntakePdf, submitClientSignature, createCsaFromContact } from "@/lib/client-signup.actions";
 import { Textarea } from "./textarea";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
@@ -188,27 +188,32 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
             'agreementSignatureDate', 'agreementRepDate'
         ];
 
-        const convertedData = { ...formData };
+        const convertedData: { [key: string]: any } = { ...formData };
         
-        // Convert Timestamps to Dates and nulls to empty strings
+        // Convert Timestamps to Dates and nulls/undefined to empty strings/0 for controlled components
         Object.keys(convertedData).forEach(key => {
             const typedKey = key as keyof typeof convertedData;
-            const value = convertedData[typedKey];
+            let value = convertedData[typedKey];
 
             if (dateFields.includes(typedKey)) {
                 if (value && typeof (value as any).toDate === 'function') {
                     convertedData[typedKey] = (value as any).toDate();
                 } else if (value && typeof value === 'string') {
                     const parsedDate = new Date(value);
-                    if (!isNaN(parsedDate.getTime())) {
-                        convertedData[typedKey] = parsedDate;
-                    }
+                    convertedData[typedKey] = !isNaN(parsedDate.getTime()) ? parsedDate : undefined;
                 } else if (!value) {
                     convertedData[typedKey] = undefined;
                 }
-            } else if (value === null) {
-                // Convert null values for non-date fields to empty strings
-                convertedData[typedKey] = '';
+            } else if (value === null || value === undefined) {
+                // Determine default empty value based on schema type if possible
+                const fieldSchema = (clientSignupFormSchema.shape as any)[typedKey];
+                if (fieldSchema && fieldSchema._def.typeName === 'ZodNumber') {
+                    convertedData[typedKey] = 0;
+                } else if (fieldSchema && fieldSchema._def.typeName === 'ZodBoolean') {
+                    convertedData[typedKey] = false;
+                } else {
+                    convertedData[typedKey] = '';
+                }
             }
         });
         
@@ -253,9 +258,8 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
   
     const transitionAction = isSendingAction ? startSendingTransition : startSavingTransition;
   
-    console.log(`handleSave called with status: ${status}`);
+    // Manually trigger validation before sanitizing
     const isValid = await form.trigger(fieldsToValidate);
-    console.log(`Validation result for status ${status}: ${isValid}`);
   
     if (!isValid) {
       toast({
@@ -267,7 +271,6 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
     }
   
     transitionAction(async () => {
-      console.log("Preparing to write to Firestore.");
       Object.keys(sigPads).forEach(key => {
         const padKey = key as keyof typeof sigPads;
         const formKey = key as keyof ClientSignupFormData;
@@ -277,14 +280,14 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
         }
       });
 
-      const formData = form.getValues();
-      const sanitizedFormData = { ...formData };
+      const finalFormData = form.getValues();
+      const sanitizedDataForFirestore: {[key: string]: any} = { ...finalFormData };
       
-      // Sanitize undefined values to null for Firestore
-      Object.keys(sanitizedFormData).forEach(key => {
-        const typedKey = key as keyof typeof sanitizedFormData;
-        if (sanitizedFormData[typedKey] === undefined) {
-          (sanitizedFormData as any)[typedKey] = null;
+      // Sanitize undefined/empty values to null for Firestore
+      Object.keys(sanitizedDataForFirestore).forEach(key => {
+        const typedKey = key as keyof typeof sanitizedDataForFirestore;
+        if (sanitizedDataForFirestore[typedKey] === undefined || sanitizedDataForFirestore[typedKey] === '') {
+          (sanitizedDataForFirestore as any)[typedKey] = null;
         }
       });
   
@@ -295,13 +298,12 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
         if (docId) {
           const docRef = doc(firestore, 'client_signups', docId);
           const saveData = {
-            formData: sanitizedFormData,
-            clientEmail: sanitizedFormData.clientEmail,
-            clientPhone: sanitizedFormData.clientPhone,
+            formData: sanitizedDataForFirestore,
+            clientEmail: sanitizedDataForFirestore.clientEmail,
+            clientPhone: sanitizedDataForFirestore.clientPhone,
             status,
             lastUpdatedAt: now,
           };
-          console.log("Updating existing document:", docId);
           await updateDoc(docRef, saveData).catch(serverError => {
             errorEmitter.emit("permission-error", new FirestorePermissionError({
               path: docRef.path, operation: "update", requestResourceData: saveData,
@@ -311,14 +313,13 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
         } else {
           const colRef = collection(firestore, 'client_signups');
           const saveData = {
-            formData: sanitizedFormData,
-            clientEmail: sanitizedFormData.clientEmail,
-            clientPhone: sanitizedFormData.clientPhone,
+            formData: sanitizedDataForFirestore,
+            clientEmail: sanitizedDataForFirestore.clientEmail,
+            clientPhone: sanitizedDataForFirestore.clientPhone,
             status,
             createdAt: now,
             lastUpdatedAt: now,
           };
-          console.log("Adding new document.");
           const newDoc = await addDoc(colRef, saveData).catch(serverError => {
             errorEmitter.emit("permission-error", new FirestorePermissionError({
               path: colRef.path, operation: "create", requestResourceData: saveData,
@@ -326,7 +327,6 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
             throw serverError;
           });
           docId = newDoc.id;
-          console.log("New document created with ID:", docId);
         }
 
         const dashboardPath = pathname.includes('/admin') ? '/admin/assessments' : '/owner/dashboard';
@@ -338,7 +338,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
              router.push(newPath);
           }
         } else {
-          const emailResult = await sendSignatureEmail(docId!, sanitizedFormData.clientEmail!);
+          const emailResult = await sendSignatureEmail(docId!, sanitizedDataForFirestore.clientEmail!);
           if (emailResult.error) {
             toast({ title: "Email Error", description: emailResult.message, variant: "destructive" });
           } else {
@@ -348,7 +348,6 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
         }
   
       } catch (error: any) {
-        console.error("Firestore save error:", error);
         if (!error.name?.includes('FirebaseError')) {
           toast({ title: "Error", description: error.message || "An unexpected error occurred.", variant: "destructive" });
         }
@@ -547,7 +546,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                 </div>
 
                 <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <FormField control={form.control} name="emergencyContactName" render={({ field }) => ( <FormItem><FormLabel>Emergency Contact Name</FormLabel><FormControl><Input {...field} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
                         <FormField control={form.control} name="emergencyContactRelationship" render={({ field }) => ( <FormItem><FormLabel>Relationship</FormLabel><FormControl><Input {...field} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
                         <FormField control={form.control} name="emergencyContactHomePhone" render={({ field }) => ( <FormItem><FormLabel>Contact Home Phone</FormLabel><FormControl><Input {...field} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
