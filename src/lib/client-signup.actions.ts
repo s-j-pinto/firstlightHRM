@@ -141,7 +141,6 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
         const formData = signupDoc.data()?.formData;
         console.log("[DEBUG] sendSignatureEmail: formData received:", formData);
 
-
         const redirectPath = `/client-sign/${signupId}`;
         const loginUrl = new URL(`${process.env.NEXT_PUBLIC_BASE_URL}/new-client-login`);
         loginUrl.searchParams.set('redirect', redirectPath);
@@ -149,51 +148,42 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
         const signingLink = loginUrl.toString();
         
         console.log('[DEBUG] sendSignatureEmail: Generated signing link:', signingLink);
-
-        const attachments = [];
+        
+        let attachmentsHtml = '';
         if (formData?.receivedPrivacyPractices) {
-            attachments.push({
-                filename: 'FLHC_Privacy_Policy_NoticeRancho.pdf',
-                href: 'https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FFLHC_Privacy_Policy_NoticeRancho.pdf?alt=media&token=2bffc77a-fdfc-46af-85d2-04dd2ccab29f',
-            });
+            attachmentsHtml += `<p><strong>Download:</strong> <a href="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FFLHC_Privacy_Policy_NoticeRancho.pdf?alt=media&token=2bffc77a-fdfc-46af-85d2-04dd2ccab29f">Notice of Privacy Practices</a></p>`;
         }
         if (formData?.receivedClientRights) {
-            attachments.push({
-                filename: 'Client Rights and Responsibilities revised 3-11-24.pdf',
-                href: 'https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FClient%20Rights%20and%20Responsibilities%20revised%203-11-24.pdf?alt=media&token=9a22bfc7-215f-4724-b569-2eb0050ba999',
-            });
+            attachmentsHtml += `<p><strong>Download:</strong> <a href="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FClient%20Rights%20and%20Responsibilities%20revised%203-11-24.pdf?alt=media&token=9a22bfc7-215f-4724-b569-2eb0050ba999">Client Rights and Responsibilities</a></p>`;
         }
-        console.log("[DEBUG] sendSignatureEmail: Attachments array constructed:", attachments);
 
+        const emailHtml = `
+            <body style="font-family: sans-serif; line-height: 1.6;">
+            <div style="max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
+                <h1 style="color: #333;">Complete Your Onboarding</h1>
+                <p>Hello,</p>
+                <p>Thank you for choosing FirstLight Home Care. To finalize your service agreement, please click the button below to log in to your secure portal and sign the pending documents.</p>
+                <div style="text-align: center; margin: 30px 0;">
+                <a href="${signingLink}" style="background-color: #E07A5F; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-size: 16px; display: inline-block;">
+                    Log In to Sign Documents
+                </a>
+                </div>
+                ${attachmentsHtml ? `<div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;"><h2 style="font-size: 16px; color: #555;">Reference Documents</h2>${attachmentsHtml}</div>` : ''}
+                <p>If you have any questions, please don't hesitate to contact our office.</p>
+                <p>Thank you,<br/>The FirstLight Home Care Team</p>
+            </div>
+            </body>
+        `;
       
-        const email: { [key: string]: any } = {
+        const email = {
             to: [clientEmail],
             message: {
                 subject: "Action Required: Please Sign Your FirstLight Home Care Agreement",
-                html: `
-                <body style="font-family: sans-serif; line-height: 1.6;">
-                <div style="max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
-                    <h1 style="color: #333;">Complete Your Onboarding</h1>
-                    <p>Hello,</p>
-                    <p>Thank you for choosing FirstLight Home Care. To finalize your service agreement, please click the button below to log in to your secure portal and sign the pending documents.</p>
-                    <div style="text-align: center; margin: 30px 0;">
-                    <a href="${signingLink}" style="background-color: #E07A5F; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-size: 16px; display: inline-block;">
-                        Log In to Sign Documents
-                    </a>
-                    </div>
-                    <p>If you have any questions, please don't hesitate to contact our office.</p>
-                    <p>Thank you,<br/>The FirstLight Home Care Team</p>
-                </div>
-                </body>
-            `,
+                html: emailHtml,
             },
         };
-
-        if (attachments.length > 0) {
-            email.attachments = attachments;
-        }
+        
         console.log("[DEBUG] sendSignatureEmail: Final email object before sending:", email);
-
 
         await firestore.collection("mail").add(email);
         return { message: "Signature email sent successfully.", error: false };
@@ -347,39 +337,31 @@ export async function finalizeAndSubmit(signupId: string) {
         const emailRecipients = [ownerEmail, clientEmail].filter(Boolean) as string[];
 
         if (emailRecipients.length > 0) {
-             const attachments = [];
+            let attachmentsHtml = '';
             if (formData?.receivedPrivacyPractices) {
-                attachments.push({
-                    filename: 'FLHC_Privacy_Policy_NoticeRancho.pdf',
-                    href: 'https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FFLHC_Privacy_Policy_NoticeRancho.pdf?alt=media&token=2bffc77a-fdfc-46af-85d2-04dd2ccab29f',
-                });
+                attachmentsHtml += `<p><strong>Download:</strong> <a href="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FFLHC_Privacy_Policy_NoticeRancho.pdf?alt=media&token=2bffc77a-fdfc-46af-85d2-04dd2ccab29f">Notice of Privacy Practices</a></p>`;
             }
             if (formData?.receivedClientRights) {
-                attachments.push({
-                    filename: 'Client Rights and Responsibilities revised 3-11-24.pdf',
-                    href: 'https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FClient%20Rights%20and%20Responsibilities%20revised%203-11-24.pdf?alt=media&token=9a22bfc7-215f-4724-b569-2eb0050ba999',
-                });
+                attachmentsHtml += `<p><strong>Download:</strong> <a href="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FClient%20Rights%20and%20Responsibilities%20revised%203-11-24.pdf?alt=media&token=9a22bfc7-215f-4724-b569-2eb0050ba999">Client Rights and Responsibilities</a></p>`;
             }
-            console.log("[DEBUG] finalizeAndSubmit: Attachments array constructed:", attachments);
+            console.log("[DEBUG] finalizeAndSubmit: Attachments HTML generated:", attachmentsHtml);
 
-
-            const email: { [key: string]: any } = {
+            const emailHtml = `
+                <p>The Client Service Agreement for ${clientName} has been finalized. A PDF copy is available for download at the link below.</p>
+                <p><a href="${signedUrl}">Download Completed Agreement</a></p>
+                <p>Document ID: ${signupId}</p>
+                ${attachmentsHtml ? `<div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;"><h2 style="font-size: 16px; color: #555;">Reference Documents</h2>${attachmentsHtml}</div>` : ''}
+            `;
+            
+            const email = {
                 to: emailRecipients,
                 message: {
                     subject: `Your FirstLight Home Care Service Agreement for ${clientName} is Complete`,
-                    html: `
-                        <p>The Client Service Agreement has been finalized. A PDF copy is available for download at the link below.</p>
-                        <p><a href="${signedUrl}">Download Completed Agreement</a></p>
-                        <p>Document ID: ${signupId}</p>
-                    `,
+                    html: emailHtml,
                 }
             };
 
-            if (attachments.length > 0) {
-                email.attachments = attachments;
-            }
             console.log("[DEBUG] finalizeAndSubmit: Final email object before sending:", email);
-
 
             await firestore.collection("mail").add(email);
         }
@@ -404,10 +386,3 @@ export async function previewClientIntakePdf(formData: any) {
         return { error: `Failed to generate PDF: ${error.message}` };
     }
 }
-
-    
-
-    
-
-    
-
