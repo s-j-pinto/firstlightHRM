@@ -159,7 +159,7 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
         }
         if (formData?.receivedClientRights) {
             attachments.push({
-                filename: 'Client-Rights-and-Responsibilities.pdf',
+                filename: 'Client Rights and Responsibilities revised 3-11-24.pdf',
                 href: 'https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.appspot.com/o/waivers%2FClient%20Rights%20and%20Responsibilities%20revised%203-11-24.pdf?alt=media&token=9a22bfc7-215f-4724-b569-2eb0050ba999',
             });
         }
@@ -356,7 +356,7 @@ export async function finalizeAndSubmit(signupId: string) {
             }
             if (formData?.receivedClientRights) {
                 attachments.push({
-                    filename: 'Client-Rights-and-Responsibilities.pdf',
+                    filename: 'Client Rights and Responsibilities revised 3-11-24.pdf',
                     href: 'https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.appspot.com/o/waivers%2FClient%20Rights%20and%20Responsibilities%20revised%203-11-24.pdf?alt=media&token=9a22bfc7-215f-4724-b569-2eb0050ba999',
                 });
             }
