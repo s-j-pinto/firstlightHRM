@@ -154,13 +154,13 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
         if (formData?.receivedPrivacyPractices) {
             attachments.push({
                 filename: 'Notice-of-Privacy-Practices.pdf',
-                path: 'https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.appspot.com/o/waivers%2FFLHC_Privacy_Policy_NoticeRancho.pdf?alt=media&token=a86e1c8b-5e6f-4e56-91e8-32ce6f809a93',
+                path: 'https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.appspot.com/o/waivers%2FFLHC_Privacy_Policy_NoticeRancho.pdf?alt=media&token=2bffc77a-fdfc-46af-85d2-04dd2ccab29f',
             });
         }
         if (formData?.receivedClientRights) {
             attachments.push({
                 filename: 'Client-Rights-and-Responsibilities.pdf',
-                path: 'https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.appspot.com/o/waivers%2FClient%20Rights%20and%20Responsibilities%20revised%203-11-24.pdf?alt=media&token=0b6e1599-28c1-4b47-97a6-1072a245a49c',
+                path: 'https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.appspot.com/o/waivers%2FClient%20Rights%20and%20Responsibilities%20revised%203-11-24.pdf?alt=media&token=9a22bfc7-215f-4724-b569-2eb0050ba999',
             });
         }
         console.log("[DEBUG] sendSignatureEmail: Attachments array constructed:", attachments);
@@ -319,7 +319,7 @@ export async function finalizeAndSubmit(signupId: string) {
         const pdfBytes = await generateClientIntakePdf(formData);
         
         // 2. Upload to Firebase Storage
-        const bucket = getStorage().bucket("gs://firstlighthomecare-hrm.firebasestorage.app");
+        const bucket = getStorage().bucket("gs://firstlighthomecare-hrm.appspot.com");
         const fileName = `client-agreements/${clientName.replace(/ /g, '_')}_${signupId}.pdf`;
         const file = bucket.file(fileName);
         
@@ -350,13 +350,13 @@ export async function finalizeAndSubmit(signupId: string) {
             if (formData?.receivedPrivacyPractices) {
                 attachments.push({
                     filename: 'Notice-of-Privacy-Practices.pdf',
-                    path: 'https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.appspot.com/o/waivers%2FFLHC_Privacy_Policy_NoticeRancho.pdf?alt=media&token=a86e1c8b-5e6f-4e56-91e8-32ce6f809a93',
+                    path: 'https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.appspot.com/o/waivers%2FFLHC_Privacy_Policy_NoticeRancho.pdf?alt=media&token=2bffc77a-fdfc-46af-85d2-04dd2ccab29f',
                 });
             }
             if (formData?.receivedClientRights) {
                 attachments.push({
                     filename: 'Client-Rights-and-Responsibilities.pdf',
-                    path: 'https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.appspot.com/o/waivers%2FClient%20Rights%20and%20Responsibilities%20revised%203-11-24.pdf?alt=media&token=0b6e1599-28c1-4b47-97a6-1072a245a49c',
+                    path: 'https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.appspot.com/o/waivers%2FClient%20Rights%20and%20Responsibilities%20revised%203-11-24.pdf?alt=media&token=9a22bfc7-215f-4724-b569-2eb0050ba999',
                 });
             }
             console.log("[DEBUG] finalizeAndSubmit: Attachments array constructed:", attachments);
@@ -409,3 +409,4 @@ export async function previewClientIntakePdf(formData: any) {
     
 
     
+
