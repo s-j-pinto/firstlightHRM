@@ -153,7 +153,7 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
         const attachments = [];
         if (formData?.receivedPrivacyPractices) {
             attachments.push({
-                filename: 'Notice-of-Privacy-Practices.pdf',
+                filename: 'FLHC_Privacy_Policy_NoticeRancho.pdf',
                 href: 'https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.appspot.com/o/waivers%2FFLHC_Privacy_Policy_NoticeRancho.pdf?alt=media&token=2bffc77a-fdfc-46af-85d2-04dd2ccab29f',
             });
         }
@@ -350,7 +350,7 @@ export async function finalizeAndSubmit(signupId: string) {
              const attachments = [];
             if (formData?.receivedPrivacyPractices) {
                 attachments.push({
-                    filename: 'Notice-of-Privacy-Practices.pdf',
+                    filename: 'FLHC_Privacy_Policy_NoticeRancho.pdf',
                     href: 'https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.appspot.com/o/waivers%2FFLHC_Privacy_Policy_NoticeRancho.pdf?alt=media&token=2bffc77a-fdfc-46af-85d2-04dd2ccab29f',
                 });
             }
