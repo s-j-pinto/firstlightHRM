@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useTransition, useEffect, useMemo } from "react";
@@ -551,7 +550,8 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                 </div>
             </div>
 
-            <div className="flex justify-end pt-4 gap-4">
+            <div className="flex justify-end items-center pt-4 gap-4">
+               <p className="text-sm text-destructive mr-auto">Pls click 'Save Initial Contact' to save changes on this page.</p>
               {inHomeVisitSet === 'Yes' && (
                   <Button
                       type="button"
@@ -574,3 +574,5 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
     </Card>
   );
 }
+
+    
