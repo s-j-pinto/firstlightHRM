@@ -154,13 +154,13 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
         if (formData?.receivedPrivacyPractices) {
             attachments.push({
                 filename: 'FLHC_Privacy_Policy_NoticeRancho.pdf',
-                href: 'https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.appspot.com/o/waivers%2FFLHC_Privacy_Policy_NoticeRancho.pdf?alt=media&token=2bffc77a-fdfc-46af-85d2-04dd2ccab29f',
+                href: 'https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FFLHC_Privacy_Policy_NoticeRancho.pdf?alt=media&token=2bffc77a-fdfc-46af-85d2-04dd2ccab29f',
             });
         }
         if (formData?.receivedClientRights) {
             attachments.push({
                 filename: 'Client Rights and Responsibilities revised 3-11-24.pdf',
-                href: 'https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.appspot.com/o/waivers%2FClient%20Rights%20and%20Responsibilities%20revised%203-11-24.pdf?alt=media&token=9a22bfc7-215f-4724-b569-2eb0050ba999',
+                href: 'https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FClient%20Rights%20and%20Responsibilities%20revised%203-11-24.pdf?alt=media&token=9a22bfc7-215f-4724-b569-2eb0050ba999',
             });
         }
         console.log("[DEBUG] sendSignatureEmail: Attachments array constructed:", attachments);
@@ -351,13 +351,13 @@ export async function finalizeAndSubmit(signupId: string) {
             if (formData?.receivedPrivacyPractices) {
                 attachments.push({
                     filename: 'FLHC_Privacy_Policy_NoticeRancho.pdf',
-                    href: 'https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.appspot.com/o/waivers%2FFLHC_Privacy_Policy_NoticeRancho.pdf?alt=media&token=2bffc77a-fdfc-46af-85d2-04dd2ccab29f',
+                    href: 'https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FFLHC_Privacy_Policy_NoticeRancho.pdf?alt=media&token=2bffc77a-fdfc-46af-85d2-04dd2ccab29f',
                 });
             }
             if (formData?.receivedClientRights) {
                 attachments.push({
                     filename: 'Client Rights and Responsibilities revised 3-11-24.pdf',
-                    href: 'https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.appspot.com/o/waivers%2FClient%20Rights%20and%20Responsibilities%20revised%203-11-24.pdf?alt=media&token=9a22bfc7-215f-4724-b569-2eb0050ba999',
+                    href: 'https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FClient%20Rights%20and%20Responsibilities%20revised%203-11-24.pdf?alt=media&token=9a22bfc7-215f-4724-b569-2eb0050ba999',
                 });
             }
             console.log("[DEBUG] finalizeAndSubmit: Attachments array constructed:", attachments);
