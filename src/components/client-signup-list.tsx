@@ -36,6 +36,7 @@ import { cn } from '@/lib/utils';
 
 const intakeStatuses = [
     "INITIAL PHONE CONTACT COMPLETED",
+    "INHOME VISIT SCHEDULED",
     "INCOMPLETE",
     "PENDING CLIENT SIGNATURES",
     "CLIENT_SIGNATURES_COMPLETED",
@@ -77,7 +78,7 @@ export default function ClientSignupList() {
 
     const allIntakes = contacts.map(contact => {
       const signup = signupsMap.get(contact.id);
-      const status = signup?.status || "INITIAL PHONE CONTACT COMPLETED";
+      const status = signup?.status || contact.status || "INITIAL PHONE CONTACT COMPLETED";
       
       return {
         id: contact.id,
@@ -117,6 +118,7 @@ export default function ClientSignupList() {
         status === 'SIGNED AND PUBLISHED' ? 'bg-green-500' :
         status === 'CLIENT_SIGNATURES_COMPLETED' ? 'bg-blue-500' :
         status === 'PENDING CLIENT SIGNATURES' ? 'bg-yellow-500' :
+        status === 'INHOME VISIT SCHEDULED' ? 'bg-teal-500' :
         status === 'INITIAL PHONE CONTACT COMPLETED' ? 'bg-purple-500' :
         'bg-gray-500';
 

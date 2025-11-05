@@ -114,9 +114,13 @@ export async function submitInitialContact(payload: SubmitPayload) {
         console.warn('Could not get user from session cookie for createdBy field.');
     }
 
+    const status = validation.data.inHomeVisitSet === "Yes"
+        ? "INHOME VISIT SCHEDULED"
+        : "INITIAL PHONE CONTACT COMPLETED";
+
     const dataToSave = {
         ...validation.data,
-        status: "INITIAL PHONE CONTACT COMPLETED",
+        status: status,
         lastUpdatedAt: now,
     };
     
