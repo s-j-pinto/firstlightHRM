@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from "next/link";
@@ -55,26 +56,23 @@ export function AppHeader() {
           <nav className="flex items-center space-x-1">
             {isAdminRoute && user && (
                <>
-                <Link href="/admin" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
-                    Dashboard
+                <Link href="/admin/advanced-search" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
+                    Candidate Search
                 </Link>
                 <Link href="/admin/manage-interviews" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
                     Manage Interviews
                 </Link>
-                 <Link href="/admin/assessments" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
-                    Assessments
-                </Link>
                 <Link href="/admin/manage-applications" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
                     Manage Applications
-                </Link>
-                 <Link href="/admin/advanced-search" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
-                    Advanced Search
                 </Link>
                 <Link href="/admin/reports" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
                     Reports
                 </Link>
                 <Link href="/admin/settings" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
                     Settings
+                </Link>
+                <Link href="/admin/assessments" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
+                    Assessments
                 </Link>
                </>
             )}
