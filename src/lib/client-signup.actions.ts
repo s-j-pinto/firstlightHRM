@@ -13,7 +13,7 @@ const clientSignupSchema = z.object({
   signupId: z.string().nullable(),
   clientEmail: z.string().email(),
   formData: z.any(),
-  status: z.enum(["INCOMPLETE", "PENDING CLIENT SIGNATURES"]),
+  status: z.enum(["Incomplete", "Pending Client Signatures"]),
 });
 
 export async function createCsaFromContact(initialContactId: string) {
@@ -93,7 +93,7 @@ export async function createCsaFromContact(initialContactId: string) {
             formData: formDataForSignup,
             clientEmail: contactData.clientEmail,
             clientPhone: contactData.clientPhone,
-            status: 'INCOMPLETE', // Start as incomplete until sent
+            status: 'Incomplete', // Start as incomplete until sent
             createdAt: now,
             lastUpdatedAt: now,
         });
@@ -240,7 +240,7 @@ export async function submitClientSignature(payload: any) {
         const signupRef = firestore.collection('client_signups').doc(signupId);
         
         const updatePayload: { [key: string]: any } = {
-            status: 'CLIENT_SIGNATURES_COMPLETED',
+            status: 'Client Signatures Completed',
             lastUpdatedAt: Timestamp.now(),
         };
 
@@ -328,7 +328,7 @@ export async function finalizeAndSubmit(signupId: string) {
 
         // 3. Update status and save PDF URL
         await signupRef.update({
-            status: 'SIGNED AND PUBLISHED',
+            status: 'Signed and Published',
             completedPdfUrl: signedUrl,
             lastUpdatedAt: Timestamp.now(),
         });

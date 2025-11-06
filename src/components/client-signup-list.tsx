@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useMemo, useState } from 'react';
@@ -35,12 +36,12 @@ import { Badge } from './ui/badge';
 import { cn } from '@/lib/utils';
 
 const intakeStatuses = [
-    "INITIAL PHONE CONTACT COMPLETED",
-    "INHOME VISIT SCHEDULED",
-    "INCOMPLETE",
-    "PENDING CLIENT SIGNATURES",
-    "CLIENT_SIGNATURES_COMPLETED",
-    "SIGNED AND PUBLISHED",
+    "Initial Phone Contact Completed",
+    "In-Home Visit Scheduled",
+    "Incomplete",
+    "Pending Client Signatures",
+    "Client Signatures Completed",
+    "Signed and Published",
 ];
 
 const dateRanges = {
@@ -78,7 +79,7 @@ export default function ClientSignupList() {
 
     const allIntakes = contacts.map(contact => {
       const signup = signupsMap.get(contact.id);
-      const status = signup?.status || contact.status || "INITIAL PHONE CONTACT COMPLETED";
+      const status = signup?.status || contact.status || "Initial Phone Contact Completed";
       
       return {
         id: contact.id,
@@ -115,14 +116,14 @@ export default function ClientSignupList() {
 
   const StatusBadge = ({ status }: { status: string }) => {
     const colorClass = 
-        status === 'SIGNED AND PUBLISHED' ? 'bg-green-500' :
-        status === 'CLIENT_SIGNATURES_COMPLETED' ? 'bg-blue-500' :
-        status === 'PENDING CLIENT SIGNATURES' ? 'bg-yellow-500' :
-        status === 'INHOME VISIT SCHEDULED' ? 'bg-teal-500' :
-        status === 'INITIAL PHONE CONTACT COMPLETED' ? 'bg-purple-500' :
+        status === 'Signed and Published' ? 'bg-green-500' :
+        status === 'Client Signatures Completed' ? 'bg-blue-500' :
+        status === 'Pending Client Signatures' ? 'bg-yellow-500' :
+        status === 'In-Home Visit Scheduled' ? 'bg-teal-500' :
+        status === 'Initial Phone Contact Completed' ? 'bg-purple-500' :
         'bg-gray-500';
 
-    return <Badge className={cn("text-white", colorClass)}>{status.replace(/_/g, ' ')}</Badge>;
+    return <Badge className={cn("text-white", colorClass)}>{status}</Badge>;
   };
   
   if (isLoading) {
@@ -152,7 +153,7 @@ export default function ClientSignupList() {
                     <SelectContent>
                         <SelectItem value="ALL">All Statuses</SelectItem>
                         {intakeStatuses.map(status => (
-                            <SelectItem key={status} value={status}>{status.replace(/_/g, ' ')}</SelectItem>
+                            <SelectItem key={status} value={status}>{status}</SelectItem>
                         ))}
                     </SelectContent>
                 </Select>

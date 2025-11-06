@@ -115,8 +115,8 @@ export async function submitInitialContact(payload: SubmitPayload) {
     }
 
     const status = validation.data.inHomeVisitSet === "Yes"
-        ? "INHOME VISIT SCHEDULED"
-        : "INITIAL PHONE CONTACT COMPLETED";
+        ? "In-Home Visit Scheduled"
+        : "Initial Phone Contact Completed";
 
     const dataToSave = {
         ...validation.data,
