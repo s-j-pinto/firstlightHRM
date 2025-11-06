@@ -137,69 +137,66 @@ const AvailabilityDisplay = ({ availability }: { availability: CaregiverProfile[
     )
 }
 
-const ProfileDialog = ({ candidate, children, open, onOpenChange }: { candidate: CaregiverProfile | null, children: React.ReactNode, open: boolean, onOpenChange: (open: boolean) => void }) => {
+const ProfileDialog = ({ candidate }: { candidate: CaregiverProfile | null }) => {
     if (!candidate) return null;
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            {children}
-            <DialogContent className="sm:max-w-[625px]">
-                <DialogHeader>
-                    <DialogTitle className="text-2xl">{candidate.fullName}</DialogTitle>
-                </DialogHeader>
-                <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
-                    <h3 className="font-semibold text-lg flex items-center"><Briefcase className="mr-2 h-5 w-5 text-accent" />Experience</h3>
-                    <p><span className="font-semibold">Years:</span> {candidate.yearsExperience}</p>
-                    <p><span className="font-semibold">Summary:</span> {candidate.summary}</p>
-                    
-                    <Separator className="my-2"/>
-                    
-                     <h3 className="font-semibold text-lg flex items-center mb-2"><Stethoscope className="mr-2 h-5 w-5 text-accent" />Skills & Experience</h3>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                        <p className="flex items-center"><span className="font-semibold w-48">Able to change brief:</span> <BooleanDisplay value={candidate.canChangeBrief} /></p>
-                        <p className="flex items-center"><span className="font-semibold w-48">Able to Transfer:</span> <BooleanDisplay value={candidate.canTransfer} /></p>
-                        <p className="flex items-center"><span className="font-semibold w-48">Able to prepare meals:</span> <BooleanDisplay value={candidate.canPrepareMeals} /></p>
-                        <p className="flex items-center"><span className="font-semibold w-48">Bed bath/shower assistance:</span> <BooleanDisplay value={candidate.canDoBedBath} /></p>
-                        <p className="flex items-center"><span className="font-semibold w-48">Able to use Hoyer Lift:</span> <BooleanDisplay value={candidate.canUseHoyerLift} /></p>
-                        <p className="flex items-center"><span className="font-semibold w-48">Able to use Gait Belt:</span> <BooleanDisplay value={candidate.canUseGaitBelt} /></p>
-                        <p className="flex items-center"><span className="font-semibold w-48">Able to use a Purwick:</span> <BooleanDisplay value={candidate.canUsePurwick} /></p>
-                        <p className="flex items-center"><span className="font-semibold w-48">Able to empty catheter:</span> <BooleanDisplay value={candidate.canEmptyCatheter} /></p>
-                        <p className="flex items-center"><span className="font-semibold w-48">Able to empty colostomy bag:</span> <BooleanDisplay value={candidate.canEmptyColostomyBag} /></p>
-                        <p className="flex items-center"><span className="font-semibold w-48">Able to give medication:</span> <BooleanDisplay value={candidate.canGiveMedication} /></p>
-                        <p className="flex items-center"><span className="font-semibold w-48">Able to take blood Pressure:</span> <BooleanDisplay value={candidate.canTakeBloodPressure} /></p>
-                        <p className="flex items-center"><span className="font-semibold w-48">Dementia patients experience:</span> <BooleanDisplay value={candidate.hasDementiaExperience} /></p>
-                        <p className="flex items-center"><span className="font-semibold w-48">Hospice patients experience:</span> <BooleanDisplay value={candidate.hasHospiceExperience} /></p>
-                    </div>
+        <DialogContent className="sm:max-w-[625px]">
+            <DialogHeader>
+                <DialogTitle className="text-2xl">{candidate.fullName}</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
+                <h3 className="font-semibold text-lg flex items-center"><Briefcase className="mr-2 h-5 w-5 text-accent" />Experience</h3>
+                <p><span className="font-semibold">Years:</span> {candidate.yearsExperience}</p>
+                <p><span className="font-semibold">Summary:</span> {candidate.summary}</p>
+                
+                <Separator className="my-2"/>
+                
+                 <h3 className="font-semibold text-lg flex items-center mb-2"><Stethoscope className="mr-2 h-5 w-5 text-accent" />Skills & Experience</h3>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                    <p className="flex items-center"><span className="font-semibold w-48">Able to change brief:</span> <BooleanDisplay value={candidate.canChangeBrief} /></p>
+                    <p className="flex items-center"><span className="font-semibold w-48">Able to Transfer:</span> <BooleanDisplay value={candidate.canTransfer} /></p>
+                    <p className="flex items-center"><span className="font-semibold w-48">Able to prepare meals:</span> <BooleanDisplay value={candidate.canPrepareMeals} /></p>
+                    <p className="flex items-center"><span className="font-semibold w-48">Bed bath/shower assistance:</span> <BooleanDisplay value={candidate.canDoBedBath} /></p>
+                    <p className="flex items-center"><span className="font-semibold w-48">Able to use Hoyer Lift:</span> <BooleanDisplay value={candidate.canUseHoyerLift} /></p>
+                    <p className="flex items-center"><span className="font-semibold w-48">Able to use Gait Belt:</span> <BooleanDisplay value={candidate.canUseGaitBelt} /></p>
+                    <p className="flex items-center"><span className="font-semibold w-48">Able to use a Purwick:</span> <BooleanDisplay value={candidate.canUsePurwick} /></p>
+                    <p className="flex items-center"><span className="font-semibold w-48">Able to empty catheter:</span> <BooleanDisplay value={candidate.canEmptyCatheter} /></p>
+                    <p className="flex items-center"><span className="font-semibold w-48">Able to empty colostomy bag:</span> <BooleanDisplay value={candidate.canEmptyColostomyBag} /></p>
+                    <p className="flex items-center"><span className="font-semibold w-48">Able to give medication:</span> <BooleanDisplay value={candidate.canGiveMedication} /></p>
+                    <p className="flex items-center"><span className="font-semibold w-48">Able to take blood Pressure:</span> <BooleanDisplay value={candidate.canTakeBloodPressure} /></p>
+                    <p className="flex items-center"><span className="font-semibold w-48">Dementia patients experience:</span> <BooleanDisplay value={candidate.hasDementiaExperience} /></p>
+                    <p className="flex items-center"><span className="font-semibold w-48">Hospice patients experience:</span> <BooleanDisplay value={candidate.hasHospiceExperience} /></p>
+                </div>
 
-                    <Separator className="my-2"/>
-                    
-                    <h3 className="font-semibold text-lg flex items-center"><FileText className="mr-2 h-5 w-5 text-accent" />Certifications</h3>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                        <p className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">HCA:</span> <BooleanDisplay value={candidate.hca} /></p>
-                        <p className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">HHA:</span> <BooleanDisplay value={candidate.hha} /></p>
-                        <p className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">CNA:</span> <BooleanDisplay value={candidate.cna} /></p>
-                        <p className="flex items-center gap-2"><ScanSearch className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">Live Scan:</span> <BooleanDisplay value={candidate.liveScan} /></p>
-                        <p className="flex items-center gap-2"><FileText className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">TB Test:</span> <BooleanDisplay value={candidate.negativeTbTest} /></p>
-                        <p className="flex items-center gap-2"><Stethoscope className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">CPR/First Aid:</span> <BooleanDisplay value={candidate.cprFirstAid} /></p>
-                        <p className="flex items-center gap-2"><Biohazard className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">COVID Work:</span> <BooleanDisplay value={candidate.canWorkWithCovid} /></p>
-                        <p className='flex items-center gap-2'><Biohazard className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">COVID Vaccine:</span> <BooleanDisplay value={candidate.covidVaccine} /></p>
-                    </div>
-                    {candidate.otherLanguages && <p className="flex items-center gap-2"><Languages className="h-4 w-4 mt-1 text-muted-foreground" /><span className="font-semibold">Other Languages:</span> {candidate.otherLanguages}</p>}
-                    {candidate.otherCertifications && <p><span className="font-semibold">Other:</span> {candidate.otherCertifications}</p>}
-                    
-                    <Separator className="my-2"/>
-                    
-                    <h3 className="font-semibold text-lg flex items-center"><Calendar className="mr-2 h-5 w-5 text-accent" />Availability</h3>
-                    <AvailabilityDisplay availability={candidate.availability} />
+                <Separator className="my-2"/>
+                
+                <h3 className="font-semibold text-lg flex items-center"><FileText className="mr-2 h-5 w-5 text-accent" />Certifications</h3>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                    <p className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">HCA:</span> <BooleanDisplay value={candidate.hca} /></p>
+                    <p className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">HHA:</span> <BooleanDisplay value={candidate.hha} /></p>
+                    <p className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">CNA:</span> <BooleanDisplay value={candidate.cna} /></p>
+                    <p className="flex items-center gap-2"><ScanSearch className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">Live Scan:</span> <BooleanDisplay value={candidate.liveScan} /></p>
+                    <p className="flex items-center gap-2"><FileText className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">TB Test:</span> <BooleanDisplay value={candidate.negativeTbTest} /></p>
+                    <p className="flex items-center gap-2"><Stethoscope className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">CPR/First Aid:</span> <BooleanDisplay value={candidate.cprFirstAid} /></p>
+                    <p className="flex items-center gap-2"><Biohazard className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">COVID Work:</span> <BooleanDisplay value={candidate.canWorkWithCovid} /></p>
+                    <p className='flex items-center gap-2'><Biohazard className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">COVID Vaccine:</span> <BooleanDisplay value={candidate.covidVaccine} /></p>
+                </div>
+                {candidate.otherLanguages && <p className="flex items-center gap-2"><Languages className="h-4 w-4 mt-1 text-muted-foreground" /><span className="font-semibold">Other Languages:</span> {candidate.otherLanguages}</p>}
+                {candidate.otherCertifications && <p><span className="font-semibold">Other:</span> {candidate.otherCertifications}</p>}
+                
+                <Separator className="my-2"/>
+                
+                <h3 className="font-semibold text-lg flex items-center"><Calendar className="mr-2 h-5 w-5 text-accent" />Availability</h3>
+                <AvailabilityDisplay availability={candidate.availability} />
 
-                    <Separator className="my-2"/>
-                    
-                    <h3 className="font-semibold text-lg flex items-center"><Car className="mr-2 h-5 w-5 text-accent" />Transportation</h3>
-                     <p><span className="font-semibold">Has Vehicle:</span> {candidate.hasCar}</p>
-                     <p><span className="font-semibold">Valid License:</span> {candidate.validLicense}</p>
-                  </div>
-            </DialogContent>
-        </Dialog>
+                <Separator className="my-2"/>
+                
+                <h3 className="font-semibold text-lg flex items-center"><Car className="mr-2 h-5 w-5 text-accent" />Transportation</h3>
+                 <p><span className="font-semibold">Has Vehicle:</span> {candidate.hasCar}</p>
+                 <p><span className="font-semibold">Valid License:</span> {candidate.validLicense}</p>
+              </div>
+        </DialogContent>
     );
 };
 
@@ -434,11 +431,7 @@ export default function AdvancedSearchClient() {
                                 <Loader2 className="h-8 w-8 animate-spin text-accent" />
                             </div>
                         ) : filteredResults.length > 0 ? (
-                            <ProfileDialog
-                                candidate={viewingCandidate}
-                                open={!!viewingCandidate}
-                                onOpenChange={(isOpen) => !isOpen && setViewingCandidate(null)}
-                            >
+                            <Dialog onOpenChange={(isOpen) => !isOpen && setViewingCandidate(null)}>
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
@@ -483,7 +476,8 @@ export default function AdvancedSearchClient() {
                                         ))}
                                     </TableBody>
                                 </Table>
-                            </ProfileDialog>
+                                <ProfileDialog candidate={viewingCandidate} />
+                            </Dialog>
                         ) : (
                              <div className="text-center py-10 border-dashed border-2 rounded-lg">
                                 <h3 className="text-lg font-medium">No Matching Candidates Found</h3>
@@ -496,3 +490,4 @@ export default function AdvancedSearchClient() {
         </div>
     );
 }
+
