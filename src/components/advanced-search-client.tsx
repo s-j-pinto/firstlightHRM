@@ -9,6 +9,7 @@ import { CaregiverProfile, Interview, CaregiverEmployee } from '@/lib/types';
 import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 import Link from 'next/link';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -70,6 +71,33 @@ type FormData = {
     hiringStatus: CandidateStatus | 'any';
 };
 
+const ConciseAvailability = ({ availability }: { availability: CaregiverProfile['availability'] | undefined }) => {
+    if (!availability) {
+        return <span className="text-muted-foreground">N/A</span>;
+    }
+
+    const availableDays = (['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const)
+        .filter(day => availability[day] && availability[day].length > 0)
+        .map(day => day.charAt(0).toUpperCase());
+
+    if (availableDays.length === 0) {
+        return <span className="text-muted-foreground">None</span>;
+    }
+    
+    // Special case for all 7 days
+    if(availableDays.length === 7) {
+        return <Badge variant="secondary">Every Day</Badge>
+    }
+
+    return (
+        <div className="flex gap-1 flex-wrap">
+            {availableDays.map(day => (
+                <span key={day} className="font-mono text-xs p-1 bg-muted rounded-sm">{day}</span>
+            ))}
+        </div>
+    );
+};
+
 export default function AdvancedSearchClient() {
     const { register, handleSubmit, control, watch, reset } = useForm<FormData>({
         defaultValues: { skills: [], hiringStatus: 'any' }
@@ -78,6 +106,8 @@ export default function AdvancedSearchClient() {
     const [filteredResults, setFilteredResults] = useState<EnrichedCandidate[]>([]);
     const [hasSearched, setHasSearched] = useState(false);
     const [isSearching, startSearchTransition] = useTransition();
+    const router = useRouter();
+    const pathname = usePathname();
 
     const profilesRef = useMemoFirebase(() => collection(firestore, 'caregiver_profiles'), []);
     const { data: profiles, isLoading: profilesLoading } = useCollection<CaregiverProfile>(profilesRef);
@@ -163,6 +193,10 @@ export default function AdvancedSearchClient() {
     const isActionable = (status: CandidateStatus) => {
         return !['Hired', 'Final Interview Failed', 'Phone Screen Failed'].includes(status);
     }
+
+    const handleManageInterviewClick = (candidateName: string) => {
+        router.push(`/admin/manage-interviews?search=${encodeURIComponent(candidateName)}`);
+    };
 
     return (
         <div className="space-y-6">
@@ -301,6 +335,7 @@ export default function AdvancedSearchClient() {
                                         <TableHead>Phone</TableHead>
                                         <TableHead>Application Date</TableHead>
                                         <TableHead>Status</TableHead>
+                                        <TableHead>Availability</TableHead>
                                         <TableHead className="text-right">Action</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -318,13 +353,14 @@ export default function AdvancedSearchClient() {
                                             <TableCell>
                                                 <Badge variant={candidate.status === 'Hired' ? 'default' : 'secondary'}>{candidate.status}</Badge>
                                             </TableCell>
+                                            <TableCell>
+                                                <ConciseAvailability availability={candidate.availability} />
+                                            </TableCell>
                                              <TableCell className="text-right">
                                                 {isActionable(candidate.status) && (
-                                                    <Button asChild size="sm">
-                                                        <Link href={`/admin/manage-interviews?search=${encodeURIComponent(candidate.fullName)}`}>
-                                                            <Briefcase className="mr-2 h-4 w-4" />
-                                                            Manage Interview
-                                                        </Link>
+                                                    <Button size="sm" onClick={() => handleManageInterviewClick(candidate.fullName)}>
+                                                        <Briefcase className="mr-2 h-4 w-4" />
+                                                        Manage Interview
                                                     </Button>
                                                 )}
                                             </TableCell>
