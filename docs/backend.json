@@ -1,4 +1,5 @@
 
+
 {
   "entities": {
     "InitialContact": {
@@ -77,6 +78,7 @@
         "city": { "type": "string" },
         "state": { "type": "string" },
         "zip": { "type": "string" },
+        "driversLicenseNumber": { "type": "string" },
         "gender": { "type": "string", "enum": ["Male", "Female", "Other"] },
         "yearsExperience": { "type": "number" },
         "previousRoles": { "type": "string" },
@@ -404,3 +406,5 @@
     }
   }
 }
+
+    

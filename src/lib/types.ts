@@ -11,6 +11,7 @@ export const generalInfoSchema = z.object({
   address: z.string().min(5, "Address is required."),
   city: z.string().min(2, "City is required."),
   state: z.string().min(2, "State is required."),
+  driversLicenseNumber: z.string().optional(),
   zip: z.string().min(5, "Zip code is required."),
   gender: z.enum(["Male", "Female", "Other"]).optional(),
 });
@@ -422,5 +423,7 @@ export interface GeneratedForm {
   blocks: FormBlock[];
   formData: any;
 }
+
+    
 
     
