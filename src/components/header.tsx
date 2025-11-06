@@ -56,10 +56,10 @@ export function AppHeader() {
           <nav className="flex items-center space-x-1">
             {isAdminRoute && user && (
                <>
-                <Link href="/admin/advanced-search" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
+                <Link href="/admin" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
                     Candidate Search
                 </Link>
-                <Link href="/admin" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
+                <Link href="/admin/advanced-search" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
                     Phonescreen Dashboard
                 </Link>
                 <Link href="/admin/manage-interviews" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">

@@ -1,17 +1,14 @@
-
-import AdvancedSearchClient from '@/components/advanced-search-client';
+import AdminDashboardClient from "@/components/admin-dashboard-client";
 
 export default function AdvancedSearchPage() {
   return (
     <div>
-      <h1 className="text-3xl font-bold tracking-tight font-headline">
-        Candidate Search
-      </h1>
+      <h1 className="text-3xl font-bold tracking-tight font-headline">Phonescreen Dashboard</h1>
       <p className="text-muted-foreground">
-        Build a custom query to find candidates based on skills, status, and application date.
+        View and manage upcoming phone screen appointments.
       </p>
       <div className="mt-6">
-        <AdvancedSearchClient />
+        <AdminDashboardClient />
       </div>
     </div>
   );
