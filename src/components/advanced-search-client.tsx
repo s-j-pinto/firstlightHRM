@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useTransition } from 'react';
+import { useState, useMemo, useTransition, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { collection } from 'firebase/firestore';
 import { firestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -143,6 +143,12 @@ export default function AdvancedSearchClient() {
         });
     };
     
+    useEffect(() => {
+        if (candidates.length > 0) {
+            onSubmit({ skills: [], hiringStatus: 'any' });
+        }
+    }, [candidates]);
+    
     const handleClearFilters = () => {
         reset({ skills: [], hiringStatus: 'any' });
         setDateRange(undefined);
@@ -216,7 +222,19 @@ export default function AdvancedSearchClient() {
                     <CardContent className="space-y-6">
                         {/* Skills and Attributes */}
                         <div className="space-y-2">
-                            <Label>Skills & Attributes (must have all selected)</Label>
+                             <div className="flex justify-between items-center mb-2">
+                                <Label>Skills & Attributes (must have all selected)</Label>
+                                <div className="flex items-center gap-4">
+                                     <Button type="button" variant="outline" onClick={handleClearFilters} disabled={isSearching}>
+                                        <FilterX className="mr-2" />
+                                        Clear Filters
+                                    </Button>
+                                    <Button type="submit" disabled={isSearching || isLoading}>
+                                        {isSearching ? <Loader2 className="mr-2 animate-spin"/> : <Search className="mr-2" />}
+                                        {isLoading ? 'Loading Data...' : 'Search Candidates'}
+                                    </Button>
+                                </div>
+                            </div>
                             <Card className="p-4 bg-muted/50">
                                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-x-4 gap-y-3">
                                 {skillsAndAttributes.map(skill => (
@@ -251,16 +269,6 @@ export default function AdvancedSearchClient() {
                             </Card>
                         </div>
                     </CardContent>
-                    <CardContent className="flex justify-end gap-4">
-                         <Button type="button" variant="outline" onClick={handleClearFilters} disabled={isSearching}>
-                            <FilterX className="mr-2" />
-                            Clear Filters
-                        </Button>
-                        <Button type="submit" disabled={isSearching || isLoading}>
-                            {isSearching ? <Loader2 className="mr-2 animate-spin"/> : <Search className="mr-2" />}
-                            {isLoading ? 'Loading Data...' : 'Search Candidates'}
-                        </Button>
-                    </CardContent>
                 </Card>
             </form>
 
@@ -273,7 +281,7 @@ export default function AdvancedSearchClient() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                         {isSearching ? (
+                         {isSearching || isLoading ? (
                             <div className="flex justify-center items-center h-40">
                                 <Loader2 className="h-8 w-8 animate-spin text-accent" />
                             </div>
