@@ -20,8 +20,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, CalendarIcon, SlidersHorizontal, FilterX, PersonStanding, Move, Utensils, Bath, ArrowUpFromLine, ShieldCheck, Droplet, Pill, Stethoscope, HeartPulse, Languages, ScanSearch, Biohazard, UserCheck, Briefcase } from 'lucide-react';
+import { Loader2, Search, CalendarIcon, SlidersHorizontal, FilterX, PersonStanding, Move, Utensils, Bath, ArrowUpFromLine, ShieldCheck, Droplet, Pill, Stethoscope, HeartPulse, Languages, ScanSearch, Biohazard, UserCheck, Briefcase, Car, Check, X, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Separator } from './ui/separator';
 
 
 const skillsAndAttributes = [
@@ -107,16 +109,111 @@ const ConciseAvailability = ({ availability }: { availability: CaregiverProfile[
     );
 };
 
+const BooleanDisplay = ({ value }: { value: boolean | undefined }) => 
+  value ? <Check className="text-green-500"/> : <X className="text-red-500"/>;
+
+const AvailabilityDisplay = ({ availability }: { availability: CaregiverProfile['availability'] | undefined }) => {
+    if (!availability) return <p>Not specified</p>;
+
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
+    return (
+        <div className="space-y-2">
+            {days.map(day => {
+                const shifts = availability[day as keyof typeof availability];
+                if (shifts && shifts.length > 0) {
+                    return (
+                        <div key={day} className="grid grid-cols-[100px_1fr] items-start">
+                            <span className="font-semibold capitalize">{day}:</span>
+                            <div className="flex flex-wrap gap-1">
+                                {shifts.map(shift => <Badge key={shift} variant="secondary" className="capitalize">{shift}</Badge>)}
+                            </div>
+                        </div>
+                    )
+                }
+                return null;
+            })}
+        </div>
+    )
+}
+
+const ProfileDialog = ({ candidate, children, open, onOpenChange }: { candidate: CaregiverProfile | null, children: React.ReactNode, open: boolean, onOpenChange: (open: boolean) => void }) => {
+    if (!candidate) return null;
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            {children}
+            <DialogContent className="sm:max-w-[625px]">
+                <DialogHeader>
+                    <DialogTitle className="text-2xl">{candidate.fullName}</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
+                    <h3 className="font-semibold text-lg flex items-center"><Briefcase className="mr-2 h-5 w-5 text-accent" />Experience</h3>
+                    <p><span className="font-semibold">Years:</span> {candidate.yearsExperience}</p>
+                    <p><span className="font-semibold">Summary:</span> {candidate.summary}</p>
+                    
+                    <Separator className="my-2"/>
+                    
+                     <h3 className="font-semibold text-lg flex items-center mb-2"><Stethoscope className="mr-2 h-5 w-5 text-accent" />Skills & Experience</h3>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                        <p className="flex items-center"><span className="font-semibold w-48">Able to change brief:</span> <BooleanDisplay value={candidate.canChangeBrief} /></p>
+                        <p className="flex items-center"><span className="font-semibold w-48">Able to Transfer:</span> <BooleanDisplay value={candidate.canTransfer} /></p>
+                        <p className="flex items-center"><span className="font-semibold w-48">Able to prepare meals:</span> <BooleanDisplay value={candidate.canPrepareMeals} /></p>
+                        <p className="flex items-center"><span className="font-semibold w-48">Bed bath/shower assistance:</span> <BooleanDisplay value={candidate.canDoBedBath} /></p>
+                        <p className="flex items-center"><span className="font-semibold w-48">Able to use Hoyer Lift:</span> <BooleanDisplay value={candidate.canUseHoyerLift} /></p>
+                        <p className="flex items-center"><span className="font-semibold w-48">Able to use Gait Belt:</span> <BooleanDisplay value={candidate.canUseGaitBelt} /></p>
+                        <p className="flex items-center"><span className="font-semibold w-48">Able to use a Purwick:</span> <BooleanDisplay value={candidate.canUsePurwick} /></p>
+                        <p className="flex items-center"><span className="font-semibold w-48">Able to empty catheter:</span> <BooleanDisplay value={candidate.canEmptyCatheter} /></p>
+                        <p className="flex items-center"><span className="font-semibold w-48">Able to empty colostomy bag:</span> <BooleanDisplay value={candidate.canEmptyColostomyBag} /></p>
+                        <p className="flex items-center"><span className="font-semibold w-48">Able to give medication:</span> <BooleanDisplay value={candidate.canGiveMedication} /></p>
+                        <p className="flex items-center"><span className="font-semibold w-48">Able to take blood Pressure:</span> <BooleanDisplay value={candidate.canTakeBloodPressure} /></p>
+                        <p className="flex items-center"><span className="font-semibold w-48">Dementia patients experience:</span> <BooleanDisplay value={candidate.hasDementiaExperience} /></p>
+                        <p className="flex items-center"><span className="font-semibold w-48">Hospice patients experience:</span> <BooleanDisplay value={candidate.hasHospiceExperience} /></p>
+                    </div>
+
+                    <Separator className="my-2"/>
+                    
+                    <h3 className="font-semibold text-lg flex items-center"><FileText className="mr-2 h-5 w-5 text-accent" />Certifications</h3>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                        <p className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">HCA:</span> <BooleanDisplay value={candidate.hca} /></p>
+                        <p className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">HHA:</span> <BooleanDisplay value={candidate.hha} /></p>
+                        <p className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">CNA:</span> <BooleanDisplay value={candidate.cna} /></p>
+                        <p className="flex items-center gap-2"><ScanSearch className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">Live Scan:</span> <BooleanDisplay value={candidate.liveScan} /></p>
+                        <p className="flex items-center gap-2"><FileText className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">TB Test:</span> <BooleanDisplay value={candidate.negativeTbTest} /></p>
+                        <p className="flex items-center gap-2"><Stethoscope className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">CPR/First Aid:</span> <BooleanDisplay value={candidate.cprFirstAid} /></p>
+                        <p className="flex items-center gap-2"><Biohazard className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">COVID Work:</span> <BooleanDisplay value={candidate.canWorkWithCovid} /></p>
+                        <p className='flex items-center gap-2'><Biohazard className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">COVID Vaccine:</span> <BooleanDisplay value={candidate.covidVaccine} /></p>
+                    </div>
+                    {candidate.otherLanguages && <p className="flex items-center gap-2"><Languages className="h-4 w-4 mt-1 text-muted-foreground" /><span className="font-semibold">Other Languages:</span> {candidate.otherLanguages}</p>}
+                    {candidate.otherCertifications && <p><span className="font-semibold">Other:</span> {candidate.otherCertifications}</p>}
+                    
+                    <Separator className="my-2"/>
+                    
+                    <h3 className="font-semibold text-lg flex items-center"><Calendar className="mr-2 h-5 w-5 text-accent" />Availability</h3>
+                    <AvailabilityDisplay availability={candidate.availability} />
+
+                    <Separator className="my-2"/>
+                    
+                    <h3 className="font-semibold text-lg flex items-center"><Car className="mr-2 h-5 w-5 text-accent" />Transportation</h3>
+                     <p><span className="font-semibold">Has Vehicle:</span> {candidate.hasCar}</p>
+                     <p><span className="font-semibold">Valid License:</span> {candidate.validLicense}</p>
+                  </div>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
+
 export default function AdvancedSearchClient() {
-    const { register, handleSubmit, control, watch, reset } = useForm<FormData>({
+    const { handleSubmit, control, reset } = useForm<FormData>({
         defaultValues: { skills: [], hiringStatus: 'any' }
     });
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
     const [filteredResults, setFilteredResults] = useState<EnrichedCandidate[]>([]);
     const [hasSearched, setHasSearched] = useState(false);
     const [isSearching, startSearchTransition] = useTransition();
+    const [viewingCandidate, setViewingCandidate] = useState<EnrichedCandidate | null>(null);
     const router = useRouter();
-    const pathname = usePathname();
 
     const profilesRef = useMemoFirebase(() => collection(firestore, 'caregiver_profiles'), []);
     const { data: profiles, isLoading: profilesLoading } = useCollection<CaregiverProfile>(profilesRef);
@@ -337,46 +434,56 @@ export default function AdvancedSearchClient() {
                                 <Loader2 className="h-8 w-8 animate-spin text-accent" />
                             </div>
                         ) : filteredResults.length > 0 ? (
-                             <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>Phone</TableHead>
-                                        <TableHead>Application Date</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead>Availability</TableHead>
-                                        <TableHead className="text-right">Action</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {filteredResults.map(candidate => (
-                                        <TableRow key={candidate.id}>
-                                            <TableCell>
-                                                <div className="font-medium">{candidate.fullName}</div>
-                                                <div className="text-sm text-muted-foreground">{candidate.email}</div>
-                                            </TableCell>
-                                            <TableCell>{candidate.phone}</TableCell>
-                                            <TableCell>
-                                                {candidate.createdAt ? format((candidate.createdAt as any).toDate(), 'PP') : 'N/A'}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge variant={candidate.status === 'Hired' ? 'default' : 'secondary'}>{candidate.status}</Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                <ConciseAvailability availability={candidate.availability} />
-                                            </TableCell>
-                                             <TableCell className="text-right">
-                                                {isActionable(candidate.status) && (
-                                                    <Button size="sm" onClick={() => handleManageInterviewClick(candidate.fullName)}>
-                                                        <Briefcase className="mr-2 h-4 w-4" />
-                                                        Manage Interview
-                                                    </Button>
-                                                )}
-                                            </TableCell>
+                            <ProfileDialog
+                                candidate={viewingCandidate}
+                                open={!!viewingCandidate}
+                                onOpenChange={(isOpen) => !isOpen && setViewingCandidate(null)}
+                            >
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Name</TableHead>
+                                            <TableHead>Phone</TableHead>
+                                            <TableHead>Application Date</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead>Availability</TableHead>
+                                            <TableHead className="text-right">Action</TableHead>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {filteredResults.map(candidate => (
+                                            <TableRow key={candidate.id}>
+                                                <TableCell>
+                                                    <DialogTrigger asChild>
+                                                        <button onClick={() => setViewingCandidate(candidate)} className="text-left">
+                                                            <div className="font-medium hover:underline">{candidate.fullName}</div>
+                                                            <div className="text-sm text-muted-foreground">{candidate.email}</div>
+                                                        </button>
+                                                    </DialogTrigger>
+                                                </TableCell>
+                                                <TableCell>{candidate.phone}</TableCell>
+                                                <TableCell>
+                                                    {candidate.createdAt ? format((candidate.createdAt as any).toDate(), 'PP') : 'N/A'}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant={candidate.status === 'Hired' ? 'default' : 'secondary'}>{candidate.status}</Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <ConciseAvailability availability={candidate.availability} />
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    {isActionable(candidate.status) && (
+                                                        <Button size="sm" onClick={() => handleManageInterviewClick(candidate.fullName)}>
+                                                            <Briefcase className="mr-2 h-4 w-4" />
+                                                            Manage Interview
+                                                        </Button>
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </ProfileDialog>
                         ) : (
                              <div className="text-center py-10 border-dashed border-2 rounded-lg">
                                 <h3 className="text-lg font-medium">No Matching Candidates Found</h3>
