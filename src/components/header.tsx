@@ -103,6 +103,9 @@ export function AppHeader() {
                 <Link href="/owner/dashboard" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
                     Owner Dashboard
                 </Link>
+                 <Link href="/owner/reports" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
+                    Reports
+                </Link>
                </>
             )}
             {!user && !isUserLoading && !pathname.startsWith('/admin-login') && !pathname.startsWith('/login-form') && !pathname.startsWith('/caregiver-login') && !pathname.startsWith('/active-caregiver-login') && !pathname.startsWith('/client-login') && !pathname.startsWith('/owner-login') && !pathname.startsWith('/new-client-login') && (
