@@ -8,6 +8,7 @@ import { firestore, useCollection, useMemoFirebase } from '@/firebase';
 import { CaregiverProfile, Interview, CaregiverEmployee } from '@/lib/types';
 import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { DateRange } from 'react-day-picker';
+import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -18,33 +19,34 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, CalendarIcon, SlidersHorizontal, FilterX } from 'lucide-react';
+import { Loader2, Search, CalendarIcon, SlidersHorizontal, FilterX, PersonStanding, Move, Utensils, Bath, ArrowUpFromLine, ShieldCheck, Droplet, Pill, Stethoscope, HeartPulse, Languages, ScanSearch, Biohazard, UserCheck, Briefcase } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 
 const skillsAndAttributes = [
-    { id: "canChangeBrief", label: "Change Brief" },
-    { id: "canTransfer", label: "Transfer" },
-    { id: "canPrepareMeals", label: "Prepare Meals" },
-    { id: "canDoBedBath", label: "Bed Bath/Shower" },
-    { id: "canUseHoyerLift", label: "Hoyer Lift" },
-    { id: "canUseGaitBelt", label: "Gait Belt" },
-    { id: "canUsePurwick", label: "Purwick" },
-    { id: "canEmptyCatheter", label: "Empty Catheter" },
-    { id: "canEmptyColostomyBag", label: "Empty Colostomy Bag" },
-    { id: "canGiveMedication", label: "Give Medication" },
-    { id: "canTakeBloodPressure", label: "Take Blood Pressure" },
-    { id: "hasDementiaExperience", label: "Dementia Experience" },
-    { id: "hasHospiceExperience", label: "Hospice Experience" },
-    { id: "hca", label: "HCA" },
-    { id: "hha", label: "HHA" },
-    { id: "cna", label: "CNA" },
-    { id: "liveScan", label: "Live Scan" },
-    { id: "negativeTbTest", label: "Negative TB Test" },
-    { id: "cprFirstAid", label: "CPR/First Aid" },
-    { id: "canWorkWithCovid", label: "Can Work With COVID" },
-    { id: "covidVaccine", label: "COVID Vaccinated" },
+    { id: "canChangeBrief", label: "Change Brief", icon: PersonStanding },
+    { id: "canTransfer", label: "Transfer", icon: Move },
+    { id: "canPrepareMeals", label: "Prepare Meals", icon: Utensils },
+    { id: "canDoBedBath", label: "Bed Bath/Shower", icon: Bath },
+    { id: "canUseHoyerLift", label: "Hoyer Lift", icon: ArrowUpFromLine },
+    { id: "canUseGaitBelt", label: "Gait Belt", icon: UserCheck },
+    { id: "canUsePurwick", label: "Purwick", icon: Droplet },
+    { id: "canEmptyCatheter", label: "Empty Catheter", icon: Droplet },
+    { id: "canEmptyColostomyBag", label: "Empty Colostomy Bag", icon: Droplet },
+    { id: "canGiveMedication", label: "Give Medication", icon: Pill },
+    { id: "canTakeBloodPressure", label: "Take Blood Pressure", icon: HeartPulse },
+    { id: "hasDementiaExperience", label: "Dementia Exp.", icon: PersonStanding },
+    { id: "hasHospiceExperience", label: "Hospice Exp.", icon: HeartPulse },
+    { id: "hca", label: "HCA", icon: ShieldCheck },
+    { id: "hha", label: "HHA", icon: ShieldCheck },
+    { id: "cna", label: "CNA", icon: ShieldCheck },
+    { id: "liveScan", label: "Live Scan", icon: ScanSearch },
+    { id: "negativeTbTest", label: "Negative TB Test", icon: ShieldCheck },
+    { id: "cprFirstAid", label: "CPR/First Aid", icon: HeartPulse },
+    { id: "canWorkWithCovid", label: "Can Work With COVID", icon: Biohazard },
+    { id: "covidVaccine", label: "COVID Vaccinated", icon: Biohazard },
 ] as const;
+
 
 type CandidateStatus =
   | 'Applied'
@@ -149,20 +151,74 @@ export default function AdvancedSearchClient() {
     }
     
     const isLoading = profilesLoading || interviewsLoading || employeesLoading;
+    
+    const isActionable = (status: CandidateStatus) => {
+        return !['Hired', 'Final Interview Failed', 'Phone Screen Failed'].includes(status);
+    }
 
     return (
         <div className="space-y-6">
             <form onSubmit={handleSubmit(onSubmit)}>
                 <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><SlidersHorizontal /> Query Builder</CardTitle>
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                           <CardTitle className="flex items-center gap-2 flex-shrink-0"><SlidersHorizontal /> Query Builder</CardTitle>
+                           <div className="flex flex-wrap items-end gap-4 flex-grow">
+                                <div className="space-y-2 flex-grow min-w-[200px]">
+                                    <Label>Hiring Status</Label>
+                                    <Select onValueChange={(val) => control._formValues.hiringStatus = val} defaultValue="any">
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select a status" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="any">Any Status</SelectItem>
+                                            {hiringStatuses.map(status => (
+                                                <SelectItem key={status} value={status}>{status}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2 flex-grow min-w-[240px]">
+                                    <Label>Application Date Range</Label>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant={"outline"}
+                                                className={cn("w-full justify-start text-left font-normal", !dateRange && "text-muted-foreground")}
+                                            >
+                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                {dateRange?.from ? (
+                                                    dateRange.to ? (
+                                                        <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</>
+                                                    ) : (
+                                                        format(dateRange.from, "LLL dd, y")
+                                                    )
+                                                ) : (
+                                                    <span>Pick a date range</span>
+                                                )}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar
+                                                initialFocus
+                                                mode="range"
+                                                defaultMonth={dateRange?.from}
+                                                selected={dateRange}
+                                                onSelect={setDateRange}
+                                                numberOfMonths={2}
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
+                           </div>
+                        </div>
                     </CardHeader>
                     <CardContent className="space-y-6">
                         {/* Skills and Attributes */}
                         <div className="space-y-2">
                             <Label>Skills & Attributes (must have all selected)</Label>
                             <Card className="p-4 bg-muted/50">
-                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-x-4 gap-y-3">
                                 {skillsAndAttributes.map(skill => (
                                     <Controller
                                         key={skill.id}
@@ -183,63 +239,16 @@ export default function AdvancedSearchClient() {
                                                         );
                                                 }}
                                             />
-                                            <Label htmlFor={skill.id} className="font-normal text-sm">{skill.label}</Label>
+                                            <Label htmlFor={skill.id} className="font-normal text-sm flex items-center gap-1.5">
+                                                <skill.icon className="h-4 w-4 text-muted-foreground" />
+                                                {skill.label}
+                                            </Label>
                                         </div>
                                         )}
                                     />
                                 ))}
                                 </div>
                             </Card>
-                        </div>
-
-                        {/* Status and Date */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-                            <div className="space-y-2">
-                                <Label>Hiring Status</Label>
-                                <Select onValueChange={(val) => control._formValues.hiringStatus = val} defaultValue="any">
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select a status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="any">Any Status</SelectItem>
-                                        {hiringStatuses.map(status => (
-                                            <SelectItem key={status} value={status}>{status}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Application Date Range</Label>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            variant={"outline"}
-                                            className={cn("w-full justify-start text-left font-normal", !dateRange && "text-muted-foreground")}
-                                        >
-                                            <CalendarIcon className="mr-2 h-4 w-4" />
-                                            {dateRange?.from ? (
-                                                dateRange.to ? (
-                                                    <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</>
-                                                ) : (
-                                                    format(dateRange.from, "LLL dd, y")
-                                                )
-                                            ) : (
-                                                <span>Pick a date range</span>
-                                            )}
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar
-                                            initialFocus
-                                            mode="range"
-                                            defaultMonth={dateRange?.from}
-                                            selected={dateRange}
-                                            onSelect={setDateRange}
-                                            numberOfMonths={2}
-                                        />
-                                    </PopoverContent>
-                                </Popover>
-                            </div>
                         </div>
                     </CardContent>
                     <CardContent className="flex justify-end gap-4">
@@ -276,6 +285,7 @@ export default function AdvancedSearchClient() {
                                         <TableHead>Phone</TableHead>
                                         <TableHead>Application Date</TableHead>
                                         <TableHead>Status</TableHead>
+                                        <TableHead className="text-right">Action</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -292,6 +302,16 @@ export default function AdvancedSearchClient() {
                                             <TableCell>
                                                 <Badge variant={candidate.status === 'Hired' ? 'default' : 'secondary'}>{candidate.status}</Badge>
                                             </TableCell>
+                                             <TableCell className="text-right">
+                                                {isActionable(candidate.status) && (
+                                                    <Button asChild size="sm">
+                                                        <Link href={`/admin/manage-interviews?search=${encodeURIComponent(candidate.fullName)}`}>
+                                                            <Briefcase className="mr-2 h-4 w-4" />
+                                                            Manage Interview
+                                                        </Link>
+                                                    </Button>
+                                                )}
+                                            </TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
@@ -307,4 +327,5 @@ export default function AdvancedSearchClient() {
             )}
         </div>
     );
-}
+
+    
