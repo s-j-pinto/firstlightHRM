@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export default function ReportsPage() {
+export default function OwnerReportsPage() {
   const [selectedReport, setSelectedReport] = useState('candidate_status');
 
   return (
