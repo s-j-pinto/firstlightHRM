@@ -49,8 +49,8 @@ import { Loader2, Search, Calendar as CalendarIcon, Sparkles, UserCheck, AlertCi
 import { format, toDate } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
-import { useRouter } from 'next/navigation';
-import { usePathname } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+
 
 const phoneScreenSchema = z.object({
   interviewNotes: z.string().min(1, "Interview notes are required."),
@@ -124,7 +124,9 @@ export default function ManageInterviewsClient() {
 
   const { toast } = useToast();
   const db = firestore;
+  const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const caregiverProfilesRef = useMemoFirebase(() => collection(db, 'caregiver_profiles'), [db]);
   const { data: allCaregivers, isLoading: caregiversLoading } = useCollection<CaregiverProfile>(caregiverProfilesRef);
@@ -185,11 +187,27 @@ export default function ManageInterviewsClient() {
     setAuthUrl(null);
     setSearchTerm('');
     setSearchResults([]);
+    router.replace(pathname);
   }
 
   useEffect(() => {
-    handleCancel();
-  }, [pathname]);
+    const searchFromUrl = searchParams.get('search');
+    if (searchFromUrl && allCaregivers && !selectedCaregiver) {
+      const decodedSearch = decodeURIComponent(searchFromUrl);
+      setSearchTerm(decodedSearch);
+      
+      const results = allCaregivers.filter(
+        (caregiver) =>
+          caregiver.fullName.toLowerCase().includes(decodedSearch.toLowerCase())
+      );
+      
+      if (results.length === 1) {
+        handleSelectCaregiver(results[0]);
+      } else {
+        setSearchResults(results);
+      }
+    }
+  }, [searchParams, allCaregivers, selectedCaregiver]);
 
   useEffect(() => {
     if (selectedCaregiver && existingInterview) {
@@ -258,7 +276,8 @@ export default function ManageInterviewsClient() {
 
 
   const handleSelectCaregiver = async (caregiver: CaregiverProfile) => {
-    handleCancel();
+    handleCancel(); // Reset everything first
+    router.replace(pathname); // Clear URL params
     
     setSelectedCaregiver(caregiver);
     setSearchResults([]);
@@ -1177,6 +1196,7 @@ export default function ManageInterviewsClient() {
     
 
     
+
 
 
 
