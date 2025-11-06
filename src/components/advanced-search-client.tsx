@@ -144,16 +144,18 @@ export default function AdvancedSearchClient() {
     };
     
     useEffect(() => {
-        if (candidates.length > 0) {
+        if (candidates.length > 0 && !hasSearched) {
             onSubmit({ skills: [], hiringStatus: 'any' });
         }
-    }, [candidates]);
+    }, [candidates, hasSearched]);
     
     const handleClearFilters = () => {
         reset({ skills: [], hiringStatus: 'any' });
         setDateRange(undefined);
         setFilteredResults([]);
         setHasSearched(false);
+        // Rerun the initial search after clearing
+        onSubmit({ skills: [], hiringStatus: 'any' });
     }
     
     const isLoading = profilesLoading || interviewsLoading || employeesLoading;
@@ -170,21 +172,27 @@ export default function AdvancedSearchClient() {
                         <div className="flex flex-wrap items-center justify-between gap-4">
                            <CardTitle className="flex items-center gap-2 flex-shrink-0"><SlidersHorizontal /> Query Builder</CardTitle>
                            <div className="flex flex-wrap items-end gap-4 flex-grow">
-                                <div className="space-y-2 flex-grow min-w-[200px]">
+                                <div className="space-y-2 flex-grow min-w-[200px] md:flex-grow-0 md:w-1/3">
                                     <Label>Hiring Status</Label>
-                                    <Select onValueChange={(val) => control._formValues.hiringStatus = val} defaultValue="any">
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select a status" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="any">Any Status</SelectItem>
-                                            {hiringStatuses.map(status => (
-                                                <SelectItem key={status} value={status}>{status}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <Controller
+                                        name="hiringStatus"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select a status" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="any">Any Status</SelectItem>
+                                                    {hiringStatuses.map(status => (
+                                                        <SelectItem key={status} value={status}>{status}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        )}
+                                    />
                                 </div>
-                                <div className="space-y-2 flex-grow min-w-[240px]">
+                                <div className="space-y-2 flex-grow min-w-[240px] md:flex-grow-0 md:w-1/3">
                                     <Label>Application Date Range</Label>
                                     <Popover>
                                         <PopoverTrigger asChild>
@@ -335,5 +343,4 @@ export default function AdvancedSearchClient() {
             )}
         </div>
     );
-
-    
+}
