@@ -436,6 +436,7 @@ export default function AdvancedSearchClient() {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>Name</TableHead>
+                                            <TableHead>City</TableHead>
                                             <TableHead>Phone</TableHead>
                                             <TableHead>Application Date</TableHead>
                                             <TableHead>Status</TableHead>
@@ -454,6 +455,7 @@ export default function AdvancedSearchClient() {
                                                         </button>
                                                     </DialogTrigger>
                                                 </TableCell>
+                                                <TableCell>{candidate.city}</TableCell>
                                                 <TableCell>{candidate.phone}</TableCell>
                                                 <TableCell>
                                                     {candidate.createdAt ? format((candidate.createdAt as any).toDate(), 'PP') : 'N/A'}
