@@ -20,10 +20,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, CalendarIcon, SlidersHorizontal, FilterX, PersonStanding, Move, Utensils, Bath, ArrowUpFromLine, ShieldCheck, Droplet, Pill, Stethoscope, HeartPulse, Languages, ScanSearch, Biohazard, UserCheck, Briefcase } from 'lucide-react';
+import { Loader2, Search, CalendarIcon, SlidersHorizontal, FilterX, PersonStanding, Move, Utensils, Bath, ArrowUpFromLine, ShieldCheck, Droplet, Pill, Stethoscope, HeartPulse, Languages, ScanSearch, Biohazard, UserCheck, Briefcase, Car, Check, X, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Separator } from './ui/separator';
+import { Separator } from '@/components/ui/separator';
 
 
 const skillsAndAttributes = [
@@ -187,7 +187,7 @@ const ProfileDialog = ({ candidate }: { candidate: CaregiverProfile | null }) =>
                 
                 <Separator className="my-2"/>
                 
-                <h3 className="font-semibold text-lg flex items-center"><Calendar className="mr-2 h-5 w-5 text-accent" />Availability</h3>
+                <h3 className="font-semibold text-lg flex items-center">Availability</h3>
                 <AvailabilityDisplay availability={candidate.availability} />
 
                 <Separator className="my-2"/>
@@ -202,7 +202,7 @@ const ProfileDialog = ({ candidate }: { candidate: CaregiverProfile | null }) =>
 
 
 export default function AdvancedSearchClient() {
-    const { register, handleSubmit, control, watch, reset } = useForm<FormData>({
+    const { handleSubmit, control, reset } = useForm<FormData>({
         defaultValues: { skills: [], hiringStatus: 'any' }
     });
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
@@ -211,7 +211,6 @@ export default function AdvancedSearchClient() {
     const [isSearching, startSearchTransition] = useTransition();
     const [viewingCandidate, setViewingCandidate] = useState<EnrichedCandidate | null>(null);
     const router = useRouter();
-    const pathname = usePathname();
 
     const profilesRef = useMemoFirebase(() => collection(firestore, 'caregiver_profiles'), []);
     const { data: profiles, isLoading: profilesLoading } = useCollection<CaregiverProfile>(profilesRef);
@@ -433,51 +432,53 @@ export default function AdvancedSearchClient() {
                             </div>
                         ) : filteredResults.length > 0 ? (
                             <Dialog onOpenChange={(isOpen) => !isOpen && setViewingCandidate(null)}>
-                             <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>Phone</TableHead>
-                                        <TableHead>Application Date</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead>Availability</TableHead>
-                                        <TableHead className="text-right">Action</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {filteredResults.map(candidate => (
-                                        <TableRow key={candidate.id}>
-                                            <TableCell>
-                                                <DialogTrigger asChild>
-                                                    <button onClick={() => setViewingCandidate(candidate)} className="text-left">
-                                                        <div className="font-medium hover:underline">{candidate.fullName}</div>
-                                                        <div className="text-sm text-muted-foreground">{candidate.email}</div>
-                                                    </button>
-                                                </DialogTrigger>
-                                            </TableCell>
-                                            <TableCell>{candidate.phone}</TableCell>
-                                            <TableCell>
-                                                {candidate.createdAt ? format((candidate.createdAt as any).toDate(), 'PP') : 'N/A'}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge variant={candidate.status === 'Hired' ? 'default' : 'secondary'}>{candidate.status}</Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                <ConciseAvailability availability={candidate.availability} />
-                                            </TableCell>
-                                             <TableCell className="text-right">
-                                                {isActionable(candidate.status) && (
-                                                    <Button size="sm" onClick={() => handleManageInterviewClick(candidate.fullName)}>
-                                                        <Briefcase className="mr-2 h-4 w-4" />
-                                                        Manage Interview
-                                                    </Button>
-                                                )}
-                                            </TableCell>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Name</TableHead>
+                                            <TableHead>City</TableHead>
+                                            <TableHead>Phone</TableHead>
+                                            <TableHead>Application Date</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead>Availability</TableHead>
+                                            <TableHead className="text-right">Action</TableHead>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                            <ProfileDialog candidate={viewingCandidate} />
+                                    </TableHeader>
+                                    <TableBody>
+                                        {filteredResults.map(candidate => (
+                                            <TableRow key={candidate.id}>
+                                                <TableCell>
+                                                    <DialogTrigger asChild>
+                                                        <button onClick={() => setViewingCandidate(candidate)} className="text-left">
+                                                            <div className="font-medium hover:underline">{candidate.fullName}</div>
+                                                            <div className="text-sm text-muted-foreground">{candidate.email}</div>
+                                                        </button>
+                                                    </DialogTrigger>
+                                                </TableCell>
+                                                <TableCell>{candidate.city}</TableCell>
+                                                <TableCell>{candidate.phone}</TableCell>
+                                                <TableCell>
+                                                    {candidate.createdAt ? format((candidate.createdAt as any).toDate(), 'PP') : 'N/A'}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant={candidate.status === 'Hired' ? 'default' : 'secondary'}>{candidate.status}</Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <ConciseAvailability availability={candidate.availability} />
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    {isActionable(candidate.status) && (
+                                                        <Button size="sm" onClick={() => handleManageInterviewClick(candidate.fullName)}>
+                                                            <Briefcase className="mr-2 h-4 w-4" />
+                                                            Manage Interview
+                                                        </Button>
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                                <ProfileDialog candidate={viewingCandidate} />
                             </Dialog>
                         ) : (
                              <div className="text-center py-10 border-dashed border-2 rounded-lg">
@@ -492,3 +493,4 @@ export default function AdvancedSearchClient() {
     );
 }
 
+    
