@@ -187,7 +187,7 @@ const ProfileDialog = ({ candidate }: { candidate: CaregiverProfile | null }) =>
                 
                 <Separator className="my-2"/>
                 
-                <h3 className="font-semibold text-lg flex items-center"><Calendar className="mr-2 h-5 w-5 text-accent" />Availability</h3>
+                <h3 className="font-semibold text-lg flex items-center">Availability</h3>
                 <AvailabilityDisplay availability={candidate.availability} />
 
                 <Separator className="my-2"/>
@@ -490,4 +490,3 @@ export default function AdvancedSearchClient() {
         </div>
     );
 }
-
