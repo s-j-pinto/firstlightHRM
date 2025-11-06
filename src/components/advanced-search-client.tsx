@@ -71,20 +71,29 @@ type FormData = {
     hiringStatus: CandidateStatus | 'any';
 };
 
+const dayAbbreviations: { [key: string]: string } = {
+    monday: 'Mo',
+    tuesday: 'Tu',
+    wednesday: 'We',
+    thursday: 'Th',
+    friday: 'Fr',
+    saturday: 'Sa',
+    sunday: 'Su',
+};
+
 const ConciseAvailability = ({ availability }: { availability: CaregiverProfile['availability'] | undefined }) => {
     if (!availability) {
         return <span className="text-muted-foreground">N/A</span>;
     }
 
-    const availableDays = (['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const)
+    const availableDays = (Object.keys(dayAbbreviations) as (keyof typeof dayAbbreviations)[])
         .filter(day => availability[day] && availability[day].length > 0)
-        .map(day => day.charAt(0).toUpperCase());
+        .map(day => dayAbbreviations[day]);
 
     if (availableDays.length === 0) {
         return <span className="text-muted-foreground">None</span>;
     }
     
-    // Special case for all 7 days
     if(availableDays.length === 7) {
         return <Badge variant="secondary">Every Day</Badge>
     }
