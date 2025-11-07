@@ -24,6 +24,7 @@ import { Loader2, Search, CalendarIcon, SlidersHorizontal, FilterX, PersonStandi
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 
 const skillsAndAttributes = [
@@ -71,6 +72,7 @@ const hiringStatuses: CandidateStatus[] = [
 type FormData = {
     skills: (typeof skillsAndAttributes)[number]['id'][];
     hiringStatus: CandidateStatus | 'any';
+    skillMatching: 'any' | 'all';
 };
 
 type SortKey = 'fullName' | 'city' | 'createdAt';
@@ -205,7 +207,7 @@ const ProfileDialog = ({ candidate }: { candidate: CaregiverProfile | null }) =>
 
 export default function AdvancedSearchClient() {
     const { handleSubmit, control, reset } = useForm<FormData>({
-        defaultValues: { skills: [], hiringStatus: 'any' }
+        defaultValues: { skills: [], hiringStatus: 'any', skillMatching: 'any' }
     });
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
     const [filteredResults, setFilteredResults] = useState<EnrichedCandidate[]>([]);
@@ -258,9 +260,15 @@ export default function AdvancedSearchClient() {
             
             // Filter by skills
             if (data.skills.length > 0) {
-                results = results.filter(candidate => 
-                    data.skills.every(skill => (candidate as any)[skill] === true)
-                );
+                if (data.skillMatching === 'all') {
+                    results = results.filter(candidate => 
+                        data.skills.every(skill => (candidate as any)[skill] === true)
+                    );
+                } else { // 'any'
+                    results = results.filter(candidate => 
+                        data.skills.some(skill => (candidate as any)[skill] === true)
+                    );
+                }
             }
 
             // Filter by hiring status
@@ -283,17 +291,17 @@ export default function AdvancedSearchClient() {
     
     useEffect(() => {
         if (candidates.length > 0 && !hasSearched) {
-            onSubmit({ skills: [], hiringStatus: 'any' });
+            onSubmit({ skills: [], hiringStatus: 'any', skillMatching: 'any' });
         }
     }, [candidates, hasSearched]);
     
     const handleClearFilters = () => {
-        reset({ skills: [], hiringStatus: 'any' });
+        reset({ skills: [], hiringStatus: 'any', skillMatching: 'any' });
         setDateRange(undefined);
         setFilteredResults([]);
         setHasSearched(false);
         // Rerun the initial search after clearing
-        onSubmit({ skills: [], hiringStatus: 'any' });
+        onSubmit({ skills: [], hiringStatus: 'any', skillMatching: 'any' });
     }
 
     const sortedResults = useMemo(() => {
@@ -414,8 +422,24 @@ export default function AdvancedSearchClient() {
                         {/* Skills and Attributes */}
                         <div className="space-y-2">
                              <div className="flex justify-between items-center mb-2">
-                                <Label>Skills & Attributes (must have all selected)</Label>
+                                <Label>Skills & Attributes</Label>
                                 <div className="flex items-center gap-4">
+                                    <Controller
+                                        name="skillMatching"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4">
+                                                <FormItem className="flex items-center space-x-2 space-y-0">
+                                                    <FormControl><RadioGroupItem value="any" id="any" /></FormControl>
+                                                    <Label htmlFor="any" className="font-normal">Any Selected</Label>
+                                                </FormItem>
+                                                <FormItem className="flex items-center space-x-2 space-y-0">
+                                                    <FormControl><RadioGroupItem value="all" id="all" /></FormControl>
+                                                    <Label htmlFor="all" className="font-normal">All Selected</Label>
+                                                </FormItem>
+                                            </RadioGroup>
+                                        )}
+                                    />
                                      <Button type="button" variant="outline" onClick={handleClearFilters} disabled={isSearching}>
                                         <FilterX className="mr-2" />
                                         Clear Filters
@@ -538,5 +562,7 @@ export default function AdvancedSearchClient() {
         </div>
     );
 }
+
+    
 
     
