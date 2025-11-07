@@ -374,8 +374,11 @@ export default function CareLogClient() {
   
   const submitLog = (startIso: string | null, endIso: string | null, formData: any) => {
      if (!selectedGroup || !user || !user.email) return;
+
+     // Create a plain object from formData to remove any symbols or methods from react-hook-form
+     const plainFormData = JSON.parse(JSON.stringify(formData));
      
-     const {logNotes, ...templateData} = formData;
+     const {logNotes, ...templateData} = plainFormData;
 
      const logData = {
         careLogGroupId: selectedGroup.id,
