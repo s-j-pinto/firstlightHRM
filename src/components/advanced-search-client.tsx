@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo, useTransition, useEffect } from 'react';
@@ -25,6 +26,7 @@ import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Form, FormControl, FormItem } from '@/components/ui/form';
 
 
 const skillsAndAttributes = [
@@ -357,6 +359,7 @@ export default function AdvancedSearchClient() {
 
     return (
         <div className="space-y-6">
+            <Form {...control}>
             <form onSubmit={handleSubmit(onSubmit)}>
                 <Card>
                     <CardHeader>
@@ -486,6 +489,7 @@ export default function AdvancedSearchClient() {
                     </CardContent>
                 </Card>
             </form>
+            </Form>
 
             {(hasSearched || isLoading) && (
                 <Card>
