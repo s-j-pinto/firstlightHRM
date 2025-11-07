@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useTransition, useEffect } from 'react';
@@ -19,7 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, CalendarIcon, SlidersHorizontal, FilterX, PersonStanding, Move, Utensils, Bath, ArrowUpFromLine, ShieldCheck, Droplet, Pill, Stethoscope, HeartPulse, Languages, ScanSearch, Biohazard, UserCheck, Briefcase, Car, Check, X, FileText } from 'lucide-react';
+import { Loader2, Search, CalendarIcon, SlidersHorizontal, FilterX, PersonStanding, Move, Utensils, Bath, ArrowUpFromLine, ShieldCheck, Droplet, Pill, Stethoscope, HeartPulse, Languages, ScanSearch, Biohazard, UserCheck, Briefcase, Car, Check, X, FileText, ArrowUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
@@ -71,6 +72,8 @@ type FormData = {
     skills: (typeof skillsAndAttributes)[number]['id'][];
     hiringStatus: CandidateStatus | 'any';
 };
+
+type SortKey = 'fullName' | 'city' | 'createdAt';
 
 const dayAbbreviations: { [key: string]: string } = {
     monday: 'Mo',
@@ -211,6 +214,9 @@ export default function AdvancedSearchClient() {
     const [viewingCandidate, setViewingCandidate] = useState<EnrichedCandidate | null>(null);
     const router = useRouter();
 
+    const [sortKey, setSortKey] = useState<SortKey>('createdAt');
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+
     const profilesRef = useMemoFirebase(() => collection(firestore, 'caregiver_profiles'), []);
     const { data: profiles, isLoading: profilesLoading } = useCollection<CaregiverProfile>(profilesRef);
 
@@ -289,6 +295,47 @@ export default function AdvancedSearchClient() {
         // Rerun the initial search after clearing
         onSubmit({ skills: [], hiringStatus: 'any' });
     }
+
+    const sortedResults = useMemo(() => {
+        return [...filteredResults].sort((a, b) => {
+            const aVal = a[sortKey];
+            const bVal = b[sortKey];
+
+            let compare = 0;
+            if (aVal === undefined || aVal === null) compare = -1;
+            if (bVal === undefined || bVal === null) compare = 1;
+
+            if (sortKey === 'createdAt') {
+                const dateA = (aVal as any)?.toDate() || 0;
+                const dateB = (bVal as any)?.toDate() || 0;
+                if (dateA < dateB) compare = -1;
+                if (dateA > dateB) compare = 1;
+            } else {
+                if (aVal < bVal) compare = -1;
+                if (aVal > bVal) compare = 1;
+            }
+
+            return sortDirection === 'asc' ? compare : -compare;
+        });
+    }, [filteredResults, sortKey, sortDirection]);
+    
+    const handleSort = (key: SortKey) => {
+        if (sortKey === key) {
+            setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortKey(key);
+            setSortDirection('asc');
+        }
+    };
+
+    const SortableHeader = ({ sortKey: key, label }: { sortKey: SortKey, label: string }) => (
+        <TableHead>
+            <Button variant="ghost" onClick={() => handleSort(key)} className="px-2 py-1">
+                {label}
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+        </TableHead>
+    );
     
     const isLoading = profilesLoading || interviewsLoading || employeesLoading;
     
@@ -421,7 +468,7 @@ export default function AdvancedSearchClient() {
                     <CardHeader>
                         <CardTitle>Search Results</CardTitle>
                         <CardDescription>
-                            {isSearching ? 'Applying filters...' : `Found ${filteredResults.length} candidates matching your criteria.`}
+                            {isSearching ? 'Applying filters...' : `Found ${sortedResults.length} candidates matching your criteria.`}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -429,22 +476,22 @@ export default function AdvancedSearchClient() {
                             <div className="flex justify-center items-center h-40">
                                 <Loader2 className="h-8 w-8 animate-spin text-accent" />
                             </div>
-                        ) : filteredResults.length > 0 ? (
+                        ) : sortedResults.length > 0 ? (
                             <Dialog onOpenChange={(isOpen) => !isOpen && setViewingCandidate(null)}>
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>Name</TableHead>
-                                            <TableHead>City</TableHead>
+                                            <SortableHeader sortKey="fullName" label="Name" />
+                                            <SortableHeader sortKey="city" label="City" />
                                             <TableHead>Phone</TableHead>
-                                            <TableHead>Application Date</TableHead>
+                                            <SortableHeader sortKey="createdAt" label="Application Date" />
                                             <TableHead>Status</TableHead>
                                             <TableHead>Availability</TableHead>
                                             <TableHead className="text-right">Action</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {filteredResults.map(candidate => (
+                                        {sortedResults.map(candidate => (
                                             <TableRow key={candidate.id}>
                                                 <TableCell>
                                                     <DialogTrigger asChild>
@@ -491,3 +538,5 @@ export default function AdvancedSearchClient() {
         </div>
     );
 }
+
+    
