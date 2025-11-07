@@ -216,6 +216,8 @@ export default function AdvancedSearchClient() {
     const [hasSearched, setHasSearched] = useState(false);
     const [isSearching, startSearchTransition] = useTransition();
     const [viewingCandidate, setViewingCandidate] = useState<EnrichedCandidate | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const rowsPerPage = 20;
     const router = useRouter();
 
     const [sortKey, setSortKey] = useState<SortKey>('createdAt');
@@ -287,6 +289,7 @@ export default function AdvancedSearchClient() {
             }
 
             setFilteredResults(results);
+            setCurrentPage(1); // Reset to first page on new search
             setHasSearched(true);
         });
     };
@@ -321,13 +324,21 @@ export default function AdvancedSearchClient() {
                 if (dateA < dateB) compare = -1;
                 if (dateA > dateB) compare = 1;
             } else {
-                if (aVal < bVal) compare = -1;
-                if (aVal > bVal) compare = 1;
+                if (String(aVal) < String(bVal)) compare = -1;
+                if (String(aVal) > String(bVal)) compare = 1;
             }
 
             return sortDirection === 'asc' ? compare : -compare;
         });
     }, [filteredResults, sortKey, sortDirection]);
+
+    const paginatedResults = useMemo(() => {
+        const startIndex = (currentPage - 1) * rowsPerPage;
+        const endIndex = startIndex + rowsPerPage;
+        return sortedResults.slice(startIndex, endIndex);
+    }, [sortedResults, currentPage, rowsPerPage]);
+
+    const totalPages = Math.ceil(sortedResults.length / rowsPerPage);
     
     const handleSort = (key: SortKey) => {
         if (sortKey === key) {
@@ -505,6 +516,7 @@ export default function AdvancedSearchClient() {
                                 <Loader2 className="h-8 w-8 animate-spin text-accent" />
                             </div>
                         ) : sortedResults.length > 0 ? (
+                            <>
                             <Dialog onOpenChange={(isOpen) => !isOpen && setViewingCandidate(null)}>
                                 <Table>
                                     <TableHeader>
@@ -519,7 +531,7 @@ export default function AdvancedSearchClient() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {sortedResults.map(candidate => (
+                                        {paginatedResults.map(candidate => (
                                             <TableRow key={candidate.id}>
                                                 <TableCell>
                                                     <DialogTrigger asChild>
@@ -554,6 +566,30 @@ export default function AdvancedSearchClient() {
                                 </Table>
                                 <ProfileDialog candidate={viewingCandidate} />
                             </Dialog>
+                             <div className="flex items-center justify-between mt-4">
+                                <span className="text-sm text-muted-foreground">
+                                    Page {currentPage} of {totalPages}
+                                </span>
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                        disabled={currentPage === 1}
+                                    >
+                                        Previous
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                        disabled={currentPage === totalPages}
+                                    >
+                                        Next
+                                    </Button>
+                                </div>
+                            </div>
+                            </>
                         ) : (
                              <div className="text-center py-10 border-dashed border-2 rounded-lg">
                                 <h3 className="text-lg font-medium">No Matching Candidates Found</h3>
@@ -566,6 +602,8 @@ export default function AdvancedSearchClient() {
         </div>
     );
 }
+
+    
 
     
 
