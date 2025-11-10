@@ -1,11 +1,10 @@
-
 "use client";
 
 import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { signOut } from "firebase/auth";
-import { Loader2, LogOut } from "lucide-react";
+import { Loader2, LogOut, Gift } from "lucide-react";
 import Image from "next/image";
 
 import { useUser, useAuth } from "@/firebase";
@@ -65,6 +64,12 @@ export default function ClientLayout({
           </Link>
         <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
             <div className="ml-auto flex-1 sm:flex-initial flex items-center gap-4">
+                <Button asChild variant="outline">
+                    <Link href="/client/referrals">
+                        <Gift className="mr-2" />
+                        Refer & Earn
+                    </Link>
+                </Button>
                 <Button variant="outline" size="sm" onClick={handleSignOut}>
                     <LogOut className="mr-2 h-4 w-4" />
                     Sign Out

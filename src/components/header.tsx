@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from "next/link";
@@ -105,6 +104,9 @@ export function AppHeader() {
                 </Link>
                  <Link href="/owner/reports" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
                     Reports
+                </Link>
+                <Link href="/owner/referral-management" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
+                    Referral Management
                 </Link>
                </>
             )}

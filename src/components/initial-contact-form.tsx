@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useTransition, useEffect, useMemo } from "react";
@@ -83,6 +82,7 @@ const initialContactSchema = z.object({
   dateOfHomeVisit: z.date().optional(),
   timeOfVisit: z.string().optional(),
   referredBy: z.string().optional(),
+  referralCode: z.string().optional(),
   promptedCall: z.string().min(1, "This field is required."),
   estimatedHours: z.string().optional(),
   estimatedStartDate: z.date().optional(),
@@ -191,6 +191,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
       dateOfHomeVisit: undefined,
       timeOfVisit: "",
       referredBy: "",
+      referralCode: "",
       promptedCall: "",
       estimatedHours: "",
       estimatedStartDate: undefined,
@@ -409,6 +410,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                         />
                         <FormField control={form.control} name="timeOfVisit" render={({ field }) => ( <FormItem><FormLabel>Time of Visit</FormLabel><FormControl><Input type="time" {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem> )} />
                         <FormField control={form.control} name="referredBy" render={({ field }) => ( <FormItem><FormLabel>Referred By</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="referralCode" render={({ field }) => ( <FormItem><FormLabel>Referral Code</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                     </div>
                 </Card>
                 <Card className="p-4">
@@ -574,5 +576,3 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
     </Card>
   );
 }
-
-    

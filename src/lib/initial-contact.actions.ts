@@ -1,5 +1,3 @@
-
-
 "use server";
 
 import { revalidatePath } from 'next/cache';
@@ -24,6 +22,7 @@ const initialContactSchema = z.object({
   dateOfHomeVisit: z.date().optional(),
   timeOfVisit: z.string().optional(),
   referredBy: z.string().optional(),
+  referralCode: z.string().optional(),
   promptedCall: z.string().min(1, "This field is required."),
   estimatedHours: z.string().optional(),
   estimatedStartDate: z.date().optional(),
@@ -140,6 +139,22 @@ export async function submitInitialContact(payload: SubmitPayload) {
                 createdAt: now,
             });
             docId = contactRef.id;
+        }
+
+        // Handle referral code
+        if (dataToSave.referralCode) {
+            const referralProfileQuery = await firestore.collection('referral_profiles').where('referralCode', '==', dataToSave.referralCode).limit(1).get();
+            if (!referralProfileQuery.empty) {
+                const referrerProfile = referralProfileQuery.docs[0].data();
+                await firestore.collection('referrals').add({
+                    referrerClientId: referrerProfile.clientId,
+                    referralCodeUsed: dataToSave.referralCode,
+                    newClientInitialContactId: docId,
+                    newClientName: dataToSave.clientName,
+                    status: 'Pending',
+                    createdAt: now,
+                });
+            }
         }
 
         // Check if we need to send a calendar invite
