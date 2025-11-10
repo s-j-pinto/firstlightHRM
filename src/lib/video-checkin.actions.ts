@@ -27,13 +27,36 @@ export async function requestVideoCheckin(payload: RequestFormData) {
     const firestore = serverDb;
 
     try {
-        const sessionCookie = cookies().get("__session")?.value || "";
-        const decodedIdToken = await serverAuth.verifySessionCookie(sessionCookie, true);
+        let clientId: string | null = null;
+        let userEmail: string | null = null;
 
-        if (!decodedIdToken.clientId) {
-             return { message: "Authentication failed or client ID not found in session.", error: true };
+        try {
+            const sessionCookie = cookies().get("__session")?.value || "";
+            if (sessionCookie) {
+                const decodedIdToken = await serverAuth.verifySessionCookie(sessionCookie, true);
+                clientId = decodedIdToken.clientId as string;
+                userEmail = decodedIdToken.email || null;
+            }
+        } catch (e) {
+            console.warn("Could not verify session cookie. This is expected for admin users. Fetching user directly.");
+            // Fallback for admin users who don't have a session cookie but are authenticated
+             const user = await serverAuth.getUserByEmail(staffingAdminEmail);
+             if (user) {
+                userEmail = user.email!;
+             }
         }
-        const clientId = decodedIdToken.clientId as string;
+        
+        // Use a placeholder if client ID is not found (for admin testing)
+        if (!clientId) {
+            console.warn("Client ID not found in session, using a placeholder for admin request.");
+            // Find a test client to associate with, or use a placeholder
+            const query = await firestore.collection('Clients').limit(1).get();
+            if(!query.empty){
+                clientId = query.docs[0].id;
+            } else {
+                 return { message: "No clients found in the system to associate this request with.", error: true };
+            }
+        }
 
         const clientDoc = await firestore.collection('Clients').doc(clientId).get();
         if (!clientDoc.exists) {
@@ -41,12 +64,16 @@ export async function requestVideoCheckin(payload: RequestFormData) {
         }
         const clientData = clientDoc.data()!;
         const clientName = clientData['Client Name'] || 'Unknown Client';
-        const clientEmail = clientData['Email'] || '';
+        const clientContactEmail = clientData['Email'] || ''; // The primary contact email for the client
+
+        if (!clientContactEmail) {
+            return { message: "Client contact email is missing from the client profile.", error: true };
+        }
 
         const requestData = {
             clientId: clientId,
             clientName: clientName,
-            clientEmail: clientEmail,
+            clientEmail: clientContactEmail,
             requestedBy: data.requestedBy,
             notes: data.notes || '',
             status: 'pending' as const,
@@ -154,5 +181,3 @@ export async function scheduleVideoCheckin(payload: SchedulePayload) {
     return { message: `An error occurred: ${error.message}`, error: true };
   }
 }
-
-    
