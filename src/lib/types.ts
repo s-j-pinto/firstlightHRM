@@ -214,6 +214,21 @@ export const clientCareRequestSchema = z.object({
 });
 export type ClientCareRequest = z.infer<typeof clientCareRequestSchema> & { id: string };
 
+export const videoCheckinRequestSchema = z.object({
+    clientId: z.string(),
+    clientName: z.string(),
+    clientEmail: z.string().email(),
+    requestedBy: z.string(),
+    notes: z.string().optional(),
+    status: z.enum(['pending', 'scheduled', 'completed']),
+    createdAt: z.any(),
+    caregiverEmail: z.string().email().optional(),
+    scheduledAt: z.any().optional(),
+    googleMeetLink: z.string().url().optional(),
+});
+export type VideoCheckinRequest = z.infer<typeof videoCheckinRequestSchema> & { id: string };
+
+
 const clientSignupDraftSchema = z.object({
   clientName: z.string().min(1, { message: "Client Name is required." }),
   clientCity: z.string().min(1, { message: "City is required." }),
@@ -423,7 +438,3 @@ export interface GeneratedForm {
   blocks: FormBlock[];
   formData: any;
 }
-
-    
-
-    

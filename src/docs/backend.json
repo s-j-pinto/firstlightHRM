@@ -1,4 +1,5 @@
 
+
 {
   "entities": {
     "InitialContact": {
@@ -27,7 +28,7 @@
             "estimatedStartDate": { "type": "string", "format": "date-time" },
             "inHomeVisitSet": { "type": "string", "enum": ["Yes", "No"] },
             "inHomeVisitSetNoReason": { "type": "string" },
-            "status": { "type": "string", "enum": ["INITIAL PHONE CONTACT COMPLETED"] },
+            "status": { "type": "string", "enum": ["Initial Phone Contact Completed", "In-Home Visit Scheduled"] },
             "createdAt": { "type": "string", "format": "date-time" },
             "createdBy": { "type": "string", "format": "email" },
             "lastUpdatedAt": { "type": "string", "format": "date-time" },
@@ -36,7 +37,6 @@
             "va": { "type": "string" },
             "hasPoa": { "type": "string", "enum": ["Yes", "No"] },
             "ltci": { "type": "string" },
-            "advanceDirective": { "type": "boolean" },
             "contactPhone": { "type": "string" },
             "languagePreference": { "type": "string" },
             "additionalEmail": { "type": "string", "format": "email" },
@@ -78,6 +78,7 @@
         "city": { "type": "string" },
         "state": { "type": "string" },
         "zip": { "type": "string" },
+        "driversLicenseNumber": { "type": "string" },
         "gender": { "type": "string", "enum": ["Male", "Female", "Other"] },
         "yearsExperience": { "type": "number" },
         "previousRoles": { "type": "string" },
@@ -311,6 +312,24 @@
         },
         "required": ["clientId", "clientName", "preferredDateTime", "duration", "reason", "urgency", "status", "createdAt"]
     },
+    "VideoCheckinRequest": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "VideoCheckinRequest",
+      "type": "object",
+      "description": "Stores a request from a client for a video check-in.",
+      "properties": {
+        "clientId": { "type": "string", "description": "The document ID of the client making the request." },
+        "clientName": { "type": "string", "description": "The name of the client." },
+        "requestedBy": { "type": "string", "description": "The name of the person this check-in is for." },
+        "notes": { "type": "string", "description": "Any notes or special instructions for the check-in." },
+        "status": { "type": "string", "enum": ["pending", "scheduled", "completed"], "description": "The status of the request." },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "caregiverEmail": { "type": "string", "format": "email", "description": "Email of the assigned caregiver." },
+        "scheduledAt": { "type": "string", "format": "date-time", "description": "The scheduled date and time for the check-in." },
+        "googleMeetLink": { "type": "string", "format": "uri", "description": "The URL for the scheduled Google Meet call." }
+      },
+      "required": ["clientId", "clientName", "requestedBy", "notes", "status", "createdAt"]
+    },
     "ClientSignup": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ClientSignup",
@@ -321,7 +340,7 @@
         "formData": { "type": "object", "description": "The partially or fully completed form data." },
         "clientEmail": { "type": "string", "format": "email", "description": "The primary email of the client signing up." },
         "clientPhone": { "type": "string", "description": "The primary phone number of the client signing up." },
-        "status": { "type": "string", "enum": ["INITIAL PHONE CONTACT COMPLETED", "INCOMPLETE", "PENDING CLIENT SIGNATURES", "CLIENT_SIGNATURES_COMPLETED", "SIGNED AND PUBLISHED"], "description": "The current status of the signup process." },
+        "status": { "type": "string", "enum": ["Initial Phone Contact Completed", "Incomplete", "Pending Client Signatures", "Client Signatures Completed", "Signed and Published"], "description": "The current status of the signup process." },
         "formTemplateId": { "type": "string", "description": "The ID of the form template used for this signup." },
         "completedPdfUrl": { "type": "string", "format": "uri", "description": "The URL to the final, signed PDF in Google Cloud Storage." },
         "createdAt": { "type": "string", "format": "date-time" },
@@ -395,6 +414,10 @@
       "schema": { "$ref": "#/entities/ClientCareRequest" },
       "description": "Stores requests from clients for additional care hours."
     },
+    "/video_checkin_requests/{requestId}": {
+      "schema": { "$ref": "#/entities/VideoCheckinRequest" },
+      "description": "Stores requests from clients for video check-ins."
+    },
     "/client_signups/{signupId}": {
       "schema": { "$ref": "#/entities/ClientSignup" },
       "description": "Tracks the state of a new client intake form through the signing process."
@@ -405,3 +428,7 @@
     }
   }
 }
+
+    
+
+    

@@ -430,5 +430,3 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
     </Card>
   );
 }
-
-    
