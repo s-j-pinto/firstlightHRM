@@ -4,7 +4,7 @@
 
 import { useState, useMemo, useTransition, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from 'zod';
 import Link from 'next/link';
 import { collection, query, where, getDocs, addDoc, doc, updateDoc, Timestamp } from 'firebase/firestore';
@@ -748,7 +748,7 @@ export default function ManageInterviewsClient() {
                                     <FormItem>
                                         <FormLabel>Interview Notes</FormLabel>
                                         <FormControl>
-                                            <Textarea placeholder="Notes from the phone screen..." {...field} rows={6} disabled={isPhoneScreenCompleted} />
+                                            <Textarea placeholder="Notes from the phone screen..." {...field} rows={2} disabled={isPhoneScreenCompleted} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -1210,6 +1210,7 @@ export default function ManageInterviewsClient() {
     
 
     
+
 
 
 
