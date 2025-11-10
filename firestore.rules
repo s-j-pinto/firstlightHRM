@@ -171,5 +171,18 @@ service cloud.firestore {
       allow create, update: if isSignedIn();
       allow delete: if false;
     }
+    /**
+     * @description Controls access to referrals. Open for all.
+     * @path /referrals/{referralsId}
+     * @allow (get, list) - Any user can referrals.
+     * @allow (create) - Any authenticated user can create a referrals.
+     * @deny (update, delete) - No user can update or delete a referrals.
+     * @principle Open read access.
+     */
+    match /referrals/{referralsId} {
+      allow get, list: if true;
+      allow create, update: if isSignedIn();
+      allow delete: if false;
+    }
   }
 }
