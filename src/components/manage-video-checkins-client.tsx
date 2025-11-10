@@ -27,7 +27,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -38,7 +37,6 @@ import {
 import {
   Loader2,
   Calendar as CalendarIcon,
-  Clock,
   User,
   MessageSquare,
   Video,
@@ -64,7 +62,7 @@ const scheduleSchema = z.object({
 });
 type ScheduleFormData = z.infer<typeof scheduleSchema>;
 
-export default function ManageVideoCheckinsPage() {
+export default function ManageVideoCheckinsClient() {
   const [selectedRequest, setSelectedRequest] =
     useState<VideoCheckinRequest | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -155,12 +153,6 @@ export default function ManageVideoCheckinsPage() {
 
   return (
     <div>
-        <h1 className="text-3xl font-bold tracking-tight font-headline">
-            Manage Video Check-in Requests
-        </h1>
-        <p className="text-muted-foreground">
-            Review and schedule video check-in requests from clients.
-        </p>
         <div className="mt-6">
         {isLoading ? (
             <div className="flex justify-center items-center h-64">
@@ -359,5 +351,3 @@ export default function ManageVideoCheckinsPage() {
     </div>
   );
 }
-
-    

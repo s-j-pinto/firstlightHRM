@@ -93,9 +93,6 @@ export function AppHeader() {
                  <Link href="/staffing-admin/manage-client-requests" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
                     Manage Client Requests
                 </Link>
-                <Link href="/staffing-admin/manage-video-checkins" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
-                    Video Check-ins
-                </Link>
                  <Link href="/staffing-admin/reports" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
                     Reports
                 </Link>
@@ -136,5 +133,3 @@ export function AppHeader() {
     </header>
   );
 }
-
-    
