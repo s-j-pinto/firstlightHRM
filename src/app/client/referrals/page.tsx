@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -30,10 +31,21 @@ export default function ReferralsPage() {
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
   const [isSending, startSendingTransition] = React.useTransition();
+  const [clientId, setClientId] = React.useState<string | null>(null);
 
-  const clientId = user?.uid ? user.uid : null;
+  React.useEffect(() => {
+    const fetchClaims = async () => {
+        if (user) {
+            const tokenResult = await user.getIdTokenResult();
+            setClientId(tokenResult.claims.clientId as string || null);
+        }
+    };
+    if (user) {
+        fetchClaims();
+    }
+  }, [user]);
 
-  const profileQuery = useMemoFirebase(() => clientId ? query(collection(firestore, 'referral_profiles'), where('clientId', '==', clientId), where('status', '==', 'active')) : null, [clientId]);
+  const profileQuery = useMemoFirebase(() => clientId ? query(collection(firestore, 'referral_profiles'), where('clientId', '==', clientId)) : null, [clientId]);
   const { data: profileData, isLoading: profileLoading } = useCollection<any>(profileQuery);
   const referralProfile = profileData?.[0];
 
