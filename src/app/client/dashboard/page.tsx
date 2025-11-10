@@ -115,7 +115,7 @@ export default function ClientDashboardPage() {
         Welcome, {user?.displayName || 'Client'}!
       </h1>
       <p className="text-muted-foreground mb-8">
-        This is your personal client portal. Use the menu in the header to request additional care.
+        This is your personal client portal.
       </p>
       
       <Card>
@@ -217,5 +217,3 @@ export default function ClientDashboardPage() {
     </div>
   );
 }
-
-    

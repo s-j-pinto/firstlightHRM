@@ -47,6 +47,19 @@ export async function loginClient(email: string, password: string) {
         if (groupsQuery.empty) return false;
         return !!groupsQuery.docs[0].data().clientAccessEnabled;
     }
+    
+    const updateOrCreateAuthUser = async (uid: string, email: string, displayName: string) => {
+        try {
+            await serverAuth.updateUser(uid, { email, displayName });
+        } catch (error: any) {
+            if (error.code === 'auth/user-not-found') {
+                await serverAuth.createUser({ uid, email, displayName });
+            } else {
+                throw error;
+            }
+        }
+    };
+
 
     if (matchingClients.length === 1) {
       const client = matchingClients[0];
@@ -54,6 +67,8 @@ export async function loginClient(email: string, password: string) {
       const uid = `client_${client.id}`;
       
       console.log(`[Client Login] Single client found: ${client['Client Name']}. Generating token.`);
+
+      await updateOrCreateAuthUser(uid, normalizedEmail, client['Client Name']);
 
       // Add clientId and canViewReports as custom claims
       const customToken = await serverAuth.createCustomToken(uid, { clientId: client.id, canViewReports });
@@ -74,6 +89,9 @@ export async function loginClient(email: string, password: string) {
     }));
     
     console.log(`[Client Login] Multiple clients found for ${normalizedEmail}. Returning choices.`);
+    
+    // Create a temporary user for the selection phase
+    await updateOrCreateAuthUser(tempUid, normalizedEmail, "Multi-Client User");
 
     // No claims needed here, as they will be set after the user makes a choice.
     const customToken = await serverAuth.createCustomToken(tempUid, { email: normalizedEmail });

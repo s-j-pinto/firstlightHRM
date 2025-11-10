@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect } from "react";
@@ -70,6 +71,9 @@ export default function ClientLayout({
                         Refer & Earn
                     </Link>
                 </Button>
+                 <span className="text-sm text-muted-foreground hidden sm:inline-block">
+                    {user.email}
+                </span>
                 <Button variant="outline" size="sm" onClick={handleSignOut}>
                     <LogOut className="mr-2 h-4 w-4" />
                     Sign Out
