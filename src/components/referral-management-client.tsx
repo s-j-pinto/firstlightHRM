@@ -24,6 +24,7 @@ import {
   CheckCircle,
   FileText,
   Users,
+  PlusCircle,
 } from "lucide-react";
 import {
   Table,
@@ -61,7 +62,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { updateReferralStatusAndCreateReward } from "@/lib/referral.actions";
+import { updateReferralStatusAndCreateReward, generateReferralCode } from "@/lib/referral.actions";
 import { Form, FormControl, FormField, FormItem } from "./ui/form";
 
 
@@ -93,8 +94,10 @@ const StatusBadge = ({ status }: { status: string }) => {
 export default function ReferralManagementClient() {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
+  const [isGenerating, startGeneratingTransition] = useTransition();
   const [selectedReferral, setSelectedReferral] =
     useState<EnrichedReferral | null>(null);
+  const [clientToActivate, setClientToActivate] = useState('');
 
   const form = useForm<RewardFormData>({
     resolver: zodResolver(rewardSchema),
@@ -127,6 +130,12 @@ export default function ReferralManagementClient() {
   const { data: initialContacts, isLoading: contactsLoading } =
     useCollection<InitialContact>(initialContactsQuery);
 
+  const referralProfilesQuery = useMemoFirebase(
+    () => query(collection(firestore, "referral_profiles")),
+    []
+  );
+  const { data: referralProfiles, isLoading: profilesLoading } = useCollection<{clientId: string}>(referralProfilesQuery);
+
   const enrichedReferrals = useMemo((): EnrichedReferral[] => {
     if (!referrals || !clients || !initialContacts) return [];
     
@@ -139,6 +148,12 @@ export default function ReferralManagementClient() {
       newClientInitialContact: contactsMap.get(ref.newClientInitialContactId),
     })).sort((a, b) => (b.createdAt as any) - (a.createdAt as any));
   }, [referrals, clients, initialContacts]);
+
+  const clientsWithoutReferralCode = useMemo(() => {
+    if (!clients || !referralProfiles) return [];
+    const clientsWithCodes = new Set(referralProfiles.map(p => p.clientId));
+    return clients.filter(c => c.status === 'ACTIVE' && !clientsWithCodes.has(c.id));
+  }, [clients, referralProfiles]);
 
   const handleOpenDialog = (referral: EnrichedReferral) => {
     setSelectedReferral(referral);
@@ -181,7 +196,34 @@ export default function ReferralManagementClient() {
     })
   }
 
-  const isLoading = referralsLoading || clientsLoading || contactsLoading;
+  const handleGenerateCode = () => {
+    if (!clientToActivate) {
+        toast({ title: 'Error', description: 'Please select a client to activate.', variant: 'destructive' });
+        return;
+    }
+
+    startGeneratingTransition(async () => {
+        const selectedClient = clients?.find(c => c.id === clientToActivate);
+        if (!selectedClient) {
+            toast({ title: 'Error', description: 'Selected client not found.', variant: 'destructive' });
+            return;
+        }
+
+        const result = await generateReferralCode({
+            clientId: selectedClient.id,
+            clientName: selectedClient['Client Name'],
+        });
+
+        if (result.error) {
+            toast({ title: 'Error', description: result.error, variant: 'destructive' });
+        } else {
+            toast({ title: 'Success', description: result.message });
+            setClientToActivate('');
+        }
+    });
+  }
+
+  const isLoading = referralsLoading || clientsLoading || contactsLoading || profilesLoading;
 
   if (isLoading) {
     return (
@@ -192,7 +234,43 @@ export default function ReferralManagementClient() {
   }
 
   return (
-    <>
+    <div className="space-y-8">
+      <Card>
+        <CardHeader>
+          <CardTitle>Activate Client for Referral Program</CardTitle>
+          <CardDescription>
+            Select a client to generate their unique referral code and activate them in the program.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {clientsWithoutReferralCode.length > 0 ? (
+            <div className="flex flex-col sm:flex-row gap-4 items-end">
+              <div className="w-full sm:w-auto sm:flex-1">
+                <Label htmlFor="client-select">Client</Label>
+                <Select value={clientToActivate} onValueChange={setClientToActivate}>
+                  <SelectTrigger id="client-select">
+                    <SelectValue placeholder="Select an inactive client..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clientsWithoutReferralCode.map(client => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client['Client Name']}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={handleGenerateCode} disabled={isGenerating || !clientToActivate}>
+                {isGenerating ? <Loader2 className="animate-spin" /> : <PlusCircle />}
+                Generate Code
+              </Button>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-4">All active clients have already been activated in the referral program.</p>
+          )}
+        </CardContent>
+      </Card>
+      
       <Card>
         <CardHeader>
           <CardTitle>All Referrals</CardTitle>
@@ -360,6 +438,6 @@ export default function ReferralManagementClient() {
           </Form>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }

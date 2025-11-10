@@ -104,3 +104,35 @@ export async function updateReferralStatusAndCreateReward(payload: UpdateReferra
         return { error: `An error occurred: ${error.message}` };
     }
 }
+
+export async function generateReferralCode({ clientId, clientName }: { clientId: string, clientName: string }) {
+    if (!clientId || !clientName) {
+        return { error: 'Client ID and Name are required.' };
+    }
+
+    const firestore = serverDb;
+    try {
+        const existingProfileQuery = await firestore.collection('referral_profiles').where('clientId', '==', clientId).get();
+        if (!existingProfileQuery.empty) {
+            return { error: 'This client already has an active referral code.' };
+        }
+
+        const namePart = clientName.split(' ')[0].toUpperCase().replace(/[^A-Z]/g, '');
+        const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
+        const referralCode = `FLHC-${namePart}-${randomPart}`;
+
+        await firestore.collection('referral_profiles').add({
+            clientId,
+            referralCode,
+            status: 'active',
+            createdAt: Timestamp.now(),
+        });
+        
+        revalidatePath('/owner/referral-management');
+
+        return { success: true, message: `Referral code ${referralCode} generated for ${clientName}.` };
+    } catch (error: any) {
+        console.error("Error generating referral code:", error);
+        return { error: `An error occurred: ${error.message}` };
+    }
+}
