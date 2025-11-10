@@ -62,6 +62,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { updateReferralStatusAndCreateReward } from "@/lib/referral.actions";
+import { Form, FormControl, FormField, FormItem } from "./ui/form";
+
 
 type EnrichedReferral = Referral & {
   referrerName?: string;
@@ -257,93 +259,105 @@ export default function ReferralManagementClient() {
               Update the status and issue a reward for this referral.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4">
-            <div className="p-4 border rounded-md bg-muted/50 space-y-2">
-                <p><strong>Referred By:</strong> {selectedReferral?.referrerName}</p>
-                <p><strong>New Client:</strong> {selectedReferral?.newClientName}</p>
-                <p><strong>Referral Code Used:</strong> {selectedReferral?.referralCodeUsed}</p>
-                <p><strong>Date:</strong> {selectedReferral ? format((selectedReferral.createdAt as any).toDate(), 'PP') : ''}</p>
-            </div>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4">
+                <div className="p-4 border rounded-md bg-muted/50 space-y-2">
+                    <p><strong>Referred By:</strong> {selectedReferral?.referrerName}</p>
+                    <p><strong>New Client:</strong> {selectedReferral?.newClientName}</p>
+                    <p><strong>Referral Code Used:</strong> {selectedReferral?.referralCodeUsed}</p>
+                    <p><strong>Date:</strong> {selectedReferral ? format((selectedReferral.createdAt as any).toDate(), 'PP') : ''}</p>
+                </div>
 
-            <FormField
-              control={form.control}
-              name="newStatus"
-              render={({ field }) => (
-                <div className="space-y-2">
-                  <Label>Update Status</Label>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Pending">Pending</SelectItem>
-                      <SelectItem value="Converted">Converted</SelectItem>
-                      <SelectItem value="Rewarded">Rewarded</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="issueReward"
-              render={({ field }) => (
-                <div className="flex items-center space-x-2">
-                  <input type="checkbox" id="issueReward" checked={field.value} onChange={e => field.onChange(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-accent focus:ring-accent" />
-                  <Label htmlFor="issueReward" className="font-medium">
-                    Issue Reward for this Conversion
-                  </Label>
-                </div>
-              )}
-            />
-            
-            {issueReward && (
-                <Card className="bg-green-500/10 border-green-500/50">
-                    <CardHeader>
-                        <CardTitle className="text-lg flex items-center gap-2"><Gift className="text-green-600"/> Reward Details</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <FormField control={form.control} name="rewardType" render={({field}) => (
-                           <div className="space-y-2">
-                                <Label>Reward Type</Label>
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                    <SelectTrigger><SelectValue/></SelectTrigger>
+                <FormField
+                control={form.control}
+                name="newStatus"
+                render={({ field }) => (
+                    <FormItem>
+                    <Label>Update Status</Label>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                            <SelectTrigger>
+                            <SelectValue placeholder="Select a status" />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                        <SelectItem value="Pending">Pending</SelectItem>
+                        <SelectItem value="Converted">Converted</SelectItem>
+                        <SelectItem value="Rewarded">Rewarded</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    </FormItem>
+                )}
+                />
+                
+                <FormField
+                control={form.control}
+                name="issueReward"
+                render={({ field }) => (
+                    <FormItem className="flex items-center space-x-2">
+                    <FormControl>
+                        <input type="checkbox" id="issueReward" checked={field.value} onChange={e => field.onChange(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-accent focus:ring-accent" />
+                    </FormControl>
+                    <Label htmlFor="issueReward" className="font-medium">
+                        Issue Reward for this Conversion
+                    </Label>
+                    </FormItem>
+                )}
+                />
+                
+                {issueReward && (
+                    <Card className="bg-green-500/10 border-green-500/50">
+                        <CardHeader>
+                            <CardTitle className="text-lg flex items-center gap-2"><Gift className="text-green-600"/> Reward Details</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <FormField control={form.control} name="rewardType" render={({field}) => (
+                            <FormItem>
+                                    <Label>Reward Type</Label>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger><SelectValue/></SelectTrigger>
+                                    </FormControl>
                                     <SelectContent>
                                         <SelectItem value="Discount">Discount</SelectItem>
                                         <SelectItem value="Free Hours">Free Hours</SelectItem>
                                     </SelectContent>
-                                </Select>
-                           </div>
-                        )} />
-                        <FormField control={form.control} name="amount" render={({field}) => (
-                            <div className="space-y-2">
-                                <Label>Amount (e.g., 50 for discount, 4 for hours)</Label>
-                                <Input type="number" {...field} />
-                            </div>
-                        )} />
-                        <FormField control={form.control} name="description" render={({field}) => (
-                            <div className="space-y-2">
-                                <Label>Description</Label>
-                                <Input {...field} />
-                            </div>
-                        )} />
-                    </CardContent>
-                </Card>
-            )}
+                                    </Select>
+                            </FormItem>
+                            )} />
+                            <FormField control={form.control} name="amount" render={({field}) => (
+                                <FormItem>
+                                    <Label>Amount (e.g., 50 for discount, 4 for hours)</Label>
+                                    <FormControl>
+                                        <Input type="number" {...field} />
+                                    </FormControl>
+                                </FormItem>
+                            )} />
+                            <FormField control={form.control} name="description" render={({field}) => (
+                                <FormItem>
+                                    <Label>Description</Label>
+                                    <FormControl>
+                                        <Input {...field} />
+                                    </FormControl>
+                                </FormItem>
+                            )} />
+                        </CardContent>
+                    </Card>
+                )}
 
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button type="button" variant="outline">
-                  Cancel
+                <DialogFooter>
+                <DialogClose asChild>
+                    <Button type="button" variant="outline">
+                    Cancel
+                    </Button>
+                </DialogClose>
+                <Button type="submit" disabled={isPending}>
+                    {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Update
                 </Button>
-              </DialogClose>
-              <Button type="submit" disabled={isPending}>
-                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Update
-              </Button>
-            </DialogFooter>
-          </form>
+                </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
     </>
