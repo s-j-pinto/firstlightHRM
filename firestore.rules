@@ -158,5 +158,18 @@ service cloud.firestore {
       allow create, update: if isStaffingAdmin() || (isClientUser() && request.resource.data.clientId == request.auth.token.clientId);
       allow delete: if false;
     }
+    /**
+     * @description Controls access to rewards. Open for all.
+     * @path /rewards/{rewardsId}
+     * @allow (get, list) - Any user can rewards.
+     * @allow (create) - Any authenticated user can create a rewards.
+     * @deny (update, delete) - No user can update or delete a rewards.
+     * @principle Open read access.
+     */
+    match /rewards/{rewardsId} {
+      allow get, list: if true;
+      allow create, update: if isSignedIn();
+      allow delete: if false;
+    }
   }
 }
