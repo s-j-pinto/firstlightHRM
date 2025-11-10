@@ -1,4 +1,5 @@
 
+
 "use server";
 
 import { revalidatePath } from 'next/cache';
@@ -16,7 +17,7 @@ interface SaveInterviewPayload {
   aiInsight: string | null;
   interviewType: 'In-Person' | 'Google Meet' | 'Orientation';
   interviewNotes: string;
-  candidateRating: number;
+  candidateRating: string;
   pathway: 'separate' | 'combined';
   finalInterviewStatus?: 'Passed' | 'Failed' | 'Pending';
 }

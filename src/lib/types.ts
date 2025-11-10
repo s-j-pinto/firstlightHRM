@@ -98,7 +98,7 @@ export const interviewSchema = z.object({
   interviewType: z.enum(["Phone", "In-Person", "Google Meet", "Orientation"]).optional(),
   interviewPathway: z.enum(["separate", "combined"]).optional(),
   interviewNotes: z.string().optional(),
-  candidateRating: z.number().min(0).max(5).optional(),
+  candidateRating: z.string().optional(),
   phoneScreenPassed: z.enum(["Yes", "No", "N/A"]),
   aiGeneratedInsight: z.string().optional(),
   googleMeetLink: z.string().optional(),

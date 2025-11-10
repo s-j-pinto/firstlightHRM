@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useMemo, useState } from 'react';
@@ -177,10 +178,10 @@ export default function CandidateStatusReport() {
                                     </TableCell>
                                     <TableCell>{candidate.phone}</TableCell>
                                     <TableCell>
-                                        {candidate.interview?.candidateRating !== undefined ? (
+                                        {candidate.interview?.candidateRating ? (
                                             <div className="flex items-center">
                                                 <Star className="w-4 h-4 text-yellow-400 mr-1" />
-                                                {candidate.interview.candidateRating} / 5
+                                                {candidate.interview.candidateRating}
                                             </div>
                                         ) : (
                                             'N/A'

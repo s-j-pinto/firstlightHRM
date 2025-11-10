@@ -40,7 +40,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from '@/components/ui/textarea';
-import { Slider } from '@/components/ui/slider';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -54,7 +53,7 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
 const phoneScreenSchema = z.object({
   interviewNotes: z.string().min(1, "Interview notes are required."),
-  candidateRating: z.number().min(0).max(5),
+  candidateRating: z.string({ required_error: 'A rating is required.' }),
   phoneScreenPassed: z.enum(['Yes', 'No']),
   
   interviewPathway: z.enum(['separate', 'combined']).optional(),
@@ -107,6 +106,14 @@ type PhoneScreenFormData = z.infer<typeof phoneScreenSchema>;
 type OrientationFormData = z.infer<typeof orientationSchema>;
 type HiringFormData = z.infer<typeof caregiverEmployeeSchema>;
 
+const ratingOptions = [
+    { value: 'A', label: 'A = Excellent candidate; ready for hire' },
+    { value: 'B', label: 'B = Good candidate; minor training needed' },
+    { value: 'C', label: 'C = Average; may require supervision' },
+    { value: 'D', label: 'D = Below average; limited suitability' },
+    { value: 'F', label: 'F = Not recommended for hire' },
+];
+
 export default function ManageInterviewsClient() {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<CaregiverProfile[]>([]);
@@ -138,7 +145,7 @@ export default function ManageInterviewsClient() {
     resolver: zodResolver(phoneScreenSchema),
     defaultValues: {
       interviewNotes: '',
-      candidateRating: 3,
+      candidateRating: 'C',
       phoneScreenPassed: 'No',
     },
   });
@@ -167,7 +174,7 @@ export default function ManageInterviewsClient() {
     setAiInsight(null);
     phoneScreenForm.reset({
       interviewNotes: '',
-      candidateRating: 3,
+      candidateRating: 'C',
       phoneScreenPassed: 'No',
       interviewPathway: undefined,
       interviewMethod: undefined,
@@ -312,7 +319,7 @@ export default function ManageInterviewsClient() {
             
             phoneScreenForm.reset({
                 interviewNotes: interviewData.interviewNotes || '',
-                candidateRating: interviewData.candidateRating || 3,
+                candidateRating: interviewData.candidateRating || 'C',
                 phoneScreenPassed: interviewData.phoneScreenPassed as 'Yes' | 'No' || 'No',
                 interviewPathway: interviewData.interviewPathway,
                 interviewMethod: interviewData.interviewType as 'In-Person' | 'Google Meet' | undefined,
@@ -524,7 +531,7 @@ export default function ManageInterviewsClient() {
                 aiInsight: aiInsight || '',
                 interviewType: 'Orientation',
                 interviewNotes: existingInterview.interviewNotes || '',
-                candidateRating: existingInterview.candidateRating || 0,
+                candidateRating: existingInterview.candidateRating || 'C',
                 pathway: 'separate',
             });
 
@@ -708,7 +715,7 @@ export default function ManageInterviewsClient() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <span className="font-semibold">Rating:</span>
-                                    <span className="flex items-center"><Star className="w-4 h-4 text-yellow-400 mr-1" /> {existingInterview?.candidateRating} / 5</span>
+                                    <span className="flex items-center"><Star className="w-4 h-4 text-yellow-400 mr-1" /> {existingInterview?.candidateRating}</span>
                                 </div>
                             </div>
                             
@@ -753,17 +760,24 @@ export default function ManageInterviewsClient() {
                                 name="candidateRating"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Candidate Rating: {field.value}</FormLabel>
-                                        <FormControl>
-                                            <Slider
-                                                min={0}
-                                                max={5}
-                                                step={1}
-                                                value={[field.value]}
-                                                onValueChange={(value) => field.onChange(value[0])}
-                                                disabled={isPhoneScreenCompleted}
-                                            />
-                                        </FormControl>
+                                    <FormLabel>Candidate Rating</FormLabel>
+                                    <FormControl>
+                                        <RadioGroup
+                                        onValueChange={field.onChange}
+                                        value={field.value}
+                                        className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"
+                                        >
+                                        {ratingOptions.map(option => (
+                                            <FormItem key={option.value} className="flex items-center space-x-3 space-y-0 p-3 border rounded-md has-[:checked]:bg-accent/10 has-[:checked]:border-accent">
+                                            <FormControl>
+                                                <RadioGroupItem value={option.value} />
+                                            </FormControl>
+                                            <FormLabel className="font-normal">{option.label}</FormLabel>
+                                            </FormItem>
+                                        ))}
+                                        </RadioGroup>
+                                    </FormControl>
+                                    <FormMessage />
                                     </FormItem>
                                 )}
                             />
@@ -1196,6 +1210,7 @@ export default function ManageInterviewsClient() {
     
 
     
+
 
 
 

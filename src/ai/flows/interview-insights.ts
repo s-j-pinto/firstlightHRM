@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { z } from 'zod';
@@ -21,7 +22,7 @@ const InterviewInsightsInputSchema = z.object({
   hasCar: z.string(),
   validLicense: z.string(),
   interviewNotes: z.string(),
-  candidateRating: z.number().min(0).max(5),
+  candidateRating: z.string(),
 });
 export type InterviewInsightsInput = z.infer<typeof InterviewInsightsInputSchema>;
 
@@ -70,7 +71,7 @@ Analyze the following information:
 - Transportation: Has car: {{hasCar}}, Valid License: {{validLicense}}
 
 **Interviewer's Phone Screen Feedback:**
-- Rating (out of 5): {{candidateRating}}
+- Rating: {{candidateRating}} (A = Excellent, B = Good, C = Average, D = Below Average, F = Not Recommended)
 - Notes:
 {{{interviewNotes}}}
 
