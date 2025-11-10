@@ -30,6 +30,7 @@ type VideoCheckinFormData = z.infer<typeof videoCheckinSchema>;
 export default function ClientDashboardPage() {
   const { user, isUserLoading } = useUser();
   const [canViewReports, setCanViewReports] = useState(false);
+  const [clientName, setClientName] = useState<string | null>(null);
   const [isClaimsLoading, setIsClaimsLoading] = useState(true);
   const [groupId, setGroupId] = useState<string | null>(null);
   const [isRequesting, startRequestTransition] = useTransition();
@@ -48,6 +49,7 @@ export default function ClientDashboardPage() {
         try {
           const tokenResult = await user.getIdTokenResult();
           const claims = tokenResult.claims;
+          setClientName(claims.name || user.displayName || 'Client');
           const userCanView = !!claims.canViewReports;
           setCanViewReports(userCanView);
 
@@ -75,10 +77,10 @@ export default function ClientDashboardPage() {
   }, [user, isUserLoading]);
   
   useEffect(() => {
-    if(user?.displayName) {
-        form.setValue('requestedBy', user.displayName);
+    if(clientName) {
+        form.setValue('requestedBy', clientName);
     }
-  }, [user, form]);
+  }, [clientName, form]);
 
   const handleViewReportsClick = () => {
     if (canViewReports && groupId) {
@@ -112,7 +114,7 @@ export default function ClientDashboardPage() {
   return (
     <div className="max-w-3xl mx-auto">
       <h1 className="text-3xl font-bold tracking-tight font-headline mb-2">
-        Welcome, {user?.displayName || 'Client'}!
+        Welcome, {clientName || 'Client'}!
       </h1>
       <p className="text-muted-foreground mb-8">
         This is your personal client portal.

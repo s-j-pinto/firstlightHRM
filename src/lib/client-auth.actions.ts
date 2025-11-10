@@ -65,13 +65,14 @@ export async function loginClient(email: string, password: string) {
       const client = matchingClients[0];
       const canViewReports = await getAccessStatus(client.id);
       const uid = `client_${client.id}`;
+      const clientName = client['Client Name'];
       
-      console.log(`[Client Login] Single client found: ${client['Client Name']}. Generating token.`);
+      console.log(`[Client Login] Single client found: ${clientName}. Generating token.`);
 
-      await updateOrCreateAuthUser(uid, normalizedEmail, client['Client Name']);
+      await updateOrCreateAuthUser(uid, normalizedEmail, clientName);
 
-      // Add clientId and canViewReports as custom claims
-      const customToken = await serverAuth.createCustomToken(uid, { clientId: client.id, canViewReports });
+      // Add clientId, name, and canViewReports as custom claims
+      const customToken = await serverAuth.createCustomToken(uid, { clientId: client.id, name: clientName, canViewReports });
       console.log(`[Client Login] Token generated for UID: ${uid} with claims.`);
 
       return { 
@@ -126,12 +127,19 @@ export async function addClientIdClaimAndGetRedirect(clientId: string) {
         const decodedIdToken = await serverAuth.verifySessionCookie(sessionCookie, true);
         const uid = decodedIdToken.uid;
         
+        // Find the client's name
+        const clientDoc = await serverDb.collection('Clients').doc(clientId).get();
+        if (!clientDoc.exists) {
+             return { error: "Selected client profile not found." };
+        }
+        const clientName = clientDoc.data()!['Client Name'];
+
         // Determine if this client has report access enabled
         const groupsQuery = await serverDb.collection('carelog_groups').where('clientId', '==', clientId).limit(1).get();
         const canViewReports = !groupsQuery.empty && !!groupsQuery.docs[0].data().clientAccessEnabled;
 
-        // Set both claims
-        await serverAuth.setCustomUserClaims(uid, { clientId: clientId, canViewReports: canViewReports });
+        // Set all claims
+        await serverAuth.setCustomUserClaims(uid, { clientId, name: clientName, canViewReports });
 
         // Always redirect to the dashboard. The dashboard will handle the next step.
         return { redirect: '/client/dashboard' };
