@@ -131,5 +131,18 @@ service cloud.firestore {
       allow create, update: if isSignedIn();
       allow delete: if false;
     }
+    /**
+     * @description Controls access to video_checkin_requests. Open for all.
+     * @path /video_checkin_requests/{videoCheckinRequestId}
+     * @allow (get, list) - Any user can video_checkin_requests.
+     * @allow (create) - Any authenticated user can create a video_checkin_requests.
+     * @deny (update, delete) - No user can update or delete a video_checkin_requests.
+     * @principle Open read access.
+     */
+    match /video_checkin_requests/{videoCheckinRequestId} {
+      allow get, list: if true;
+      allow create, update: if isSignedIn();
+      allow delete: if false;
+    }
   }
 }
