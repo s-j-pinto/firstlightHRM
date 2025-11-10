@@ -1,6 +1,9 @@
+
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { serverDb } from '@/firebase/server-init';
+import { Timestamp } from 'firebase-admin/firestore';
 
 interface ReferralInvitePayload {
     friendName: string;
@@ -46,5 +49,58 @@ export async function sendReferralInvite(payload: ReferralInvitePayload) {
     } catch (error: any) {
         console.error("Error sending referral invite:", error);
         return { message: "Failed to send invitation. Please try again later.", error: true };
+    }
+}
+
+
+interface UpdateReferralPayload {
+    referralId: string;
+    newStatus: 'Pending' | 'Converted' | 'Rewarded';
+    issueReward?: boolean;
+    rewardDetails?: {
+        rewardType: 'Discount' | 'Free Hours';
+        amount: number;
+        description: string;
+    };
+    referrerClientId?: string;
+}
+
+export async function updateReferralStatusAndCreateReward(payload: UpdateReferralPayload) {
+    const { referralId, newStatus, issueReward, rewardDetails, referrerClientId } = payload;
+    const firestore = serverDb;
+
+    if (!referralId) {
+        return { error: 'Referral ID is required.' };
+    }
+
+    try {
+        const referralRef = firestore.collection('referrals').doc(referralId);
+        const batch = firestore.batch();
+
+        batch.update(referralRef, { status: newStatus });
+
+        if (issueReward && rewardDetails && referrerClientId) {
+            const rewardRef = firestore.collection('rewards').doc();
+            const newReward = {
+                clientId: referrerClientId,
+                referralId: referralId,
+                status: 'Available',
+                createdAt: Timestamp.now(),
+                ...rewardDetails
+            };
+            batch.set(rewardRef, newReward);
+            // Also update the referral to link it to the reward
+            batch.update(referralRef, { rewardId: rewardRef.id });
+        }
+
+        await batch.commit();
+        
+        revalidatePath('/owner/referral-management');
+        revalidatePath('/client/referrals');
+
+        return { success: true, message: 'Referral updated successfully.' };
+    } catch (error: any) {
+        console.error("Error updating referral status:", error);
+        return { error: `An error occurred: ${error.message}` };
     }
 }
