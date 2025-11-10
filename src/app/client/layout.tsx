@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { signOut } from "firebase/auth";
-import { Loader2, LogOut, PlusCircle } from "lucide-react";
+import { Loader2, LogOut } from "lucide-react";
 import Image from "next/image";
 
 import { useUser, useAuth } from "@/firebase";
