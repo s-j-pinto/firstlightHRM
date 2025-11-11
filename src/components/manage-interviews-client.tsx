@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useMemo, useTransition, useEffect } from 'react';
@@ -615,10 +614,19 @@ export default function ManageInterviewsClient() {
 
 
   const isLoading = caregiversLoading || employeesLoading;
-  const isPhoneScreenCompleted = existingInterview && existingInterview.phoneScreenPassed !== 'N/A';
-  const isFinalInterviewPending = isPhoneScreenCompleted && existingInterview?.interviewPathway === 'separate' && existingInterview?.finalInterviewStatus === 'Pending';
+  const isPhoneScreenCompleted = !!existingInterview;
   
-  const isEventEditable = isPhoneScreenCompleted && !existingInterview?.orientationScheduled && !shouldShowHiringForm;
+  const isEventEditable = 
+    isPhoneScreenCompleted &&
+    !existingEmployee &&
+    (
+        // Allow editing separate pathway if orientation is not scheduled
+        (existingInterview?.interviewPathway === 'separate' && !existingInterview?.orientationScheduled) ||
+        // Allow editing combined pathway
+        (existingInterview?.interviewPathway === 'combined')
+    );
+
+  const isFinalInterviewPending = isPhoneScreenCompleted && existingInterview?.interviewPathway === 'separate' && existingInterview?.finalInterviewStatus === 'Pending';
 
   return (
     <div className="space-y-6">
@@ -701,7 +709,7 @@ export default function ManageInterviewsClient() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                {isPhoneScreenCompleted ? (
+                {isPhoneScreenCompleted && existingInterview?.phoneScreenPassed !== 'N/A' ? (
                     <Card className="bg-muted/30">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-lg"><Phone/> Phone Screen Summary</CardTitle>
@@ -738,7 +746,9 @@ export default function ManageInterviewsClient() {
                                     </AlertDescription>
                                 </Alert>
                             )}
-
+                            <div className="flex justify-end pt-4">
+                               <Button variant="outline" onClick={handleCancel}>Close</Button>
+                            </div>
                         </CardContent>
                     </Card>
                 ) : (
@@ -751,7 +761,7 @@ export default function ManageInterviewsClient() {
                                     <FormItem>
                                         <FormLabel>Interview Notes</FormLabel>
                                         <FormControl>
-                                            <Textarea placeholder="Notes from the phone screen..." {...field} rows={2} disabled={isPhoneScreenCompleted} />
+                                            <Textarea placeholder="Notes from the phone screen..." {...field} rows={2} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -786,7 +796,7 @@ export default function ManageInterviewsClient() {
                             />
 
                             <div className="flex justify-center">
-                            <Button type="button" onClick={handleGenerateInsights} disabled={isAiPending || isPhoneScreenCompleted}>
+                            <Button type="button" onClick={handleGenerateInsights} disabled={isAiPending}>
                                 {isAiPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                                 Generate AI Insights
                             </Button>
@@ -813,7 +823,7 @@ export default function ManageInterviewsClient() {
                                     <FormItem className="space-y-3">
                                         <FormLabel>Did the candidate pass the phone screen?</FormLabel>
                                         <FormControl>
-                                            <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4" disabled={isPhoneScreenCompleted}>
+                                            <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4">
                                                 <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="Yes" /></FormControl><FormLabel className="font-normal">Yes</FormLabel></FormItem>
                                                 <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="No" /></FormControl><FormLabel className="font-normal">No</FormLabel></FormItem>
                                             </RadioGroup>
@@ -822,132 +832,15 @@ export default function ManageInterviewsClient() {
                                     </FormItem>
                                 )}
                             />
-
-                            {phoneScreenPassedValue === 'Yes' && (
-                                <Card className="bg-muted/50">
-                                    <CardHeader>
-                                        <CardTitle>Next Step: Schedule Event</CardTitle>
-                                        <CardDescription>Select the hiring pathway and schedule the next event.</CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="space-y-6">
-                                        <FormField
-                                            control={phoneScreenForm.control}
-                                            name="interviewPathway"
-                                            render={({ field }) => (
-                                                <FormItem className="space-y-3">
-                                                    <FormLabel>Interview Pathway</FormLabel>
-                                                    <FormControl>
-                                                        <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-col sm:flex-row gap-4">
-                                                            <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="separate" /></FormControl><FormLabel className="font-normal">Separate Interview &amp; Orientation</FormLabel></FormItem>
-                                                            <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="combined" /></FormControl><FormLabel className="font-normal">Combined Interview + Orientation</FormLabel></FormItem>
-                                                        </RadioGroup>
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        
-                                        {interviewPathway && (
-                                            <>
-                                                {interviewPathway === 'separate' ? (
-                                                    <FormField
-                                                        control={phoneScreenForm.control}
-                                                        name="interviewMethod"
-                                                        render={({ field }) => (
-                                                            <FormItem className="space-y-3">
-                                                                <FormLabel>Final Interview Method</FormLabel>
-                                                                <FormControl>
-                                                                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4">
-                                                                        <FormItem className="flex items-center space-x-3 space-y-0">
-                                                                            <FormControl><RadioGroupItem value="In-Person" /></FormControl>
-                                                                            <FormLabel className="font-normal flex items-center gap-2"><Briefcase /> In-Person</FormLabel>
-                                                                        </FormItem>
-                                                                        <FormItem className="flex items-center space-x-3 space-y-0">
-                                                                            <FormControl><RadioGroupItem value="Google Meet" /></FormControl>
-                                                                            <FormLabel className="font-normal flex items-center gap-2"><Video /> Google Meet</FormLabel>
-                                                                        </FormItem>
-                                                                    </RadioGroup>
-                                                                </FormControl>
-                                                                <FormMessage />
-                                                            </FormItem>
-                                                        )}
-                                                    />
-                                                ) : (
-                                                     <FormField
-                                                        control={phoneScreenForm.control}
-                                                        name="interviewMethod"
-                                                        render={({ field }) => (
-                                                             <FormItem className="space-y-3">
-                                                                <FormLabel>Final Interview Method</FormLabel>
-                                                                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4" disabled={true}>
-                                                                        <FormItem className="flex items-center space-x-3 space-y-0">
-                                                                            <FormControl><RadioGroupItem value="In-Person" /></FormControl>
-                                                                            <FormLabel className="font-normal flex items-center gap-2"><Briefcase /> In-Person</FormLabel>
-                                                                        </FormItem>
-                                                                    </RadioGroup>
-                                                                <FormMessage />
-                                                            </FormItem>
-                                                        )}
-                                                     />
-                                                )}
-                                                
-                                                <div className="flex flex-col sm:flex-row gap-4 items-start">
-                                                    <FormField
-                                                        control={phoneScreenForm.control}
-                                                        name="eventDate"
-                                                        render={({ field }) => (
-                                                            <FormItem className="flex flex-col flex-1">
-                                                                <FormLabel>
-                                                                    {interviewPathway === 'separate' ? 'Final Interview Date' : 'Combined Session Date'}
-                                                                </FormLabel>
-                                                                <Popover>
-                                                                    <PopoverTrigger asChild>
-                                                                    <FormControl>
-                                                                        <Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")}>
-                                                                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                                        </Button>
-                                                                    </FormControl>
-                                                                    </PopoverTrigger>
-                                                                    <PopoverContent className="w-auto p-0" align="start">
-                                                                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                                                                    </PopoverContent>
-                                                                </Popover>
-                                                                <FormMessage />
-                                                            </FormItem>
-                                                        )}
-                                                    />
-                                                    <FormField
-                                                        control={phoneScreenForm.control}
-                                                        name="eventTime"
-                                                        render={({ field }) => (
-                                                            <FormItem className="flex flex-col flex-1">
-                                                                <FormLabel>
-                                                                    {interviewPathway === 'separate' ? 'Final Interview Time' : 'Combined Session Time'}
-                                                                </FormLabel>
-                                                                <FormControl>
-                                                                    <Input type="time" {...field} />
-                                                                </FormControl>
-                                                                <FormMessage />
-                                                            </FormItem>
-                                                        )}
-                                                    />
-                                                </div>
-                                            </>
-                                        )}
-                                    </CardContent>
-                                </Card>
-                            )}
-
                             <div className="flex justify-end gap-4">
                                 <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
-                                <Button type="submit" disabled={isSubmitting || isPhoneScreenCompleted}>
+                                <Button type="submit" disabled={isSubmitting}>
                                     {isSubmitting ? (
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     ) : (
                                         <UserCheck className="mr-2 h-4 w-4" />
                                     )}
-                                    Save and Complete
+                                    Save and Continue
                                 </Button>
                             </div>
                         </form>
@@ -956,6 +849,132 @@ export default function ManageInterviewsClient() {
             </CardContent>
         </Card>
       )}
+
+    {phoneScreenPassedValue === 'Yes' && isEventEditable && (
+        <Card className="bg-muted/50">
+            <CardHeader>
+                <CardTitle>Next Step: Schedule Event</CardTitle>
+                <CardDescription>Select the hiring pathway and schedule the next event.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Form {...phoneScreenForm}>
+                    <form onSubmit={phoneScreenForm.handleSubmit(onPhoneScreenSubmit)} className="space-y-6">
+                         <FormField
+                            control={phoneScreenForm.control}
+                            name="interviewPathway"
+                            render={({ field }) => (
+                                <FormItem className="space-y-3">
+                                    <FormLabel>Interview Pathway</FormLabel>
+                                    <FormControl>
+                                        <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-col sm:flex-row gap-4">
+                                            <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="separate" /></FormControl><FormLabel className="font-normal">Separate Interview &amp; Orientation</FormLabel></FormItem>
+                                            <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="combined" /></FormControl><FormLabel className="font-normal">Combined Interview + Orientation</FormLabel></FormItem>
+                                        </RadioGroup>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        
+                        {interviewPathway && (
+                            <>
+                                {interviewPathway === 'separate' ? (
+                                    <FormField
+                                        control={phoneScreenForm.control}
+                                        name="interviewMethod"
+                                        render={({ field }) => (
+                                            <FormItem className="space-y-3">
+                                                <FormLabel>Final Interview Method</FormLabel>
+                                                <FormControl>
+                                                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4">
+                                                        <FormItem className="flex items-center space-x-3 space-y-0">
+                                                            <FormControl><RadioGroupItem value="In-Person" /></FormControl>
+                                                            <FormLabel className="font-normal flex items-center gap-2"><Briefcase /> In-Person</FormLabel>
+                                                        </FormItem>
+                                                        <FormItem className="flex items-center space-x-3 space-y-0">
+                                                            <FormControl><RadioGroupItem value="Google Meet" /></FormControl>
+                                                            <FormLabel className="font-normal flex items-center gap-2"><Video /> Google Meet</FormLabel>
+                                                        </FormItem>
+                                                    </RadioGroup>
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                ) : (
+                                        <FormField
+                                        control={phoneScreenForm.control}
+                                        name="interviewMethod"
+                                        render={({ field }) => (
+                                                <FormItem className="space-y-3">
+                                                <FormLabel>Final Interview Method</FormLabel>
+                                                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4" disabled={true}>
+                                                        <FormItem className="flex items-center space-x-3 space-y-0">
+                                                            <FormControl><RadioGroupItem value="In-Person" /></FormControl>
+                                                            <FormLabel className="font-normal flex items-center gap-2"><Briefcase /> In-Person</FormLabel>
+                                                        </FormItem>
+                                                    </RadioGroup>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                        />
+                                )}
+                                
+                                <div className="flex flex-col sm:flex-row gap-4 items-start">
+                                    <FormField
+                                        control={phoneScreenForm.control}
+                                        name="eventDate"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-col flex-1">
+                                                <FormLabel>
+                                                    {interviewPathway === 'separate' ? 'Final Interview Date' : 'Combined Session Date'}
+                                                </FormLabel>
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")}>
+                                                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                        </Button>
+                                                    </FormControl>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-auto p-0" align="start">
+                                                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                                    </PopoverContent>
+                                                </Popover>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={phoneScreenForm.control}
+                                        name="eventTime"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-col flex-1">
+                                                <FormLabel>
+                                                    {interviewPathway === 'separate' ? 'Final Interview Time' : 'Combined Session Time'}
+                                                </FormLabel>
+                                                <FormControl>
+                                                    <Input type="time" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                            </>
+                        )}
+                        <div className="flex justify-end">
+                            <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
+                                Schedule Event
+                            </Button>
+                        </div>
+                    </form>
+                </Form>
+            </CardContent>
+        </Card>
+    )}
 
     {isFinalInterviewPending && (
         <Card>
@@ -1221,6 +1240,8 @@ export default function ManageInterviewsClient() {
 
 
 
+
+    
 
     
 
