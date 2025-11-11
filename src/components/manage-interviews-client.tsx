@@ -445,6 +445,7 @@ export default function ManageInterviewsClient() {
             interviewNotes: data.interviewNotes,
             candidateRating: data.candidateRating,
             pathway: data.interviewPathway,
+            googleEventId: existingInterview?.googleEventId
           });
   
           if (result.authUrl) {
@@ -533,6 +534,7 @@ export default function ManageInterviewsClient() {
                 interviewNotes: existingInterview.interviewNotes || '',
                 candidateRating: existingInterview.candidateRating || 'C',
                 pathway: 'separate',
+                googleEventId: existingInterview.googleEventId,
             });
 
              if (result.authUrl) {
@@ -616,6 +618,7 @@ export default function ManageInterviewsClient() {
   const isPhoneScreenCompleted = existingInterview && existingInterview.phoneScreenPassed !== 'N/A';
   const isFinalInterviewPending = isPhoneScreenCompleted && existingInterview?.interviewPathway === 'separate' && existingInterview?.finalInterviewStatus === 'Pending';
   
+  const isEventEditable = isPhoneScreenCompleted && !existingInterview?.orientationScheduled && !shouldShowHiringForm;
 
   return (
     <div className="space-y-6">
@@ -694,7 +697,7 @@ export default function ManageInterviewsClient() {
             <CardHeader>
                 <CardTitle>Interview Process: {selectedCaregiver.fullName}</CardTitle>
                 <CardDescription>
-                    {isPhoneScreenCompleted ? "This phone screen has been completed. Review the details below." : "Record the results of the phone interview."}
+                    {isPhoneScreenCompleted ? "This phone screen has been completed. Review or update the details below." : "Record the results of the phone interview."}
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -820,10 +823,26 @@ export default function ManageInterviewsClient() {
                                 )}
                             />
 
-                            {phoneScreenPassed === 'Yes' && !isFinalInterviewPending && !existingInterview?.orientationScheduled && (
-                                <Card className="bg-muted/50">
+                            <div className="flex justify-end gap-4">
+                                <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
+                                <Button type="submit" disabled={isSubmitting || isPhoneScreenCompleted}>
+                                    {isSubmitting ? (
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <UserCheck className="mr-2 h-4 w-4" />
+                                    )}
+                                    Save and Complete
+                                </Button>
+                            </div>
+                        </form>
+                    </Form>
+                )}
+                {isEventEditable && (
+                    <Form {...phoneScreenForm}>
+                         <form onSubmit={phoneScreenForm.handleSubmit(onPhoneScreenSubmit)} className="space-y-8 mt-8 border-t pt-8">
+                               <Card className="bg-muted/50">
                                     <CardHeader>
-                                        <CardTitle>Next Step</CardTitle>
+                                        <CardTitle>Next Step: Schedule Event</CardTitle>
                                         <CardDescription>Select the hiring pathway and schedule the next event.</CardDescription>
                                     </CardHeader>
                                     <CardContent className="space-y-6">
@@ -834,7 +853,7 @@ export default function ManageInterviewsClient() {
                                                 <FormItem className="space-y-3">
                                                     <FormLabel>Interview Pathway</FormLabel>
                                                     <FormControl>
-                                                        <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-col sm:flex-row gap-4" disabled={isPhoneScreenCompleted}>
+                                                        <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-col sm:flex-row gap-4">
                                                             <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="separate" /></FormControl><FormLabel className="font-normal">Separate Interview &amp; Orientation</FormLabel></FormItem>
                                                             <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="combined" /></FormControl><FormLabel className="font-normal">Combined Interview + Orientation</FormLabel></FormItem>
                                                         </RadioGroup>
@@ -854,7 +873,7 @@ export default function ManageInterviewsClient() {
                                                             <FormItem className="space-y-3">
                                                                 <FormLabel>Final Interview Method</FormLabel>
                                                                 <FormControl>
-                                                                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4" disabled={isPhoneScreenCompleted}>
+                                                                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4">
                                                                         <FormItem className="flex items-center space-x-3 space-y-0">
                                                                             <FormControl><RadioGroupItem value="In-Person" /></FormControl>
                                                                             <FormLabel className="font-normal flex items-center gap-2"><Briefcase /> In-Person</FormLabel>
@@ -900,7 +919,7 @@ export default function ManageInterviewsClient() {
                                                                 <Popover>
                                                                     <PopoverTrigger asChild>
                                                                     <FormControl>
-                                                                        <Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPhoneScreenCompleted}>
+                                                                        <Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")}>
                                                                             {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
                                                                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                                                         </Button>
@@ -923,7 +942,7 @@ export default function ManageInterviewsClient() {
                                                                     {interviewPathway === 'separate' ? 'Final Interview Time' : 'Combined Session Time'}
                                                                 </FormLabel>
                                                                 <FormControl>
-                                                                    <Input type="time" {...field} disabled={isPhoneScreenCompleted} />
+                                                                    <Input type="time" {...field} />
                                                                 </FormControl>
                                                                 <FormMessage />
                                                             </FormItem>
@@ -934,20 +953,18 @@ export default function ManageInterviewsClient() {
                                         )}
                                     </CardContent>
                                 </Card>
-                            )}
-
-                            <div className="flex justify-end gap-4">
-                                <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
-                                <Button type="submit" disabled={isSubmitting || isPhoneScreenCompleted}>
-                                    {isSubmitting ? (
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    ) : (
-                                        <UserCheck className="mr-2 h-4 w-4" />
-                                    )}
-                                    Save and Complete
-                                </Button>
-                            </div>
-                        </form>
+                                 <div className="flex justify-end gap-4">
+                                    <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
+                                    <Button type="submit" disabled={isSubmitting}>
+                                        {isSubmitting ? (
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <UserCheck className="mr-2 h-4 w-4" />
+                                        )}
+                                        {existingInterview?.googleEventId ? 'Reschedule & Update' : 'Schedule & Send Invite'}
+                                    </Button>
+                                </div>
+                         </form>
                     </Form>
                 )}
             </CardContent>
@@ -1217,3 +1234,6 @@ export default function ManageInterviewsClient() {
 
 
 
+
+
+    

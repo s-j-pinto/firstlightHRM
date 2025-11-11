@@ -1,4 +1,5 @@
 
+
 import { z } from "zod";
 
 export const generalInfoSchema = z.object({
@@ -101,6 +102,7 @@ export const interviewSchema = z.object({
   phoneScreenPassed: z.enum(["Yes", "No", "N/A"]),
   aiGeneratedInsight: z.string().optional(),
   googleMeetLink: z.string().optional(),
+  googleEventId: z.string().optional(),
   createdAt: z.date().optional(),
   finalInterviewStatus: z.enum(['Passed', 'Failed', 'Pending']).optional(),
   orientationScheduled: z.boolean().optional(),
@@ -437,3 +439,35 @@ export interface GeneratedForm {
   blocks: FormBlock[];
   formData: any;
 }
+
+export const referralSchema = z.object({
+    referrerClientId: z.string(),
+    referralCodeUsed: z.string(),
+    newClientInitialContactId: z.string(),
+    newClientName: z.string(),
+    status: z.enum(['Pending', 'Converted', 'Rewarded']),
+    rewardId: z.string().optional(),
+    createdAt: z.any(),
+});
+export type Referral = z.infer<typeof referralSchema> & { id: string };
+
+export const rewardSchema = z.object({
+    clientId: z.string(),
+    referralId: z.string(),
+    rewardType: z.enum(['Discount', 'Free Hours']),
+    amount: z.number(),
+    description: z.string(),
+    status: z.enum(['Available', 'Applied', 'Expired']),
+    createdAt: z.any(),
+    appliedAt: z.any().optional(),
+});
+export type Reward = z.infer<typeof rewardSchema> & { id: string };
+
+export const referralProfileSchema = z.object({
+    clientId: z.string(),
+    referralCode: z.string(),
+    createdAt: z.any(),
+});
+export type ReferralProfile = z.infer<typeof referralProfileSchema> & { id: string };
+
+    

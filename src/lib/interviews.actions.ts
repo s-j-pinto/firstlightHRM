@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { serverDb } from '@/firebase/server-init';
 import { google } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
-import type { CaregiverProfile } from './types';
+import type { CaregiverProfile, Interview } from './types';
 import { Timestamp } from 'firebase-admin/firestore';
 import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 
@@ -20,6 +20,7 @@ interface SaveInterviewPayload {
   candidateRating: string;
   pathway: 'separate' | 'combined';
   finalInterviewStatus?: 'Passed' | 'Failed' | 'Pending';
+  googleEventId?: string | null; // Add this to handle updates
 }
 
 export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
@@ -32,7 +33,8 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
     interviewNotes,
     candidateRating,
     pathway,
-    finalInterviewStatus
+    finalInterviewStatus,
+    googleEventId,
   } = payload;
   
   try {
@@ -44,6 +46,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
     let calendarAuthUrl: string | null = null;
     let calendarErrorMessage: string | null = null;
     let conferenceLink: string | undefined = undefined;
+    let newGoogleEventId: string | undefined = undefined;
 
     // --- Determine Event Duration and Title ---
     let durationHours: number;
@@ -89,17 +92,32 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
           eventRequestBody.description = `Dear ${caregiverProfile.fullName},\nPlease bring the following documents to in-person Interview:\n- Driver's License,\n- Car insurance and registration,\n- Social Security card or US passport (to prove your work eligibility, If you are green card holder, bring Green card.)\n- Current negative TB-Test Copy,\n- HCA letter or number,\n- Live scan or Clearance letter if you have it,\n If you have not registered, please register on this link: https://guardian.dss.ca.gov/Applicant/ \n- CPR-First Aide proof card, Any other certification that you have.`;
         }
 
-        const createdEvent = await calendar.events.insert({ 
-            calendarId: 'primary', 
-            requestBody: eventRequestBody, 
-            sendNotifications: true,
-            conferenceDataVersion: 1,
-        });
-        conferenceLink = createdEvent.data.hangoutLink;
+        let createdEvent;
+        if (googleEventId) {
+            // Update existing event
+            createdEvent = await calendar.events.update({
+                calendarId: 'primary',
+                eventId: googleEventId,
+                requestBody: eventRequestBody,
+                sendUpdates: 'all',
+            });
+        } else {
+            // Insert new event
+            createdEvent = await calendar.events.insert({ 
+                calendarId: 'primary', 
+                requestBody: eventRequestBody, 
+                sendNotifications: true,
+                conferenceDataVersion: 1,
+            });
+        }
+        
+        conferenceLink = createdEvent.data.hangoutLink || undefined;
+        newGoogleEventId = createdEvent.data.id || undefined;
+
       } catch (calendarError: any) {
           console.error('Error sending calendar invite:', calendarError);
           // Don't crash, just log and set an error message to return
-          calendarErrorMessage = `Failed to create calendar event: ${calendarError.message}`;
+          calendarErrorMessage = `Failed to create/update calendar event: ${calendarError.message}`;
       }
     } else {
       calendarErrorMessage = "Calendar integration is not fully configured (missing client ID, secret, or refresh token).";
@@ -115,6 +133,10 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
         aiGeneratedInsight: aiInsight || '',
         interviewPathway: pathway,
     };
+
+    if (newGoogleEventId) {
+        updateData.googleEventId = newGoogleEventId;
+    }
 
     if (interviewType === 'Orientation') {
         updateData.orientationScheduled = true;
@@ -269,5 +291,8 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
 }
 
     
+
+    
+
 
     

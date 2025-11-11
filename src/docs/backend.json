@@ -22,6 +22,7 @@
             "dateOfHomeVisit": { "type": "string", "format": "date-time" },
             "timeOfVisit": { "type": "string" },
             "referredBy": { "type": "string" },
+            "referralCode": { "type": "string" },
             "promptedCall": { "type": "string" },
             "personalCareNotes": { "type": "string" },
             "estimatedHours": { "type": "string" },
@@ -164,9 +165,10 @@
         "interviewType": { "type": "string", "enum": ["Phone", "In-Person", "Google Meet", "Orientation"] },
         "interviewPathway": { "type": "string", "enum": ["separate", "combined"] },
         "interviewNotes": { "type": "string" },
-        "candidateRating": { "type": "number", "minimum": 0, "maximum": 5 },
+        "candidateRating": { "type": "string" },
         "phoneScreenPassed": { "type": "string", "enum": ["Yes", "No", "N/A"] },
         "aiGeneratedInsight": { "type": "string" },
+        "googleEventId": { "type": "string", "description": "The unique ID of the Google Calendar event." },
         "finalInterviewStatus": {
           "type": "string",
           "enum": ["Passed", "Failed", "Pending"],
@@ -312,24 +314,6 @@
         },
         "required": ["clientId", "clientName", "preferredDateTime", "duration", "reason", "urgency", "status", "createdAt"]
     },
-    "VideoCheckinRequest": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "VideoCheckinRequest",
-      "type": "object",
-      "description": "Stores a request from a client for a video check-in.",
-      "properties": {
-        "clientId": { "type": "string", "description": "The document ID of the client making the request." },
-        "clientName": { "type": "string", "description": "The name of the client." },
-        "requestedBy": { "type": "string", "description": "The name of the person this check-in is for." },
-        "notes": { "type": "string", "description": "Any notes or special instructions for the check-in." },
-        "status": { "type": "string", "enum": ["pending", "scheduled", "completed"], "description": "The status of the request." },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "caregiverEmail": { "type": "string", "format": "email", "description": "Email of the assigned caregiver." },
-        "scheduledAt": { "type": "string", "format": "date-time", "description": "The scheduled date and time for the check-in." },
-        "googleMeetLink": { "type": "string", "format": "uri", "description": "The URL for the scheduled Google Meet call." }
-      },
-      "required": ["clientId", "clientName", "requestedBy", "notes", "status", "createdAt"]
-    },
     "ClientSignup": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ClientSignup",
@@ -365,6 +349,51 @@
             "lastUpdatedAt": { "type": "string", "format": "date-time" }
         },
         "required": ["name", "subsections", "createdAt", "lastUpdatedAt"]
+    },
+    "ReferralProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ReferralProfile",
+      "type": "object",
+      "description": "Stores a client's unique referral code.",
+      "properties": {
+        "clientId": { "type": "string" },
+        "referralCode": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["clientId", "referralCode", "createdAt"]
+    },
+    "Referral": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Referral",
+      "type": "object",
+      "description": "Tracks a single referral event.",
+      "properties": {
+        "referrerClientId": { "type": "string" },
+        "referralCodeUsed": { "type": "string" },
+        "newClientInitialContactId": { "type": "string" },
+        "newClientName": { "type": "string" },
+        "status": { "type": "string", "enum": ["Pending", "Converted", "Rewarded"] },
+        "rewardId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["referrerClientId", "referralCodeUsed", "newClientInitialContactId", "status", "createdAt"]
+    },
+    "Reward": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Reward",
+      "type": "object",
+      "description": "Represents a reward earned by a client.",
+      "properties": {
+        "clientId": { "type": "string" },
+        "referralId": { "type": "string" },
+        "rewardType": { "type": "string", "enum": ["Discount", "Free Hours"] },
+        "amount": { "type": "number" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["Available", "Applied", "Expired"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "appliedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["clientId", "referralId", "rewardType", "amount", "status", "createdAt"]
     }
   },
   "auth": {
@@ -414,10 +443,6 @@
       "schema": { "$ref": "#/entities/ClientCareRequest" },
       "description": "Stores requests from clients for additional care hours."
     },
-    "/video_checkin_requests/{requestId}": {
-      "schema": { "$ref": "#/entities/VideoCheckinRequest" },
-      "description": "Stores requests from clients for video check-ins."
-    },
     "/client_signups/{signupId}": {
       "schema": { "$ref": "#/entities/ClientSignup" },
       "description": "Tracks the state of a new client intake form through the signing process."
@@ -425,10 +450,20 @@
     "/carelog_templates/{templateId}": {
       "schema": { "$ref": "#/entities/CareLogTemplate" },
       "description": "Stores reusable templates for structured CareLog entries."
+    },
+    "/referral_profiles/{profileId}": {
+      "schema": { "$ref": "#/entities/ReferralProfile" },
+      "description": "Stores client referral codes."
+    },
+    "/referrals/{referralId}": {
+      "schema": { "$ref": "#/entities/Referral" },
+      "description": "Tracks referral events."
+    },
+    "/rewards/{rewardId}": {
+      "schema": { "$ref": "#/entities/Reward" },
+      "description": "Stores rewards earned by clients."
     }
   }
 }
-
-    
 
     
