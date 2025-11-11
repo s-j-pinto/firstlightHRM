@@ -4,6 +4,7 @@ import { useState } from 'react';
 import CancelledInterviewsReport from "@/components/cancelled-interviews-report";
 import CandidateStatusReport from "@/components/candidate-status-report";
 import ClientCareRequestsReport from '@/components/client-care-requests-report';
+import ReferralsRewardsReport from '@/components/referrals-rewards-report';
 import {
   Select,
   SelectContent,
@@ -33,6 +34,7 @@ export default function OwnerReportsPage() {
                         <SelectItem value="candidate_status">Candidate Interview Status</SelectItem>
                         <SelectItem value="cancelled_interviews">Cancelled Phone Screen Appointments</SelectItem>
                         <SelectItem value="client_care_requests">Client Care Request Status</SelectItem>
+                        <SelectItem value="referrals_rewards">Referrals and Rewards Status</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
@@ -42,6 +44,7 @@ export default function OwnerReportsPage() {
         {selectedReport === 'candidate_status' && <CandidateStatusReport />}
         {selectedReport === 'cancelled_interviews' && <CancelledInterviewsReport />}
         {selectedReport === 'client_care_requests' && <ClientCareRequestsReport />}
+        {selectedReport === 'referrals_rewards' && <ReferralsRewardsReport />}
       </div>
     </div>
   );
