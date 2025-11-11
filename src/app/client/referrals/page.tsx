@@ -32,12 +32,14 @@ export default function ReferralsPage() {
   const { toast } = useToast();
   const [isSending, startSendingTransition] = React.useTransition();
   const [clientId, setClientId] = React.useState<string | null>(null);
+  const [clientName, setClientName] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     const fetchClaims = async () => {
         if (user) {
             const tokenResult = await user.getIdTokenResult();
             setClientId(tokenResult.claims.clientId as string || null);
+            setClientName(tokenResult.claims.name as string || user.displayName || null);
         }
     };
     if (user) {
@@ -70,11 +72,14 @@ export default function ReferralsPage() {
   };
 
   const onInviteSubmit = (data: ReferralInviteFormData) => {
-    if (!referralProfile || !user?.displayName) return;
+    if (!referralProfile || !clientName) {
+        toast({ title: 'Error', description: 'Could not find your referral information. Please try again.', variant: 'destructive'});
+        return;
+    };
     startSendingTransition(async () => {
         const result = await sendReferralInvite({
             ...data,
-            referrerName: user.displayName!,
+            referrerName: clientName,
             referralCode: referralProfile.referralCode,
         });
 
