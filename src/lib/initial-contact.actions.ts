@@ -1,3 +1,4 @@
+
 "use server";
 
 import { revalidatePath } from 'next/cache';
@@ -113,9 +114,13 @@ export async function submitInitialContact(payload: SubmitPayload) {
         console.warn('Could not get user from session cookie for createdBy field.');
     }
 
-    const status = validation.data.inHomeVisitSet === "Yes"
-        ? "In-Home Visit Scheduled"
-        : "Initial Phone Contact Completed";
+    let status = "Initial Phone Contact Completed";
+    if (validation.data.inHomeVisitSet === "Yes") {
+        status = "In-Home Visit Scheduled";
+    } else if (validation.data.promptedCall?.includes("Referral")) {
+        status = "App Referral Received";
+    }
+
 
     const dataToSave = {
         ...validation.data,
