@@ -255,7 +255,7 @@ export default function ManageInterviewsClient() {
     });
   };
 
-  const phoneScreenPassed = phoneScreenForm.watch('phoneScreenPassed');
+  const phoneScreenPassedValue = phoneScreenForm.watch('phoneScreenPassed');
   const interviewPathway = phoneScreenForm.watch('interviewPathway');
   
   useEffect(() => {
@@ -635,7 +635,7 @@ export default function ManageInterviewsClient() {
             placeholder="Enter name or phone number..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             />
             <Button onClick={handleSearch} disabled={isSearching || !searchTerm.trim()}>
             {isSearching ? <Loader2 className="animate-spin" /> : <Search />}
@@ -823,24 +823,8 @@ export default function ManageInterviewsClient() {
                                 )}
                             />
 
-                            <div className="flex justify-end gap-4">
-                                <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
-                                <Button type="submit" disabled={isSubmitting || isPhoneScreenCompleted}>
-                                    {isSubmitting ? (
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    ) : (
-                                        <UserCheck className="mr-2 h-4 w-4" />
-                                    )}
-                                    Save and Complete
-                                </Button>
-                            </div>
-                        </form>
-                    </Form>
-                )}
-                {isEventEditable && (
-                    <Form {...phoneScreenForm}>
-                         <form onSubmit={phoneScreenForm.handleSubmit(onPhoneScreenSubmit)} className="space-y-8 mt-8 border-t pt-8">
-                               <Card className="bg-muted/50">
+                            {phoneScreenPassedValue === 'Yes' && (
+                                <Card className="bg-muted/50">
                                     <CardHeader>
                                         <CardTitle>Next Step: Schedule Event</CardTitle>
                                         <CardDescription>Select the hiring pathway and schedule the next event.</CardDescription>
@@ -953,18 +937,20 @@ export default function ManageInterviewsClient() {
                                         )}
                                     </CardContent>
                                 </Card>
-                                 <div className="flex justify-end gap-4">
-                                    <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
-                                    <Button type="submit" disabled={isSubmitting}>
-                                        {isSubmitting ? (
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        ) : (
-                                            <UserCheck className="mr-2 h-4 w-4" />
-                                        )}
-                                        {existingInterview?.googleEventId ? 'Reschedule & Update' : 'Schedule & Send Invite'}
-                                    </Button>
-                                </div>
-                         </form>
+                            )}
+
+                            <div className="flex justify-end gap-4">
+                                <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
+                                <Button type="submit" disabled={isSubmitting || isPhoneScreenCompleted}>
+                                    {isSubmitting ? (
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <UserCheck className="mr-2 h-4 w-4" />
+                                    )}
+                                    Save and Complete
+                                </Button>
+                            </div>
+                        </form>
                     </Form>
                 )}
             </CardContent>
@@ -1235,5 +1221,7 @@ export default function ManageInterviewsClient() {
 
 
 
+
+    
 
     
