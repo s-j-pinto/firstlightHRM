@@ -18,7 +18,10 @@ export async function sendReferralInvite(payload: ReferralInvitePayload) {
     const firestore = serverDb;
 
     try {
-        const referralLink = `${process.env.NEXT_PUBLIC_BASE_URL}/?ref=${referralCode}`;
+        const referralUrl = new URL(`${process.env.NEXT_PUBLIC_BASE_URL}/new-referral-client`);
+        referralUrl.searchParams.set('ref', referralCode);
+        referralUrl.searchParams.set('referrer', referrerName);
+        const referralLink = referralUrl.toString();
         
         let messageHtml = `
             <p>Hello ${friendName},</p>
@@ -30,8 +33,8 @@ export async function sendReferralInvite(payload: ReferralInvitePayload) {
         }
 
         messageHtml += `
-            <p>Learn more about our services by visiting our website. When you contact us, be sure to mention the referral code <strong>${referralCode}</strong> to help ${referrerName} earn a reward!</p>
-            <p><a href="${referralLink}">Visit FirstLight Home Care</a></p>
+            <p>To learn more and request information, please click the link below. Your referral information will be automatically included.</p>
+            <p><a href="${referralLink}">Request Care Information</a></p>
             <p>Thank you,<br/>The FirstLight Home Care Team</p>
         `;
 
