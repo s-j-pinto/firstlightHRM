@@ -229,7 +229,6 @@ export const videoCheckinRequestSchema = z.object({
 });
 export type VideoCheckinRequest = z.infer<typeof videoCheckinRequestSchema> & { id: string };
 
-
 const clientSignupDraftSchema = z.object({
   clientName: z.string().min(1, { message: "Client Name is required." }),
   clientCity: z.string().min(1, { message: "City is required." }),
@@ -439,6 +438,27 @@ export interface GeneratedForm {
   blocks: FormBlock[];
   formData: any;
 }
+
+export const initialContactSchema = z.object({
+    clientName: z.string(),
+    clientAddress: z.string(),
+    createdAt: z.any(),
+    lastUpdatedAt: z.any(),
+    followUpHistory: z.array(z.any()).optional(),
+});
+export type InitialContact = z.infer<typeof initialContactSchema> & { id: string };
+
+export const campaignTemplateSchema = z.object({
+    name: z.string(),
+    description: z.string().optional(),
+    type: z.enum(['email', 'sms']),
+    intervalDays: z.number(),
+    subject: z.string(),
+    body: z.string(),
+    createdAt: z.any(),
+    lastUpdatedAt: z.any(),
+});
+export type CampaignTemplate = z.infer<typeof campaignTemplateSchema> & { id: string };
 
 export const referralSchema = z.object({
     referrerClientId: z.string(),
