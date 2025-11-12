@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
   try {
     // 2. Get all initial contacts that are still in a follow-up state
     const contactsSnap = await firestore.collection('initial_contacts')
-        .where('status', '==', 'Initial Phone Contact Completed')
+        .where('status', 'in', ['Initial Phone Contact Completed', 'App Referral Received'])
         .get();
 
     if (contactsSnap.empty) {
