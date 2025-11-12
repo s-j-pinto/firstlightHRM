@@ -2,9 +2,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverDb } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
-import { subDays, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
+import { subDays, isBefore, startOfDay } from 'date-fns';
 
-// Define the intervals for follow-ups in days
+// Define the follow-up intervals in days, in ascending order.
 const FOLLOW_UP_INTERVALS = [3, 7, 14];
 
 /**
@@ -15,7 +15,7 @@ const FOLLOW_UP_INTERVALS = [3, 7, 14];
  *
  * It performs the following actions:
  * 1. Queries for initial contacts that have not yet been converted.
- * 2. Checks if their creation date matches a follow-up interval (e.g., 3, 7, 14 days ago).
+ * 2. For each contact, it determines the next appropriate follow-up email to send based on their creation date and follow-up history.
  * 3. Verifies that a follow-up for that specific interval hasn't already been sent.
  * 4. Queues a templated follow-up email using the firestore-send-email extension.
  * 5. Updates the contact's record to prevent duplicate follow-ups.
@@ -58,40 +58,40 @@ export async function GET(request: NextRequest) {
         const contact = contactDoc.data();
         const contactId = contactDoc.id;
         const createdAt = (contact.createdAt as Timestamp).toDate();
+        const followUpHistory = contact.followUpHistory || [];
 
+        // Find the next follow-up to send
         for (const days of FOLLOW_UP_INTERVALS) {
-            const targetDate = subDays(now, days);
+            const followUpDate = startOfDay(subDays(now, days));
+            const hasBeenSent = followUpHistory.some((entry: any) => entry.days === days);
             
-            // Check if the contact was created within the 24-hour window of the target date
-            if (isWithinInterval(createdAt, { start: startOfDay(targetDate), end: endOfDay(targetDate) })) {
+            // Check if the contact was created on or before the follow-up date
+            // AND if this specific follow-up hasn't been sent yet.
+            if (isBefore(createdAt, followUpDate) && !hasBeenSent) {
+                // 4. Send Email
+                const emailContent = getEmailTemplate(days, contact.clientName);
                 
-                const followUpHistory = contact.followUpHistory || [];
-                const hasBeenSent = followUpHistory.some((entry: any) => entry.days === days);
+                await firestore.collection('mail').add({
+                    to: [contact.clientEmail],
+                    message: {
+                        subject: emailContent.subject,
+                        html: emailContent.html,
+                    },
+                });
 
-                if (!hasBeenSent) {
-                    // 4. Send Email
-                    const emailContent = getEmailTemplate(days, contact.clientName);
-                    
-                    await firestore.collection('mail').add({
-                        to: [contact.clientEmail],
-                        message: {
-                            subject: emailContent.subject,
-                            html: emailContent.html,
-                        },
-                    });
-
-                    // 5. Update history
-                    followUpHistory.push({ days, sentAt: Timestamp.now() });
-                    await firestore.collection('initial_contacts').doc(contactId).update({
-                        followUpHistory: followUpHistory,
-                    });
-                    
-                    results.emailsSent++;
-                    // Break from intervals loop since we found the right one for today
-                    break; 
-                } else {
-                    results.alreadyFollowedUp++;
-                }
+                // 5. Update history
+                followUpHistory.push({ days, sentAt: Timestamp.now() });
+                await firestore.collection('initial_contacts').doc(contactId).update({
+                    followUpHistory: followUpHistory,
+                });
+                
+                results.emailsSent++;
+                // Break from this contact's loop since we've sent the most relevant email for today
+                break; 
+            } else if (hasBeenSent) {
+                // To avoid sending multiple emails, we note that a follow up has already been sent for this contact.
+                // We'll move on to the next contact.
+                results.alreadyFollowedUp++;
             }
         }
     }
