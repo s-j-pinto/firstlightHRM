@@ -42,6 +42,7 @@ import {
   DialogDescription,
   DialogFooter,
   DialogClose,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -164,7 +165,7 @@ export default function CampaignManagementClient() {
                         <Button variant="outline" size="icon" onClick={() => handleOpenModal(template)}>
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Dialog>
+                        <Dialog key={`delete-dialog-${template.id}`}>
                             <DialogTrigger asChild>
                                 <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>
                             </DialogTrigger>
@@ -175,10 +176,12 @@ export default function CampaignManagementClient() {
                                 </DialogHeader>
                                 <DialogFooter>
                                     <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
-                                    <Button variant="destructive" onClick={() => handleDelete(template.id)} disabled={isPending}>
-                                        {isPending && <Loader2 className="animate-spin mr-2"/>}
-                                        Delete Template
-                                    </Button>
+                                    <DialogTrigger asChild>
+                                      <Button variant="destructive" onClick={() => handleDelete(template.id)} disabled={isPending}>
+                                          {isPending && <Loader2 className="animate-spin mr-2"/>}
+                                          Delete Template
+                                      </Button>
+                                    </DialogTrigger>
                                 </DialogFooter>
                             </DialogContent>
                         </Dialog>
