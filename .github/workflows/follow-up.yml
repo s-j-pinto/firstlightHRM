@@ -1,0 +1,20 @@
+
+name: Daily Follow-up Cron Job
+
+on:
+  schedule:
+    # Runs at 10:00 AM UTC every day. You can adjust this time.
+    # See https://crontab.guru/ for cron syntax.
+    - cron: '0 10 * * *'
+  workflow_dispatch: # Allows manual triggering from the Actions tab in GitHub for testing
+
+jobs:
+  call_follow_up_webhook:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call follow-up webhook
+        run: |
+          curl --request GET \
+          --url ${{ secrets.APP_URL }}/api/cron/follow-up \
+          --header 'Authorization: Bearer ${{ secrets.CRON_SECRET }}' \
+          --fail
