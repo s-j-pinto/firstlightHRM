@@ -29,7 +29,7 @@
             "estimatedStartDate": { "type": "string", "format": "date-time" },
             "inHomeVisitSet": { "type": "string", "enum": ["Yes", "No"] },
             "inHomeVisitSetNoReason": { "type": "string" },
-            "status": { "type": "string", "enum": ["Initial Phone Contact Completed", "In-Home Visit Scheduled"] },
+            "status": { "type": "string", "enum": ["Initial Phone Contact Completed", "In-Home Visit Scheduled", "App Referral Received"] },
             "createdAt": { "type": "string", "format": "date-time" },
             "createdBy": { "type": "string", "format": "email" },
             "lastUpdatedAt": { "type": "string", "format": "date-time" },
@@ -41,6 +41,16 @@
             "contactPhone": { "type": "string" },
             "languagePreference": { "type": "string" },
             "additionalEmail": { "type": "string", "format": "email" },
+            "followUpHistory": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "days": { "type": "number" },
+                        "sentAt": { "type": "string", "format": "date-time" }
+                    }
+                }
+            },
             "companionCare_mealPreparation": { "type": "boolean" },
             "companionCare_cleanKitchen": { "type": "boolean" },
             "companionCare_assistWithLaundry": { "type": "boolean" },

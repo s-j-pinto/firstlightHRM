@@ -1,6 +1,8 @@
+
 /**
  * This file is now primarily for extensions or other non-Genkit Cloud Functions.
  * The AI-related logic has been moved to Next.js Server Actions.
+ * The scheduled follow-up logic has been moved to a Next.js API Route.
  */
 
 import {setGlobalOptions} from "firebase-functions/v2";
