@@ -41,16 +41,6 @@
             "contactPhone": { "type": "string" },
             "languagePreference": { "type": "string" },
             "additionalEmail": { "type": "string", "format": "email" },
-            "followUpHistory": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "days": { "type": "number" },
-                        "sentAt": { "type": "string", "format": "date-time" }
-                    }
-                }
-            },
             "companionCare_mealPreparation": { "type": "boolean" },
             "companionCare_cleanKitchen": { "type": "boolean" },
             "companionCare_assistWithLaundry": { "type": "boolean" },
@@ -178,7 +168,6 @@
         "candidateRating": { "type": "string" },
         "phoneScreenPassed": { "type": "string", "enum": ["Yes", "No", "N/A"] },
         "aiGeneratedInsight": { "type": "string" },
-        "googleEventId": { "type": "string", "description": "The unique ID of the Google Calendar event." },
         "finalInterviewStatus": {
           "type": "string",
           "enum": ["Passed", "Failed", "Pending"],
@@ -475,5 +464,3 @@
     }
   }
 }
-
-    

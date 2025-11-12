@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useMemo, useState } from 'react';
@@ -38,6 +37,7 @@ import { cn } from '@/lib/utils';
 const intakeStatuses = [
     "Initial Phone Contact Completed",
     "In-Home Visit Scheduled",
+    "App Referral Received",
     "Incomplete",
     "Pending Client Signatures",
     "Client Signatures Completed",
