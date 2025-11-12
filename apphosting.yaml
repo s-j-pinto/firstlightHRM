@@ -16,6 +16,8 @@ env:
     secret: GOOGLE_REFRESH_TOKEN
   - variable: GEMINI_API_KEY
     secret: GEMINI_API_KEY
+  - variable: CRON_SECRET
+    secret: CRON_SECRET
   - variable: ADMIN_EMAIL
     value: ${NEXT_PUBLIC_ADMIN_EMAIL}
   - variable: STAFFING_ADMIN_EMAIL
@@ -28,4 +30,5 @@ env:
       - BUILD
       - RUNTIME
     
+
 
