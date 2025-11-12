@@ -226,7 +226,7 @@ export default function CampaignManagementClient() {
                 <FormItem>
                     <Label>Email Body</Label>
                     <FormControl><Textarea placeholder="<p>Hello {{clientName}},</p><p>We hope you're having a good week...</p>" {...field} rows={10} /></FormControl>
-                    <p className="text-xs text-muted-foreground">You can use `{{clientName}}` as a placeholder for the client's name. Use HTML for formatting.</p>
+                    <p className="text-xs text-muted-foreground">You can use `{'{{clientName}}'}` as a placeholder for the client's name. Use HTML for formatting.</p>
                     <FormMessage />
                 </FormItem>
               )} />
