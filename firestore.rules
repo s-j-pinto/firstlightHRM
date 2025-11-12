@@ -197,5 +197,18 @@ service cloud.firestore {
       allow create, update: if isSignedIn();
       allow delete: if false;
     }
+    /**
+     * @description Controls access to campaign templates. Open for all.
+     * @path /campaign_templates/{campaignTemplatesId}
+     * @allow (get, list) - Any user can campaign_templates.
+     * @allow (create) - Any authenticated user can create a campaign_templates.
+     * @deny (update, delete) - No user can update or delete a campaign_templates.
+     * @principle Open read access.
+     */
+    match /campaign_templates/{campaignTemplatesId} {
+      allow get, list: if true;
+      allow create, update: if isSignedIn();
+      allow delete: if false;
+    }
   }
 }
