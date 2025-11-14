@@ -1,4 +1,5 @@
 
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -13,8 +14,9 @@ const templateSchema = z.object({
   description: z.string().optional(),
   subject: z.string().min(5, "Subject is required."),
   body: z.string().min(10, "Email body is required."),
-  intervalDays: z.coerce.number().min(1, "Interval must be at least 1 day."),
+  intervalDays: z.coerce.number().min(0, "Interval must be at least 0."),
   type: z.literal("email").default("email"),
+  sendImmediatelyFor: z.array(z.string()).optional(),
 });
 
 export async function saveCampaignTemplate(payload: z.infer<typeof templateSchema>) {

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from "react";
@@ -50,6 +51,12 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from "./ui/form";
 import { Textarea } from "./ui/textarea";
 import { saveCampaignTemplate, deleteCampaignTemplate } from "@/lib/campaign.actions";
 import type { CampaignTemplate } from "@/lib/types";
+import { Checkbox } from "./ui/checkbox";
+
+const knownLeadSources = [
+    { id: 'Google Ads Lead Received', label: 'Google Ads' },
+    { id: 'App Referral Received', label: 'App Referral' },
+];
 
 const templateSchema = z.object({
   id: z.string().optional(),
@@ -57,8 +64,9 @@ const templateSchema = z.object({
   description: z.string().optional(),
   subject: z.string().min(5, "Subject is required."),
   body: z.string().min(10, "Email body is required."),
-  intervalDays: z.coerce.number().min(1, "Interval must be at least 1 day."),
+  intervalDays: z.coerce.number().min(0, "Interval must be at least 0 days for immediate sends."),
   type: z.literal("email").default("email"),
+  sendImmediatelyFor: z.array(z.string()).optional(),
 });
 
 type TemplateFormData = z.infer<typeof templateSchema>;
@@ -81,15 +89,19 @@ export default function CampaignManagementClient() {
       body: "",
       intervalDays: 3,
       type: "email",
+      sendImmediatelyFor: [],
     },
   });
 
   const handleOpenModal = (template: CampaignTemplate | null) => {
     setEditingTemplate(template);
     if (template) {
-      form.reset(template);
+      form.reset({
+          ...template,
+          sendImmediatelyFor: template.sendImmediatelyFor || [],
+      });
     } else {
-      form.reset({ name: "", description: "", subject: "", body: "", intervalDays: 3, type: "email" });
+      form.reset({ name: "", description: "", subject: "", body: "", intervalDays: 3, type: "email", sendImmediatelyFor: [] });
     }
     setIsModalOpen(true);
   };
@@ -145,7 +157,7 @@ export default function CampaignManagementClient() {
             <TableHeader>
               <TableRow>
                 <TableHead>Campaign</TableHead>
-                <TableHead>Interval</TableHead>
+                <TableHead>Trigger</TableHead>
                 <TableHead>Subject</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -158,7 +170,12 @@ export default function CampaignManagementClient() {
                       <div className="font-medium">{template.name}</div>
                       <div className="text-sm text-muted-foreground">{template.description}</div>
                     </TableCell>
-                    <TableCell>{template.intervalDays} days</TableCell>
+                    <TableCell>
+                        {template.intervalDays === 0 && template.sendImmediatelyFor && template.sendImmediatelyFor.length > 0
+                            ? `Immediately for: ${template.sendImmediatelyFor.join(', ')}`
+                            : `${template.intervalDays} days`
+                        }
+                    </TableCell>
                     <TableCell>{template.subject}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-2 justify-end">
@@ -216,12 +233,42 @@ export default function CampaignManagementClient() {
                   <FormItem><Label>Template Name</Label><FormControl><Input placeholder="e.g., 3-Day Follow Up" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
                  <FormField control={form.control} name="intervalDays" render={({ field }) => (
-                  <FormItem><Label>Send After (Days)</Label><FormControl><Input type="number" placeholder="3" {...field} /></FormControl><FormMessage /></FormItem>
+                  <FormItem><Label>Send After (Days)</Label><FormControl><Input type="number" placeholder="3" {...field} /></FormControl><p className="text-xs text-muted-foreground">Set to 0 for immediate sending.</p><FormMessage /></FormItem>
                 )} />
               </div>
                <FormField control={form.control} name="description" render={({ field }) => (
                   <FormItem><Label>Description (Internal)</Label><FormControl><Input placeholder="Friendly check-in after initial contact" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
+
+               <FormField control={form.control} name="sendImmediatelyFor" render={() => (
+                <FormItem>
+                    <Label>Send Immediately For</Label>
+                    <div className="flex flex-wrap gap-4 border p-4 rounded-md">
+                        {knownLeadSources.map((source) => (
+                        <FormField key={source.id} control={form.control} name="sendImmediatelyFor" render={({ field }) => (
+                            <FormItem key={source.id} className="flex flex-row items-center space-x-3 space-y-0">
+                                <FormControl>
+                                <Checkbox
+                                    checked={field.value?.includes(source.id)}
+                                    onCheckedChange={(checked) => {
+                                    return checked
+                                        ? field.onChange([...(field.value || []), source.id])
+                                        : field.onChange(field.value?.filter((value) => value !== source.id));
+                                    }}
+                                />
+                                </FormControl>
+                                <Label className="font-normal">{source.label}</Label>
+                            </FormItem>
+                            )}
+                        />
+                        ))}
+                    </div>
+                     <p className="text-xs text-muted-foreground">Select lead sources that should trigger this email immediately upon creation. Interval must be 0.</p>
+                    <FormMessage />
+                </FormItem>
+              )}
+              />
+
               <FormField control={form.control} name="subject" render={({ field }) => (
                 <FormItem><Label>Email Subject</Label><FormControl><Input placeholder="Following Up from FirstLight Home Care" {...field} /></FormControl><FormMessage /></FormItem>
               )} />

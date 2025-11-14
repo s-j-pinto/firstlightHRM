@@ -452,9 +452,10 @@ export const campaignTemplateSchema = z.object({
     name: z.string(),
     description: z.string().optional(),
     type: z.enum(['email', 'sms']),
-    intervalDays: z.number(),
-    subject: z.string(),
+    intervalDays: z.number().min(0),
+    subject: z.string().optional(),
     body: z.string(),
+    sendImmediatelyFor: z.array(z.string()).optional(),
     createdAt: z.any(),
     lastUpdatedAt: z.any(),
 });
