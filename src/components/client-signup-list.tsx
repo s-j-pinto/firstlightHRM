@@ -38,6 +38,7 @@ const intakeStatuses = [
     "Initial Phone Contact Completed",
     "In-Home Visit Scheduled",
     "App Referral Received",
+    "Google Ads Lead Received",
     "Incomplete",
     "Pending Client Signatures",
     "Client Signatures Completed",
@@ -120,6 +121,7 @@ export default function ClientSignupList() {
         status === 'Client Signatures Completed' ? 'bg-blue-500' :
         status === 'Pending Client Signatures' ? 'bg-yellow-500' :
         status === 'In-Home Visit Scheduled' ? 'bg-teal-500' :
+        status === 'Google Ads Lead Received' ? 'bg-sky-500' :
         status === 'Initial Phone Contact Completed' ? 'bg-purple-500' :
         'bg-gray-500';
 

@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
       mainContact: userData.clientName, // Default main contact to client
       contactPhone: userData.clientPhone,
       promptedCall: "Google Ads Lead", // Set the lead source
-      status: "Initial Phone Contact Completed", // Set initial status
+      status: "Google Ads Lead Received", // Set initial status
       createdAt: Timestamp.now(),
       lastUpdatedAt: Timestamp.now(),
       googleAdsLeadId: payload.lead_id || null,
