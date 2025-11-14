@@ -1,12 +1,15 @@
 
+
 import { NextRequest, NextResponse } from 'next/server';
 import { serverDb } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
+import type { CampaignTemplate } from '@/lib/types';
 
 /**
  * API route to handle incoming webhook requests from Google Ads Lead Form extensions.
  * This endpoint receives lead data, validates it, and creates a new document
- * in the 'initial_contacts' Firestore collection.
+ * in the 'initial_contacts' Firestore collection. It will also trigger an immediate
+ * follow-up email if a template is configured for it.
  */
 export async function POST(request: NextRequest) {
   // 1. Security Validation: Check the secret key from Google Ads
@@ -15,7 +18,6 @@ export async function POST(request: NextRequest) {
 
   if (!expectedKey) {
     console.error('[Google Ads Webhook] Server error: GOOGLE_ADS_WEBHOOK_SECRET is not set in environment variables.');
-    // Return a generic error to avoid leaking information
     return NextResponse.json({ success: false, error: 'Configuration error.' }, { status: 500 });
   }
 
@@ -25,19 +27,16 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // 2. Parse the incoming JSON payload from Google Ads
     const payload = await request.json();
+    const now = Timestamp.now();
 
-    // Log if this is a test lead from Google
     if (payload.is_test) {
         console.log('[Google Ads Webhook] Received a test lead from Google Ads.');
     }
 
-    // 3. Extract user data from the payload
     const userData: { [key: string]: string } = {};
     if (Array.isArray(payload.user_column_data)) {
       for (const column of payload.user_column_data) {
-        // Map common column IDs to our schema fields
         if (column.column_id === 'FULL_NAME' || column.column_id === 'full_name') {
           userData.clientName = column.string_value;
         } else if (column.column_id === 'EMAIL' || column.column_id === 'email') {
@@ -45,7 +44,6 @@ export async function POST(request: NextRequest) {
         } else if (column.column_id === 'PHONE_NUMBER' || column.column_id === 'phone_number') {
           userData.clientPhone = column.string_value;
         } else {
-            // Store any other fields dynamically
             userData[column.column_id] = column.string_value;
         }
       }
@@ -56,30 +54,64 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: 'Incomplete lead data.' }, { status: 400 });
     }
 
-    // 4. Create a new 'initial_contacts' document
-    const contactData = {
+    const leadStatus = "Google Ads Lead Received";
+    const contactData: any = {
       clientName: userData.clientName,
       clientEmail: userData.clientEmail,
       clientPhone: userData.clientPhone,
-      clientAddress: userData.address || '', // Assuming 'address' might be a field
+      clientAddress: userData.address || '',
       city: userData.city || '',
       zip: userData.zip || '',
-      mainContact: userData.clientName, // Default main contact to client
+      mainContact: userData.clientName,
       contactPhone: userData.clientPhone,
-      promptedCall: "Google Ads Lead", // Set the lead source
-      status: "Google Ads Lead Received", // Set initial status
-      createdAt: Timestamp.now(),
-      lastUpdatedAt: Timestamp.now(),
+      promptedCall: "Google Ads Lead",
+      status: leadStatus,
+      createdAt: now,
+      lastUpdatedAt: now,
       googleAdsLeadId: payload.lead_id || null,
       googleAdsCampaignId: payload.campaign_id || null,
-      // Add any other fields from userData you want to save
+      followUpHistory: [], // Initialize history
       ...userData
     };
 
-    await serverDb.collection('initial_contacts').add(contactData);
-    console.log(`[Google Ads Webhook] Successfully created initial contact for lead: ${payload.lead_id}`);
+    const contactRef = await serverDb.collection('initial_contacts').add(contactData);
+    console.log(`[Google Ads Webhook] Successfully created initial contact ${contactRef.id} for lead: ${payload.lead_id}`);
 
-    // 5. Respond to Google with a success status
+    // --- Immediate Follow-up Logic ---
+    const templatesSnap = await serverDb.collection('campaign_templates')
+        .where('intervalDays', '==', 0)
+        .where('sendImmediatelyFor', 'array-contains', leadStatus)
+        .limit(1)
+        .get();
+
+    if (!templatesSnap.empty) {
+        const template = templatesSnap.docs[0].data() as CampaignTemplate;
+        const templateId = templatesSnap.docs[0].id;
+
+        // Generate the unique link for the assessment form
+        const assessmentLink = `${process.env.NEXT_PUBLIC_BASE_URL}/lead-intake?id=${contactRef.id}`;
+        
+        // Replace placeholders in the email body
+        let emailHtml = template.body.replace(/{{clientName}}/g, contactData.clientName);
+        emailHtml = emailHtml.replace(/{{assessmentLink}}/g, assessmentLink);
+
+
+        await serverDb.collection('mail').add({
+            to: [contactData.clientEmail],
+            message: {
+                subject: template.subject,
+                html: emailHtml,
+            },
+        });
+
+        await contactRef.update({
+            followUpHistory: [{ templateId: templateId, sentAt: now }]
+        });
+        console.log(`[Google Ads Webhook] Queued immediate follow-up email using template ${templateId} for contact ${contactRef.id}.`);
+    } else {
+        console.log(`[Google Ads Webhook] No immediate follow-up template found for status "${leadStatus}".`);
+    }
+
     return NextResponse.json({ success: true });
 
   } catch (error: any) {
