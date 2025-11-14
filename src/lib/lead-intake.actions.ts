@@ -20,6 +20,11 @@ export async function submitLeadIntakeForm(contactId: string, data: any) {
             return { message: "Original contact record not found.", error: true };
         }
         
+        // Ensure an assessment time was selected
+        if (!data.assessmentTime) {
+            return { message: "Please select an assessment time to continue.", error: true };
+        }
+        
         const [date, time] = data.assessmentTime.split(' ');
         const [hours, minutes] = time.split(':');
         const assessmentDateTime = new Date(date);

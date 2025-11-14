@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useTransition, useState } from 'react';
+import { useTransition, useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -39,7 +39,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { submitLeadIntakeForm } from "@/lib/lead-intake.actions";
-import { AppointmentScheduler as GenericAppointmentScheduler } from './appointment-scheduler';
 import { getAvailableSlotsAction } from '@/lib/availability.actions';
 
 const companionCareCheckboxes = [
@@ -109,7 +108,7 @@ function AssessmentScheduler({ onSlotSelect, selectedSlot }: { onSlotSelect: (sl
     const [slots, setSlots] = useState<{ date: string, slots: string[] }[]>([]);
     const [loading, setLoading] = useState(true);
 
-    React.useEffect(() => {
+    useEffect(() => {
         getAvailableSlotsAction('assessment').then(data => {
             setSlots(data);
             setLoading(false);
