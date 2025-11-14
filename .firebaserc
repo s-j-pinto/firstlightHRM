@@ -1,5 +1,7 @@
 {
-  "projects": {},
+  "projects": {
+    "production": "firstlighthomecare-hrm"
+  },
   "targets": {},
   "etags": {
     "firstlighthomecare-hrm": {

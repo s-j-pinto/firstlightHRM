@@ -29,8 +29,6 @@ env:
       - RUNTIME
   - variable: CRON_SECRET
     secret: CRON_SECRET
+  - variable: GOOGLE_ADS_WEBHOOK_SECRET
+    secret: GOOGLE_ADS_WEBHOOK_SECRET
     
-
-
-
-
