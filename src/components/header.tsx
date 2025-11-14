@@ -103,14 +103,14 @@ export function AppHeader() {
                 <Link href="/owner/dashboard" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
                     Owner Dashboard
                 </Link>
-                 <Link href="/owner/reports" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
-                    Reports
-                </Link>
                 <Link href="/owner/referral-management" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
                     Referral Management
                 </Link>
                 <Link href="/owner/campaigns" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
                     Campaigns
+                </Link>
+                 <Link href="/owner/reports" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
+                    Reports
                 </Link>
                </>
             )}
