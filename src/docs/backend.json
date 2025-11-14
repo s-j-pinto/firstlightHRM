@@ -42,6 +42,8 @@
             "contactPhone": { "type": "string" },
             "languagePreference": { "type": "string" },
             "additionalEmail": { "type": "string", "format": "email" },
+            "googleAdsLeadId": { "type": "string" },
+            "googleAdsCampaignId": { "type": "string" },
             "companionCare_mealPreparation": { "type": "boolean" },
             "companionCare_cleanKitchen": { "type": "boolean" },
             "companionCare_assistWithLaundry": { "type": "boolean" },
@@ -79,7 +81,7 @@
         "intervalDays": { "type": "number", "description": "Number of days after initial contact to send this message. 0 for immediate." },
         "sendImmediatelyFor": { "type": "array", "items": {"type": "string"}, "description": "An array of lead source statuses that should trigger this template immediately."},
         "subject": { "type": "string", "description": "The subject line for email templates." },
-        "body": { "type": "string", "description": "The message body. Can contain HTML for emails and placeholders like {{clientName}}." },
+        "body": { "type": "string", "description": "The message body. Can contain HTML for emails and placeholders like {{clientName}} and {{assessmentLink}}." },
         "createdAt": { "type": "string", "format": "date-time" },
         "lastUpdatedAt": { "type": "string", "format": "date-time" }
       },

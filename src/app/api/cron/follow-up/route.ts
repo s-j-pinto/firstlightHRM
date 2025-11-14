@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 
     // 3. Get all initial contacts that are still in a follow-up state
     const contactsSnap = await firestore.collection('initial_contacts')
-        .where('status', 'in', ['Initial Phone Contact Completed', 'App Referral Received'])
+        .where('status', 'in', ['Initial Phone Contact Completed', 'App Referral Received', "Google Ads Lead Received"])
         .get();
 
     if (contactsSnap.empty) {
@@ -52,6 +52,9 @@ export async function GET(request: NextRequest) {
 
     // 4. Process each template against all eligible contacts
     for (const template of templates) {
+        // Skip immediate-send templates in this batch job
+        if (template.intervalDays === 0) continue;
+
         const intervalDays = template.intervalDays;
         const followUpDate = startOfDay(subDays(now, intervalDays));
 
@@ -64,8 +67,11 @@ export async function GET(request: NextRequest) {
             // Check if contact is old enough AND this template hasn't been sent
             if (isBefore(createdAt, followUpDate) && !hasBeenSent) {
                 
-                // Send Email
-                const emailHtml = template.body.replace(/{{clientName}}/g, contact.clientName);
+                // --- Send Email ---
+                const assessmentLink = `${process.env.NEXT_PUBLIC_BASE_URL}/lead-intake?id=${contact.id}`;
+                
+                let emailHtml = template.body.replace(/{{clientName}}/g, contact.clientName);
+                emailHtml = emailHtml.replace(/{{assessmentLink}}/g, assessmentLink);
 
                 await firestore.collection('mail').add({
                     to: [contact.clientEmail],
@@ -93,3 +99,4 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, error: error.message, ...results }, { status: 500 });
   }
 }
+
