@@ -14,21 +14,28 @@ const dayNameToIndex: { [key: string]: number } = {
   saturday: 6,
 };
 
-async function getInterviewSlots(): Promise<{ [key: number]: Date[] }> {
+type AvailabilityType = 'interview' | 'assessment';
+
+async function getSlots(type: AvailabilityType): Promise<{ [key: number]: Date[] }> {
   const slotsByDay: { [key: number]: Date[] } = {};
+  const docId = type === 'interview' ? 'availability' : 'assessment_availability';
+  const prefix = type === 'assessment' ? 'assessment_' : '';
 
   try {
-    const docRef = serverDb.collection("settings").doc("availability");
+    const docRef = serverDb.collection("settings").doc(docId);
     const docSnap = await docRef.get();
 
     if (docSnap.exists) {
       const data = docSnap.data();
       if (data) {
-          for (const dayName in data) {
-              if (Object.prototype.hasOwnProperty.call(data, dayName) && dayName.endsWith("_slots")) {
-                  const dayIndex = dayNameToIndex[dayName.replace("_slots", "")];
+          for (const dayKey in data) {
+              if (Object.prototype.hasOwnProperty.call(data, dayKey) && dayKey.endsWith("_slots")) {
+                  const dayName = dayKey.replace(`${prefix}`, "").replace("_slots", "");
+                  const dayIndex = dayNameToIndex[dayName];
+
                   if (dayIndex === undefined) continue;
-                  const timeSlots = data[dayName].split(",").map((s: string) => s.trim()).filter(Boolean);
+
+                  const timeSlots = data[dayKey].split(",").map((s: string) => s.trim()).filter(Boolean);
                   
                   slotsByDay[dayIndex] = timeSlots.map((timeStr: string) => {
                       return parse(timeStr, 'HH:mm', new Date());
@@ -37,24 +44,33 @@ async function getInterviewSlots(): Promise<{ [key: number]: Date[] }> {
           }
       }
     } else {
-      throw new Error("Availability document not found"); 
+        throw new Error(`${docId} document not found`);
     }
   } catch (error) {
-    console.error("Error fetching from Firestore, using default values:", error);
-    const defaultAvailability = {
+    console.error(`Error fetching from Firestore for ${docId}, using default values:`, error);
+    // You might want separate defaults for each type
+    const defaultAvailability = type === 'interview' ? {
         sunday_slots: "11:00,12:00,13:00,14:00,15:00,16:00,17:00",
         monday_slots: "11:00,12:00,13:00,14:00,15:00,16:00,17:00",
         tuesday_slots: "11:00,12:00,13:00,14:00,15:00,16:00,17:00",
         wednesday_slots: "11:00,12:00,13:00,14:00,15:00,16:00,17:00",
-        thursday_slots: "",
-        friday_slots: "",
-        saturday_slots: "",
+        thursday_slots: "", friday_slots: "", saturday_slots: "",
+    } : {
+        assessment_sunday_slots: "10:00,11:00,12:00,14:00",
+        assessment_monday_slots: "10:00,11:00,12:00,14:00",
+        assessment_tuesday_slots: "10:00,11:00,12:00,14:00",
+        assessment_wednesday_slots: "10:00,11:00,12:00,14:00",
+        assessment_thursday_slots: "10:00,11:00,12:00,14:00",
+        assessment_friday_slots: "", assessment_saturday_slots: "",
     };
-    for (const dayName in defaultAvailability) {
-        if (Object.prototype.hasOwnProperty.call(defaultAvailability, dayName)) {
-            const dayIndex = dayNameToIndex[dayName.replace("_slots", "")];
+
+    for (const dayKey in defaultAvailability) {
+        if (Object.prototype.hasOwnProperty.call(defaultAvailability, dayKey)) {
+            const dayName = dayKey.replace(`${prefix}`, "").replace("_slots", "");
+            const dayIndex = dayNameToIndex[dayName];
             if (dayIndex === undefined) continue;
-            const timeSlots = (defaultAvailability as any)[dayName].split(',').map((s: string) => s.trim()).filter(Boolean);
+
+            const timeSlots = (defaultAvailability as any)[dayKey].split(',').map((s: string) => s.trim()).filter(Boolean);
             slotsByDay[dayIndex] = timeSlots.map((timeStr: string) => {
                 return parse(timeStr, 'HH:mm', new Date());
             });
@@ -66,18 +82,18 @@ async function getInterviewSlots(): Promise<{ [key: number]: Date[] }> {
 }
 
 
-async function generateConfiguredSlots(weeksToCheck: number = 3): Promise<{ date: string, slots: string[] }[]> {
+async function generateConfiguredSlots(type: AvailabilityType, weeksToCheck: number = 3): Promise<{ date: string, slots: string[] }[]> {
   const availableSlots: { date: string, slots: string[] }[] = [];
   const today = new Date();
-  const interviewSlotsByDay = await getInterviewSlots();
+  const slotsByDay = await getSlots(type);
 
   for (let i = 0; i < weeksToCheck * 7; i++) {
     const currentDate = addDays(today, i);
     const dayOfWeek = getDay(currentDate);
 
-    if (interviewSlotsByDay[dayOfWeek]) {
+    if (slotsByDay[dayOfWeek]) {
       const daySlots: string[] = [];
-      interviewSlotsByDay[dayOfWeek].forEach(slotTime => {
+      slotsByDay[dayOfWeek].forEach(slotTime => {
         const combinedDateTime = set(currentDate, { 
             hours: slotTime.getHours(), 
             minutes: slotTime.getMinutes(), 
@@ -86,7 +102,6 @@ async function generateConfiguredSlots(weeksToCheck: number = 3): Promise<{ date
         });
 
         if (isBefore(new Date(), combinedDateTime)) {
-          // Format as a simple string that can be reconstructed on the client
           daySlots.push(format(combinedDateTime, "yyyy-MM-dd HH:mm"));
         }
       });
@@ -103,7 +118,7 @@ async function generateConfiguredSlots(weeksToCheck: number = 3): Promise<{ date
   return availableSlots;
 }
 
-export async function getAvailableSlotsAction() {
-    const configuredSlots = await generateConfiguredSlots(3);
+export async function getAvailableSlotsAction(type: AvailabilityType = 'interview') {
+    const configuredSlots = await generateConfiguredSlots(type);
     return configuredSlots;
 }

@@ -33,27 +33,45 @@ type SettingsFormValues = {
   googleAuthCode?: string;
 };
 
+type AssessmentAvailabilityFormValues = {
+    assessment_sunday_slots: string;
+    assessment_monday_slots: string;
+    assessment_tuesday_slots: string;
+    assessment_wednesday_slots: string;
+    assessment_thursday_slots: string;
+    assessment_friday_slots: string;
+    assessment_saturday_slots: string;
+};
+
 export default function AdminSettings() {
   const [isPending, startTransition] = useTransition();
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [hasCopied, setHasCopied] = useState(false);
   const { toast } = useToast();
-  const { register, handleSubmit, reset, getValues, setValue } = useForm<SettingsFormValues>();
   const firestore = useFirestore();
   const { isUserLoading: isUserAuthLoading } = useFirebase();
 
-  const settingsDocRef = useMemoFirebase(
+  const interviewSettingsForm = useForm<SettingsFormValues>();
+  const assessmentSettingsForm = useForm<AssessmentAvailabilityFormValues>();
+
+  const interviewSettingsDocRef = useMemoFirebase(
     () => (firestore ? doc(firestore, "settings", "availability") : null),
     [firestore]
   );
+  const assessmentSettingsDocRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, "settings", "assessment_availability") : null),
+    [firestore]
+  );
 
-  const { data: settingsData, isLoading: isSettingsLoading } = useDoc<SettingsFormValues>(settingsDocRef);
+  const { data: interviewSettingsData, isLoading: isInterviewSettingsLoading } = useDoc<SettingsFormValues>(interviewSettingsDocRef);
+  const { data: assessmentSettingsData, isLoading: isAssessmentSettingsLoading } = useDoc<AssessmentAvailabilityFormValues>(assessmentSettingsDocRef);
+
 
   useEffect(() => {
-    if (settingsData) {
-      reset(settingsData);
+    if (interviewSettingsData) {
+      interviewSettingsForm.reset(interviewSettingsData);
     } else {
-      reset({
+      interviewSettingsForm.reset({
         sunday_slots: "11:00, 12:00, 13:00, 14:00, 15:00, 16:00",
         monday_slots: "11:00, 12:00, 13:00, 14:00, 15:00, 16:00",
         tuesday_slots: "11:00, 12:00, 13:00, 14:00, 15:00, 16:00",
@@ -61,21 +79,39 @@ export default function AdminSettings() {
         thursday_slots: "",
         friday_slots: "",
         saturday_slots: "",
-        googleAuthCode: "",
       });
     }
-  }, [settingsData, reset]);
+  }, [interviewSettingsData, interviewSettingsForm]);
 
-  const onSubmit = (data: SettingsFormValues) => {
+  useEffect(() => {
+    if (assessmentSettingsData) {
+      assessmentSettingsForm.reset(assessmentSettingsData);
+    } else {
+      assessmentSettingsForm.reset({
+        assessment_sunday_slots: "10:00, 11:00, 12:00, 14:00, 15:00",
+        assessment_monday_slots: "10:00, 11:00, 12:00, 14:00, 15:00",
+        assessment_tuesday_slots: "10:00, 11:00, 12:00, 14:00, 15:00",
+        assessment_wednesday_slots: "10:00, 11:00, 12:00, 14:00, 15:00",
+        assessment_thursday_slots: "10:00, 11:00, 12:00, 14:00, 15:00",
+        assessment_friday_slots: "",
+        assessment_saturday_slots: "",
+      });
+    }
+  }, [assessmentSettingsData, assessmentSettingsForm]);
+
+  const onSubmit = (data: SettingsFormValues & AssessmentAvailabilityFormValues) => {
     startTransition(async () => {
       if (!firestore) return;
-      const { googleAuthCode, ...availability } = data;
+      const { googleAuthCode, ...availability } = interviewSettingsForm.getValues();
+      const assessmentAvailability = assessmentSettingsForm.getValues();
       
       try {
         await setDoc(doc(firestore, "settings", "availability"), availability, { merge: true });
+        await setDoc(doc(firestore, "settings", "assessment_availability"), assessmentAvailability, { merge: true });
+
         toast({
           title: "Success",
-          description: "Availability settings have been saved.",
+          description: "All availability settings have been saved.",
         });
 
         if (googleAuthCode) {
@@ -86,7 +122,7 @@ export default function AdminSettings() {
             setRefreshToken(result.refreshToken);
             toast({ title: "Google Auth Success", description: result.message });
           }
-          setValue("googleAuthCode", "");
+          interviewSettingsForm.setValue("googleAuthCode", "");
         }
 
       } catch (e) {
@@ -98,6 +134,13 @@ export default function AdminSettings() {
       }
     });
   };
+  
+  const handleFormSubmit = () => {
+    const interviewData = interviewSettingsForm.getValues();
+    const assessmentData = assessmentSettingsForm.getValues();
+    onSubmit({ ...interviewData, ...assessmentData });
+  };
+
 
   const copyToClipboard = () => {
     if (refreshToken) {
@@ -107,48 +150,87 @@ export default function AdminSettings() {
     }
   };
   
-  if (isUserAuthLoading || isSettingsLoading) {
+  if (isUserAuthLoading || isInterviewSettingsLoading || isAssessmentSettingsLoading) {
     return <p>Loading settings...</p>;
   }
 
   return (
-    <div className="grid gap-8">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+    <div className="space-y-8">
+      <form onSubmit={(e) => { e.preventDefault(); handleFormSubmit(); }} className="space-y-8">
         <Card>
           <CardHeader>
             <CardTitle>Interview Availability</CardTitle>
             <CardDescription>
-              Set the available time slots for each day. Use 24-hour format, separated by commas.
+              Set the available time slots for caregiver phone screen interviews. Use 24-hour format, separated by commas.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid md:grid-cols-3 gap-6">
             <div className="space-y-2">
               <Label htmlFor="sunday_slots">Sunday</Label>
-              <Input id="sunday_slots" {...register("sunday_slots")} />
+              <Input id="sunday_slots" {...interviewSettingsForm.register("sunday_slots")} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="monday_slots">Monday</Label>
-              <Input id="monday_slots" {...register("monday_slots")} />
+              <Input id="monday_slots" {...interviewSettingsForm.register("monday_slots")} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="tuesday_slots">Tuesday</Label>
-              <Input id="tuesday_slots" {...register("tuesday_slots")} />
+              <Input id="tuesday_slots" {...interviewSettingsForm.register("tuesday_slots")} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="wednesday_slots">Wednesday</Label>
-              <Input id="wednesday_slots" {...register("wednesday_slots")} />
+              <Input id="wednesday_slots" {...interviewSettingsForm.register("wednesday_slots")} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="thursday_slots">Thursday</Label>
-              <Input id="thursday_slots" {...register("thursday_slots")} />
+              <Input id="thursday_slots" {...interviewSettingsForm.register("thursday_slots")} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="friday_slots">Friday</Label>
-              <Input id="friday_slots" {...register("friday_slots")} />
+              <Input id="friday_slots" {...interviewSettingsForm.register("friday_slots")} />
             </div>
              <div className="space-y-2">
               <Label htmlFor="saturday_slots">Saturday</Label>
-              <Input id="saturday_slots" {...register("saturday_slots")} />
+              <Input id="saturday_slots" {...interviewSettingsForm.register("saturday_slots")} />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>In-Home Assessment Availability</CardTitle>
+            <CardDescription>
+              Set the available time slots for new client in-home visits. Use 24-hour format, separated by commas.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid md:grid-cols-3 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="assessment_sunday_slots">Sunday</Label>
+              <Input id="assessment_sunday_slots" {...assessmentSettingsForm.register("assessment_sunday_slots")} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="assessment_monday_slots">Monday</Label>
+              <Input id="assessment_monday_slots" {...assessmentSettingsForm.register("assessment_monday_slots")} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="assessment_tuesday_slots">Tuesday</Label>
+              <Input id="assessment_tuesday_slots" {...assessmentSettingsForm.register("assessment_tuesday_slots")} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="assessment_wednesday_slots">Wednesday</Label>
+              <Input id="assessment_wednesday_slots" {...assessmentSettingsForm.register("assessment_wednesday_slots")} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="assessment_thursday_slots">Thursday</Label>
+              <Input id="assessment_thursday_slots" {...assessmentSettingsForm.register("assessment_thursday_slots")} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="assessment_friday_slots">Friday</Label>
+              <Input id="assessment_friday_slots" {...assessmentSettingsForm.register("assessment_friday_slots")} />
+            </div>
+             <div className="space-y-2">
+              <Label htmlFor="assessment_saturday_slots">Saturday</Label>
+              <Input id="assessment_saturday_slots" {...assessmentSettingsForm.register("assessment_saturday_slots")} />
             </div>
           </CardContent>
         </Card>
@@ -163,7 +245,7 @@ export default function AdminSettings() {
             <CardContent>
                 <div className="space-y-2">
                     <Label htmlFor="googleAuthCode">Authorization Code (One-time use)</Label>
-                    <Input id="googleAuthCode" {...register("googleAuthCode")} placeholder="Paste the code from the URL here..."/>
+                    <Input id="googleAuthCode" {...interviewSettingsForm.register("googleAuthCode")} placeholder="Paste the code from the URL here..."/>
                 </div>
                 {refreshToken && (
                     <Alert className="mt-4">
@@ -206,7 +288,7 @@ export default function AdminSettings() {
             {isPending ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : null}
-            Save Settings
+            Save All Settings
           </Button>
         </div>
       </form>

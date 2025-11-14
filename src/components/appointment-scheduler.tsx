@@ -41,7 +41,7 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
   const { data: appointmentsData, isLoading: appointmentsLoading } = useCollection<Appointment>(appointmentsRef);
 
   useEffect(() => {
-    getAvailableSlotsAction().then(slots => {
+    getAvailableSlotsAction('interview').then(slots => {
       setConfiguredSlots(slots);
       setIsLoadingSlots(false);
     });
@@ -74,7 +74,6 @@ export function AppointmentScheduler({ caregiverId, caregiverName, caregiverEmai
       if (prev.length < 3) {
         return [...prev, slot];
       } else {
-        // Optional: show a toast or message that they can only select 3
         toast({
             title: "Limit Reached",
             description: "You can only select up to 3 time slots.",

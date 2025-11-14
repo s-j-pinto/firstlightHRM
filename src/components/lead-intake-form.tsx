@@ -39,7 +39,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { submitLeadIntakeForm } from "@/lib/lead-intake.actions";
-import { AppointmentScheduler } from './appointment-scheduler'; // We will use a simplified version for this
+import { AppointmentScheduler as GenericAppointmentScheduler } from './appointment-scheduler';
+import { getAvailableSlotsAction } from '@/lib/availability.actions';
 
 const companionCareCheckboxes = [
     { id: 'companionCare_mealPreparation', label: 'Meal preparation and clean up' },
@@ -101,6 +102,46 @@ type LeadIntakeFormData = z.infer<typeof leadIntakeSchema>;
 interface LeadIntakeFormProps {
     contactId: string;
     initialData: any;
+}
+
+// A specific scheduler for the lead intake form
+function AssessmentScheduler({ onSlotSelect, selectedSlot }: { onSlotSelect: (slot: string) => void, selectedSlot: string }) {
+    const [slots, setSlots] = useState<{ date: string, slots: string[] }[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    React.useEffect(() => {
+        getAvailableSlotsAction('assessment').then(data => {
+            setSlots(data);
+            setLoading(false);
+        });
+    }, []);
+
+    if (loading) {
+        return <div className="flex justify-center items-center h-64"><Loader2 className="animate-spin" /></div>;
+    }
+
+    return (
+        <div className="space-y-6">
+            {slots.map(({ date, slots: timeSlots }) => (
+                <div key={date}>
+                    <h3 className="font-semibold mb-2 flex items-center gap-2"><Calendar className="h-4 w-4"/> {format(new Date(date), "EEEE, MMMM do")}</h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                        {timeSlots.map(slot => (
+                            <Button 
+                                key={slot}
+                                type="button"
+                                variant={selectedSlot === slot ? 'default' : 'outline'}
+                                onClick={() => onSlotSelect(slot)}
+                            >
+                                <Clock className="mr-2 h-4 w-4"/>
+                                {format(new Date(slot), 'h:mm a')}
+                            </Button>
+                        ))}
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
 }
 
 export function LeadIntakeForm({ contactId, initialData }: LeadIntakeFormProps) {
@@ -249,8 +290,7 @@ export function LeadIntakeForm({ contactId, initialData }: LeadIntakeFormProps) 
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormControl>
-                                                <AppointmentScheduler
-                                                    caregiverId={contactId}
+                                                <AssessmentScheduler
                                                     onSlotSelect={(slot) => field.onChange(slot)}
                                                     selectedSlot={field.value}
                                                 />
