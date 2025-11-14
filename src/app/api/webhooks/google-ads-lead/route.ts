@@ -70,6 +70,8 @@ export async function POST(request: NextRequest) {
       status: "Initial Phone Contact Completed", // Set initial status
       createdAt: Timestamp.now(),
       lastUpdatedAt: Timestamp.now(),
+      googleAdsLeadId: payload.lead_id || null,
+      googleAdsCampaignId: payload.campaign_id || null,
       // Add any other fields from userData you want to save
       ...userData
     };
