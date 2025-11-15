@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useTransition, useEffect, useMemo } from "react";
@@ -252,11 +253,10 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
   };
 
   const handleOpenCsa = async () => {
-    const { dateOfHomeVisit, timeOfVisit } = form.getValues();
-    if (!dateOfHomeVisit || !timeOfVisit) {
+    if (!contactId) {
         toast({
-            title: "Missing Information",
-            description: "Please set the Date and Time of Home Visit, then click 'Save Initial Contact' before proceeding.",
+            title: "Save Required",
+            description: "Please save the Initial Contact form before creating the Service Agreement.",
             variant: "destructive",
             duration: 7000
         });
@@ -265,7 +265,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
     
     let finalSignupId = signupDocId;
 
-    if (!finalSignupId && contactId) {
+    if (!finalSignupId) {
         const result = await createCsaFromContact(contactId);
         if (result.error || !result.signupId) {
             toast({ title: "Error", description: result.error || "Could not create the Client Service Agreement document." });
@@ -554,7 +554,8 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
 
             <div className="flex justify-end items-center pt-4 gap-4">
                <p className="text-sm text-destructive mr-auto">Pls click 'Save Initial Contact' to save changes on this page.</p>
-              {inHomeVisitSet === 'Yes' && (
+              
+              {contactId && (
                   <Button
                       type="button"
                       variant="outline"
@@ -562,7 +563,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                       disabled={isSubmitting}
                   >
                       <FileText className="mr-2" />
-                      Open Client Service Agreement
+                      {isCsaCreated ? 'Open Client Service Agreement' : 'Create Client Service Agreement'}
                   </Button>
               )}
               <Button type="submit" disabled={isSubmitting}>
