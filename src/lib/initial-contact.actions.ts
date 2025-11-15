@@ -35,7 +35,6 @@ const initialContactSchema = z.object({
   va: z.string().optional(),
   hasPoa: z.enum(["Yes", "No"]).optional(),
   ltci: z.string().optional(),
-  advanceDirective: z.boolean().optional(),
   contactPhone: z.string().min(1, "Contact Phone is required."),
   languagePreference: z.string().optional(),
   additionalEmail: z.string().email("Please enter a valid email.").optional().or(z.literal('')),
@@ -195,3 +194,51 @@ export async function submitInitialContact(payload: SubmitPayload) {
         return { message: `An error occurred: ${error.message}`, error: true, docId: contactId };
     }
 }
+
+
+export async function closeInitialContact(contactId: string, closureReason: string) {
+  if (!contactId || !closureReason) {
+    return { error: true, message: "Contact ID and closure reason are required." };
+  }
+
+  const firestore = serverDb;
+  const now = Timestamp.now();
+
+  try {
+    const contactRef = firestore.collection("initial_contacts").doc(contactId);
+    
+    // Use a transaction to ensure both updates succeed or fail together
+    await firestore.runTransaction(async (transaction) => {
+      // 1. Update the initial_contacts document
+      transaction.update(contactRef, {
+        status: "Closed",
+        closureReason: closureReason,
+        lastUpdatedAt: now,
+        sendFollowUpCampaigns: false, // Ensure no more follow-ups are sent
+      });
+
+      // 2. Find and update the associated client_signups document
+      const signupQuery = firestore.collection("client_signups").where("initialContactId", "==", contactId).limit(1);
+      const signupSnapshot = await transaction.get(signupQuery);
+
+      if (!signupSnapshot.empty) {
+        const signupDocRef = signupSnapshot.docs[0].ref;
+        transaction.update(signupDocRef, {
+          status: "Archived",
+          lastUpdatedAt: now,
+        });
+      }
+    });
+
+    revalidatePath("/admin/assessments");
+    revalidatePath("/owner/dashboard");
+
+    return { success: true, message: "Contact has been closed and the associated CSA has been archived." };
+
+  } catch (error: any) {
+    console.error("Error closing initial contact:", error);
+    return { error: true, message: `An error occurred: ${error.message}` };
+  }
+}
+
+    

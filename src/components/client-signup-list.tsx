@@ -33,6 +33,8 @@ import {
 } from "@/components/ui/select";
 import { Badge } from './ui/badge';
 import { cn } from '@/lib/utils';
+import { Checkbox } from './ui/checkbox';
+import { Label } from './ui/label';
 
 const intakeStatuses = [
     "Initial Phone Contact Completed",
@@ -43,6 +45,7 @@ const intakeStatuses = [
     "Pending Client Signatures",
     "Client Signatures Completed",
     "Signed and Published",
+    "Closed",
 ];
 
 const dateRanges = {
@@ -60,6 +63,7 @@ export default function ClientSignupList() {
   const pathname = usePathname();
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [dateFilter, setDateFilter] = useState<DateRangeKey>('last_month');
+  const [showClosed, setShowClosed] = useState(false);
   
   const contactsQuery = useMemoFirebase(() => 
     query(collection(firestore, 'initial_contacts'), orderBy('createdAt', 'desc')),
@@ -95,6 +99,10 @@ export default function ClientSignupList() {
 
     // Apply filters
     const filteredIntakes = allIntakes.filter(item => {
+        if (!showClosed && item.status === 'Closed') {
+            return false;
+        }
+
         const statusMatch = statusFilter === 'ALL' || item.status === statusFilter;
         if (!statusMatch) return false;
 
@@ -109,7 +117,7 @@ export default function ClientSignupList() {
 
     return filteredIntakes;
 
-  }, [contacts, signups, statusFilter, dateFilter]);
+  }, [contacts, signups, statusFilter, dateFilter, showClosed]);
 
   const baseEditPath = pathname.includes('/admin') ? '/admin/initial-contact' : '/owner/initial-contact';
   const csaBasePath = pathname.includes('/admin') ? '/admin/new-client-signup' : '/owner/new-client-signup';
@@ -123,6 +131,7 @@ export default function ClientSignupList() {
         status === 'In-Home Visit Scheduled' ? 'bg-teal-500' :
         status === 'Google Ads Lead Received' ? 'bg-sky-500' :
         status === 'Initial Phone Contact Completed' ? 'bg-purple-500' :
+        status === 'Closed' ? 'bg-red-500' :
         'bg-gray-500';
 
     return <Badge className={cn("text-white", colorClass)}>{status}</Badge>;
@@ -169,6 +178,10 @@ export default function ClientSignupList() {
                         ))}
                     </SelectContent>
                 </Select>
+                <div className="flex items-center space-x-2">
+                    <Checkbox id="show-closed" checked={showClosed} onCheckedChange={(checked) => setShowClosed(checked as boolean)} />
+                    <Label htmlFor="show-closed" className="whitespace-nowrap">Show Closed</Label>
+                </div>
             </div>
         </div>
       </CardHeader>
@@ -222,3 +235,5 @@ export default function ClientSignupList() {
     </Card>
   );
 }
+
+    

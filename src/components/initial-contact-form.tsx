@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter, usePathname } from "next/navigation";
 import { format } from "date-fns";
-import { CalendarIcon, Loader2, Save, FileText, AlertCircle, ExternalLink } from "lucide-react";
+import { CalendarIcon, Loader2, Save, FileText, AlertCircle, ExternalLink, XCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -28,13 +28,15 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { submitInitialContact } from "@/lib/initial-contact.actions";
+import { submitInitialContact, closeInitialContact } from "@/lib/initial-contact.actions";
 import { useDoc, useMemoFirebase, firestore } from "@/firebase";
 import { doc, query, collection, where, getDocs } from 'firebase/firestore';
 import { createCsaFromContact } from "@/lib/client-signup.actions";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 
 const companionCareCheckboxes = [
@@ -67,6 +69,15 @@ const personalCareCheckboxes = [
     { id: 'personalCare_assistWithMobilityAmbulationTransfer', label: 'Assist with mobility, ambulation and transfer' },
     { id: 'personalCare_assistWithIncontinenceCare', label: 'Assist with incontinence care' },
 ] as const;
+
+const closureReasons = [
+    "Rates are too high",
+    "Selected another Company",
+    "Client is not in need of services anymore",
+    "Google lead was incorrect",
+    "App referral was incorrect",
+    "Other",
+];
 
 const initialContactSchema = z.object({
   clientName: z.string().min(1, "Client's Name is required."),
@@ -154,11 +165,16 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
   const [contactId, setContactId] = useState(initialContactId);
   const [signupDocId, setSignupDocId] = useState<string | null>(null);
   const [authUrl, setAuthUrl] = useState<string | null>(null);
+  const [isClosureDialogOpen, setIsClosureDialogOpen] = useState(false);
+  const [closureReason, setClosureReason] = useState("");
+  const [isClosing, startClosingTransition] = useTransition();
+
 
   const contactDocRef = useMemoFirebase(() => contactId ? doc(firestore, 'initial_contacts', contactId) : null, [contactId]);
   const { data: existingData, isLoading } = useDoc<any>(contactDocRef);
 
   const isCsaCreated = !!signupDocId;
+  const isClosed = existingData?.status === 'Closed';
 
   useEffect(() => {
     const findSignupDoc = async () => {
@@ -297,6 +313,28 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
     }
   };
 
+  const handleCloseContact = () => {
+    if (!contactId) {
+      toast({ title: "Error", description: "You must save the contact before you can close it.", variant: "destructive" });
+      return;
+    }
+    if (!closureReason) {
+        toast({ title: "Reason Required", description: "Please select a reason for closing the contact.", variant: "destructive"});
+        return;
+    }
+    startClosingTransition(async () => {
+        const result = await closeInitialContact(contactId, closureReason);
+        if (result.error) {
+            toast({ title: "Error", description: result.message, variant: "destructive" });
+        } else {
+            toast({ title: "Success", description: result.message });
+            setIsClosureDialogOpen(false);
+            const dashboardPath = pathname.includes('/admin') ? '/admin/assessments' : '/owner/dashboard';
+            router.push(dashboardPath);
+        }
+    });
+  };
+
 
   const inHomeVisitSet = form.watch("inHomeVisitSet");
 
@@ -327,13 +365,23 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                 </AlertDescription>
                 </Alert>
             )}
+            
+            {isClosed && (
+                 <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>This Contact is Closed</AlertTitle>
+                    <AlertDescription>
+                        Reason: <strong>{existingData?.closureReason}</strong>. All fields are read-only.
+                    </AlertDescription>
+                </Alert>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
               {/* Left Column */}
               <div className="space-y-6">
-                <FormField control={form.control} name="clientName" render={({ field }) => ( <FormItem><FormLabel>Client's Name</FormLabel><FormControl><Input {...field} disabled={isCsaCreated} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="clientName" render={({ field }) => ( <FormItem><FormLabel>Client's Name</FormLabel><FormControl><Input {...field} disabled={isCsaCreated || isClosed} /></FormControl><FormMessage /></FormItem> )} />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <FormField control={form.control} name="clientAddress" render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} disabled={isCsaCreated} /></FormControl><FormMessage /></FormItem> )} />
+                  <FormField control={form.control} name="clientAddress" render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} disabled={isCsaCreated || isClosed} /></FormControl><FormMessage /></FormItem> )} />
                    <FormField
                     control={form.control}
                     name="dateOfBirth"
@@ -349,7 +397,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                                   "pl-3 text-left font-normal",
                                   !field.value && "text-muted-foreground"
                                 )}
-                                disabled={isCsaCreated}
+                                disabled={isCsaCreated || isClosed}
                               >
                                 {field.value ? (
                                   format(field.value, "PPP")
@@ -366,7 +414,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                               selected={field.value}
                               onSelect={field.onChange}
                               initialFocus
-                              disabled={isCsaCreated}
+                              disabled={isCsaCreated || isClosed}
                             />
                           </PopoverContent>
                         </Popover>
@@ -376,21 +424,21 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                   />
                 </div>
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                   <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} disabled={isCsaCreated} /></FormControl><FormMessage /></FormItem> )} />
-                  <FormField control={form.control} name="zip" render={({ field }) => ( <FormItem><FormLabel>Zip</FormLabel><FormControl><Input {...field} disabled={isCsaCreated} /></FormControl><FormMessage /></FormItem> )} />
+                   <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} disabled={isCsaCreated || isClosed} /></FormControl><FormMessage /></FormItem> )} />
+                  <FormField control={form.control} name="zip" render={({ field }) => ( <FormItem><FormLabel>Zip</FormLabel><FormControl><Input {...field} disabled={isCsaCreated || isClosed} /></FormControl><FormMessage /></FormItem> )} />
                 </div>
-                <FormField control={form.control} name="rateOffered" render={({ field }) => ( <FormItem><FormLabel>Rate Offered</FormLabel><FormControl><Input type="number" {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="rateOffered" render={({ field }) => ( <FormItem><FormLabel>Rate Offered</FormLabel><FormControl><Input type="number" {...field} value={field.value || ''} disabled={isClosed} /></FormControl><FormMessage /></FormItem> )} />
                 <div className="flex gap-4">
-                    <FormField control={form.control} name="clientPhone" render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Client's Phone Number</FormLabel><FormControl><Input {...field} disabled={isCsaCreated} /></FormControl><FormMessage /></FormItem> )} />
-                    <FormField control={form.control} name="clientEmail" render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Client's Email</FormLabel><FormControl><Input {...field} disabled={isCsaCreated} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="clientPhone" render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Client's Phone Number</FormLabel><FormControl><Input {...field} disabled={isCsaCreated || isClosed} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="clientEmail" render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Client's Email</FormLabel><FormControl><Input {...field} disabled={isCsaCreated || isClosed} /></FormControl><FormMessage /></FormItem> )} />
                 </div>
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <FormField control={form.control} name="mainContact" render={({ field }) => ( <FormItem><FormLabel>Main Contact</FormLabel><FormControl><Input {...field} disabled={isCsaCreated} /></FormControl><FormMessage /></FormItem> )} />
-                    <FormField control={form.control} name="additionalEmail" render={({ field }) => ( <FormItem><FormLabel>Additional Email</FormLabel><FormControl><Input {...field} disabled={isCsaCreated} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="mainContact" render={({ field }) => ( <FormItem><FormLabel>Main Contact</FormLabel><FormControl><Input {...field} disabled={isCsaCreated || isClosed} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="additionalEmail" render={({ field }) => ( <FormItem><FormLabel>Additional Email</FormLabel><FormControl><Input {...field} disabled={isCsaCreated || isClosed} /></FormControl><FormMessage /></FormItem> )} />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <FormField control={form.control} name="allergies" render={({ field }) => ( <FormItem><FormLabel>Allergies</FormLabel><FormControl><Input {...field} disabled={isCsaCreated} /></FormControl><FormMessage /></FormItem> )} />
-                  <FormField control={form.control} name="pets" render={({ field }) => ( <FormItem><FormLabel>Pets</FormLabel><FormControl><Input {...field} disabled={isCsaCreated} /></FormControl><FormMessage /></FormItem> )} />
+                  <FormField control={form.control} name="allergies" render={({ field }) => ( <FormItem><FormLabel>Allergies</FormLabel><FormControl><Input {...field} disabled={isCsaCreated || isClosed} /></FormControl><FormMessage /></FormItem> )} />
+                  <FormField control={form.control} name="pets" render={({ field }) => ( <FormItem><FormLabel>Pets</FormLabel><FormControl><Input {...field} disabled={isCsaCreated || isClosed} /></FormControl><FormMessage /></FormItem> )} />
                 </div>
               </div>
               {/* Right Column */}
@@ -406,40 +454,40 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                                     <Popover>
                                     <PopoverTrigger asChild>
                                         <FormControl>
-                                        <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                        <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={isClosed}>
                                             {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
                                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                         </Button>
                                         </FormControl>
                                     </PopoverTrigger>
                                     <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isClosed} />
                                     </PopoverContent>
                                     </Popover>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
-                        <FormField control={form.control} name="timeOfVisit" render={({ field }) => ( <FormItem><FormLabel>Time of Visit</FormLabel><FormControl><Input type="time" {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="referredBy" render={({ field }) => ( <FormItem><FormLabel>Referred By</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="referralCode" render={({ field }) => ( <FormItem><FormLabel>Referral Code</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="timeOfVisit" render={({ field }) => ( <FormItem><FormLabel>Time of Visit</FormLabel><FormControl><Input type="time" {...field} value={field.value || ''} disabled={isClosed} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="referredBy" render={({ field }) => ( <FormItem><FormLabel>Referred By</FormLabel><FormControl><Input {...field} disabled={isClosed} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="referralCode" render={({ field }) => ( <FormItem><FormLabel>Referral Code</FormLabel><FormControl><Input {...field} disabled={isClosed} /></FormControl><FormMessage /></FormItem> )} />
                     </div>
                 </Card>
                 <Card className="p-4">
                     <div className="grid grid-cols-2 gap-x-4 gap-y-4">
-                        <FormField control={form.control} name="medicalIns" render={({ field }) => ( <FormItem><FormLabel>Medical Ins</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="dnr" render={({ field }) => ( <FormItem className="flex items-center gap-2 pt-8"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="!mt-0">DNR</FormLabel><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="va" render={({ field }) => ( <FormItem><FormLabel>VA</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="hasPoa" render={({ field }) => ( <FormItem><FormLabel>Has POA</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center gap-4"><FormItem className="flex items-center space-x-1 space-y-0"><FormControl><RadioGroupItem value="Yes"/></FormControl><FormLabel className="font-normal">Y</FormLabel></FormItem><FormItem className="flex items-center space-x-1 space-y-0"><FormControl><RadioGroupItem value="No"/></FormControl><FormLabel className="font-normal">N</FormLabel></FormItem></RadioGroup></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="ltci" render={({ field }) => ( <FormItem><FormLabel>LTCI- No</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="contactPhone" render={({ field }) => ( <FormItem><FormLabel>Contact Phone:</FormLabel><FormControl><Input {...field} disabled={isCsaCreated} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="languagePreference" render={({ field }) => ( <FormItem><FormLabel>Language Preference:</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="medicalIns" render={({ field }) => ( <FormItem><FormLabel>Medical Ins</FormLabel><FormControl><Input {...field} disabled={isClosed} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="dnr" render={({ field }) => ( <FormItem className="flex items-center gap-2 pt-8"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isClosed} /></FormControl><FormLabel className="!mt-0">DNR</FormLabel><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="va" render={({ field }) => ( <FormItem><FormLabel>VA</FormLabel><FormControl><Input {...field} disabled={isClosed} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="hasPoa" render={({ field }) => ( <FormItem><FormLabel>Has POA</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center gap-4" disabled={isClosed}><FormItem className="flex items-center space-x-1 space-y-0"><FormControl><RadioGroupItem value="Yes"/></FormControl><FormLabel className="font-normal">Y</FormLabel></FormItem><FormItem className="flex items-center space-x-1 space-y-0"><FormControl><RadioGroupItem value="No"/></FormControl><FormLabel className="font-normal">N</FormLabel></FormItem></RadioGroup></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="ltci" render={({ field }) => ( <FormItem><FormLabel>LTCI- No</FormLabel><FormControl><Input {...field} disabled={isClosed} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="contactPhone" render={({ field }) => ( <FormItem><FormLabel>Contact Phone:</FormLabel><FormControl><Input {...field} disabled={isCsaCreated || isClosed} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="languagePreference" render={({ field }) => ( <FormItem><FormLabel>Language Preference:</FormLabel><FormControl><Input {...field} disabled={isClosed} /></FormControl><FormMessage /></FormItem> )} />
                     </div>
                 </Card>
               </div>
             </div>
             
-            <FormField control={form.control} name="promptedCall" render={({ field }) => ( <FormItem><FormLabel>What Prompted the Call In Today:</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem> )} />
+            <FormField control={form.control} name="promptedCall" render={({ field }) => ( <FormItem><FormLabel>What Prompted the Call In Today:</FormLabel><FormControl><Textarea {...field} rows={4} disabled={isClosed} /></FormControl><FormMessage /></FormItem> )} />
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
                 <div>
@@ -456,7 +504,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                               <Checkbox
                                 checked={field.value as boolean}
                                 onCheckedChange={field.onChange}
-                                disabled={isCsaCreated}
+                                disabled={isCsaCreated || isClosed}
                               />
                             </FormControl>
                             <FormLabel className="font-normal text-sm">{item.label}</FormLabel>
@@ -472,7 +520,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                       <FormItem className="mt-4">
                         <FormLabel>Other Companion Care Needs</FormLabel>
                         <FormControl>
-                          <Input {...field} disabled={isCsaCreated} />
+                          <Input {...field} disabled={isCsaCreated || isClosed} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -493,7 +541,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                               <Checkbox
                                 checked={field.value as boolean}
                                 onCheckedChange={field.onChange}
-                                disabled={isCsaCreated}
+                                disabled={isCsaCreated || isClosed}
                               />
                             </FormControl>
                             <FormLabel className="font-normal text-sm">{item.label}</FormLabel>
@@ -509,7 +557,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                       <FormItem className="mt-4">
                         <FormLabel>Assist with other</FormLabel>
                         <FormControl>
-                          <Input {...field} disabled={isCsaCreated} />
+                          <Input {...field} disabled={isCsaCreated || isClosed} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -520,7 +568,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <FormField control={form.control} name="estimatedHours" render={({ field }) => ( <FormItem><FormLabel>Estimated Hours:</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="estimatedHours" render={({ field }) => ( <FormItem><FormLabel>Estimated Hours:</FormLabel><FormControl><Input {...field} disabled={isClosed} /></FormControl><FormMessage /></FormItem> )} />
                      <FormField
                         control={form.control}
                         name="estimatedStartDate"
@@ -530,14 +578,14 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                                 <Popover>
                                 <PopoverTrigger asChild>
                                     <FormControl>
-                                    <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                    <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={isClosed}>
                                         {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
                                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                     </Button>
                                     </FormControl>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isClosed} />
                                 </PopoverContent>
                                 </Popover>
                                 <FormMessage />
@@ -550,7 +598,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                         <FormItem className="space-y-3">
                             <FormLabel>Was an In-Home Visit Set?</FormLabel>
                             <FormControl>
-                                <RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center gap-4" disabled={isCsaCreated}>
+                                <RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center gap-4" disabled={isClosed}>
                                     <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes"/></FormControl><FormLabel className="font-normal">Yes</FormLabel></FormItem>
                                     <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No"/></FormControl><FormLabel className="font-normal">No</FormLabel></FormItem>
                                 </RadioGroup>
@@ -566,7 +614,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>If NO, Why?</FormLabel>
-                                        <FormControl><Textarea {...field} /></FormControl>
+                                        <FormControl><Textarea {...field} disabled={isClosed} /></FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -582,6 +630,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                                         onValueChange={(val) => field.onChange(val === 'true')}
                                         value={String(field.value)}
                                         className="flex items-center gap-4"
+                                        disabled={isClosed}
                                         >
                                         <FormItem className="flex items-center space-x-2 space-y-0">
                                             <FormControl><RadioGroupItem value="true" /></FormControl>
@@ -603,23 +652,61 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
             </div>
 
             <div className="flex justify-end items-center pt-4 gap-4">
-               <p className="text-sm text-destructive mr-auto">Pls click 'Save Initial Contact' to save changes on this page.</p>
-              
-              {contactId && (
-                  <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleOpenCsa}
-                      disabled={isSubmitting}
-                  >
-                      <FileText className="mr-2" />
-                      {isCsaCreated ? 'Open Client Service Agreement' : 'Create Client Service Agreement'}
-                  </Button>
-              )}
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                Save Initial Contact
-              </Button>
+                <p className="text-sm text-destructive mr-auto">Please click 'Save Initial Contact' to save any changes on this page.</p>
+
+                {contactId && !isClosed && (
+                    <Dialog open={isClosureDialogOpen} onOpenChange={setIsClosureDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button type="button" variant="destructive">
+                                <XCircle className="mr-2" /> Close Contact
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Close Initial Contact</DialogTitle>
+                                <DialogDescription>
+                                    Select a reason for closing this contact. This will mark the contact as closed and archive any associated Client Service Agreement. This action cannot be undone.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="py-4">
+                                <Label htmlFor="closure-reason">Closure Reason</Label>
+                                <Select onValueChange={setClosureReason} value={closureReason}>
+                                    <SelectTrigger id="closure-reason">
+                                        <SelectValue placeholder="Select a reason..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {closureReasons.map(reason => (
+                                            <SelectItem key={reason} value={reason}>{reason}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <DialogFooter>
+                                <Button type="button" variant="outline" onClick={() => setIsClosureDialogOpen(false)}>Cancel</Button>
+                                <Button type="button" variant="destructive" onClick={handleCloseContact} disabled={isClosing || !closureReason}>
+                                    {isClosing && <Loader2 className="mr-2 animate-spin" />}
+                                    Confirm Closure
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                )}
+                
+                {contactId && (
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleOpenCsa}
+                        disabled={isSubmitting || isClosed}
+                    >
+                        <FileText className="mr-2" />
+                        {isCsaCreated ? 'Open Client Service Agreement' : 'Create Client Service Agreement'}
+                    </Button>
+                )}
+                <Button type="submit" disabled={isSubmitting || isClosed}>
+                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    Save Initial Contact
+                </Button>
             </div>
           </form>
         </Form>
@@ -627,3 +714,5 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
     </Card>
   );
 }
+
+    
