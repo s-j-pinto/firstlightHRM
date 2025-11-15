@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { version } from '../../../package.json';
+import packageJson from '../../../package.json';
 import Image from "next/image";
 
 import { useAuth } from "@/firebase";
@@ -130,7 +130,7 @@ function OwnerLoginPageContent() {
           </Form>
         </CardContent>
         <CardFooter className="flex justify-center text-xs text-muted-foreground pt-4">
-          v{version}
+          v{packageJson.version}
         </CardFooter>
       </Card>
     </main>

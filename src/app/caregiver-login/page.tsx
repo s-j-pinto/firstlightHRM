@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { version } from '../../../package.json';
+import packageJson from '../../../package.json';
 
 const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstLight_Logo_VRT_CMYK_ICO.ico?alt=media&token=1151ccf8-5dc3-4ffd-b5aa-ca13e8b083d9";
 
@@ -88,7 +88,7 @@ export default function CaregiverLoginPage() {
           </Button>
         </CardContent>
          <CardFooter className="flex justify-center text-xs text-muted-foreground pt-4">
-          v{version}
+          v{packageJson.version}
         </CardFooter>
       </Card>
     </main>

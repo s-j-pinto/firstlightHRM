@@ -16,7 +16,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { loginClient } from "@/lib/client-auth.actions";
-import { version } from "../../../package.json";
+import packageJson from "../../../package.json";
 import { Users } from 'lucide-react';
 
 const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstLight_Logo_VRT_CMYK_ICO.ico?alt=media&token=1151ccf8-5dc3-4ffd-b5aa-ca13e8b083d9";
@@ -150,7 +150,7 @@ export default function ClientLoginPage() {
           </Form>
         </CardContent>
          <CardFooter className="flex justify-center text-xs text-muted-foreground pt-4">
-          v{version}
+          v{packageJson.version}
         </CardFooter>
       </Card>
     </main>

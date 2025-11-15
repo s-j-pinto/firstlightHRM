@@ -1,8 +1,9 @@
+
 "use client";
 
 import Image from "next/image";
 import Link from "next/link";
-import { version } from '../../../package.json';
+import packageJson from '../../../package.json';
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,7 +44,7 @@ export default function LoginPage() {
             </Button>
         </CardContent>
         <CardFooter className="flex justify-center text-xs text-muted-foreground pt-4">
-          v{version}
+          v{packageJson.version}
         </CardFooter>
       </Card>
     </main>
