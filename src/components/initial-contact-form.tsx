@@ -89,6 +89,7 @@ const initialContactSchema = z.object({
   estimatedStartDate: z.date().optional(),
   inHomeVisitSet: z.enum(["Yes", "No"]).optional(),
   inHomeVisitSetNoReason: z.string().optional(),
+  sendFollowUpCampaigns: z.boolean().optional(),
   medicalIns: z.string().optional(),
   dnr: z.boolean().optional(),
   va: z.string().optional(),
@@ -198,6 +199,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
       estimatedStartDate: undefined,
       inHomeVisitSet: undefined,
       inHomeVisitSetNoReason: "",
+      sendFollowUpCampaigns: true,
       medicalIns: "",
       dnr: false,
       va: "",
@@ -219,6 +221,9 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                 convertedData[field] = existingData[field].toDate();
             }
         });
+        if (convertedData.sendFollowUpCampaigns === undefined) {
+            convertedData.sendFollowUpCampaigns = true; // Default to true if not set
+        }
         form.reset(convertedData);
     }
   }, [existingData, form]);
@@ -226,10 +231,19 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
   const onSubmit = (data: InitialContactFormData) => {
     startSubmittingTransition(async () => {
       setAuthUrl(null);
-      const result = await submitInitialContact({
+      
+      const payload: SubmitPayload = {
         contactId: contactId,
         formData: data
-      });
+      };
+
+      if (data.inHomeVisitSet === 'No') {
+        payload.formData.inHomeVisitSetNoReason = ''; // Clear old field
+      } else {
+        payload.formData.sendFollowUpCampaigns = false; // Don't send campaigns if visit is set
+      }
+
+      const result = await submitInitialContact(payload);
 
       if (result.error) {
         toast({
@@ -547,7 +561,32 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                         </FormItem>
                     )} />
                     {inHomeVisitSet === 'No' && (
-                         <FormField control={form.control} name="inHomeVisitSetNoReason" render={({ field }) => ( <FormItem><FormLabel>If NO, Why?</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField
+                            control={form.control}
+                            name="sendFollowUpCampaigns"
+                            render={({ field }) => (
+                                <FormItem className="space-y-2">
+                                <FormLabel>Send Automatic 3, 7, and 14 day reminders?</FormLabel>
+                                <FormControl>
+                                    <RadioGroup
+                                    onValueChange={(val) => field.onChange(val === 'true')}
+                                    value={String(field.value)}
+                                    className="flex items-center gap-4"
+                                    >
+                                    <FormItem className="flex items-center space-x-2 space-y-0">
+                                        <FormControl><RadioGroupItem value="true" /></FormControl>
+                                        <FormLabel className="font-normal">Yes</FormLabel>
+                                    </FormItem>
+                                    <FormItem className="flex items-center space-x-2 space-y-0">
+                                        <FormControl><RadioGroupItem value="false" /></FormControl>
+                                        <FormLabel className="font-normal">No</FormLabel>
+                                    </FormItem>
+                                    </RadioGroup>
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                     )}
                 </div>
             </div>

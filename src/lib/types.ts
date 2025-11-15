@@ -445,6 +445,9 @@ export const initialContactSchema = z.object({
     createdAt: z.any(),
     lastUpdatedAt: z.any(),
     followUpHistory: z.array(z.any()).optional(),
+    inHomeVisitSet: z.enum(["Yes", "No"]).optional(),
+    sendFollowUpCampaigns: z.boolean().optional(),
+    status: z.string().optional(),
 });
 export type InitialContact = z.infer<typeof initialContactSchema> & { id: string };
 

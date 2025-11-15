@@ -29,6 +29,7 @@ const initialContactSchema = z.object({
   estimatedStartDate: z.date().optional(),
   inHomeVisitSet: z.enum(["Yes", "No"]).optional(),
   inHomeVisitSetNoReason: z.string().optional(),
+  sendFollowUpCampaigns: z.boolean().optional(),
   medicalIns: z.string().optional(),
   dnr: z.boolean().optional(),
   va: z.string().optional(),
@@ -86,7 +87,7 @@ const initialContactSchema = z.object({
     }
 });
 
-interface SubmitPayload {
+export interface SubmitPayload {
     contactId: string | null;
     formData: z.infer<typeof initialContactSchema>;
 }

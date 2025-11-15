@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
     const eligibleStatuses = ["Google Ads Lead Received", "Initial Phone Contact Completed", "App Referral Received"];
     const contactsSnap = await firestore.collection('initial_contacts')
         .where('inHomeVisitSet', '==', 'No')
+        .where('sendFollowUpCampaigns', '==', true)
         .where('status', 'in', eligibleStatuses)
         .get();
 
@@ -48,10 +49,7 @@ export async function GET(request: NextRequest) {
 
     const eligibleContacts = contactsSnap.docs
         .map(doc => ({ id: doc.id, ...doc.data() } as InitialContact))
-        .filter(contact => 
-            !convertedContactIds.has(contact.id) &&
-            contact.inHomeVisitSetNoReason?.toLowerCase() === 'needs followup'
-        );
+        .filter(contact => !convertedContactIds.has(contact.id));
     
     results.processed = eligibleContacts.length;
 
