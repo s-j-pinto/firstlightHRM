@@ -109,7 +109,7 @@ export default function ReferralsPage() {
       <div className="flex justify-between items-start mb-8">
         <div>
           <h1 className="text-3xl font-bold tracking-tight font-headline mb-2 flex items-center gap-2"><Gift /> Referral Program</h1>
-          <p className="text-muted-foreground">Share your code with friends and family. When they sign up, you'll earn rewards!</p>
+          <p className="text-muted-foreground">Know another family member or friend who might benefit from compassionate home care? Refer them easily and you both will receive 2 free hours of care each when they sign up for atleast 30 hours of service as a thank-you credit.</p>
         </div>
         <Button asChild variant="outline">
           <Link href="/client/dashboard">
