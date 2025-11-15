@@ -31,9 +31,9 @@ export async function GET(request: NextRequest) {
     }
     const templates = templatesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as CampaignTemplate));
 
-    // 3. Get all initial contacts that are still in a follow-up state
+    // 3. Get all initial contacts that are explicitly marked for follow-up
     const contactsSnap = await firestore.collection('initial_contacts')
-        .where('status', 'in', ['Initial Phone Contact Completed', 'App Referral Received', "Google Ads Lead Received"])
+        .where('inHomeVisitSet', '==', 'No')
         .get();
 
     if (contactsSnap.empty) {
@@ -46,7 +46,10 @@ export async function GET(request: NextRequest) {
 
     const eligibleContacts = contactsSnap.docs
         .map(doc => ({ id: doc.id, ...doc.data() } as InitialContact))
-        .filter(contact => !convertedContactIds.has(contact.id));
+        .filter(contact => 
+            !convertedContactIds.has(contact.id) &&
+            contact.inHomeVisitSetNoReason?.toLowerCase() === 'needs followup'
+        );
     
     results.processed = eligibleContacts.length;
 
@@ -99,4 +102,3 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, error: error.message, ...results }, { status: 500 });
   }
 }
-
