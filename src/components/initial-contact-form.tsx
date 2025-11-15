@@ -37,6 +37,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Label } from "@/components/ui/label";
 
 
 const companionCareCheckboxes = [
@@ -714,5 +715,3 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
     </Card>
   );
 }
-
-    
