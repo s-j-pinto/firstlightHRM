@@ -32,8 +32,10 @@ export async function GET(request: NextRequest) {
     const templates = templatesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as CampaignTemplate));
 
     // 3. Get all initial contacts that are explicitly marked for follow-up
+    const eligibleStatuses = ["Google Ads Lead Received", "Initial Phone Contact Completed", "App Referral Received"];
     const contactsSnap = await firestore.collection('initial_contacts')
         .where('inHomeVisitSet', '==', 'No')
+        .where('status', 'in', eligibleStatuses)
         .get();
 
     if (contactsSnap.empty) {
