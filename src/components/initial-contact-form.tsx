@@ -237,9 +237,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
         formData: data
       };
 
-      if (data.inHomeVisitSet === 'No') {
-        payload.formData.inHomeVisitSetNoReason = ''; // Clear old field
-      } else {
+      if (data.inHomeVisitSet === 'Yes') {
         payload.formData.sendFollowUpCampaigns = false; // Don't send campaigns if visit is set
       }
 
@@ -561,32 +559,45 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                         </FormItem>
                     )} />
                     {inHomeVisitSet === 'No' && (
-                        <FormField
-                            control={form.control}
-                            name="sendFollowUpCampaigns"
-                            render={({ field }) => (
-                                <FormItem className="space-y-2">
-                                <FormLabel>Send Automatic 3, 7, and 14 day reminders?</FormLabel>
-                                <FormControl>
-                                    <RadioGroup
-                                    onValueChange={(val) => field.onChange(val === 'true')}
-                                    value={String(field.value)}
-                                    className="flex items-center gap-4"
-                                    >
-                                    <FormItem className="flex items-center space-x-2 space-y-0">
-                                        <FormControl><RadioGroupItem value="true" /></FormControl>
-                                        <FormLabel className="font-normal">Yes</FormLabel>
+                        <div className="space-y-4 rounded-md border p-4">
+                            <FormField
+                                control={form.control}
+                                name="inHomeVisitSetNoReason"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>If NO, Why?</FormLabel>
+                                        <FormControl><Textarea {...field} /></FormControl>
+                                        <FormMessage />
                                     </FormItem>
-                                    <FormItem className="flex items-center space-x-2 space-y-0">
-                                        <FormControl><RadioGroupItem value="false" /></FormControl>
-                                        <FormLabel className="font-normal">No</FormLabel>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="sendFollowUpCampaigns"
+                                render={({ field }) => (
+                                    <FormItem className="space-y-2">
+                                    <FormLabel>Send Automatic 3, 7, and 14 day reminders?</FormLabel>
+                                    <FormControl>
+                                        <RadioGroup
+                                        onValueChange={(val) => field.onChange(val === 'true')}
+                                        value={String(field.value)}
+                                        className="flex items-center gap-4"
+                                        >
+                                        <FormItem className="flex items-center space-x-2 space-y-0">
+                                            <FormControl><RadioGroupItem value="true" /></FormControl>
+                                            <FormLabel className="font-normal">Yes</FormLabel>
+                                        </FormItem>
+                                        <FormItem className="flex items-center space-x-2 space-y-0">
+                                            <FormControl><RadioGroupItem value="false" /></FormControl>
+                                            <FormLabel className="font-normal">No</FormLabel>
+                                        </FormItem>
+                                        </RadioGroup>
+                                    </FormControl>
+                                    <FormMessage />
                                     </FormItem>
-                                    </RadioGroup>
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                                )}
+                            />
+                        </div>
                     )}
                 </div>
             </div>
