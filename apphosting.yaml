@@ -30,9 +30,7 @@ env:
   - variable: CRON_SECRET
     secret: CRON_SECRET
   - variable: GOOGLE_ADS_WEBHOOK_SECRET
-    secret: 
-      name: GOOGLE_ADS_WEBHOOK_SECRET
-      optional: true
+    secret: GOOGLE_ADS_WEBHOOK_SECRET
     availability:
       - BUILD
       - RUNTIME
