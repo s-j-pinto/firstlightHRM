@@ -49,5 +49,318 @@
         "text": "The client-facing signing page will only show the fields relevant for their signature, ensuring a simple and secure process."
       }
     ]
+  },
+  "candidateSearch": {
+    "title": "Candidate Search Guide",
+    "content": [
+      {
+        "type": "paragraph",
+        "text": "The Candidate Search allows you to build a custom query to find caregiver applicants based on a wide range of criteria."
+      },
+      {
+        "type": "heading",
+        "text": "How to Use"
+      },
+      {
+        "type": "list",
+        "items": [
+          "<strong>Hiring Status:</strong> Filter candidates by their current stage in the hiring pipeline (e.g., 'Applied', 'Hired', 'Final Interview Pending').",
+          "<strong>Application Date Range:</strong> Narrow your search to candidates who applied within a specific timeframe.",
+          "<strong>Skills & Attributes:</strong> Check the boxes for the skills or certifications you require. You can choose to match candidates who have 'Any Selected' skill or 'All Selected' skills.",
+          "<strong>Search:</strong> Click the search button to apply all selected filters and view the results.",
+          "<strong>Clear Filters:</strong> Resets all filters to their default state and shows all candidates.",
+          "<strong>Manage Interview:</strong> For any actionable candidate in the results table, click this button to jump directly to the Interview Management page for that person."
+        ]
+      }
+    ]
+  },
+  "phonescreenDashboard": {
+    "title": "Phonescreen Dashboard Guide",
+    "content": [
+      {
+        "type": "paragraph",
+        "text": "This dashboard displays all upcoming phone screen appointments that have been scheduled by applicants but not yet confirmed with a calendar invite."
+      },
+      {
+        "type": "heading",
+        "text": "Key Actions"
+      },
+      {
+        "type": "list",
+        "items": [
+          "<strong>View Profile:</strong> Click to see the applicant's full profile, including experience, skills, and availability.",
+          "<strong>Edit Appointment:</strong> Allows you to change the date and time of the scheduled appointment if needed. This will reset the invite status.",
+          "<strong>Send Invite:</strong> This is the most important action. Clicking this sends a Google Calendar invite to the applicant and the office administrator for the scheduled time, confirming the appointment.",
+          "<strong>Invite Sent:</strong> Once an invite is sent, the button will be disabled to prevent duplicate invitations."
+        ]
+      },
+      {
+        "type": "paragraph",
+        "text": "<strong>Important:</strong> If you see a 'Action Required: Authorize Google Calendar' warning, it means you need to connect the app to Google Calendar. Follow the instructions in the warning or go to the 'Admin Settings' page."
+      }
+    ]
+  },
+  "manageInterviews": {
+    "title": "Interview Management Guide",
+    "content": [
+      {
+        "type": "paragraph",
+        "text": "This page is where you conduct and record the entire interview process for a selected candidate, from the initial phone screen to hiring."
+      },
+      {
+        "type": "heading",
+        "text": "Process Flow"
+      },
+      {
+        "type": "list",
+        "items": [
+          "<strong>1. Search:</strong> Find the candidate by name or phone number.",
+          "<strong>2. Phone Screen:</strong> Enter notes from the call, give the candidate a rating, and generate AI insights for a summary.",
+          "<strong>3. Pass/Fail:</strong> Mark if the candidate passed the phone screen. If 'Yes', you will be prompted to schedule the next event.",
+          "<strong>4. Schedule Next Event:</strong> You can schedule a 'Separate' final interview or a 'Combined' Interview + Orientation. Set the date and time, and a Google Calendar invite will be sent.",
+          "<strong>5. Final Interview:</strong> After the in-person or video interview, mark the candidate as 'Passed' or 'Failed'.",
+          "<strong>6. Schedule Orientation:</strong> If the final interview is passed, you can then schedule the orientation session.",
+          "<strong>7. Hire:</strong> Once orientation is scheduled, you can complete the process by entering the final hiring details and TeleTrack PIN."
+        ]
+      }
+    ]
+  },
+  "manageApplications": {
+    "title": "Application Management Guide",
+    "content": [
+      {
+        "type": "paragraph",
+        "text": "This page allows you to look up and directly edit the general information for any caregiver applicant."
+      },
+      {
+        "type": "heading",
+        "text": "How to Use"
+      },
+      {
+        "type": "list",
+        "items": [
+          "<strong>Search:</strong> Use the search bar to find a caregiver by their full name or phone number.",
+          "<strong>Select:</strong> Click on a caregiver from the search results to load their information into the form.",
+          "<strong>Edit:</strong> Make any necessary changes to their profile information in the fields provided.",
+          "<strong>Save Changes:</strong> Click to save the updated information back to the database."
+        ]
+      }
+    ]
+  },
+  "adminReports": {
+    "title": "Reports Guide",
+    "content": [
+      {
+        "type": "paragraph",
+        "text": "The reports section provides historical data and trends for key business operations. Use the dropdown menu to switch between different reports."
+      },
+      {
+        "type": "heading",
+        "text": "Available Reports"
+      },
+      {
+        "type": "list",
+        "items": [
+          "<strong>Candidate Interview Status:</strong> Tracks all applicants through every stage of the hiring process, from initial application to 'Hired' or 'Failed'.",
+          "<strong>Cancelled Phone Screen Appointments:</strong> A log of all phone screen appointments that were cancelled by an admin, including the reason for cancellation.",
+          "<strong>Client Care Request Status:</strong> (Staffing/Owner) A summary of all additional care requests from clients and their current status (pending, scheduled, etc.).",
+          "<strong>Referrals and Rewards Status:</strong> (Owner) An overview of all client referrals and the status of any rewards that have been issued."
+        ]
+      }
+    ]
+  },
+  "adminSettings": {
+    "title": "Admin Settings Guide",
+    "content": [
+      {
+        "type": "paragraph",
+        "text": "This section is for configuring application-wide settings, primarily related to appointment availability and Google Calendar integration."
+      },
+      {
+        "type": "heading",
+        "text": "Key Settings"
+      },
+      {
+        "type": "list",
+        "items": [
+          "<strong>Interview Availability:</strong> Set the available time slots for caregiver phone screen interviews for each day of the week. Use 24-hour format, separated by commas (e.g., '10:00, 11:00, 14:00').",
+          "<strong>In-Home Assessment Availability:</strong> Set the time slots for new client in-home visits. This populates the scheduler on the lead intake form.",
+          "<strong>Google Calendar Setup:</strong> This is a critical one-time setup. To allow the app to send calendar invites, you must authorize it. Click the authorization link from the Phonescreen Dashboard, grant permission, and paste the resulting 'code' from the URL into the 'Authorization Code' box here. Click save to generate a Refresh Token, which must then be saved in your environment variables."
+        ]
+      }
+    ]
+  },
+  "clientAssessments": {
+    "title": "Client Assessments Guide",
+    "content": [
+      {
+        "type": "paragraph",
+        "text": "This dashboard provides a unified view of all new client intakes, from the first phone call to the final signed agreement."
+      },
+      {
+        "type": "heading",
+        "text": "Understanding the List"
+      },
+      {
+        "type": "list",
+        "items": [
+          "The list shows every lead that has entered the system, regardless of its source (phone call, referral, Google Ad).",
+          "<strong>Status:</strong> The status badge shows the current stage of the lead, such as 'Initial Phone Contact Completed', 'Pending Client Signatures', or 'Signed and Published'.",
+          "<strong>Action Links:</strong> Use the 'Open Intake' link to view or edit the initial contact details. Use the 'Open CSA' link to work on the full Client Service Agreement for that lead."
+        ]
+      }
+    ]
+  },
+  "carelogGroups": {
+    "title": "CareLog Group Management",
+    "content": [
+      {
+        "type": "paragraph",
+        "text": "This is where you manage the core of the CareLog system. A 'Group' links a specific client to one or more active caregivers who will be providing their care."
+      },
+      {
+        "type": "heading",
+        "text": "Key Actions"
+      },
+      {
+        "type": "list",
+        "items": [
+          "<strong>Create Group:</strong> Click to create a new group. You must select an active client and at least one active caregiver.",
+          "<strong>Edit Group:</strong> Allows you to add or remove caregivers from an existing group.",
+          "<strong>Mark as Inactive:</strong> Use this to archive a group when a client's service ends. This prevents caregivers from submitting new logs for that client but preserves all historical data.",
+          "<strong>Reactivate Group:</strong> This button appears for inactive groups and allows you to make them active again.",
+          "<strong>View Reports:</strong> The file icon will appear if a group has logs. Click it to see a detailed report of all submitted CareLogs for that client."
+        ]
+      }
+    ]
+  },
+  "carelogTemplates": {
+    "title": "CareLog Template Management",
+    "content": [
+      {
+        "type": "paragraph",
+        "text": "Templates allow you to create structured forms for caregivers to fill out, ensuring consistent and detailed care notes. You can create different templates for clients with different needs."
+      },
+      {
+        "type": "heading",
+        "text": "How to Use"
+      },
+      {
+        "type": "list",
+        "items": [
+          "<strong>Create Template:</strong> Give the template a name and select which sections (e.g., 'Personal Care', 'Meals & Hydration') should be included.",
+          "<strong>Assign Template:</strong> When you create or edit a CareLog Group, you can assign one of your templates to it from the dropdown menu.",
+          "<strong>Caregiver View:</strong> When a caregiver selects a client group that has a template assigned, they will see the full structured form instead of just a single notes box."
+        ]
+      }
+    ]
+  },
+  "manageClients": {
+    "title": "Manage Clients Guide",
+    "content": [
+      {
+        "type": "paragraph",
+        "text": "This page is used to manage the master list of clients in the system. The data here is synced from an external system via CSV upload."
+      },
+      {
+        "type": "heading",
+        "text": "How it Works"
+      },
+      {
+        "type": "list",
+        "items": [
+          "<strong>Upload CSV:</strong> Select a CSV file containing your client list. The file must contain columns for at least 'Client Name' and 'Mobile'.",
+          "<strong>Syncing Process:</strong> When you upload, the system will update existing clients, add new ones, and automatically mark any client not present in the file as 'INACTIVE'. This ensures your list is always current.",
+          "<strong>View Clients:</strong> The list below the upload button shows all currently 'ACTIVE' clients in the database."
+        ]
+      }
+    ]
+  },
+  "manageActiveCaregivers": {
+    "title": "Manage Active Caregivers Guide",
+    "content": [
+      {
+        "type": "paragraph",
+        "text": "This page is used to manage the master list of your active, hired caregivers. This data is synced from an external system via CSV upload and is separate from the applicant profiles."
+      },
+      {
+        "type": "heading",
+        "text": "How it Works"
+      },
+      {
+        "type": "list",
+        "items": [
+          "<strong>Upload CSV:</strong> Select a CSV file containing your active caregiver list. The file must contain an 'Email' column, which is used as the unique identifier.",
+          "<strong>Syncing Process:</strong> When you upload, the system updates existing records, adds new caregivers, and marks any active caregiver not in the file as 'INACTIVE'. This ensures caregivers who have left are no longer able to log in.",
+          "<strong>TTiD-PIN:</strong> This PIN is required for caregivers to log into their portal. Ensure it is included and correct in your CSV file.",
+          "<strong>View Caregivers:</strong> The list below shows all currently 'ACTIVE' caregivers."
+        ]
+      }
+    ]
+  },
+  "manageClientRequests": {
+    "title": "Manage Client Requests Guide",
+    "content": [
+      {
+        "type": "paragraph",
+        "text": "This dashboard is where you review and process all incoming requests from clients via their portal."
+      },
+      {
+        "type": "heading",
+        "text": "Request Types"
+      },
+      {
+        "type": "list",
+        "items": [
+          "<strong>Additional Care Requests:</strong> These are requests for extra hours or shifts. Click on a request card to view the full details, add internal notes, and update its status to 'Reviewed', 'Scheduled', or 'Denied'.",
+          "<strong>Video Check-in Requests:</strong> These are requests for a brief video call. Click on a request to assign a caregiver, schedule the date/time, and automatically send a Google Meet invitation to both the client and the caregiver."
+        ]
+      }
+    ]
+  },
+  "referralManagement": {
+    "title": "Referral Management Guide",
+    "content": [
+      {
+        "type": "paragraph",
+        "text": "This page allows the owner to manage the entire client referral program, from activating clients to issuing rewards."
+      },
+      {
+        "type": "heading",
+        "text": "Key Actions"
+      },
+      {
+        "type": "list",
+        "items": [
+          "<strong>Activate Client:</strong> To enable a client to make referrals, you must first generate a unique referral code for them using the 'Activate Client' section.",
+          "<strong>Manage Referrals:</strong> The main table shows all referrals that have been made. Click 'Manage' on a referral to update its status.",
+          "<strong>Update Status:</strong> Change a referral's status from 'Pending' to 'Converted' (when the new client signs up) or 'Rewarded' (after a reward has been issued).",
+          "<strong>Issue Reward:</strong> When updating a status, you can check the 'Issue Reward' box to create a new reward record for the referring client. You can specify the reward type, amount, and a description."
+        ]
+      }
+    ]
+  },
+  "campaignManagement": {
+    "title": "Follow-up Campaign Management",
+    "content": [
+      {
+        "type": "paragraph",
+        "text": "This feature allows you to create automated email follow-up sequences that are sent to leads who have not yet converted into clients."
+      },
+      {
+        "type": "heading",
+        "text": "How to Use"
+      },
+      {
+        "type": "list",
+        "items": [
+          "<strong>Create Template:</strong> Click to design a new email template. You can use HTML for formatting.",
+          "<strong>Placeholders:</strong> Use `{{clientName}}` and `{{assessmentLink}}` in the body of your email. These will be automatically replaced with the client's name and a unique link to the lead intake form.",
+          "<strong>Set Interval:</strong> The 'Send After (Days)' field determines when the email is sent. A value of '3' sends the email 3 days after the initial contact. A value of '0' is special: it will send the email immediately when a lead is created from a specified source.",
+          "<strong>Immediate Sending:</strong> If you set the interval to 0, you can choose which lead sources (e.g., 'Google Ads', 'App Referral') should trigger this email instantly."
+        ]
+      }
+    ]
   }
 }
+    

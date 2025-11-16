@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -10,6 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import ClientCareRequestsReport from '@/components/client-care-requests-report';
+import { HelpDialog } from '@/components/HelpDialog';
 
 export default function StaffingReportsPage() {
   const [selectedReport, setSelectedReport] = useState('client_care_requests');
@@ -23,16 +23,19 @@ export default function StaffingReportsPage() {
                     Analyze trends and historical data by selecting a report.
                 </p>
             </div>
-            <div className="w-full sm:w-[280px]">
-                 <Select value={selectedReport} onValueChange={setSelectedReport}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select a report" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="client_care_requests">Client Care Requests Status</SelectItem>
-                        {/* Add more reports here as they are built */}
-                    </SelectContent>
-                </Select>
+             <div className="flex items-center gap-4">
+                <div className="w-full sm:w-[280px]">
+                    <Select value={selectedReport} onValueChange={setSelectedReport}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select a report" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="client_care_requests">Client Care Requests Status</SelectItem>
+                            {/* Add more reports here as they are built */}
+                        </SelectContent>
+                    </Select>
+                </div>
+                 <HelpDialog topic="adminReports" />
             </div>
         </div>
       
@@ -42,3 +45,5 @@ export default function StaffingReportsPage() {
     </div>
   );
 }
+
+    

@@ -1,20 +1,23 @@
-
 "use client";
 
 import ManageClientRequestsClient from '@/components/manage-client-requests-client';
 import ManageVideoCheckinsClient from '@/components/manage-video-checkins-client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { HelpDialog } from '@/components/HelpDialog';
 
 export default function ManageClientRequestsPage() {
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight font-headline">
-          Manage Client Requests
-        </h1>
-        <p className="text-muted-foreground">
-          Review and process all incoming requests from clients.
-        </p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight font-headline">
+            Manage Client Requests
+          </h1>
+          <p className="text-muted-foreground">
+            Review and process all incoming requests from clients.
+          </p>
+        </div>
+        <HelpDialog topic="manageClientRequests" />
       </div>
 
       <Tabs defaultValue="care_requests">
@@ -36,3 +39,5 @@ export default function ManageClientRequestsPage() {
     </div>
   );
 }
+
+    

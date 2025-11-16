@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { HelpDialog } from '@/components/HelpDialog';
 
 export default function ReportsPage() {
   const [selectedReport, setSelectedReport] = useState('candidate_status');
@@ -24,16 +25,19 @@ export default function ReportsPage() {
                     Analyze trends and historical data by selecting a report.
                 </p>
             </div>
-            <div className="w-full sm:w-[280px]">
-                 <Select value={selectedReport} onValueChange={setSelectedReport}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select a report" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="candidate_status">Candidate Interview Status</SelectItem>
-                        <SelectItem value="cancelled_interviews">Cancelled Phone Screen Appointments</SelectItem>
-                    </SelectContent>
-                </Select>
+            <div className="flex items-center gap-4">
+                <div className="w-full sm:w-[280px]">
+                    <Select value={selectedReport} onValueChange={setSelectedReport}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select a report" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="candidate_status">Candidate Interview Status</SelectItem>
+                            <SelectItem value="cancelled_interviews">Cancelled Phone Screen Appointments</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <HelpDialog topic="adminReports" />
             </div>
         </div>
       
@@ -44,3 +48,5 @@ export default function ReportsPage() {
     </div>
   );
 }
+
+    

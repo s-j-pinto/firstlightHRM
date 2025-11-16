@@ -6,6 +6,7 @@ import { Loader2, Phone } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import ClientSignupList from "@/components/client-signup-list";
+import { HelpDialog } from "@/components/HelpDialog";
 
 export default function OwnerDashboardPage() {
   const { user, isUserLoading } = useUser();
@@ -29,15 +30,20 @@ export default function OwnerDashboardPage() {
                     Manage new client intake forms and view their status.
                 </p>
             </div>
-            <Button asChild>
-                <Link href="/owner/initial-contact">
-                    <Phone className="mr-2" />
-                    New Initial Contact
-                </Link>
-            </Button>
+             <div className="flex items-center gap-4">
+                <Button asChild>
+                    <Link href="/owner/initial-contact">
+                        <Phone className="mr-2" />
+                        New Initial Contact
+                    </Link>
+                </Button>
+                 <HelpDialog topic="clientAssessments" />
+            </div>
         </div>
       
       <ClientSignupList />
     </div>
   );
 }
+
+    

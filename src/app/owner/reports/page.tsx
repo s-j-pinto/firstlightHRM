@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { HelpDialog } from '@/components/HelpDialog';
 
 export default function OwnerReportsPage() {
   const [selectedReport, setSelectedReport] = useState('candidate_status');
@@ -25,18 +26,21 @@ export default function OwnerReportsPage() {
                     Analyze trends and historical data by selecting a report.
                 </p>
             </div>
-            <div className="w-full sm:w-[280px]">
-                 <Select value={selectedReport} onValueChange={setSelectedReport}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select a report" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="candidate_status">Candidate Interview Status</SelectItem>
-                        <SelectItem value="cancelled_interviews">Cancelled Phone Screen Appointments</SelectItem>
-                        <SelectItem value="client_care_requests">Client Care Request Status</SelectItem>
-                        <SelectItem value="referrals_rewards">Referrals and Rewards Status</SelectItem>
-                    </SelectContent>
-                </Select>
+            <div className="flex items-center gap-4">
+                <div className="w-full sm:w-[280px]">
+                    <Select value={selectedReport} onValueChange={setSelectedReport}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select a report" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="candidate_status">Candidate Interview Status</SelectItem>
+                            <SelectItem value="cancelled_interviews">Cancelled Phone Screen Appointments</SelectItem>
+                            <SelectItem value="client_care_requests">Client Care Request Status</SelectItem>
+                            <SelectItem value="referrals_rewards">Referrals and Rewards Status</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <HelpDialog topic="adminReports" />
             </div>
         </div>
       
@@ -49,3 +53,5 @@ export default function OwnerReportsPage() {
     </div>
   );
 }
+
+    
