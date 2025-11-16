@@ -361,6 +361,102 @@
         ]
       }
     ]
+  },
+  "clientDashboard": {
+    "title": "Client Portal Guide",
+    "content": [
+      {
+        "type": "paragraph",
+        "text": "Welcome to your personal client portal. From here you can access several features related to your care."
+      },
+      {
+        "type": "heading",
+        "text": "Portal Features"
+      },
+      {
+        "type": "list",
+        "items": [
+          "<strong>Request Additional Care:</strong> If you need extra help on a specific day, use this feature to send a request to our staffing team.",
+          "<strong>View Care Log Reports:</strong> Access detailed reports submitted by your caregivers. If this is disabled, please contact our office to have it enabled.",
+          "<strong>Request Video Check-in:</strong> Use this to schedule a brief video call with a member of your care team.",
+          "<strong>Refer & Earn:</strong> Access your unique referral code and invite friends to earn rewards."
+        ]
+      }
+    ]
+  },
+  "clientReferrals": {
+    "title": "Referral Program Guide",
+    "content": [
+      {
+        "type": "paragraph",
+        "text": "Welcome to our referral program! You can earn rewards by referring friends and family to FirstLight Home Care."
+      },
+      {
+        "type": "heading",
+        "text": "How to Refer"
+      },
+      {
+        "type": "list",
+        "items": [
+          "<strong>Share Your Code:</strong> Copy your unique referral code and share it with your friend. They can provide it to us when they first make contact.",
+          "<strong>Invite a Friend:</strong> Use the form to send an email invitation directly to your friend. This email will contain your referral code and a link for them to request care."
+        ]
+      },
+      {
+        "type": "heading",
+        "text": "Tracking Status"
+      },
+      {
+        "type": "list",
+        "items": [
+          "<strong>Your Referrals:</strong> This section shows everyone you have referred and the current status of their application.",
+          "<strong>Your Rewards:</strong> Once a referral becomes a client and meets the service requirements, you will see your earned reward appear here."
+        ]
+      }
+    ]
+  },
+  "clientRequestCare": {
+    "title": "Requesting Additional Care",
+    "content": [
+      {
+        "type": "paragraph",
+        "text": "Use this form to request additional care hours outside of your normally scheduled services. Our staffing team will review your request and get in touch to confirm availability."
+      },
+      {
+        "type": "heading",
+        "text": "Filling Out the Form"
+      },
+      {
+        "type": "list",
+        "items": [
+          "<strong>Preferred Date & Time:</strong> Select the ideal start date and time for the additional care.",
+          "<strong>Duration:</strong> Choose how long you will need the care for (e.g., 4 hours, overnight).",
+          "<strong>Reason for Request:</strong> Please provide a brief explanation for the request (e.g., family event, recovering from a procedure). This helps us understand your needs better.",
+          "<strong>Urgency:</strong> Let us know how quickly you need a response so we can prioritize your request."
+        ]
+      }
+    ]
+  },
+  "clientCareLogReport": {
+    "title": "Understanding Your Care Log Report",
+    "content": [
+      {
+        "type": "paragraph",
+        "text": "This page displays a detailed history of the care logs submitted by your assigned caregivers for each shift."
+      },
+      {
+        "type": "heading",
+        "text": "Report Details"
+      },
+      {
+        "type": "list",
+        "items": [
+          "Each card represents a single care log for a specific shift.",
+          "<strong>Shift Details:</strong> The top of each card shows the date, time, and the name of the caregiver who submitted the log.",
+          "<strong>Notes & Data:</strong> You will see any general notes typed by the caregiver, as well as any structured data they filled out using a template (e.g., meals, activities, observations).",
+          "<strong>Images:</strong> If the caregiver scanned a handwritten document, the image will be displayed at the bottom of the log."
+        ]
+      }
+    ]
   }
 }
-    

@@ -13,6 +13,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { HelpDialog } from '@/components/HelpDialog';
 
 
 const FormattedTemplateData = ({ data }: { data: any }) => {
@@ -160,20 +161,23 @@ export default function CareLogReportPage() {
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center gap-2">
-            <FileText className="text-accent" />
-            Care Log Report
-        </h1>
-        <p className="text-xl text-muted-foreground mt-1">
-            Client: <span className="font-semibold text-foreground">{groupData.clientName}</span>
-        </p>
-        <Button asChild variant="outline" className="mt-4">
-            <Link href="/client/dashboard">
-                <ArrowLeft className="mr-2" />
-                Back to Dashboard
-            </Link>
-        </Button>
+      <div className="flex justify-between items-start mb-8">
+        <div>
+            <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center gap-2">
+                <FileText className="text-accent" />
+                Care Log Report
+            </h1>
+            <p className="text-xl text-muted-foreground mt-1">
+                Client: <span className="font-semibold text-foreground">{groupData.clientName}</span>
+            </p>
+            <Button asChild variant="outline" className="mt-4">
+                <Link href="/client/dashboard">
+                    <ArrowLeft className="mr-2" />
+                    Back to Dashboard
+                </Link>
+            </Button>
+        </div>
+        <HelpDialog topic="clientCareLogReport" />
       </div>
 
       {sortedLogs.length > 0 ? (
@@ -232,5 +236,3 @@ export default function CareLogReportPage() {
     </div>
   );
 }
-
-    

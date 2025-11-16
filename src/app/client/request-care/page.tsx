@@ -21,6 +21,7 @@ import { format } from "date-fns";
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { submitCareRequest } from "@/lib/client-care-request.actions";
+import { HelpDialog } from "@/components/HelpDialog";
 
 const requestCareSchema = z.object({
   preferredDate: z.date({ required_error: "A preferred date is required." }),
@@ -62,18 +63,21 @@ export default function RequestCarePage() {
         toast({ title: "Request Failed", description: result.message, variant: "destructive" });
       } else {
         toast({ title: "Request Sent", description: result.message });
-        router.push("/client-dashboard"); // Or a confirmation page
+        router.push("/client/dashboard"); // Or a confirmation page
       }
     });
   };
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>Request Additional Care</CardTitle>
-        <CardDescription>
-          Fill out the form below to request additional care hours. Our staffing team will review your request and be in touch shortly.
-        </CardDescription>
+      <CardHeader className="flex flex-row justify-between items-start">
+        <div>
+            <CardTitle>Request Additional Care</CardTitle>
+            <CardDescription>
+              Fill out the form below to request additional care hours. Our staffing team will review your request and be in touch shortly.
+            </CardDescription>
+        </div>
+        <HelpDialog topic="clientRequestCare" />
       </CardHeader>
       <CardContent>
         <Form {...form}>

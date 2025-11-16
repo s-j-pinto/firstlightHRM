@@ -19,6 +19,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { requestVideoCheckin } from "@/lib/video-checkin.actions";
+import { HelpDialog } from "@/components/HelpDialog";
 
 
 const videoCheckinSchema = z.object({
@@ -113,12 +114,17 @@ export default function ClientDashboardPage() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="text-3xl font-bold tracking-tight font-headline mb-2">
-        Welcome, {clientName || 'Client'}!
-      </h1>
-      <p className="text-muted-foreground mb-8">
-        This is your personal client portal.
-      </p>
+      <div className="flex justify-between items-start mb-8">
+        <div>
+            <h1 className="text-3xl font-bold tracking-tight font-headline mb-2">
+                Welcome, {clientName || 'Client'}!
+            </h1>
+            <p className="text-muted-foreground">
+                This is your personal client portal.
+            </p>
+        </div>
+        <HelpDialog topic="clientDashboard" />
+      </div>
       
       <Card>
         <CardHeader>

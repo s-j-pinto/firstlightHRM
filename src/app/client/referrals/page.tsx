@@ -19,6 +19,7 @@ import { sendReferralInvite } from '@/lib/referral.actions';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { HelpDialog } from '@/components/HelpDialog';
 
 const referralInviteSchema = z.object({
     friendEmail: z.string().email("Please enter a valid email address."),
@@ -111,12 +112,15 @@ export default function ReferralsPage() {
           <h1 className="text-3xl font-bold tracking-tight font-headline mb-2 flex items-center gap-2"><Gift /> Referral Program</h1>
           <p className="text-muted-foreground">Know another family member or friend who might benefit from compassionate home care? Refer them easily and you both will receive 2 free hours of care each when they sign up for atleast 30 hours of service as a thank-you credit.</p>
         </div>
-        <Button asChild variant="outline">
-          <Link href="/client/dashboard">
-            <ArrowLeft className="mr-2" />
-            Back to Dashboard
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+            <Button asChild variant="outline">
+              <Link href="/client/dashboard">
+                <ArrowLeft className="mr-2" />
+                Back to Dashboard
+              </Link>
+            </Button>
+            <HelpDialog topic="clientReferrals" />
+        </div>
       </div>
       
        {isLoading ? (
