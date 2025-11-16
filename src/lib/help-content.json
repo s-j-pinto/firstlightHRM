@@ -40,7 +40,7 @@
         "items": [
           "<strong>Save as Incomplete:</strong> Saves your current progress as a draft. Use this if you need to gather more information before sending to the client.",
           "<strong>View PDF:</strong> Generates a preview of the current state of the document as a PDF. This is useful for a final review before sending.",
-          "<strong>Save and Send for Signature:</strong> This action saves the form and sends an email to the client with a secure link to review and sign the document.",
+          "<strong>Save and Send for Signature:</strong> This saves the form and sends a secure portal link to the client's email. <strong>Crucially, ensure the client's email and phone number are correct</strong>, as they will need them to log in and sign.",
           "<strong>Submit and Finalize:</strong> After the client has signed, the owner must complete any final fields and click this button. This generates the final, signed PDF, saves it to storage, and sends a copy to both the client and the office."
         ]
       },
