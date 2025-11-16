@@ -1,0 +1,53 @@
+{
+  "initialContact": {
+    "title": "Initial Contact Form Guide",
+    "content": [
+      {
+        "type": "paragraph",
+        "text": "This form is for documenting the first call with a potential new client. Fill in as much detail as possible. You can save your progress and return later."
+      },
+      {
+        "type": "heading",
+        "text": "Key Actions"
+      },
+      {
+        "type": "list",
+        "items": [
+          "<strong>Save Initial Contact:</strong> Click this to save any changes you've made. The form will remain open. You must save before creating the Client Service Agreement.",
+          "<strong>Create/Open Client Service Agreement:</strong> After saving the initial contact, this button will become active. Click it to proceed to the full Client Service Agreement (CSA) for this client.",
+          "<strong>Close Contact:</strong> Use this option only if the client is no longer interested or viable. This will archive the record."
+        ]
+      },
+      {
+        "type": "paragraph",
+        "text": "If you schedule an In-Home Visit and save, automated follow-up emails for this lead will be stopped automatically."
+      }
+    ]
+  },
+  "csa": {
+    "title": "Client Service Agreement (CSA) Guide",
+    "content": [
+      {
+        "type": "paragraph",
+        "text": "This form is the main service agreement. Data from the Initial Contact is pre-filled. Complete all required sections before proceeding."
+      },
+      {
+        "type": "heading",
+        "text": "Signature & Finalization Process"
+      },
+      {
+        "type": "list",
+        "items": [
+          "<strong>Save as Incomplete:</strong> Saves your current progress as a draft. Use this if you need to gather more information before sending to the client.",
+          "<strong>View PDF:</strong> Generates a preview of the current state of the document as a PDF. This is useful for a final review before sending.",
+          "<strong>Save and Send for Signature:</strong> This action saves the form and sends an email to the client with a secure link to review and sign the document.",
+          "<strong>Submit and Finalize:</strong> After the client has signed, the owner must complete any final fields and click this button. This generates the final, signed PDF, saves it to storage, and sends a copy to both the client and the office."
+        ]
+      },
+      {
+        "type": "paragraph",
+        "text": "The client-facing signing page will only show the fields relevant for their signature, ensuring a simple and secure process."
+      }
+    ]
+  }
+}

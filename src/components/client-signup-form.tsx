@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Calendar } from "./ui/calendar";
 import { Checkbox } from "./ui/checkbox";
+import { HelpDialog } from "./HelpDialog";
 
 const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
 
@@ -559,6 +560,13 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
 
         <Form {...form}>
             <form className="space-y-8">
+                
+                 {mode === 'owner' && (
+                  <div className="flex justify-end -mb-4">
+                    <HelpDialog topic="csa" />
+                  </div>
+                 )}
+
                 <h2 className="text-2xl font-bold text-center">CLIENT SERVICE AGREEMENT</h2>
                 <p className="text-sm text-muted-foreground">
                     Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated. This Client Service Agreement (the "Agreement") is entered into between the client, or his or her authorized representative, (the "Client") and FirstLight Home Care of Rancho Cucamonga CA, address 9650 Business Center drive, Suite 132, Rancho Cucamonga CA 91730 phone number 9093214466 ("FirstLight Home Care")
@@ -993,5 +1001,3 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
     </Card>
   );
 }
-
-

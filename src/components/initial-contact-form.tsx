@@ -38,6 +38,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Label } from "@/components/ui/label";
+import { HelpDialog } from "./HelpDialog";
 
 
 const companionCareCheckboxes = [
@@ -349,6 +350,10 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             
+            <div className="flex justify-end -mb-4">
+                <HelpDialog topic="initialContact" />
+            </div>
+
             {authUrl && (
                 <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
