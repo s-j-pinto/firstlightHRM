@@ -17,7 +17,7 @@ export async function loginNewClient(email: string, password: string) {
     const signupsRef = serverDb.collection('client_signups');
     const query = signupsRef
       .where('clientEmail', '==', normalizedEmail)
-      .where('status', '==', 'PENDING CLIENT SIGNATURES')
+      .where('status', '==', 'Pending Client Signatures')
       .limit(1);
 
     const snapshot = await query.get();
