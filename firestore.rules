@@ -19,7 +19,7 @@ service cloud.firestore {
     }
     function isActiveCaregiver() {
       let isCaregiver = exists(/databases/$(database)/documents/caregivers_active/$(request.auth.uid));
-      let isActive = get(/databases/$(database)/documents/caregivers_active/$(request.auth.uid)).data.status == 'ACTIVE';
+      let isActive = get(/databases/$(database)/documents/caregivers_active/$(request.auth.uid)).data.status == 'Active';
       return isCaregiver && isActive;
     }
     function isClientUser() {
@@ -168,7 +168,7 @@ service cloud.firestore {
      */
     match /rewards/{rewardsId} {
       allow get, list: if true;
-      allow create, update: if isSignedIn();
+      allow create, update: if isAnyAdmin();
       allow delete: if false;
     }
     /**
@@ -181,7 +181,7 @@ service cloud.firestore {
      */
     match /referrals/{referralsId} {
       allow get, list: if true;
-      allow create, update: if isSignedIn();
+      allow create, update: if isAnyAdmin();
       allow delete: if false;
     }
      /**
@@ -194,21 +194,13 @@ service cloud.firestore {
      */
     match /referral_profiles/{profileId} {
       allow get, list: if true;
-      allow create, update: if isSignedIn();
+      allow create, update: if isAnyAdmin();
       allow delete: if false;
     }
-    /**
-     * @description Controls access to campaign templates. Open for all.
-     * @path /campaign_templates/{campaignTemplatesId}
-     * @allow (get, list) - Any user can campaign_templates.
-     * @allow (create) - Any authenticated user can create a campaign_templates.
-     * @deny (update, delete) - No user can update or delete a campaign_templates.
-     * @principle Open read access.
-     */
-    match /campaign_templates/{campaignTemplatesId} {
-      allow get, list: if true;
-      allow create, update: if isSignedIn();
-      allow delete: if false;
+    
+    // Campaign templates can be read and managed only by the Owner.
+    match /campaign_templates/{templateId} {
+      allow read, write: if isOwner();
     }
   }
 }

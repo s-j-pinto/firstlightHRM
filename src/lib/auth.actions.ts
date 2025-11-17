@@ -17,7 +17,7 @@ export async function loginActiveCaregiver(email: string, pin: string) {
     const caregiversRef = serverDb.collection('caregivers_active');
     const query = caregiversRef
       .where('Email', '==', normalizedEmail)
-      .where('status', '==', 'ACTIVE')
+      .where('status', '==', 'Active')
       .limit(1);
 
     const snapshot = await query.get();

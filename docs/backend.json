@@ -27,10 +27,13 @@
             "estimatedStartDate": { "type": "string", "format": "date-time" },
             "inHomeVisitSet": { "type": "string", "enum": ["Yes", "No"] },
             "inHomeVisitSetNoReason": { "type": "string" },
-            "status": { "type": "string", "enum": ["Initial Phone Contact Completed", "In-Home Visit Scheduled"] },
+            "sendFollowUpCampaigns": { "type": "boolean", "description": "Whether to enroll the lead in automated follow-up email campaigns." },
+            "status": { "type": "string", "enum": ["Initial Phone Contact Completed", "In-Home Visit Scheduled", "App Referral Received", "Google Ads Lead Received", "Closed"] },
+            "closureReason": { "type": "string", "description": "The reason why a contact was closed." },
             "createdAt": { "type": "string", "format": "date-time" },
             "createdBy": { "type": "string", "format": "email" },
             "lastUpdatedAt": { "type": "string", "format": "date-time" },
+            "followUpHistory": { "type": "array", "items": { "type": "object" }, "description": "Tracks sent follow-up messages to prevent duplicates." },
             "medicalIns": { "type": "string" },
             "dnr": { "type": "boolean" },
             "va": { "type": "string" },
@@ -39,6 +42,8 @@
             "contactPhone": { "type": "string" },
             "languagePreference": { "type": "string" },
             "additionalEmail": { "type": "string", "format": "email" },
+            "googleAdsLeadId": { "type": "string" },
+            "googleAdsCampaignId": { "type": "string" },
             "companionCare_mealPreparation": { "type": "boolean" },
             "companionCare_cleanKitchen": { "type": "boolean" },
             "companionCare_assistWithLaundry": { "type": "boolean" },
@@ -63,6 +68,24 @@
             "clientName", "clientAddress", "clientPhone", 
             "clientEmail", "promptedCall", "status", "createdAt", "lastUpdatedAt"
         ]
+    },
+    "CampaignTemplate": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CampaignTemplate",
+      "type": "object",
+      "description": "A template for an automated follow-up message.",
+      "properties": {
+        "name": { "type": "string", "description": "The internal name of the template." },
+        "description": { "type": "string", "description": "A brief description of the template's purpose." },
+        "type": { "type": "string", "enum": ["email", "sms"], "description": "The type of message to send." },
+        "intervalDays": { "type": "number", "description": "Number of days after initial contact to send this message. 0 for immediate." },
+        "sendImmediatelyFor": { "type": "array", "items": {"type": "string"}, "description": "An array of lead source statuses that should trigger this template immediately."},
+        "subject": { "type": "string", "description": "The subject line for email templates." },
+        "body": { "type": "string", "description": "The message body. Can contain HTML for emails and placeholders like {{clientName}} and {{assessmentLink}}." },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastUpdatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "type", "intervalDays", "body", "createdAt", "lastUpdatedAt"]
     },
     "CaregiverProfile": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -229,7 +252,7 @@
         "Drivers Lic": { "type": "string" },
         "Caregiver Lic": { "type": "string" },
         "TTiD-PIN": { "type": "string" },
-        "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE"] },
+        "status": { "type": "string", "enum": ["Active", "Inactive"] },
         "createdAt": { "type": "string", "format": "date-time" },
         "lastUpdatedAt": { "type": "string", "format": "date-time" }
       },
@@ -251,7 +274,7 @@
         "Email": { "type": "string", "format": "email" },
         "ContactName": { "type": "string" },
         "ContactMobile": { "type": "string" },
-        "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE"] },
+        "status": { "type": "string", "enum": ["Active", "Inactive"] },
         "createdAt": { "type": "string", "format": "date-time" },
         "lastUpdatedAt": { "type": "string", "format": "date-time" }
       },
@@ -321,7 +344,7 @@
         "formData": { "type": "object", "description": "The partially or fully completed form data." },
         "clientEmail": { "type": "string", "format": "email", "description": "The primary email of the client signing up." },
         "clientPhone": { "type": "string", "description": "The primary phone number of the client signing up." },
-        "status": { "type": "string", "enum": ["Initial Phone Contact Completed", "Incomplete", "Pending Client Signatures", "Client Signatures Completed", "Signed and Published"], "description": "The current status of the signup process." },
+        "status": { "type": "string", "enum": ["Initial Phone Contact Completed", "Incomplete", "Pending Client Signatures", "Client Signatures Completed", "Signed and Published", "Archived"], "description": "The current status of the signup process." },
         "formTemplateId": { "type": "string", "description": "The ID of the form template used for this signup." },
         "completedPdfUrl": { "type": "string", "format": "uri", "description": "The URL to the final, signed PDF in Google Cloud Storage." },
         "createdAt": { "type": "string", "format": "date-time" },
@@ -403,6 +426,10 @@
     "/initial_contacts/{contactId}": {
         "schema": { "$ref": "#/entities/InitialContact" },
         "description": "Stores initial client inquiry information."
+    },
+    "/campaign_templates/{templateId}": {
+        "schema": { "$ref": "#/entities/CampaignTemplate" },
+        "description": "Stores templates for automated follow-up campaigns."
     },
     "/caregiver_profiles/{caregiverProfileId}": {
       "schema": { "$ref": "#/entities/CaregiverProfile" },

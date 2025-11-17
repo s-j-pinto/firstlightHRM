@@ -219,8 +219,8 @@ export default function CareLogClient() {
     if (!allCareLogGroups || !clientsMap) return [];
     return allCareLogGroups.filter(group => {
         const client = clientsMap.get(group.clientId);
-        const isClientActive = client && client.status === 'ACTIVE';
-        const isGroupActive = !group.status || group.status === 'ACTIVE';
+        const isClientActive = client && client.status === 'Active';
+        const isGroupActive = !group.status || group.status === 'Active';
         return isClientActive && isGroupActive;
     });
   }, [allCareLogGroups, clientsMap]);

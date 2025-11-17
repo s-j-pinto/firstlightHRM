@@ -101,7 +101,7 @@ export default function ManageClientsClient() {
             </div>
         ) : clientsData && clientsData.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {clientsData.filter(c => c.status === 'ACTIVE').map((client) => (
+                {clientsData.filter(c => c.status === 'Active').map((client) => (
                     <Card key={client.id}>
                         <CardHeader>
                             <CardTitle>{client['Client Name']}</CardTitle>

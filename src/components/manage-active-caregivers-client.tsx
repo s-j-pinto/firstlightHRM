@@ -101,7 +101,7 @@ export default function ManageActiveCaregiversClient() {
             </div>
         ) : activeCaregivers && activeCaregivers.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {activeCaregivers.filter(c => c.status === 'ACTIVE').map((caregiver) => (
+                {activeCaregivers.filter(c => c.status === 'Active').map((caregiver) => (
                     <Card key={caregiver.id}>
                         <CardHeader>
                             <CardTitle>{caregiver.Name}</CardTitle>

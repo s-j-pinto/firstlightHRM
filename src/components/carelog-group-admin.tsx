@@ -59,10 +59,10 @@ export function CareLogGroupAdmin() {
   const allCareLogsRef = useMemoFirebase(() => collection(firestore, 'carelogs'), [firestore]);
   const { data: allCareLogs, isLoading: logsLoading } = useCollection<CareLog>(allCareLogsRef);
 
-  const activeClients = useMemo(() => clients?.filter(c => c.status === 'ACTIVE') || [], [clients]);
+  const activeClients = useMemo(() => clients?.filter(c => c.status === 'Active') || [], [clients]);
   
   const activeCaregivers = useMemo(() => {
-    const filtered = allCaregiversData?.filter(c => c.status === 'ACTIVE' && c.Email) || [];
+    const filtered = allCaregiversData?.filter(c => c.status === 'Active' && c.Email) || [];
     return filtered.sort((a, b) => a.Name.localeCompare(b.Name));
   }, [allCaregiversData]);
 
@@ -177,8 +177,8 @@ export function CareLogGroupAdmin() {
             {sortedCareLogGroups && sortedCareLogGroups.length > 0 ? (
               sortedCareLogGroups.map(group => {
                 const client = clientsMap.get(group.clientId);
-                const isClientInactive = client?.status === 'INACTIVE';
-                const isGroupInactive = group.status === 'INACTIVE';
+                const isClientInactive = client?.status === 'Inactive';
+                const isGroupInactive = group.status === 'Inactive';
                 
                 return (
                   <Card key={group.id} className={cn("flex flex-col sm:flex-row justify-between items-start sm:items-center p-4", (isClientInactive || isGroupInactive) && "bg-destructive/10 border-destructive/50")}>
@@ -194,7 +194,7 @@ export function CareLogGroupAdmin() {
                       <div className="flex flex-wrap gap-2 mt-2">
                           {Array.isArray(group.caregiverEmails) && group.caregiverEmails.map(email => {
                               const caregiverInfo = allCaregiversByEmailMap.get(email);
-                              const isInactive = caregiverInfo?.status === 'INACTIVE';
+                              const isInactive = caregiverInfo?.status === 'Inactive';
                               return (
                                 <Badge key={email} variant={isInactive ? "destructive" : "secondary"} className={cn(isInactive && "line-through")}>
                                     {caregiverInfo?.name || email}

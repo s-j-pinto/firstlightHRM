@@ -17,7 +17,7 @@ export async function loginClient(email: string, password: string) {
 
   try {
     const clientsRef = serverDb.collection('Clients');
-    const snapshot = await clientsRef.where('status', '==', 'ACTIVE').get();
+    const snapshot = await clientsRef.where('status', '==', 'Active').get();
 
     if (snapshot.empty) {
       console.log(`[Client Login] No active clients found in the database.`);

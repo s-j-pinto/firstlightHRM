@@ -21,7 +21,7 @@ export async function processClientUpload(data: Record<string, any>[]) {
   const now = Timestamp.now();
 
   try {
-    const existingClientsSnap = await clientsCollection.where('status', '==', 'ACTIVE').get();
+    const existingClientsSnap = await clientsCollection.where('status', '==', 'Active').get();
     const existingClientsMap = new Map<string, { id: string, data: any }>();
     
     existingClientsSnap.forEach(doc => {
@@ -61,7 +61,7 @@ export async function processClientUpload(data: Record<string, any>[]) {
         'Email': row['Email'] || '',
         'ContactName': row['ContactName'] || '',
         'ContactMobile': row['ContactMobile'] || '',
-        status: 'ACTIVE',
+        status: 'Active',
         lastUpdatedAt: now,
       };
 
@@ -90,7 +90,7 @@ export async function processClientUpload(data: Record<string, any>[]) {
     for (const [key, { id }] of existingClientsMap.entries()) {
       console.log(`[Action] Deactivating client not in CSV: ${key}`);
       const docRef = clientsCollection.doc(id);
-      batch.update(docRef, { status: 'INACTIVE', lastUpdatedAt: now });
+      batch.update(docRef, { status: 'Inactive', lastUpdatedAt: now });
       operations++;
        if (operations >= 499) {
         await batch.commit();

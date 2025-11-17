@@ -13,7 +13,7 @@ export async function processActiveCaregiverUpload(data: Record<string, any>[]) 
 
   try {
     // 1. Fetch only ACTIVE caregivers to correctly determine who needs deactivation.
-    const existingCaregiversSnap = await caregiversCollection.where('status', '==', 'ACTIVE').get();
+    const existingCaregiversSnap = await caregiversCollection.where('status', '==', 'Active').get();
     const existingCaregiversMap = new Map<string, { id: string, data: any }>();
     existingCaregiversSnap.forEach(doc => {
       const docData = doc.data();
@@ -53,7 +53,7 @@ export async function processActiveCaregiverUpload(data: Record<string, any>[]) 
         'Drivers Lic': row['Drivers Lic'] || '',
         'Caregiver Lic': row['Caregiver Lic'] || '',
         'TTiD-PIN': row['TTiD-PIN'] || '',
-        status: 'ACTIVE',
+        status: 'Active',
         lastUpdatedAt: now,
       };
 
@@ -98,7 +98,7 @@ export async function processActiveCaregiverUpload(data: Record<string, any>[]) 
     for (const [email, { id }] of existingCaregiversMap.entries()) {
         console.log(`[Action] Deactivating caregiver not in CSV: ${email}`);
         const docRef = caregiversCollection.doc(id);
-        batch.update(docRef, { status: 'INACTIVE', lastUpdatedAt: now });
+        batch.update(docRef, { status: 'Inactive', lastUpdatedAt: now });
         deactivatedCount++;
         operations++;
         if (operations >= 499) {

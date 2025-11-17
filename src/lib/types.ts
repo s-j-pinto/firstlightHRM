@@ -134,7 +134,7 @@ export const clientSchema = z.object({
   "Email": z.string().optional(),
   "ContactName": z.string().optional(),
   "ContactMobile": z.string().optional(),
-  status: z.enum(["ACTIVE", "INACTIVE"]),
+  status: z.enum(["Active", "Inactive"]),
   createdAt: z.any(),
   lastUpdatedAt: z.any(),
 });
@@ -155,7 +155,7 @@ export const activeCaregiverSchema = z.object({
   "Drivers Lic": z.string().optional(),
   "Caregiver Lic": z.string().optional(),
   "TTiD-PIN": z.string().optional(),
-  status: z.enum(["ACTIVE", "INACTIVE"]),
+  status: z.enum(["Active", "Inactive"]),
   createdAt: z.any(),
   lastUpdatedAt: z.any(),
 });
@@ -175,7 +175,7 @@ export const careLogGroupSchema = z.object({
   caregiverEmails: z.array(z.string().email()),
   careLogTemplateId: z.string().optional(),
   clientAccessEnabled: z.boolean().default(false),
-  status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
+  status: z.enum(["Active", "Inactive"]).optional(),
   createdAt: z.any(),
   lastUpdatedAt: z.any(),
 });
