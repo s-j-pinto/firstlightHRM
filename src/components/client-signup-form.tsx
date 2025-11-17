@@ -173,7 +173,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
     transportationWaiverWitnessSignature: useRef<SignatureCanvas>(null),
   };
   
-  const isPublished = existingSignupData?.status === 'SIGNED AND PUBLISHED';
+  const isPublished = existingSignupData?.status === 'Signed and Published';
 
   // Watch the main clientName field and auto-populate others
   const clientNameValue = form.watch('clientName');
@@ -268,8 +268,8 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
   }, [isPrintMode, isLoading]);
 
 
-  const handleSave = async (status: "INCOMPLETE" | "PENDING CLIENT SIGNATURES") => {
-    const isSendingAction = status === "PENDING CLIENT SIGNATURES";
+  const handleSave = async (status: "Incomplete" | "Pending Client Signatures") => {
+    const isSendingAction = status === "Pending Client Signatures";
     const draftFields: (keyof ClientSignupFormData)[] = ['clientName', 'clientCity', 'clientState', 'clientPhone', 'clientEmail'];
     const fieldsToValidate = isSendingAction ? undefined : draftFields;
   
@@ -355,7 +355,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
 
         const dashboardPath = pathname.includes('/admin') ? '/admin/assessments' : '/owner/dashboard';
   
-        if (status === 'INCOMPLETE') {
+        if (status === 'Incomplete') {
           toast({ title: "Draft Saved", description: "The client intake form has been saved as a draft." });
           if (!signupId) {
              const newPath = pathname.includes('/admin') ? `/admin/new-client-signup?signupId=${docId}` : `/owner/new-client-signup?signupId=${docId}`;
@@ -944,7 +944,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                  <div className="flex justify-end gap-4 pt-6 no-print">
                     {mode === 'owner' && (
                         <>
-                            <Button type="button" variant="secondary" onClick={() => handleSave("INCOMPLETE")} disabled={isSaving || isSending || isPublished}>
+                            <Button type="button" variant="secondary" onClick={() => handleSave("Incomplete")} disabled={isSaving || isSending || isPublished}>
                                 {isSaving ? <Loader2 className="mr-2 animate-spin" /> : <Save className="mr-2" />}
                                 Save as Incomplete
                             </Button>
@@ -952,7 +952,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                                 {isPreviewing ? <Loader2 className="mr-2 animate-spin" /> : <Eye className="mr-2" />}
                                 View PDF
                             </Button>
-                            <Button type="button" onClick={() => handleSave("PENDING CLIENT SIGNATURES")} disabled={isSaving || isSending || isPublished}>
+                            <Button type="button" onClick={() => handleSave("Pending Client Signatures")} disabled={isSaving || isSending || isPublished}>
                                 {isSending ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2" />}
                                 Save and Send for Signature
                             </Button>

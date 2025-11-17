@@ -494,4 +494,13 @@ export const referralProfileSchema = z.object({
 });
 export type ReferralProfile = z.infer<typeof referralProfileSchema> & { id: string };
 
+
+export const clientSignupStatusSchema = z.enum([
+    "Initial Phone Contact Completed",
+    "Incomplete",
+    "Pending Client Signatures",
+    "Client Signatures Completed",
+    "Signed and Published",
+    "Archived"
+]);
     
