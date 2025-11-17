@@ -26,7 +26,7 @@ export default function NewClientDashboardPage() {
 
   const isLoading = isUserLoading || docsLoading;
   
-  const pendingDocuments = documents?.filter(doc => doc.status === 'PENDING CLIENT SIGNATURES');
+  const pendingDocuments = documents?.filter(doc => doc.status === 'Pending Client Signatures');
 
 
   if (isLoading) {
