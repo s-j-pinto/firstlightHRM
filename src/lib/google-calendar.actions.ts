@@ -1,5 +1,4 @@
 
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -168,17 +167,14 @@ export async function sendHomeVisitInvite(payload: HomeVisitPayload) {
     
     oAuth2Client.setCredentials({ refresh_token: refreshToken });
 
-    // TEMPORARY: Override for testing
-    const attendees: { email: string }[] = [{ email: 's_j_pinto@yahoo.com' }];
-    
-    // PRODUCTION attendees:
-    // const attendees: { email: string }[] = [];
-    // if (ownerEmail) attendees.push({ email: ownerEmail });
-    // if (adminEmail) attendees.push({ email: adminEmail });
-    // if (clientEmail) attendees.push({ email: clientEmail });
-    // if (additionalEmail && additionalEmail.trim() !== '') {
-    //     attendees.push({ email: additionalEmail });
-    // }
+    // Dynamically build the list of attendees
+    const attendees: { email: string }[] = [];
+    if (ownerEmail) attendees.push({ email: ownerEmail });
+    if (adminEmail) attendees.push({ email: adminEmail });
+    if (clientEmail) attendees.push({ email: clientEmail });
+    if (additionalEmail && additionalEmail.trim() !== '') {
+        attendees.push({ email: additionalEmail });
+    }
 
     try {
         await oAuth2Client.getAccessToken(); // Ensure token is valid
