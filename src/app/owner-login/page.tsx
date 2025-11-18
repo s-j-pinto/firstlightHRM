@@ -32,7 +32,6 @@ function OwnerLoginPageContent() {
   const [isPending, startTransition] = useTransition();
   const auth = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
 
   const form = useForm<LoginFormValues>({
@@ -51,8 +50,7 @@ function OwnerLoginPageContent() {
         const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL|| "lpinto@firstlighthomecare.com" || "care-rc@firstlighthomecare.com";
 
         if (user.email === ownerEmail) {
-            const redirectTo = searchParams.get("redirect") || "/owner/dashboard";
-            router.push(redirectTo);
+            router.push("/owner/dashboard");
         } else {
             await auth.signOut();
             throw new Error("You are not authorized to access this portal.");
