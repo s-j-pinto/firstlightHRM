@@ -8,6 +8,7 @@ import { getStorage } from 'firebase-admin/storage';
 import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { generateClientIntakePdf } from './pdf.actions';
+import { finalizationSchema } from './types';
 
 const clientSignupSchema = z.object({
   signupId: z.string().nullable(),
@@ -50,7 +51,7 @@ export async function createCsaFromContact(initialContactId: string) {
             clientName: contactData.clientName || '',
             clientAddress: contactData.clientAddress || '',
             clientCity: contactData.city || '',
-            clientState: contactData.state || '', // Assuming state is part of the form
+            clientState: contactData.state || 'CA', // Defaulting state
             clientPostalCode: contactData.zip || '',
             clientPhone: contactData.clientPhone || '',
             clientEmail: contactData.clientEmail || '',
@@ -75,15 +76,7 @@ export async function createCsaFromContact(initialContactId: string) {
             companionCare_assistWithDressingAndGrooming: contactData.companionCare_assistWithDressingAndGrooming || false,
             companionCare_assistWithShavingAndOralCare: contactData.companionCare_assistWithShavingAndOralCare || false,
             companionCare_other: contactData.companionCare_other || '',
-            // Personal Care Fields
-            personalCare_provideAlzheimersCare: contactData.personalCare_provideAlzheimersCare || false,
-            personalCare_provideMedicationReminders: contactData.personalCare_provideMedicationReminders || false,
-            personalCare_assistWithDressingGrooming: contactData.personalCare_assistWithDressingGrooming || false,
-            personalCare_assistWithBathingHairCare: contactData.personalCare_assistWithBathingHairCare || false,
-            personalCare_assistWithFeedingSpecialDiets: contactData.personalCare_assistWithFeedingSpecialDiets || false,
-            personalCare_assistWithMobilityAmbulationTransfer: contactData.personalCare_assistWithMobilityAmbulationTransfer || false,
-            personalCare_assistWithIncontinenceCare: contactData.personalCare_assistWithIncontinenceCare || false,
-            personalCare_assistWithOther: contactData.personalCare_assistWithOther || '',
+            // Personal Care Fields are not in initial contact, so they won't be pre-populated
         };
 
         // 4. Create the new client_signup document
@@ -133,6 +126,17 @@ export async function saveClientSignupForm(payload: z.infer<typeof clientSignupS
 
     try {
         let docId = signupId;
+        
+        // This is the reference to the signup document itself.
+        const signupDocRef = docId ? firestore.collection('client_signups').doc(docId) : firestore.collection('client_signups').doc();
+        if (!docId) {
+            docId = signupDocRef.id; // Assign new ID if creating
+        }
+
+        // Get the initialContactId *before* saving, as we need it for the sync.
+        const existingSignupDoc = await signupDocRef.get();
+        const initialContactId = existingSignupDoc.exists ? existingSignupDoc.data()?.initialContactId : null;
+
         const saveData = {
             formData: formData,
             clientEmail: formData.clientEmail,
@@ -141,41 +145,45 @@ export async function saveClientSignupForm(payload: z.infer<typeof clientSignupS
             lastUpdatedAt: now,
         };
 
-        if (docId) {
-            await firestore.collection('client_signups').doc(docId).update(saveData);
+        if (existingSignupDoc.exists) {
+            await signupDocRef.update(saveData);
         } else {
-            const newDoc = await firestore.collection('client_signups').add({
+            await signupDocRef.set({
                 ...saveData,
+                initialContactId: null, // This should have been set on creation from contact.
                 createdAt: now,
-                initialContactId: null, // This should be set if creating from an initial contact
             });
-            docId = newDoc.id;
         }
         
-        const signupDoc = await firestore.collection('client_signups').doc(docId!).get();
-        const initialContactId = signupDoc.data()?.initialContactId;
-        
+        // **--- START OF THE FIX ---**
+        // Now, sync back to the initial contact form if it exists.
         if (initialContactId) {
             const contactRef = firestore.collection('initial_contacts').doc(initialContactId);
              const dataToSync: { [key: string]: any } = {
-                clientName: formData.clientName,
-                clientAddress: formData.clientAddress,
-                city: formData.clientCity,
-                zip: formData.clientPostalCode,
-                clientPhone: formData.clientPhone,
-                clientEmail: formData.clientEmail,
+                clientName: formData.clientName || '',
+                clientAddress: formData.clientAddress || '',
+                city: formData.clientCity || '',
+                zip: formData.clientPostalCode || '',
+                clientPhone: formData.clientPhone || '',
+                clientEmail: formData.clientEmail || '',
                 dateOfBirth: formData.clientDOB ? Timestamp.fromDate(new Date(formData.clientDOB)) : null,
                 lastUpdatedAt: now,
             };
 
+            // Dynamically add all companion and personal care fields to the sync object
             Object.keys(formData).forEach(key => {
                 if (key.startsWith('companionCare_') || key.startsWith('personalCare_')) {
-                    dataToSync[key] = formData[key];
+                    dataToSync[key] = formData[key] || false; // Ensure boolean false instead of undefined
                 }
             });
-            await contactRef.update(dataToSync);
-        }
 
+            // Perform the update
+            await contactRef.update(dataToSync);
+            console.log(`Successfully synced CSA changes back to Initial Contact ID: ${initialContactId}`);
+        } else {
+            console.warn(`Could not sync to Initial Contact: initialContactId not found on signup document ${docId}.`);
+        }
+        // **--- END OF THE FIX ---**
 
         revalidatePath(`/admin/new-client-signup`, 'page');
         revalidatePath(`/owner/new-client-signup`, 'page');
@@ -357,12 +365,19 @@ export async function finalizeAndSubmit(signupId: string, formData: any) {
     const firestore = serverDb;
     const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL || 'lpinto@firstlighthomecare.com';
 
+    // Before doing anything, validate the final state of the data
+    const validation = finalizationSchema.safeParse(formData);
+    if (!validation.success) {
+        console.error("Finalization validation failed:", validation.error.flatten().fieldErrors);
+        return { error: true, message: `Validation failed: ${validation.error.errors[0].path.join('.')} - ${validation.error.errors[0].message}` };
+    }
+
     try {
         const signupRef = firestore.collection('client_signups').doc(signupId);
         
-        // First, save the final state of the form data passed from the client
+        // First, save the final, validated state of the form data passed from the client
         await signupRef.update({
-            formData: formData,
+            formData: validation.data,
             lastUpdatedAt: Timestamp.now(),
         });
 
@@ -370,7 +385,7 @@ export async function finalizeAndSubmit(signupId: string, formData: any) {
         const clientName = formData?.clientName || 'Client';
 
         // 1. Generate PDF with the latest data
-        const pdfBytes = await generateClientIntakePdf(formData);
+        const pdfBytes = await generateClientIntakePdf(validation.data);
         
         // 2. Upload to Firebase Storage
         const bucket = getStorage().bucket("gs://firstlighthomecare-hrm.firebasestorage.app");
