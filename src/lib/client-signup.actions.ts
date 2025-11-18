@@ -1,5 +1,4 @@
 
-
 "use server";
 
 import { revalidatePath } from 'next/cache';
@@ -155,8 +154,7 @@ export async function saveClientSignupForm(payload: z.infer<typeof clientSignupS
             });
         }
         
-        // **--- START OF THE FIX ---**
-        // Now, sync back to the initial contact form if it exists.
+        // Sync back to the initial contact form if it exists.
         if (initialContactId) {
             const contactRef = firestore.collection('initial_contacts').doc(initialContactId);
              const dataToSync: { [key: string]: any } = {
@@ -177,13 +175,11 @@ export async function saveClientSignupForm(payload: z.infer<typeof clientSignupS
                 }
             });
 
-            // Perform the update
             await contactRef.update(dataToSync);
             console.log(`Successfully synced CSA changes back to Initial Contact ID: ${initialContactId}`);
         } else {
             console.warn(`Could not sync to Initial Contact: initialContactId not found on signup document ${docId}.`);
         }
-        // **--- END OF THE FIX ---**
 
         revalidatePath(`/admin/new-client-signup`, 'page');
         revalidatePath(`/owner/new-client-signup`, 'page');
@@ -276,8 +272,8 @@ const clientSignaturePayloadSchema = z.object({
   date: z.date().optional(),
   repPrintedName: z.string().optional(),
   repDate: z.date().optional(),
-  initials: z.string().min(1, "Initials are required for the hiring clause."),
-  servicePlanClientInitials: z.string().min(1, "Initials are required for the service plan."),
+  initials: z.string().min(1, { message: "Initials are required for the hiring clause." }),
+  servicePlanClientInitials: z.string().min(1, { message: "Initials are required for the service plan." }),
   agreementRelationship: z.string().optional(),
   agreementDate: z.date().optional(),
   transportationWaiverClientSignature: z.string().optional(),
@@ -364,6 +360,7 @@ export async function submitClientSignature(payload: any) {
 export async function finalizeAndSubmit(signupId: string, formData: any) {
     const firestore = serverDb;
     const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL || 'lpinto@firstlighthomecare.com';
+    const now = Timestamp.now();
 
     // Before doing anything, validate the final state of the data
     const validation = finalizationSchema.safeParse(formData);
@@ -378,11 +375,34 @@ export async function finalizeAndSubmit(signupId: string, formData: any) {
         // First, save the final, validated state of the form data passed from the client
         await signupRef.update({
             formData: validation.data,
-            lastUpdatedAt: Timestamp.now(),
+            lastUpdatedAt: now,
         });
 
-        const clientEmail = formData?.clientEmail;
-        const clientName = formData?.clientName || 'Client';
+        // Sync data back to initial_contacts before generating PDF
+        const initialContactId = (await signupRef.get()).data()?.initialContactId;
+        if (initialContactId) {
+            const contactRef = firestore.collection('initial_contacts').doc(initialContactId);
+            const dataToSync: { [key: string]: any } = {
+                clientName: validation.data.clientName || '',
+                clientAddress: validation.data.clientAddress || '',
+                city: validation.data.clientCity || '',
+                zip: validation.data.clientPostalCode || '',
+                clientPhone: validation.data.clientPhone || '',
+                clientEmail: validation.data.clientEmail || '',
+                dateOfBirth: validation.data.clientDOB ? Timestamp.fromDate(new Date(validation.data.clientDOB)) : null,
+                lastUpdatedAt: now,
+            };
+             Object.keys(validation.data).forEach(key => {
+                if (key.startsWith('companionCare_') || key.startsWith('personalCare_')) {
+                    dataToSync[key] = (validation.data as any)[key] || false;
+                }
+            });
+            await contactRef.update(dataToSync);
+             console.log(`Successfully synced CSA changes back to Initial Contact ID: ${initialContactId} during finalization.`);
+        }
+
+        const clientEmail = validation.data.clientEmail;
+        const clientName = validation.data.clientName || 'Client';
 
         // 1. Generate PDF with the latest data
         const pdfBytes = await generateClientIntakePdf(validation.data);
@@ -407,7 +427,7 @@ export async function finalizeAndSubmit(signupId: string, formData: any) {
         await signupRef.update({
             status: 'Signed and Published',
             completedPdfUrl: signedUrl,
-            lastUpdatedAt: Timestamp.now(),
+            lastUpdatedAt: now,
         });
         
         // 4. Send confirmation emails
@@ -415,10 +435,10 @@ export async function finalizeAndSubmit(signupId: string, formData: any) {
 
         if (emailRecipients.length > 0) {
              let attachmentsHtml = '';
-            if (formData?.receivedPrivacyPractices) {
+            if (validation.data?.receivedPrivacyPractices) {
                 attachmentsHtml += `<p><strong>Download:</strong> <a href="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FFLHC_Privacy_Policy_NoticeRancho.pdf?alt=media&token=2bffc77a-fdfc-46af-85d2-04dd2ccab29f">Notice of Privacy Practices</a></p>`;
             }
-            if (formData?.receivedClientRights) {
+            if (validation.data?.receivedClientRights) {
                 attachmentsHtml += `<p><strong>Download:</strong> <a href="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FClient%20Rights%20and%20Responsibilities%20revised%203-11-24.pdf?alt=media&token=9a22bfc7-215f-4724-b569-2eb0050ba999">Client Rights and Responsibilities</a></p>`;
             }
 
@@ -458,3 +478,5 @@ export async function previewClientIntakePdf(formData: any) {
         return { error: `Failed to generate PDF: ${error.message}` };
     }
 }
+
+    
