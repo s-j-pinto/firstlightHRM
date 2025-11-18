@@ -21,7 +21,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Loader2, Send, Save, BookUser, Calendar as CalendarIcon, RefreshCw, Briefcase, FileCheck, Signature, X, Printer, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { sendSignatureEmail, finalizeAndSubmit, previewClientIntakePdf, submitClientSignature, createCsaFromContact } from "@/lib/client-signup.actions";
+import { sendSignatureEmail, finalizeAndSubmit, previewClientIntakePdf, createCsaFromContact } from "@/lib/client-signup.actions";
 import { Textarea } from "./ui/textarea";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
@@ -686,7 +686,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                                     <FormMessage />
                                 </FormItem>
                             )} />
-                            <p className="text-sm">and will be used to calculate the Client's rate for Services. Rates are subject to change with two (2) weeks' written notice (See attached rate sheet.).</p>
+                            <p className="text-sm">and will be used to calculate the Client's rate for Services. Rates are subject to change with two (2) weeks' written notice.</p>
                         </div>
 
                     </div>

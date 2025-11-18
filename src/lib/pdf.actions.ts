@@ -303,7 +303,7 @@ export async function generateClientIntakePdf(formData: any) {
     y -= sectionSpacing;
 
     drawSectionHeader("II. PAYMENTS FOR THE SERVICES", { centered: true });
-    const paymentText = `The hourly rate for providing the Services is $${formData.hourlyRate || '__'} per hour. The rate is based on the Client utilizing the services of FirstLight Home Care of Rancho Cucamonga for a minimum of ${formData.minimumHoursPerShift || '__'} hours per shift. The rates are provided on a current rate card dated ${formatDate(formData.rateCardDate)} and will be used to calculate the Client's rate for Services. Rates are subject to change with two (2) weeks' written notice (See attached rate sheet.).`;
+    const paymentText = `The hourly rate for providing the Services is $${formData.hourlyRate || '__'} per hour. The rate is based on the Client utilizing the services of FirstLight Home Care of Rancho Cucamonga for a minimum of ${formData.minimumHoursPerShift || '__'} hours per shift. The rates are provided on a current rate card dated ${formatDate(formData.rateCardDate)} and will be used to calculate the Client's rate for Services. Rates are subject to change with two (2) weeks' written notice.`;
     y = drawWrappedTextWithBoldHighlight(page, paymentText, "FirstLight Home Care of Rancho Cucamonga", font, boldFont, mainFontSize, leftMargin, y, contentWidth, lineSpacing);
     y -= lineSpacing;
     
