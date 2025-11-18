@@ -1,5 +1,4 @@
 
-
 import { z } from "zod";
 
 export const generalInfoSchema = z.object({
@@ -448,6 +447,7 @@ export const initialContactSchema = z.object({
     inHomeVisitSet: z.enum(["Yes", "No"]).optional(),
     sendFollowUpCampaigns: z.boolean().optional(),
     status: z.string().optional(),
+    clientDepositAmount: z.coerce.number().optional(),
 });
 export type InitialContact = z.infer<typeof initialContactSchema> & { id: string };
 
@@ -503,4 +503,3 @@ export const clientSignupStatusSchema = z.enum([
     "Signed and Published",
     "Archived"
 ]);
-    

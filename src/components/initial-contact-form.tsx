@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter, usePathname } from "next/navigation";
-import { format } from "date-fns";
+import { format, differenceInYears } from "date-fns";
 import { CalendarIcon, Loader2, Save, FileText, AlertCircle, ExternalLink, XCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -99,6 +99,7 @@ const initialContactSchema = z.object({
   referralCode: z.string().optional(),
   promptedCall: z.string().min(1, "This field is required."),
   estimatedHours: z.string().optional(),
+  clientDepositAmount: z.coerce.number().optional(),
   estimatedStartDate: z.date().optional(),
   inHomeVisitSet: z.enum(["Yes", "No"]).optional(),
   inHomeVisitSetNoReason: z.string().optional(),
@@ -200,6 +201,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
       clientAddress: "",
       dateOfBirth: undefined,
       rateOffered: 0,
+      clientDepositAmount: 0,
       city: "",
       zip: "",
       clientPhone: "",
@@ -339,6 +341,9 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
 
 
   const inHomeVisitSet = form.watch("inHomeVisitSet");
+  const dateOfBirth = form.watch("dateOfBirth");
+  const age = dateOfBirth ? differenceInYears(new Date(), dateOfBirth) : null;
+
 
   if(isLoading) {
     return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-accent"/></div>
@@ -386,55 +391,61 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
               {/* Left Column */}
               <div className="space-y-6">
                 <FormField control={form.control} name="clientName" render={({ field }) => ( <FormItem><FormLabel>Client's Name</FormLabel><FormControl><Input {...field} disabled={isCsaCreated || isClosed} /></FormControl><FormMessage /></FormItem> )} />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <FormField control={form.control} name="clientAddress" render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} disabled={isCsaCreated || isClosed} /></FormControl><FormMessage /></FormItem> )} />
-                   <FormField
-                    control={form.control}
-                    name="dateOfBirth"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Date of Birth</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant={"outline"}
-                                className={cn(
-                                  "pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                                disabled={isCsaCreated || isClosed}
-                              >
-                                {field.value ? (
-                                  format(field.value, "PPP")
-                                ) : (
-                                  <span>Pick a date</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              captionLayout="dropdown-buttons"
-                              fromYear={1930}
-                              toYear={new Date().getFullYear()}
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              initialFocus
-                              disabled={isCsaCreated || isClosed}
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                <FormField control={form.control} name="clientAddress" render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} disabled={isCsaCreated || isClosed} /></FormControl><FormMessage /></FormItem> )} />
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                    <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} disabled={isCsaCreated || isClosed} /></FormControl><FormMessage /></FormItem> )} />
                   <FormField control={form.control} name="zip" render={({ field }) => ( <FormItem><FormLabel>Zip</FormLabel><FormControl><Input {...field} disabled={isCsaCreated || isClosed} /></FormControl><FormMessage /></FormItem> )} />
+                </div>
+                 <div className="grid grid-cols-2 gap-4 items-end">
+                    <FormField
+                        control={form.control}
+                        name="dateOfBirth"
+                        render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                            <FormLabel>Date of Birth</FormLabel>
+                            <Popover>
+                            <PopoverTrigger asChild>
+                                <FormControl>
+                                <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                    "pl-3 text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                    )}
+                                    disabled={isCsaCreated || isClosed}
+                                >
+                                    {field.value ? (
+                                    format(field.value, "PPP")
+                                    ) : (
+                                    <span>Pick a date</span>
+                                    )}
+                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                                </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                mode="single"
+                                captionLayout="dropdown-buttons"
+                                fromYear={1920}
+                                toYear={new Date().getFullYear()}
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                initialFocus
+                                disabled={isCsaCreated || isClosed}
+                                />
+                            </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                     <FormItem>
+                        <FormLabel>Age</FormLabel>
+                        <FormControl>
+                            <Input value={age !== null ? age : ''} readOnly disabled className="bg-muted" />
+                        </FormControl>
+                    </FormItem>
                 </div>
                 <FormField control={form.control} name="rateOffered" render={({ field }) => ( <FormItem><FormLabel>Rate Offered</FormLabel><FormControl><Input type="number" {...field} value={field.value || ''} disabled={isClosed} /></FormControl><FormMessage /></FormItem> )} />
                 <div className="flex gap-4">
@@ -576,8 +587,9 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                 <div className="space-y-6">
                     <FormField control={form.control} name="estimatedHours" render={({ field }) => ( <FormItem><FormLabel>Estimated Hours:</FormLabel><FormControl><Input {...field} disabled={isClosed} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="clientDepositAmount" render={({ field }) => ( <FormItem><FormLabel>Client Deposit Amount</FormLabel><FormControl><Input type="number" {...field} value={field.value || ''} disabled={isClosed} /></FormControl><FormMessage /></FormItem> )} />
                      <FormField
                         control={form.control}
                         name="estimatedStartDate"

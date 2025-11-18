@@ -26,6 +26,7 @@
             "promptedCall": { "type": "string" },
             "personalCareNotes": { "type": "string" },
             "estimatedHours": { "type": "string" },
+            "clientDepositAmount": { "type": "number" },
             "estimatedStartDate": { "type": "string", "format": "date-time" },
             "inHomeVisitSet": { "type": "string", "enum": ["Yes", "No"] },
             "inHomeVisitSetNoReason": { "type": "string" },
@@ -254,7 +255,7 @@
         "Drivers Lic": { "type": "string" },
         "Caregiver Lic": { "type": "string" },
         "TTiD-PIN": { "type": "string" },
-        "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE"] },
+        "status": { "type": "string", "enum": ["Active", "Inactive"] },
         "createdAt": { "type": "string", "format": "date-time" },
         "lastUpdatedAt": { "type": "string", "format": "date-time" }
       },
@@ -276,7 +277,7 @@
         "Email": { "type": "string", "format": "email" },
         "ContactName": { "type": "string" },
         "ContactMobile": { "type": "string" },
-        "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE"] },
+        "status": { "type": "string", "enum": ["Active", "Inactive"] },
         "createdAt": { "type": "string", "format": "date-time" },
         "lastUpdatedAt": { "type": "string", "format": "date-time" }
       },
