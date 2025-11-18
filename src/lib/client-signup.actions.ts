@@ -159,7 +159,7 @@ export async function saveClientSignupForm(payload: z.infer<typeof clientSignupS
 
         if (initialContactId) {
             const contactRef = firestore.collection('initial_contacts').doc(initialContactId);
-            const dataToSync = {
+            const dataToSync: { [key: string]: any } = {
                 clientName: formData.clientName,
                 clientAddress: formData.clientAddress,
                 city: formData.clientCity,
@@ -167,22 +167,24 @@ export async function saveClientSignupForm(payload: z.infer<typeof clientSignupS
                 clientPhone: formData.clientPhone,
                 clientEmail: formData.clientEmail,
                 dateOfBirth: formData.clientDOB ? Timestamp.fromDate(new Date(formData.clientDOB)) : null,
-                ...Object.keys(formData).reduce((acc, key) => {
-                    if (key.startsWith('companionCare_') || key.startsWith('personalCare_')) {
-                        (acc as any)[key] = formData[key];
-                    }
-                    return acc;
-                }, {}),
                 lastUpdatedAt: now,
             };
+            
+            // Add all companion and personal care fields to the sync object
+            Object.keys(formData).forEach(key => {
+                if (key.startsWith('companionCare_') || key.startsWith('personalCare_')) {
+                    dataToSync[key] = formData[key];
+                }
+            });
+
             await contactRef.update(dataToSync);
         }
 
         revalidatePath(`/admin/new-client-signup`, 'page');
         revalidatePath(`/owner/new-client-signup`, 'page');
         if (initialContactId) {
-            revalidatePath(`/admin/initial-contact`, 'page');
-            revalidatePath(`/owner/initial-contact`, 'page');
+            revalidatePath(`/admin/initial-contact?contactId=${initialContactId}`);
+            revalidatePath(`/owner/initial-contact?contactId=${initialContactId}`);
         }
 
         return { message: "CSA saved and initial contact synced.", docId };
