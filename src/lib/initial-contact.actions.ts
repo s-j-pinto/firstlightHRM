@@ -13,6 +13,7 @@ const initialContactSchema = z.object({
   clientAddress: z.string().min(1, "Client's Address is required."),
   dateOfBirth: z.date().optional(),
   rateOffered: z.coerce.number().optional(),
+  clientDepositAmount: z.coerce.number().optional(),
   city: z.string().min(1, "City is required."),
   zip: z.string().min(1, "Zip code is required."),
   clientPhone: z.string().min(1, "Client's Phone is required."),
@@ -206,21 +207,22 @@ export async function closeInitialContact(contactId: string, closureReason: stri
 
   try {
     const contactRef = firestore.collection("initial_contacts").doc(contactId);
+
+    // 1. Read first: Find the associated client_signups document outside the transaction
+    const signupQuery = firestore.collection("client_signups").where("initialContactId", "==", contactId).limit(1);
+    const signupSnapshot = await signupQuery.get();
     
-    // Use a transaction to ensure both updates succeed or fail together
+    // 2. Transact second: Perform all writes in a single atomic operation
     await firestore.runTransaction(async (transaction) => {
-      // 1. Update the initial_contacts document
+      // Update the initial_contacts document
       transaction.update(contactRef, {
         status: "Closed",
         closureReason: closureReason,
         lastUpdatedAt: now,
-        sendFollowUpCampaigns: false, // Ensure no more follow-ups are sent
+        sendFollowUpCampaigns: false,
       });
 
-      // 2. Find and update the associated client_signups document
-      const signupQuery = firestore.collection("client_signups").where("initialContactId", "==", contactId).limit(1);
-      const signupSnapshot = await transaction.get(signupQuery);
-
+      // If a signup document was found, update it as well
       if (!signupSnapshot.empty) {
         const signupDocRef = signupSnapshot.docs[0].ref;
         transaction.update(signupDocRef, {
