@@ -147,19 +147,17 @@ export async function saveClientSignupForm(payload: z.infer<typeof clientSignupS
             const newDoc = await firestore.collection('client_signups').add({
                 ...saveData,
                 createdAt: now,
-                // Assuming initialContactId is part of formData or needs to be passed
-                initialContactId: formData.initialContactId, 
+                initialContactId: null, // This should be set if creating from an initial contact
             });
             docId = newDoc.id;
         }
-
-        // After saving the CSA, sync back to the initial_contacts document
-        const signupDoc = await firestore.collection('client_signups').doc(docId).get();
+        
+        const signupDoc = await firestore.collection('client_signups').doc(docId!).get();
         const initialContactId = signupDoc.data()?.initialContactId;
-
+        
         if (initialContactId) {
             const contactRef = firestore.collection('initial_contacts').doc(initialContactId);
-            const dataToSync: { [key: string]: any } = {
+             const dataToSync: { [key: string]: any } = {
                 clientName: formData.clientName,
                 clientAddress: formData.clientAddress,
                 city: formData.clientCity,
@@ -169,16 +167,15 @@ export async function saveClientSignupForm(payload: z.infer<typeof clientSignupS
                 dateOfBirth: formData.clientDOB ? Timestamp.fromDate(new Date(formData.clientDOB)) : null,
                 lastUpdatedAt: now,
             };
-            
-            // Add all companion and personal care fields to the sync object
+
             Object.keys(formData).forEach(key => {
                 if (key.startsWith('companionCare_') || key.startsWith('personalCare_')) {
                     dataToSync[key] = formData[key];
                 }
             });
-
             await contactRef.update(dataToSync);
         }
+
 
         revalidatePath(`/admin/new-client-signup`, 'page');
         revalidatePath(`/owner/new-client-signup`, 'page');
@@ -271,8 +268,8 @@ const clientSignaturePayloadSchema = z.object({
   date: z.date().optional(),
   repPrintedName: z.string().optional(),
   repDate: z.date().optional(),
-  initials: z.string().min(1, "Initials are required."),
-  servicePlanClientInitials: z.string().min(1, "Initials are required."),
+  initials: z.string().min(1, "Initials are required for the hiring clause."),
+  servicePlanClientInitials: z.string().min(1, "Initials are required for the service plan."),
   agreementRelationship: z.string().optional(),
   agreementDate: z.date().optional(),
   transportationWaiverClientSignature: z.string().optional(),
@@ -356,29 +353,27 @@ export async function submitClientSignature(payload: any) {
     }
 }
 
-export async function finalizeAndSubmit(signupId: string) {
+export async function finalizeAndSubmit(signupId: string, formData: any) {
     const firestore = serverDb;
-    const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL || 'lpinto@firstlighthomecare.com';;
+    const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL || 'lpinto@firstlighthomecare.com';
 
     try {
         const signupRef = firestore.collection('client_signups').doc(signupId);
-        const signupDoc = await signupRef.get();
-        if (!signupDoc.exists) {
-            return { message: "Signup document not found.", error: true };
-        }
         
-        const formData = signupDoc.data()?.formData;
+        // First, save the final state of the form data passed from the client
+        await signupRef.update({
+            formData: formData,
+            lastUpdatedAt: Timestamp.now(),
+        });
+
         const clientEmail = formData?.clientEmail;
         const clientName = formData?.clientName || 'Client';
-        console.log("[DEBUG] finalizeAndSubmit: formData received:", formData);
 
-
-        // 1. Generate PDF
+        // 1. Generate PDF with the latest data
         const pdfBytes = await generateClientIntakePdf(formData);
         
         // 2. Upload to Firebase Storage
         const bucket = getStorage().bucket("gs://firstlighthomecare-hrm.firebasestorage.app");
-        //const bucket = getStorage().bucket("gs://firstlighthomecare-hrm.appspot.com");
         const fileName = `client-agreements/${clientName.replace(/ /g, '_')}_${signupId}.pdf`;
         const file = bucket.file(fileName);
         
@@ -388,10 +383,9 @@ export async function finalizeAndSubmit(signupId: string) {
             },
         });
         
-        // The file is private by default, so we get a signed URL that expires.
         const [signedUrl] = await file.getSignedUrl({
             action: 'read',
-            expires: '03-09-2491', // A very distant future date
+            expires: '03-09-2491',
         });
 
         // 3. Update status and save PDF URL
@@ -401,18 +395,17 @@ export async function finalizeAndSubmit(signupId: string) {
             lastUpdatedAt: Timestamp.now(),
         });
         
-        // 4. Send confirmation emails with PDF link
+        // 4. Send confirmation emails
         const emailRecipients = [ownerEmail, clientEmail].filter(Boolean) as string[];
 
         if (emailRecipients.length > 0) {
-            let attachmentsHtml = '';
+             let attachmentsHtml = '';
             if (formData?.receivedPrivacyPractices) {
                 attachmentsHtml += `<p><strong>Download:</strong> <a href="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FFLHC_Privacy_Policy_NoticeRancho.pdf?alt=media&token=2bffc77a-fdfc-46af-85d2-04dd2ccab29f">Notice of Privacy Practices</a></p>`;
             }
             if (formData?.receivedClientRights) {
                 attachmentsHtml += `<p><strong>Download:</strong> <a href="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FClient%20Rights%20and%20Responsibilities%20revised%203-11-24.pdf?alt=media&token=9a22bfc7-215f-4724-b569-2eb0050ba999">Client Rights and Responsibilities</a></p>`;
             }
-            console.log("[DEBUG] finalizeAndSubmit: Attachments HTML generated:", attachmentsHtml);
 
             const emailHtml = `
                 <p>The Client Service Agreement for ${clientName} has been finalized. A PDF copy is available for download at the link below.</p>
@@ -428,9 +421,6 @@ export async function finalizeAndSubmit(signupId: string) {
                     html: emailHtml,
                 }
             };
-
-            console.log("[DEBUG] finalizeAndSubmit: Final email object before sending:", email);
-
             await firestore.collection("mail").add(email);
         }
 
@@ -446,7 +436,6 @@ export async function finalizeAndSubmit(signupId: string) {
 export async function previewClientIntakePdf(formData: any) {
     try {
         const pdfBytes = await generateClientIntakePdf(formData);
-        // Convert Buffer to a Base64 string for safe transfer
         const pdfBase64 = Buffer.from(pdfBytes).toString('base64');
         return { pdfData: pdfBase64 };
     } catch (error: any) {

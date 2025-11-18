@@ -21,7 +21,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Loader2, Send, Save, BookUser, Calendar as CalendarIcon, RefreshCw, Briefcase, FileCheck, Signature, X, Printer, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { sendSignatureEmail, finalizeAndSubmit, previewClientIntakePdf, createCsaFromContact, submitClientSignature } from "@/lib/client-signup.actions";
+import { sendSignatureEmail, finalizeAndSubmit, previewClientIntakePdf, createCsaFromContact, submitClientSignature, saveClientSignupForm } from "@/lib/client-signup.actions";
 import { Textarea } from "./ui/textarea";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
@@ -273,8 +273,6 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
     const draftFields: (keyof ClientSignupFormData)[] = ['clientName', 'clientCity', 'clientState', 'clientPhone', 'clientEmail'];
     const fieldsToValidate = isSendingAction ? undefined : draftFields;
   
-    const transitionAction = isSendingAction ? startSendingTransition : startSavingTransition;
-  
     // Manually trigger validation before sanitizing
     const isValid = await form.trigger(fieldsToValidate);
   
@@ -287,6 +285,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
       return;
     }
   
+    const transitionAction = isSendingAction ? startSendingTransition : startSavingTransition;
     transitionAction(async () => {
       Object.keys(sigPads).forEach(key => {
         const padKey = key as keyof typeof sigPads;
@@ -296,85 +295,36 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
             form.setValue(formKey, pad.toDataURL());
         }
       });
-
-      const finalFormData = form.getValues();
-      const sanitizedDataForFirestore: {[key: string]: any} = { ...finalFormData };
-      
-       // Sanitize data for Firestore
-      Object.keys(sanitizedDataForFirestore).forEach(key => {
-        const typedKey = key as keyof typeof sanitizedDataForFirestore;
-        const value = sanitizedDataForFirestore[typedKey];
-        if (value === undefined) {
-          (sanitizedDataForFirestore as any)[typedKey] = null;
-        } else if (value === '') {
-          // Keep empty strings for text fields but nullify for optional numbers if needed
-          const fieldSchema = (clientSignupFormSchema.shape as any)[typedKey];
-          if (fieldSchema && fieldSchema._def.typeName === 'ZodOptional' && fieldSchema.unwrap()._def.typeName === 'ZodNumber') {
-            (sanitizedDataForFirestore as any)[typedKey] = null;
-          }
-        }
+  
+      const result = await saveClientSignupForm({
+        signupId: signupId,
+        formData: form.getValues(),
+        status: status,
+        clientEmail: form.getValues('clientEmail'),
       });
+      
+      if (result.error) {
+          toast({ title: "Error", description: result.message, variant: "destructive" });
+          return;
+      }
+      
+      const newSignupId = result.docId;
+      const dashboardPath = pathname.includes('/admin') ? '/admin/assessments' : '/owner/dashboard';
   
-      try {
-        let docId = signupId;
-        const now = serverTimestamp();
-  
-        if (docId) {
-          const docRef = doc(firestore, 'client_signups', docId);
-          const saveData = {
-            formData: sanitizedDataForFirestore,
-            clientEmail: sanitizedDataForFirestore.clientEmail,
-            clientPhone: sanitizedDataForFirestore.clientPhone,
-            status,
-            lastUpdatedAt: now,
-          };
-          await updateDoc(docRef, saveData).catch(serverError => {
-            errorEmitter.emit("permission-error", new FirestorePermissionError({
-              path: docRef.path, operation: "update", requestResourceData: saveData,
-            }));
-            throw serverError;
-          });
+      if (status === 'Incomplete') {
+        toast({ title: "Draft Saved", description: "The client intake form has been saved as a draft." });
+        if (!signupId && newSignupId) {
+            const newPath = pathname.includes('/admin') ? `/admin/new-client-signup?signupId=${newSignupId}` : `/owner/new-client-signup?signupId=${newSignupId}`;
+            router.push(newPath);
+        }
+      } else {
+        const emailResult = await sendSignatureEmail(newSignupId!, form.getValues('clientEmail')!);
+        if (emailResult.error) {
+          toast({ title: "Email Error", description: emailResult.message, variant: "destructive" });
         } else {
-          const colRef = collection(firestore, 'client_signups');
-          const saveData = {
-            formData: sanitizedDataForFirestore,
-            clientEmail: sanitizedDataForFirestore.clientEmail,
-            clientPhone: sanitizedDataForFirestore.clientPhone,
-            status,
-            createdAt: now,
-            lastUpdatedAt: now,
-          };
-          const newDoc = await addDoc(colRef, saveData).catch(serverError => {
-            errorEmitter.emit("permission-error", new FirestorePermissionError({
-              path: colRef.path, operation: "create", requestResourceData: saveData,
-            }));
-            throw serverError;
-          });
-          docId = newDoc.id;
+          toast({ title: "Success", description: "Form saved and signature link sent to the client." });
         }
-
-        const dashboardPath = pathname.includes('/admin') ? '/admin/assessments' : '/owner/dashboard';
-  
-        if (status === 'Incomplete') {
-          toast({ title: "Draft Saved", description: "The client intake form has been saved as a draft." });
-          if (!signupId) {
-             const newPath = pathname.includes('/admin') ? `/admin/new-client-signup?signupId=${docId}` : `/owner/new-client-signup?signupId=${docId}`;
-             router.push(newPath);
-          }
-        } else {
-          const emailResult = await sendSignatureEmail(docId!, sanitizedDataForFirestore.clientEmail!);
-          if (emailResult.error) {
-            toast({ title: "Email Error", description: emailResult.message, variant: "destructive" });
-          } else {
-            toast({ title: "Success", description: "Form saved and signature link sent to the client." });
-          }
-          router.push(dashboardPath);
-        }
-  
-      } catch (error: any) {
-        if (!error.name?.includes('FirebaseError')) {
-          toast({ title: "Error", description: error.message || "An unexpected error occurred.", variant: "destructive" });
-        }
+        router.push(dashboardPath);
       }
     });
   };
@@ -416,7 +366,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
             return;
         }
 
-        const result = await finalizeAndSubmit(signupId);
+        const result = await finalizeAndSubmit(signupId, form.getValues());
         if (result.error) {
             toast({ title: "Finalization Failed", description: result.message, variant: "destructive" });
         } else {
@@ -686,7 +636,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                                     <FormMessage />
                                 </FormItem>
                             )} />
-                            <p className="text-sm">and will be used to calculate the Client's rate for Services. Rates are subject to change with two (2) weeks' written notice.</p>
+                            <p className="text-sm">. Rates are subject to change with two (2) weeks' written notice.</p>
                         </div>
 
                     </div>
@@ -1001,4 +951,3 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
     </Card>
   );
 }
-
