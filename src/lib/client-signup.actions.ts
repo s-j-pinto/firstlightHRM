@@ -122,11 +122,77 @@ const formatDateForInput = (date: any) => {
 };
 
 export async function saveClientSignupForm(payload: z.infer<typeof clientSignupSchema>) {
-  // This server action is now deprecated as writes are handled on the client.
-  // It can be repurposed for just sending the email in a future step.
-  console.warn("DEPRECATED: saveClientSignupForm server action was called. This logic should be on the client.");
-  return { message: "This function is deprecated.", error: true };
+    const validation = clientSignupSchema.safeParse(payload);
+    if (!validation.success) {
+        console.error("Server-side validation failed:", validation.error.flatten());
+        return { message: "Invalid data provided.", error: true };
+    }
+    const { signupId, formData, status } = validation.data;
+    const firestore = serverDb;
+    const now = Timestamp.now();
+
+    try {
+        let docId = signupId;
+        const saveData = {
+            formData: formData,
+            clientEmail: formData.clientEmail,
+            clientPhone: formData.clientPhone,
+            status: status,
+            lastUpdatedAt: now,
+        };
+
+        if (docId) {
+            await firestore.collection('client_signups').doc(docId).update(saveData);
+        } else {
+            const newDoc = await firestore.collection('client_signups').add({
+                ...saveData,
+                createdAt: now,
+                // Assuming initialContactId is part of formData or needs to be passed
+                initialContactId: formData.initialContactId, 
+            });
+            docId = newDoc.id;
+        }
+
+        // After saving the CSA, sync back to the initial_contacts document
+        const signupDoc = await firestore.collection('client_signups').doc(docId).get();
+        const initialContactId = signupDoc.data()?.initialContactId;
+
+        if (initialContactId) {
+            const contactRef = firestore.collection('initial_contacts').doc(initialContactId);
+            const dataToSync = {
+                clientName: formData.clientName,
+                clientAddress: formData.clientAddress,
+                city: formData.clientCity,
+                zip: formData.clientPostalCode,
+                clientPhone: formData.clientPhone,
+                clientEmail: formData.clientEmail,
+                dateOfBirth: formData.clientDOB ? Timestamp.fromDate(new Date(formData.clientDOB)) : null,
+                ...Object.keys(formData).reduce((acc, key) => {
+                    if (key.startsWith('companionCare_') || key.startsWith('personalCare_')) {
+                        (acc as any)[key] = formData[key];
+                    }
+                    return acc;
+                }, {}),
+                lastUpdatedAt: now,
+            };
+            await contactRef.update(dataToSync);
+        }
+
+        revalidatePath(`/admin/new-client-signup`, 'page');
+        revalidatePath(`/owner/new-client-signup`, 'page');
+        if (initialContactId) {
+            revalidatePath(`/admin/initial-contact`, 'page');
+            revalidatePath(`/owner/initial-contact`, 'page');
+        }
+
+        return { message: "CSA saved and initial contact synced.", docId };
+
+    } catch (error: any) {
+        console.error("Error saving CSA:", error);
+        return { message: `An error occurred: ${error.message}`, error: true };
+    }
 }
+
 
 export async function sendSignatureEmail(signupId: string, clientEmail: string) {
     if (!signupId || !clientEmail) {

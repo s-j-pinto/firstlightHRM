@@ -387,6 +387,16 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                 </Alert>
             )}
 
+             {isCsaCreated && (
+                 <Alert variant="default" className="bg-blue-50 border-blue-200">
+                    <FileText className="h-4 w-4 text-blue-600" />
+                    <AlertTitle className="text-blue-800">CSA Active</AlertTitle>
+                    <AlertDescription className="text-blue-700">
+                        A Client Service Agreement has been created for this contact. Some fields below are now read-only. To edit this information, please open the CSA.
+                    </AlertDescription>
+                </Alert>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
               {/* Left Column */}
               <div className="space-y-6">
