@@ -21,7 +21,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Loader2, Send, Save, BookUser, Calendar as CalendarIcon, RefreshCw, Briefcase, FileCheck, Signature, X, Printer, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { sendSignatureEmail, finalizeAndSubmit, previewClientIntakePdf, createCsaFromContact } from "@/lib/client-signup.actions";
+import { sendSignatureEmail, finalizeAndSubmit, previewClientIntakePdf, createCsaFromContact, submitClientSignature } from "@/lib/client-signup.actions";
 import { Textarea } from "./ui/textarea";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
@@ -727,7 +727,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                         {/* Representative Signature Section */}
                         <div className={cn("grid grid-cols-1 md:grid-cols-3 gap-6 items-end p-4 rounded-md", isClientMode && "border border-orange-400")}>
                             <div className="space-y-2">
-                                <FormLabel>Signed (Client or Responsible Party)</FormLabel>
+                                <FormLabel>Signed (Responsible Party)</FormLabel>
                                 <div className="relative rounded-md border bg-white">
                                      {form.getValues('clientRepresentativeSignature') && (isPublished || (mode === 'owner' && !isClientMode)) ?
                                         <Image src={form.getValues('clientRepresentativeSignature')} alt="Signature" width={200} height={100} className="w-full h-24 object-contain" /> :
@@ -787,7 +787,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                         <li><strong>USE OF PREMISES:</strong> Client shall not do or suffer or permit anything to be done in or about the location where the Services are to be provided (the "Premises") which would in any way subject FirstLight Home Care of Rancho Cucamonga, its employees, agents, representatives, and affiliates to any liability or cause a cancellation of, or give rise to any defense by an insurer to any claim under, any policies for homeowners' or renters' insurance. Client shall not do or permit anything to be done in or about the Premises which will in any way conflict with any law, ordinance or governmental requirement now in force or which may hereafter be enacted. Client shall immediately furnish FirstLight Home Care of Rancho Cucamonga with any notices received from any insurance company or governmental agency or inspection bureau regarding any unsafe or unlawful conditions within the Premises. Client will indemnify, defend and hold harmless FirstLight Home Care of Rancho Cucamonga, any related entities, its affiliates, and each of their directors, officers, and employees ("Indemnified Persons") from and against any and all claims, actions, demands, liabilities, losses, damages, judgments, costs and expenses, including but not to, reasonable attorneys' fees, costs and interest, asserted against, imposed upon or incurred by Indemnified Persons that arise out of, or in connection with, the Client's failure to perform the obligations of this Section 12.</li>
                         <li><strong>USE OF VEHICLE:</strong> FirstLight Home Care of Rancho Cucamonga will not operate a vehicle on the Client's behalf unless the Client executes the Transportation Waiver substantially in the form provided by FirstLight Home Care of Rancho Cucamonga as part of this Agreement.</li>
                         <li><strong>HIRING:</strong> The investment FirstLight Home Care of Rancho Cucamonga makes in maintaining our quality caregivers and employees is substantial; therefore, it is agreed for a period of one year from the last day worked or for a period of one year after the Client stops utilizing FirstLight Home Care of Rancho Cucamonga Services, the Client agrees not to hire directly, or hire through any other company or agency, FirstLight Home Care of Rancho Cucamonga employees directly or indirectly who have personally provided care for the Client. If the Client wishes to hire a FirstLight Home Care of Rancho Cucamonga employee directly, the Client will notify FirstLight Home Care of Rancho Cucamonga of this intent in writing and a flat fee of $15,000.00 will be required to hire that employee directly. A written request by said employee will be required and must be approved by FirstLight Home Care of Rancho Cucamonga
-                            <div className="w-1/3 mt-2">
+                            <div className={cn("w-1/3 mt-2 p-4 rounded-md", isClientMode && "border border-orange-400")}>
                                 <FormField control={form.control} name="clientInitials" render={({ field }) => ( <FormItem><FormLabel>Client Initials</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
                             </div>
                         </li>
@@ -892,7 +892,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                         <FormField control={form.control} name="personalCare_assistWithOther" render={({ field }) => ( <FormItem><FormLabel>Assist with other:</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
                     </div>
                     <p className="text-sm text-muted-foreground">Firstlight Home Care of Rancho Cucamonga provides Personal Care Services as defined under Cal. Health & Safety Code § 1796.12 and does not provide medical services or function as a home health agency.</p>
-                    <div className="w-1/3 mt-2">
+                    <div className={cn("w-1/3 mt-2 p-4 rounded-md", isClientMode && "border border-orange-400")}>
                         <FormField control={form.control} name="servicePlanClientInitials" render={({ field }) => ( <FormItem><FormLabel>Client Initials</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
                     </div>
                 </div>
@@ -1001,3 +1001,4 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
     </Card>
   );
 }
+
