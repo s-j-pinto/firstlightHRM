@@ -30,8 +30,10 @@ export async function POST(request: NextRequest) {
     const payload = await request.json();
     const now = Timestamp.now();
 
+    // If this is a test webhook from Google, return success immediately.
     if (payload.is_test) {
-        console.log('[Google Ads Webhook] Received a test lead from Google Ads.');
+        console.log('[Google Ads Webhook] Received and acknowledged a test lead from Google Ads.');
+        return NextResponse.json({ success: true });
     }
 
     const userData: { [key: string]: string } = {};
@@ -55,7 +57,7 @@ export async function POST(request: NextRequest) {
     }
 
     const leadStatus = "Google Ads Lead Received";
-    const contactData = {
+    const contactData: any = {
       clientName: userData.clientName,
       clientEmail: userData.clientEmail,
       clientPhone: userData.clientPhone,
@@ -88,7 +90,13 @@ export async function POST(request: NextRequest) {
         const template = templatesSnap.docs[0].data() as CampaignTemplate;
         const templateId = templatesSnap.docs[0].id;
 
-        const emailHtml = template.body.replace(/{{clientName}}/g, contactData.clientName);
+        // Generate the unique link for the assessment form
+        const assessmentLink = `${process.env.NEXT_PUBLIC_BASE_URL}/lead-intake?id=${contactRef.id}`;
+        
+        // Replace placeholders in the email body
+        let emailHtml = template.body.replace(/{{clientName}}/g, contactData.clientName);
+        emailHtml = emailHtml.replace(/{{assessmentLink}}/g, assessmentLink);
+
 
         await serverDb.collection('mail').add({
             to: [contactData.clientEmail],
