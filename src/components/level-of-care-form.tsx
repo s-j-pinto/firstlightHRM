@@ -4,7 +4,6 @@
 import { useTransition, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { levelOfCareSchema, type LevelOfCareFormData } from "@/lib/level-of-care.actions";
 import { useDoc, useMemoFirebase, firestore } from "@/firebase";
 import { doc } from 'firebase/firestore';
 
@@ -15,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { saveLevelOfCare } from "@/lib/level-of-care.actions";
 import { Loader2, Save } from "lucide-react";
+import { levelOfCareSchema, type LevelOfCareFormData } from "@/lib/types";
 
 interface LevelOfCareFormProps {
     initialContactId: string;
@@ -172,7 +172,7 @@ export function LevelOfCareForm({ initialContactId, assessmentId, onSave }: Leve
                                             <FormItem className="flex items-center space-x-3 space-y-0">
                                                 <FormControl>
                                                     <Checkbox
-                                                        checked={formField.value}
+                                                        checked={!!formField.value}
                                                         onCheckedChange={formField.onChange}
                                                     />
                                                 </FormControl>
