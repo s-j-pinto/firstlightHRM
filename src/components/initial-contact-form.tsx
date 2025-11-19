@@ -40,7 +40,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Label } from "@/components/ui/label";
 import { HelpDialog } from "./HelpDialog";
 import { LevelOfCareForm } from "./level-of-care-form";
-
+import { SourceCombobox } from "./source-combobox";
 
 const companionCareCheckboxes = [
     { id: 'companionCare_mealPreparation', label: 'Meal preparation and clean up' },
@@ -81,8 +81,6 @@ const closureReasons = [
     "App referral was incorrect",
     "Other",
 ];
-
-const manualSources = ["Phone Inquiry", "Walk-In", "Existing Client"];
 
 const initialContactSchema = z.object({
   clientName: z.string().min(1, "Client's Name is required."),
@@ -359,8 +357,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
   const inHomeVisitSet = form.watch("inHomeVisitSet");
   const dateOfBirth = form.watch("dateOfBirth");
   const age = dateOfBirth ? differenceInYears(new Date(), dateOfBirth) : null;
-  const sourceValue = form.watch("source");
-  const isAutomatedSource = sourceValue && !manualSources.includes(sourceValue);
+  const isAutomatedSource = existingData && existingData.source && !['Phone Inquiry', 'Walk-In', 'Existing Client'].includes(existingData.source);
 
 
   if(isLoading) {
@@ -420,7 +417,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
               <div className="space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField control={form.control} name="clientName" render={({ field }) => ( <FormItem><FormLabel>Client's Name</FormLabel><FormControl><Input {...field} disabled={isCsaCreated || isClosed} /></FormControl><FormMessage /></FormItem> )} />
-                    <FormField
+                     <FormField
                         control={form.control}
                         name="source"
                         render={({ field }) => (
@@ -429,18 +426,11 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                                 {isAutomatedSource ? (
                                     <Input value={field.value} readOnly disabled className="bg-muted" />
                                 ) : (
-                                    <Select onValueChange={field.onChange} value={field.value} disabled={isClosed}>
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select a source..." />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {manualSources.map(source => (
-                                                <SelectItem key={source} value={source}>{source}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <SourceCombobox
+                                        value={field.value}
+                                        onChange={(value) => field.onChange(value)}
+                                        disabled={isClosed}
+                                    />
                                 )}
                                 <FormMessage />
                             </FormItem>
