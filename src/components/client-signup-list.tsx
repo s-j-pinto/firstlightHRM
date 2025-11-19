@@ -1,10 +1,9 @@
-
 "use client";
 
 import { useMemo, useState } from 'react';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { firestore, useCollection, useMemoFirebase } from '@/firebase';
-import { format, subDays, subMonths, isAfter } from 'date-fns';
+import { format, subDays, isAfter } from 'date-fns';
 import { Loader2, ChevronRight, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -35,6 +34,7 @@ import { Badge } from './ui/badge';
 import { cn } from '@/lib/utils';
 import { Checkbox } from './ui/checkbox';
 import { Label } from './ui/label';
+import type { CampaignTemplate } from '@/lib/types';
 
 const intakeStatuses = [
     "New",
@@ -77,6 +77,17 @@ export default function ClientSignupList() {
   );
   const { data: signups, isLoading: signupsLoading } = useCollection<any>(signupsQuery);
 
+  const templatesQuery = useMemoFirebase(() => 
+    query(collection(firestore, 'campaign_templates')),
+    []
+  );
+  const { data: templates, isLoading: templatesLoading } = useCollection<CampaignTemplate>(templatesQuery);
+
+  const templatesMap = useMemo(() => {
+    if (!templates) return new Map();
+    return new Map(templates.map(t => [t.id, t.name]));
+  }, [templates]);
+
   const unifiedIntakeList = useMemo(() => {
     if (!contacts) return [];
 
@@ -86,6 +97,10 @@ export default function ClientSignupList() {
       const signup = signupsMap.get(contact.id);
       const status = signup?.status || contact.status || "New";
       
+      const followupsSent = (contact.followUpHistory || [])
+        .map((entry: any) => templatesMap.get(entry.templateId))
+        .filter(Boolean);
+
       return {
         id: contact.id,
         signupId: signup?.id,
@@ -95,6 +110,7 @@ export default function ClientSignupList() {
         createdAt: contact.createdAt,
         status: status,
         source: contact.source || 'N/A',
+        followupsSent: followupsSent,
       };
     });
 
@@ -118,11 +134,11 @@ export default function ClientSignupList() {
 
     return filteredIntakes;
 
-  }, [contacts, signups, statusFilter, dateFilter, showClosed]);
+  }, [contacts, signups, statusFilter, dateFilter, showClosed, templatesMap]);
 
   const baseEditPath = pathname.includes('/admin') ? '/admin/initial-contact' : '/owner/initial-contact';
   const csaBasePath = pathname.includes('/admin') ? '/admin/new-client-signup' : '/owner/new-client-signup';
-  const isLoading = contactsLoading || signupsLoading;
+  const isLoading = contactsLoading || signupsLoading || templatesLoading;
 
   const StatusBadge = ({ status }: { status: string }) => {
     const colorClass = 
@@ -191,11 +207,10 @@ export default function ClientSignupList() {
           <TableHeader>
             <TableRow>
               <TableHead>Client Name</TableHead>
-              <TableHead>Phone</TableHead>
-              <TableHead>Address</TableHead>
               <TableHead>Created At</TableHead>
               <TableHead>Source</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Follow-ups Sent</TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
@@ -204,14 +219,19 @@ export default function ClientSignupList() {
               unifiedIntakeList.map(item => (
                 <TableRow key={item.id}>
                   <TableCell className="font-medium">{item.clientName}</TableCell>
-                  <TableCell>{item.clientPhone}</TableCell>
-                  <TableCell>{item.clientAddress}</TableCell>
                   <TableCell>
                     {item.createdAt ? format((item.createdAt as any).toDate(), 'PPp') : 'N/A'}
                   </TableCell>
                   <TableCell>{item.source}</TableCell>
                   <TableCell>
                     <StatusBadge status={item.status} />
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {item.followupsSent.map((followupName: string) => (
+                        <Badge key={followupName} variant="secondary">{followupName}</Badge>
+                      ))}
+                    </div>
                   </TableCell>
                   <TableCell className="text-right space-y-1">
                     <Link href={`${baseEditPath}?contactId=${item.id}`} className="flex items-center justify-end text-accent hover:underline">
