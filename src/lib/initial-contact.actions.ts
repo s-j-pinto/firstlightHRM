@@ -10,6 +10,7 @@ import { sendHomeVisitInvite } from './google-calendar.actions';
 
 const initialContactSchema = z.object({
   clientName: z.string().min(1, "Client's Name is required."),
+  source: z.string().min(1, "Source is required."),
   clientAddress: z.string().min(1, "Client's Address is required."),
   dateOfBirth: z.date().optional(),
   rateOffered: z.coerce.number().optional(),
@@ -120,14 +121,8 @@ export async function submitInitialContact(payload: SubmitPayload) {
         status = "In-Home Visit Scheduled";
     }
 
-    let source = "Phone Inquiry";
-    if (validation.data.referralCode) {
-        source = "App Referral";
-    }
-
     const dataToSave = {
         ...validation.data,
-        source: source,
         status: status,
         lastUpdatedAt: now,
     };
@@ -150,21 +145,25 @@ export async function submitInitialContact(payload: SubmitPayload) {
             docId = contactRef.id;
         }
 
-        // Handle referral code
-        if (dataToSave.referralCode) {
-            const referralProfileQuery = await firestore.collection('referral_profiles').where('referralCode', '==', dataToSave.referralCode).limit(1).get();
-            if (!referralProfileQuery.empty) {
-                const referrerProfile = referralProfileQuery.docs[0].data();
-                await firestore.collection('referrals').add({
-                    referrerClientId: referrerProfile.clientId,
-                    referralCodeUsed: dataToSave.referralCode,
-                    newClientInitialContactId: docId,
-                    newClientName: dataToSave.clientName,
-                    status: 'Pending',
-                    createdAt: now,
-                });
+        // Handle referral code only if it's a new contact or if the referral code is new
+        if (dataToSave.referralCode && dataToSave.source === "App Referral") {
+            const referralQuery = await firestore.collection('referrals').where('newClientInitialContactId', '==', docId).get();
+            if (referralQuery.empty) {
+                const referralProfileQuery = await firestore.collection('referral_profiles').where('referralCode', '==', dataToSave.referralCode).limit(1).get();
+                if (!referralProfileQuery.empty) {
+                    const referrerProfile = referralProfileQuery.docs[0].data();
+                    await firestore.collection('referrals').add({
+                        referrerClientId: referrerProfile.clientId,
+                        referralCodeUsed: dataToSave.referralCode,
+                        newClientInitialContactId: docId,
+                        newClientName: dataToSave.clientName,
+                        status: 'Pending',
+                        createdAt: now,
+                    });
+                }
             }
         }
+
 
         // Check if we need to send a calendar invite
         if (dataToSave.inHomeVisitSet === "Yes" && dataToSave.dateOfHomeVisit && dataToSave.timeOfVisit) {

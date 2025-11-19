@@ -31,7 +31,7 @@
             "inHomeVisitSet": { "type": "string", "enum": ["Yes", "No"] },
             "inHomeVisitSetNoReason": { "type": "string" },
             "sendFollowUpCampaigns": { "type": "boolean", "description": "Whether to enroll the lead in automated follow-up email campaigns." },
-            "source": { "type": "string", "enum": ["Phone Inquiry", "Google Ads", "App Referral"], "description": "The original source of the lead." },
+            "source": { "type": "string", "enum": ["Phone Inquiry", "Walk-In", "Existing Client", "Google Ads", "App Referral"], "description": "The original source of the lead." },
             "status": { "type": "string", "enum": ["New", "In-Home Visit Scheduled", "Assessment Complete", "Closed"], "description": "The current stage of the lead in the pipeline." },
             "closureReason": { "type": "string", "description": "The reason why a contact was closed." },
             "createdAt": { "type": "string", "format": "date-time" },

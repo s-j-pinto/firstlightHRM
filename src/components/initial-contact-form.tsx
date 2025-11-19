@@ -82,8 +82,11 @@ const closureReasons = [
     "Other",
 ];
 
+const manualSources = ["Phone Inquiry", "Walk-In", "Existing Client"];
+
 const initialContactSchema = z.object({
   clientName: z.string().min(1, "Client's Name is required."),
+  source: z.string().min(1, "Source is required."),
   clientAddress: z.string().min(1, "Client's Address is required."),
   dateOfBirth: z.date().optional(),
   rateOffered: z.coerce.number().optional(),
@@ -210,6 +213,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
     resolver: zodResolver(initialContactSchema),
     defaultValues: {
       clientName: "",
+      source: "Phone Inquiry",
       clientAddress: "",
       dateOfBirth: undefined,
       rateOffered: 0,
@@ -355,6 +359,8 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
   const inHomeVisitSet = form.watch("inHomeVisitSet");
   const dateOfBirth = form.watch("dateOfBirth");
   const age = dateOfBirth ? differenceInYears(new Date(), dateOfBirth) : null;
+  const sourceValue = form.watch("source");
+  const isAutomatedSource = sourceValue && !manualSources.includes(sourceValue);
 
 
   if(isLoading) {
@@ -412,7 +418,35 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
               {/* Left Column */}
               <div className="space-y-6">
-                <FormField control={form.control} name="clientName" render={({ field }) => ( <FormItem><FormLabel>Client's Name</FormLabel><FormControl><Input {...field} disabled={isCsaCreated || isClosed} /></FormControl><FormMessage /></FormItem> )} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField control={form.control} name="clientName" render={({ field }) => ( <FormItem><FormLabel>Client's Name</FormLabel><FormControl><Input {...field} disabled={isCsaCreated || isClosed} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField
+                        control={form.control}
+                        name="source"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Source</FormLabel>
+                                {isAutomatedSource ? (
+                                    <Input value={field.value} readOnly disabled className="bg-muted" />
+                                ) : (
+                                    <Select onValueChange={field.onChange} value={field.value} disabled={isClosed}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select a source..." />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {manualSources.map(source => (
+                                                <SelectItem key={source} value={source}>{source}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
                 <FormField control={form.control} name="clientAddress" render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} disabled={isCsaCreated || isClosed} /></FormControl><FormMessage /></FormItem> )} />
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                    <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} disabled={isCsaCreated || isClosed} /></FormControl><FormMessage /></FormItem> )} />

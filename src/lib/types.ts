@@ -441,6 +441,7 @@ export interface GeneratedForm {
 export const initialContactSchema = z.object({
     clientName: z.string(),
     clientAddress: z.string(),
+    source: z.string(),
     createdAt: z.any(),
     lastUpdatedAt: z.any(),
     followUpHistory: z.array(z.any()).optional(),
