@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter, usePathname } from "next/navigation";
 import { format, differenceInYears } from "date-fns";
-import { CalendarIcon, Loader2, Save, FileText, AlertCircle, ExternalLink, XCircle } from "lucide-react";
+import { CalendarIcon, Loader2, Save, FileText, AlertCircle, ExternalLink, XCircle, Activity } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -39,6 +39,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Label } from "@/components/ui/label";
 import { HelpDialog } from "./HelpDialog";
+import { LevelOfCareForm } from "./level-of-care-form";
 
 
 const companionCareCheckboxes = [
@@ -86,6 +87,7 @@ const initialContactSchema = z.object({
   clientAddress: z.string().min(1, "Client's Address is required."),
   dateOfBirth: z.date().optional(),
   rateOffered: z.coerce.number().optional(),
+  clientDepositAmount: z.coerce.number().optional(),
   city: z.string().min(1, "City is required."),
   zip: z.string().min(1, "Zip code is required."),
   clientPhone: z.string().min(1, "Client's Phone is required."),
@@ -99,7 +101,6 @@ const initialContactSchema = z.object({
   referralCode: z.string().optional(),
   promptedCall: z.string().min(1, "This field is required."),
   estimatedHours: z.string().optional(),
-  clientDepositAmount: z.coerce.number().optional(),
   estimatedStartDate: z.date().optional(),
   inHomeVisitSet: z.enum(["Yes", "No"]).optional(),
   inHomeVisitSetNoReason: z.string().optional(),
@@ -167,6 +168,8 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
   const pathname = usePathname();
   const [contactId, setContactId] = useState(initialContactId);
   const [signupDocId, setSignupDocId] = useState<string | null>(null);
+  const [locAssessmentId, setLocAssessmentId] = useState<string | null>(null);
+  const [isLocDialogOpen, setIsLocDialogOpen] = useState(false);
   const [authUrl, setAuthUrl] = useState<string | null>(null);
   const [isClosureDialogOpen, setIsClosureDialogOpen] = useState(false);
   const [closureReason, setClosureReason] = useState("");
@@ -180,18 +183,27 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
   const isClosed = existingData?.status === 'Closed';
 
   useEffect(() => {
-    const findSignupDoc = async () => {
+    const findAssociatedDocs = async () => {
       if (contactId) {
-        const q = query(collection(firestore, 'client_signups'), where('initialContactId', '==', contactId));
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-          setSignupDocId(querySnapshot.docs[0].id);
+        // Find signup doc
+        const signupQuery = query(collection(firestore, 'client_signups'), where('initialContactId', '==', contactId));
+        const signupSnapshot = await getDocs(signupQuery);
+        if (!signupSnapshot.empty) {
+          setSignupDocId(signupSnapshot.docs[0].id);
         } else {
-            setSignupDocId(null);
+          setSignupDocId(null);
+        }
+        // Find Level of Care doc
+        const locQuery = query(collection(firestore, 'level_of_care_assessments'), where('initialContactId', '==', contactId));
+        const locSnapshot = await getDocs(locQuery);
+        if (!locSnapshot.empty) {
+          setLocAssessmentId(locSnapshot.docs[0].id);
+        } else {
+          setLocAssessmentId(null);
         }
       }
     };
-    findSignupDoc();
+    findAssociatedDocs();
   }, [contactId]);
 
   const form = useForm<InitialContactFormData>({
@@ -252,7 +264,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
     startSubmittingTransition(async () => {
       setAuthUrl(null);
       
-      const payload: SubmitPayload = {
+      const payload = {
         contactId: contactId,
         formData: data
       };
@@ -723,6 +735,29 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                     </Dialog>
                 )}
                 
+                {contactId && (
+                  <Dialog open={isLocDialogOpen} onOpenChange={setIsLocDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button type="button" variant="outline" disabled={isClosed}>
+                          <Activity className="mr-2" /> Level Of Care
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-4xl">
+                        <DialogHeader>
+                            <DialogTitle>Level of Care Assessment</DialogTitle>
+                        </DialogHeader>
+                        <LevelOfCareForm
+                            initialContactId={contactId}
+                            assessmentId={locAssessmentId}
+                            onSave={() => {
+                                setIsLocDialogOpen(false);
+                                // No need to re-fetch, useCollection will do it
+                            }}
+                        />
+                    </DialogContent>
+                  </Dialog>
+                )}
+
                 {contactId && (
                     <Button
                         type="button"
