@@ -28,14 +28,14 @@ export async function POST(request: NextRequest) {
 
   try {
     const payload = await request.json();
-    const now = Timestamp.now();
-
+    
     // If this is a test webhook from Google, return success immediately.
     if (payload.is_test) {
         console.log('[Google Ads Webhook] Received and acknowledged a test lead from Google Ads.');
         return NextResponse.json({ success: true });
     }
 
+    const now = Timestamp.now();
     const userData: { [key: string]: string } = {};
     if (Array.isArray(payload.user_column_data)) {
       for (const column of payload.user_column_data) {
