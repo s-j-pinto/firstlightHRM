@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo, useState } from 'react';
@@ -106,7 +107,8 @@ export default function ClientSignupList() {
         signupId: signup?.id,
         clientName: contact.clientName || 'N/A',
         clientPhone: contact.clientPhone || 'N/A',
-        clientAddress: contact.clientAddress ? `${contact.clientAddress}, ${contact.city || ''}` : 'N/A',
+        clientAddress: contact.clientAddress || '',
+        clientCity: contact.city || '',
         createdAt: contact.createdAt,
         status: status,
         source: contact.source || 'N/A',
@@ -218,7 +220,11 @@ export default function ClientSignupList() {
             {unifiedIntakeList.length > 0 ? (
               unifiedIntakeList.map(item => (
                 <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.clientName}</TableCell>
+                  <TableCell>
+                    <div className="font-medium">{item.clientName}</div>
+                    <div className="text-sm text-muted-foreground">{item.clientAddress}</div>
+                    <div className="text-sm text-muted-foreground">{item.clientCity}</div>
+                  </TableCell>
                   <TableCell>
                     {item.createdAt ? format((item.createdAt as any).toDate(), 'PPp') : 'N/A'}
                   </TableCell>
