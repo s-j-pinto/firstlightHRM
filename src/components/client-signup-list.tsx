@@ -37,15 +37,15 @@ import { Checkbox } from './ui/checkbox';
 import { Label } from './ui/label';
 
 const intakeStatuses = [
-    "Initial Phone Contact Completed",
+    "New",
     "In-Home Visit Scheduled",
-    "App Referral Received",
-    "Google Ads Lead Received",
+    "Assessment Complete",
     "Incomplete",
     "Pending Client Signatures",
     "Client Signatures Completed",
     "Signed and Published",
     "Closed",
+    "Archived",
 ];
 
 const dateRanges = {
@@ -84,7 +84,7 @@ export default function ClientSignupList() {
 
     const allIntakes = contacts.map(contact => {
       const signup = signupsMap.get(contact.id);
-      const status = signup?.status || contact.status || "Initial Phone Contact Completed";
+      const status = signup?.status || contact.status || "New";
       
       return {
         id: contact.id,
@@ -129,8 +129,8 @@ export default function ClientSignupList() {
         status === 'Client Signatures Completed' ? 'bg-blue-500' :
         status === 'Pending Client Signatures' ? 'bg-yellow-500' :
         status === 'In-Home Visit Scheduled' ? 'bg-teal-500' :
-        status === 'Google Ads Lead Received' ? 'bg-sky-500' :
-        status === 'Initial Phone Contact Completed' ? 'bg-purple-500' :
+        status === 'Assessment Complete' ? 'bg-indigo-500' :
+        status === 'New' ? 'bg-sky-500' :
         status === 'Closed' ? 'bg-red-500' :
         'bg-gray-500';
 

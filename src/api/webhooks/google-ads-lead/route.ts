@@ -12,20 +12,6 @@ import type { CampaignTemplate } from '@/lib/types';
  * follow-up email if a template is configured for it.
  */
 export async function POST(request: NextRequest) {
-  // 1. Security Validation: Check the secret key from Google Ads
-  const googleKey = request.nextUrl.searchParams.get('key');
-  const expectedKey = process.env.GOOGLE_ADS_WEBHOOK_SECRET;
-
-  if (!expectedKey) {
-    console.error('[Google Ads Webhook] Server error: GOOGLE_ADS_WEBHOOK_SECRET is not set in environment variables.');
-    return NextResponse.json({ success: false, error: 'Configuration error.' }, { status: 500 });
-  }
-
-  if (googleKey !== expectedKey) {
-    console.warn(`[Google Ads Webhook] Unauthorized attempt with invalid key: ${googleKey}`);
-    return NextResponse.json({ success: false, error: 'Unauthorized.' }, { status: 401 });
-  }
-
   try {
     const payload = await request.json();
     
@@ -33,6 +19,20 @@ export async function POST(request: NextRequest) {
     if (payload.is_test) {
         console.log('[Google Ads Webhook] Received and acknowledged a test lead from Google Ads.');
         return NextResponse.json({ success: true });
+    }
+
+    // 1. Security Validation: Check the secret key from Google Ads AFTER handling the test case.
+    const googleKey = request.nextUrl.searchParams.get('key');
+    const expectedKey = process.env.GOOGLE_ADS_WEBHOOK_SECRET;
+
+    if (!expectedKey) {
+        console.error('[Google Ads Webhook] Server error: GOOGLE_ADS_WEBHOOK_SECRET is not set in environment variables.');
+        return NextResponse.json({ success: false, error: 'Configuration error.' }, { status: 500 });
+    }
+
+    if (googleKey !== expectedKey) {
+        console.warn(`[Google Ads Webhook] Unauthorized attempt with invalid key: ${googleKey}`);
+        return NextResponse.json({ success: false, error: 'Unauthorized.' }, { status: 401 });
     }
 
     const now = Timestamp.now();
@@ -56,7 +56,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: 'Incomplete lead data.' }, { status: 400 });
     }
 
-    const leadStatus = "Google Ads Lead Received";
     const contactData: any = {
       clientName: userData.clientName,
       clientEmail: userData.clientEmail,
@@ -67,7 +66,8 @@ export async function POST(request: NextRequest) {
       mainContact: userData.clientName,
       contactPhone: userData.clientPhone,
       promptedCall: "Google Ads Lead",
-      status: leadStatus,
+      source: "Google Ads",
+      status: "New",
       createdAt: now,
       lastUpdatedAt: now,
       googleAdsLeadId: payload.lead_id || null,
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     // --- Immediate Follow-up Logic ---
     const templatesSnap = await serverDb.collection('campaign_templates')
         .where('intervalDays', '==', 0)
-        .where('sendImmediatelyFor', 'array-contains', leadStatus)
+        .where('sendImmediatelyFor', 'array-contains', "Google Ads")
         .limit(1)
         .get();
 
@@ -97,7 +97,6 @@ export async function POST(request: NextRequest) {
         let emailHtml = template.body.replace(/{{clientName}}/g, contactData.clientName);
         emailHtml = emailHtml.replace(/{{assessmentLink}}/g, assessmentLink);
 
-
         await serverDb.collection('mail').add({
             to: [contactData.clientEmail],
             message: {
@@ -111,7 +110,7 @@ export async function POST(request: NextRequest) {
         });
         console.log(`[Google Ads Webhook] Queued immediate follow-up email using template ${templateId} for contact ${contactRef.id}.`);
     } else {
-        console.log(`[Google Ads Webhook] No immediate follow-up template found for status "${leadStatus}".`);
+        console.log(`[Google Ads Webhook] No immediate follow-up template found for source "Google Ads".`);
     }
 
     return NextResponse.json({ success: true });

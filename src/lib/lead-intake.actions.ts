@@ -36,6 +36,7 @@ export async function submitLeadIntakeForm(contactId: string, data: any) {
             dateOfHomeVisit: Timestamp.fromDate(assessmentDateTime),
             timeOfVisit: time,
             status: 'In-Home Visit Scheduled',
+            sendFollowUpCampaigns: false, // Stop campaigns after scheduling
             lastUpdatedAt: FieldValue.serverTimestamp(),
         };
 

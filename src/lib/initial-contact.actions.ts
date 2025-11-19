@@ -115,16 +115,19 @@ export async function submitInitialContact(payload: SubmitPayload) {
         console.warn('Could not get user from session cookie for createdBy field.');
     }
 
-    let status = "Initial Phone Contact Completed";
+    let status = "New";
     if (validation.data.inHomeVisitSet === "Yes") {
         status = "In-Home Visit Scheduled";
-    } else if (validation.data.promptedCall?.includes("Referral")) {
-        status = "App Referral Received";
     }
 
+    let source = "Phone Inquiry";
+    if (validation.data.referralCode) {
+        source = "App Referral";
+    }
 
     const dataToSave = {
         ...validation.data,
+        source: source,
         status: status,
         lastUpdatedAt: now,
     };
@@ -242,5 +245,3 @@ export async function closeInitialContact(contactId: string, closureReason: stri
     return { error: true, message: `An error occurred: ${error.message}` };
   }
 }
-
-    
