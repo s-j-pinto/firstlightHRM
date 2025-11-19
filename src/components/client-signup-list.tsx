@@ -99,7 +99,7 @@ export default function ClientSignupList() {
 
     // Apply filters
     const filteredIntakes = allIntakes.filter(item => {
-        if (!showClosed && item.status === 'Closed') {
+        if (!showClosed && (item.status === 'Closed' || item.status === 'Archived')) {
             return false;
         }
 
@@ -180,7 +180,7 @@ export default function ClientSignupList() {
                 </Select>
                 <div className="flex items-center space-x-2">
                     <Checkbox id="show-closed" checked={showClosed} onCheckedChange={(checked) => setShowClosed(checked as boolean)} />
-                    <Label htmlFor="show-closed" className="whitespace-nowrap">Show Closed</Label>
+                    <Label htmlFor="show-closed" className="whitespace-nowrap">Show Closed/Archived</Label>
                 </div>
             </div>
         </div>
@@ -235,5 +235,3 @@ export default function ClientSignupList() {
     </Card>
   );
 }
-
-    
