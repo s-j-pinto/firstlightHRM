@@ -751,7 +751,6 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                             assessmentId={locAssessmentId}
                             onSave={() => {
                                 setIsLocDialogOpen(false);
-                                // No need to re-fetch, useCollection will do it
                             }}
                         />
                     </DialogContent>
