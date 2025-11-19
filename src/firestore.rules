@@ -203,5 +203,18 @@ service cloud.firestore {
     match /campaign_templates/{templateId} {
       allow read, write: if isOwner();
     }
+    /**
+     * @description Controls access to level_of_care_assessments. Open for all.
+     * @path /level_of_care_assessments/{assessmentsId}
+     * @allow (get, list) - Any user can level_of_care_assessments.
+     * @allow (create) - Any authenticated user can create a level_of_care_assessments.
+     * @deny (update, delete) - No user can update or delete a level_of_care_assessments.
+     * @principle Open read access.
+     */
+    match /level_of_care_assessments/{assessmentsId} {
+      allow get, list: if true;
+      allow create, update: if isSignedIn();
+      allow delete: if false;
+    }
   }
 }
