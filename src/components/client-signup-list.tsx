@@ -94,6 +94,7 @@ export default function ClientSignupList() {
         clientAddress: contact.clientAddress ? `${contact.clientAddress}, ${contact.city || ''}` : 'N/A',
         createdAt: contact.createdAt,
         status: status,
+        source: contact.source || 'N/A',
       };
     });
 
@@ -193,6 +194,7 @@ export default function ClientSignupList() {
               <TableHead>Phone</TableHead>
               <TableHead>Address</TableHead>
               <TableHead>Created At</TableHead>
+              <TableHead>Source</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
@@ -207,6 +209,7 @@ export default function ClientSignupList() {
                   <TableCell>
                     {item.createdAt ? format((item.createdAt as any).toDate(), 'PPp') : 'N/A'}
                   </TableCell>
+                  <TableCell>{item.source}</TableCell>
                   <TableCell>
                     <StatusBadge status={item.status} />
                   </TableCell>
@@ -224,7 +227,7 @@ export default function ClientSignupList() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
+                <TableCell colSpan={7} className="h-24 text-center">
                   No intake documents found with the selected filters.
                 </TableCell>
               </TableRow>
