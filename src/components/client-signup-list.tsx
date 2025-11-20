@@ -96,8 +96,12 @@ export default function ClientSignupList() {
 
     const allIntakes = contacts.map(contact => {
       const signup = signupsMap.get(contact.id);
-      const status = signup?.status || contact.status || "New";
+      let status = signup?.status || contact.status || "New";
       
+      if (status === 'Pending Client Signatures' && signup?.signatureReminderSent) {
+          status = 'Pending (Reminder Sent)';
+      }
+
       const followupsSent = (contact.followUpHistory || [])
         .map((entry: any) => templatesMap.get(entry.templateId))
         .filter(Boolean);
@@ -122,7 +126,7 @@ export default function ClientSignupList() {
             return false;
         }
 
-        const statusMatch = statusFilter === 'ALL' || item.status === statusFilter;
+        const statusMatch = statusFilter === 'ALL' || item.status === statusFilter || (statusFilter === 'Pending Client Signatures' && item.status === 'Pending (Reminder Sent)');
         if (!statusMatch) return false;
 
         if (dateFilter === 'all_time') return true;
@@ -146,7 +150,7 @@ export default function ClientSignupList() {
     const colorClass = 
         status === 'Signed and Published' ? 'bg-green-500' :
         status === 'Client Signatures Completed' ? 'bg-blue-500' :
-        status === 'Pending Client Signatures' ? 'bg-yellow-500' :
+        status === 'Pending Client Signatures' || status === 'Pending (Reminder Sent)' ? 'bg-yellow-500' :
         status === 'In-Home Visit Scheduled' ? 'bg-teal-500' :
         status === 'Assessment Complete' ? 'bg-indigo-500' :
         status === 'New' ? 'bg-sky-500' :
