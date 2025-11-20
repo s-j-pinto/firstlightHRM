@@ -129,20 +129,24 @@ export async function submitInitialContact(payload: SubmitPayload) {
     
     try {
         let docId = contactId;
-        if (docId) {
-            // Update existing document
-            const contactRef = firestore.collection('initial_contacts').doc(docId);
-            await contactRef.update({
-                ...dataToSave,
-            });
+        const contactRef = docId ? firestore.collection('initial_contacts').doc(docId) : firestore.collection('initial_contacts').doc();
+        if (!docId) {
+            docId = contactRef.id;
+        }
+        
+        // Fetch the existing document to compare against
+        const existingDoc = await contactRef.get();
+        const existingData = existingDoc.data();
+
+        // Save logic (create or update)
+        if (existingDoc.exists) {
+            await contactRef.update({ ...dataToSave });
         } else {
-            // Create a new document
-            const contactRef = await firestore.collection('initial_contacts').add({
+            await contactRef.set({
                 ...dataToSave,
                 createdBy: userEmail,
                 createdAt: now,
             });
-            docId = contactRef.id;
         }
 
         // Handle referral code only if it's a new contact or if the referral code is new
@@ -163,17 +167,26 @@ export async function submitInitialContact(payload: SubmitPayload) {
                 }
             }
         }
+        
+        // --- Intelligent Calendar Invite Logic ---
+        const oldVisitDate = existingData?.dateOfHomeVisit?.toDate();
+        const oldVisitTime = existingData?.timeOfVisit;
+        const newVisitDate = dataToSave.dateOfHomeVisit;
+        const newVisitTime = dataToSave.timeOfVisit;
+        
+        // Check if a visit is set and if the date or time has changed
+        const hasDateChanged = oldVisitDate?.getTime() !== newVisitDate?.getTime();
+        const hasTimeChanged = oldVisitTime !== newVisitTime;
+        const shouldSendInvite = dataToSave.inHomeVisitSet === "Yes" && newVisitDate && newVisitTime && (hasDateChanged || hasTimeChanged);
 
-
-        // Check if we need to send a calendar invite
-        if (dataToSave.inHomeVisitSet === "Yes" && dataToSave.dateOfHomeVisit && dataToSave.timeOfVisit) {
+        if (shouldSendInvite) {
             const calendarResult = await sendHomeVisitInvite({
                 clientName: dataToSave.clientName,
                 clientAddress: dataToSave.clientAddress,
                 clientEmail: dataToSave.clientEmail,
                 additionalEmail: dataToSave.additionalEmail,
-                dateOfHomeVisit: dataToSave.dateOfHomeVisit,
-                timeOfVisit: dataToSave.timeOfVisit,
+                dateOfHomeVisit: newVisitDate,
+                timeOfVisit: newVisitTime,
             });
             
             if (calendarResult.error) {
@@ -185,7 +198,7 @@ export async function submitInitialContact(payload: SubmitPayload) {
                     authUrl: calendarResult.authUrl 
                 };
             }
-            console.log("Calendar invite sent successfully.");
+            console.log("Calendar invite sent successfully because home visit details changed.");
         }
         
         revalidatePath('/admin/assessments');
