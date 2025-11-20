@@ -5,6 +5,23 @@ import { Timestamp } from 'firebase-admin/firestore';
 import { subDays, isBefore, startOfDay } from 'date-fns';
 import type { CampaignTemplate, InitialContact } from '@/lib/types';
 
+// --- CONFIGURATION FOR PENDING SIGNATURE REMINDER ---
+const PENDING_SIGNATURE_REMINDER_SUBJECT = 'Reminder: Please Sign Your FirstLight Home Care Agreement';
+
+function getPendingSignatureReminderBody(clientName: string, signingLink: string): string {
+  // You can edit the HTML content of the reminder email here.
+  return `
+    <p>Hello ${clientName},</p>
+    <p>This is a friendly reminder to complete your onboarding with FirstLight Home Care. Your service agreement is awaiting your signature.</p>
+    <p>Please click the link below to securely log in and sign your documents:</p>
+    <p><a href="${signingLink}">Complete Your Signature</a></p>
+    <p>Thank you,</p>
+    <p>The FirstLight Home Care Team</p>
+  `;
+}
+// --- END OF CONFIGURATION ---
+
+
 /**
  * API route to handle scheduled cron jobs for sending follow-up messages.
  * This job handles two types of follow-ups:
@@ -35,6 +52,7 @@ export async function GET(request: NextRequest) {
     // --- Task 2: Process Pending Signature Follow-ups ---
     await processPendingSignatureReminders(firestore, now, results);
 
+    console.log('[Cron] Follow-up job completed successfully.', results);
     return NextResponse.json({ success: true, ...results });
   } catch (error: any) {
     console.error('Cron job for follow-up failed:', error);
@@ -81,6 +99,11 @@ async function processNewLeadCampaigns(firestore: FirebaseFirestore.Firestore, n
             const followUpHistory = contact.followUpHistory || [];
             const hasBeenSent = followUpHistory.some((entry: any) => entry.templateId === template.id);
             
+            if (!contact.clientEmail) {
+                console.warn(`[Cron] Skipping contact ${contact.id} due to missing email.`);
+                continue;
+            }
+
             if (isBefore(createdAt, followUpDate) && !hasBeenSent) {
                 const assessmentLink = `${process.env.NEXT_PUBLIC_BASE_URL}/lead-intake?id=${contact.id}`;
                 let emailHtml = template.body.replace(/{{clientName}}/g, contact.clientName);
@@ -120,6 +143,11 @@ async function processPendingSignatureReminders(firestore: FirebaseFirestore.Fir
 
         if (isBefore(lastUpdated, reminderCutoff)) {
             const clientEmail = signupData.clientEmail;
+            if (!clientEmail) {
+                 console.warn(`[Cron] Skipping signature reminder for signup ID ${doc.id} due to missing email.`);
+                 continue;
+            }
+
             const clientName = signupData.formData?.clientName || 'Valued Client';
             const signupId = doc.id;
             const redirectPath = `/client-sign/${signupId}`;
@@ -127,20 +155,13 @@ async function processPendingSignatureReminders(firestore: FirebaseFirestore.Fir
             loginUrl.searchParams.set('redirect', redirectPath);
             const signingLink = loginUrl.toString();
 
-            const emailHtml = `
-                <p>Hello ${clientName},</p>
-                <p>This is a friendly reminder to complete your onboarding with FirstLight Home Care. Your service agreement is awaiting your signature.</p>
-                <p>Please click the link below to securely log in and sign your documents:</p>
-                <p><a href="${signingLink}">Complete Your Signature</a></p>
-                <p>Thank you,</p>
-                <p>The FirstLight Home Care Team</p>
-            `;
+            const emailHtml = getPendingSignatureReminderBody(clientName, signingLink);
             
             await firestore.collection('mail').add({
                 to: [clientEmail],
                 message: {
-                    subject: 'Reminder: Please Sign Your FirstLight Home Care Agreement',
-                    html: emailHtml
+                    subject: PENDING_SIGNATURE_REMINDER_SUBJECT,
+                    html: `<body style="font-family: sans-serif; line-height: 1.6;">${emailHtml}</body>`
                 },
             });
             
@@ -151,4 +172,3 @@ async function processPendingSignatureReminders(firestore: FirebaseFirestore.Fir
         }
     }
 }
-
