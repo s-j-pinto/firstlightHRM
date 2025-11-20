@@ -84,7 +84,7 @@ type TemplateFormData = z.infer<typeof templateSchema>;
 
 export default function CampaignManagementClient() {
   const { toast } = useToast();
-  [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<CampaignTemplate | null>(null);
 
