@@ -54,6 +54,7 @@ import { saveCampaignTemplate, deleteCampaignTemplate } from "@/lib/campaign.act
 import type { CampaignTemplate } from "@/lib/types";
 import { Checkbox } from "./ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
+import { Badge } from "@/components/ui/badge";
 
 const knownLeadSources = [
     { id: 'Google Ads Lead Received', label: 'Google Ads' },
