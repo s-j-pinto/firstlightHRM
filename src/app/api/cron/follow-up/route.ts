@@ -6,7 +6,10 @@ import { subDays, isBefore, startOfDay } from 'date-fns';
 import type { CampaignTemplate, InitialContact } from '@/lib/types';
 
 /**
- * API route to handle scheduled cron jobs for sending follow-up emails based on dynamic templates.
+ * API route to handle scheduled cron jobs for sending follow-up messages.
+ * This job handles two types of follow-ups:
+ * 1. Nurture campaigns for new leads.
+ * 2. Signature reminders for clients with pending documents.
  */
 export async function GET(request: NextRequest) {
   // 1. Secure the endpoint
@@ -18,80 +21,19 @@ export async function GET(request: NextRequest) {
   const firestore = serverDb;
   const now = new Date();
   const results = {
-    processed: 0,
-    emailsSent: 0,
+    newLeadsProcessed: 0,
+    newLeadEmailsSent: 0,
+    pendingSignaturesProcessed: 0,
+    signatureRemindersSent: 0,
     errors: 0,
   };
 
   try {
-    // 2. Fetch all active email campaign templates
-    const templatesSnap = await firestore.collection('campaign_templates').where('type', '==', 'email').get();
-    if (templatesSnap.empty) {
-        return NextResponse.json({ message: 'No active email templates found.' });
-    }
-    const templates = templatesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as CampaignTemplate));
+    // --- Task 1: Process New Lead Follow-up Campaigns ---
+    await processNewLeadCampaigns(firestore, now, results);
 
-    // 3. Get all initial contacts that are explicitly marked for follow-up and are new.
-    const contactsSnap = await firestore.collection('initial_contacts')
-        .where('sendFollowUpCampaigns', '==', true)
-        .where('status', '==', 'New')
-        .get();
-
-    if (contactsSnap.empty) {
-        return NextResponse.json({ message: 'No eligible contacts to process.' });
-    }
-    
-    // Get all client_signups to filter out converted contacts
-    const signupsSnap = await firestore.collection('client_signups').get();
-    const convertedContactIds = new Set(signupsSnap.docs.map(doc => doc.data().initialContactId));
-
-    const eligibleContacts = contactsSnap.docs
-        .map(doc => ({ id: doc.id, ...doc.data() } as InitialContact))
-        .filter(contact => !convertedContactIds.has(contact.id));
-    
-    results.processed = eligibleContacts.length;
-
-    // 4. Process each template against all eligible contacts
-    for (const template of templates) {
-        // Skip immediate-send templates in this batch job
-        if (template.intervalDays === 0) continue;
-
-        const intervalDays = template.intervalDays;
-        const followUpDate = startOfDay(subDays(now, intervalDays));
-
-        for (const contact of eligibleContacts) {
-            const createdAt = (contact.createdAt as Timestamp).toDate();
-            const followUpHistory = contact.followUpHistory || [];
-
-            const hasBeenSent = followUpHistory.some((entry: any) => entry.templateId === template.id || entry.days === intervalDays); // Check legacy 'days' field too
-            
-            // Check if contact is old enough AND this template hasn't been sent
-            if (isBefore(createdAt, followUpDate) && !hasBeenSent) {
-                
-                // --- Send Email ---
-                const assessmentLink = `${process.env.NEXT_PUBLIC_BASE_URL}/lead-intake?id=${contact.id}`;
-                
-                let emailHtml = template.body.replace(/{{clientName}}/g, contact.clientName);
-                emailHtml = emailHtml.replace(/{{assessmentLink}}/g, assessmentLink);
-
-                await firestore.collection('mail').add({
-                    to: [contact.clientEmail],
-                    message: {
-                        subject: template.subject,
-                        html: emailHtml,
-                    },
-                });
-
-                // Update history with template ID for precise tracking
-                followUpHistory.push({ templateId: template.id, sentAt: Timestamp.now() });
-                await firestore.collection('initial_contacts').doc(contact.id).update({
-                    followUpHistory: followUpHistory,
-                });
-                
-                results.emailsSent++;
-            }
-        }
-    }
+    // --- Task 2: Process Pending Signature Follow-ups ---
+    await processPendingSignatureReminders(firestore, now, results);
 
     return NextResponse.json({ success: true, ...results });
   } catch (error: any) {
@@ -100,3 +42,113 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, error: error.message, ...results }, { status: 500 });
   }
 }
+
+async function processNewLeadCampaigns(firestore: FirebaseFirestore.Firestore, now: Date, results: any) {
+    const templatesSnap = await firestore.collection('campaign_templates').where('type', '==', 'email').get();
+    if (templatesSnap.empty) {
+        console.log('[Cron] No active email templates found for new leads.');
+        return;
+    }
+    const templates = templatesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as CampaignTemplate));
+
+    const contactsSnap = await firestore.collection('initial_contacts')
+        .where('sendFollowUpCampaigns', '==', true)
+        .where('status', '==', 'New')
+        .get();
+
+    if (contactsSnap.empty) {
+        console.log('[Cron] No eligible new leads to process.');
+        return;
+    }
+    
+    const signupsSnap = await firestore.collection('client_signups').get();
+    const convertedContactIds = new Set(signupsSnap.docs.map(doc => doc.data().initialContactId));
+
+    const eligibleContacts = contactsSnap.docs
+        .map(doc => ({ id: doc.id, ...doc.data() } as InitialContact))
+        .filter(contact => !convertedContactIds.has(contact.id));
+    
+    results.newLeadsProcessed = eligibleContacts.length;
+
+    for (const template of templates) {
+        if (template.intervalDays === 0) continue;
+
+        const intervalDays = template.intervalDays;
+        const followUpDate = startOfDay(subDays(now, intervalDays));
+
+        for (const contact of eligibleContacts) {
+            const createdAt = (contact.createdAt as Timestamp).toDate();
+            const followUpHistory = contact.followUpHistory || [];
+            const hasBeenSent = followUpHistory.some((entry: any) => entry.templateId === template.id);
+            
+            if (isBefore(createdAt, followUpDate) && !hasBeenSent) {
+                const assessmentLink = `${process.env.NEXT_PUBLIC_BASE_URL}/lead-intake?id=${contact.id}`;
+                let emailHtml = template.body.replace(/{{clientName}}/g, contact.clientName);
+                emailHtml = emailHtml.replace(/{{assessmentLink}}/g, assessmentLink);
+
+                await firestore.collection('mail').add({
+                    to: [contact.clientEmail],
+                    message: { subject: template.subject, html: emailHtml },
+                });
+
+                followUpHistory.push({ templateId: template.id, sentAt: Timestamp.now() });
+                await firestore.collection('initial_contacts').doc(contact.id).update({ followUpHistory });
+                
+                results.newLeadEmailsSent++;
+            }
+        }
+    }
+}
+
+async function processPendingSignatureReminders(firestore: FirebaseFirestore.Firestore, now: Date, results: any) {
+    const pendingSignupsSnap = await firestore.collection('client_signups')
+        .where('status', '==', 'Pending Client Signatures')
+        .where('signatureReminderSent', '!=', true)
+        .get();
+
+    if (pendingSignupsSnap.empty) {
+        console.log('[Cron] No pending signatures found needing a reminder.');
+        return;
+    }
+    
+    results.pendingSignaturesProcessed = pendingSignupsSnap.docs.length;
+    const reminderCutoff = subDays(now, 1);
+
+    for (const doc of pendingSignupsSnap.docs) {
+        const signupData = doc.data();
+        const lastUpdated = (signupData.lastUpdatedAt as Timestamp).toDate();
+
+        if (isBefore(lastUpdated, reminderCutoff)) {
+            const clientEmail = signupData.clientEmail;
+            const clientName = signupData.formData?.clientName || 'Valued Client';
+            const signupId = doc.id;
+            const redirectPath = `/client-sign/${signupId}`;
+            const loginUrl = new URL(`${process.env.NEXT_PUBLIC_BASE_URL}/new-client-login`);
+            loginUrl.searchParams.set('redirect', redirectPath);
+            const signingLink = loginUrl.toString();
+
+            const emailHtml = `
+                <p>Hello ${clientName},</p>
+                <p>This is a friendly reminder to complete your onboarding with FirstLight Home Care. Your service agreement is awaiting your signature.</p>
+                <p>Please click the link below to securely log in and sign your documents:</p>
+                <p><a href="${signingLink}">Complete Your Signature</a></p>
+                <p>Thank you,</p>
+                <p>The FirstLight Home Care Team</p>
+            `;
+            
+            await firestore.collection('mail').add({
+                to: [clientEmail],
+                message: {
+                    subject: 'Reminder: Please Sign Your FirstLight Home Care Agreement',
+                    html: emailHtml
+                },
+            });
+            
+            // Mark that the reminder has been sent to prevent duplicates
+            await doc.ref.update({ signatureReminderSent: true });
+            results.signatureRemindersSent++;
+            console.log(`[Cron] Sent signature reminder to ${clientEmail} for signup ID ${signupId}.`);
+        }
+    }
+}
+
