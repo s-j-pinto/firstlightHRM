@@ -12,11 +12,20 @@ const templateSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(3, "Name is required."),
   description: z.string().optional(),
-  subject: z.string().min(5, "Subject is required."),
-  body: z.string().min(10, "Email body is required."),
+  subject: z.string().optional(),
+  body: z.string().min(10, "Message body is required."),
   intervalDays: z.coerce.number().min(0, "Interval must be at least 0."),
-  type: z.literal("email").default("email"),
+  intervalHours: z.coerce.number().min(0).optional(),
+  type: z.enum(["email", "sms"]),
   sendImmediatelyFor: z.array(z.string()).optional(),
+}).refine(data => {
+    if (data.type === 'email' && !data.subject) {
+        return false;
+    }
+    return true;
+}, {
+    message: "Subject is required for email templates.",
+    path: ["subject"],
 });
 
 export async function saveCampaignTemplate(payload: z.infer<typeof templateSchema>) {

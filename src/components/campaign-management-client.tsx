@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import * as React from "react";
@@ -17,7 +16,9 @@ import {
   PlusCircle,
   Edit,
   Trash2,
-  FileText
+  FileText,
+  Mail,
+  MessageSquare
 } from "lucide-react";
 import {
   Table,
@@ -52,6 +53,7 @@ import { Textarea } from "./ui/textarea";
 import { saveCampaignTemplate, deleteCampaignTemplate } from "@/lib/campaign.actions";
 import type { CampaignTemplate } from "@/lib/types";
 import { Checkbox } from "./ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 
 const knownLeadSources = [
     { id: 'Google Ads Lead Received', label: 'Google Ads' },
@@ -62,18 +64,27 @@ const templateSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(3, "Name is required."),
   description: z.string().optional(),
-  subject: z.string().min(5, "Subject is required."),
-  body: z.string().min(10, "Email body is required."),
+  subject: z.string().optional(),
+  body: z.string().min(10, "Message body is required."),
   intervalDays: z.coerce.number().min(0, "Interval must be at least 0 days for immediate sends."),
-  type: z.literal("email").default("email"),
+  intervalHours: z.coerce.number().min(0, "Interval must be 0 or greater.").optional(),
+  type: z.enum(["email", "sms"]),
   sendImmediatelyFor: z.array(z.string()).optional(),
+}).refine(data => {
+    if (data.type === 'email' && !data.subject) {
+        return false;
+    }
+    return true;
+}, {
+    message: "Subject is required for email templates.",
+    path: ["subject"],
 });
 
 type TemplateFormData = z.infer<typeof templateSchema>;
 
 export default function CampaignManagementClient() {
   const { toast } = useToast();
-  const [isPending, startTransition] = useTransition();
+  [isPending, startTransition] = useTransition();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<CampaignTemplate | null>(null);
 
@@ -88,20 +99,25 @@ export default function CampaignManagementClient() {
       subject: "",
       body: "",
       intervalDays: 3,
+      intervalHours: 0,
       type: "email",
       sendImmediatelyFor: [],
     },
   });
+
+  const templateType = form.watch('type');
 
   const handleOpenModal = (template: CampaignTemplate | null) => {
     setEditingTemplate(template);
     if (template) {
       form.reset({
           ...template,
+          type: template.type || 'email',
           sendImmediatelyFor: template.sendImmediatelyFor || [],
+          intervalHours: template.intervalHours || 0,
       });
     } else {
-      form.reset({ name: "", description: "", subject: "", body: "", intervalDays: 3, type: "email", sendImmediatelyFor: [] });
+      form.reset({ name: "", description: "", subject: "", body: "", intervalDays: 3, intervalHours: 0, type: "email", sendImmediatelyFor: [] });
     }
     setIsModalOpen(true);
   };
@@ -142,14 +158,14 @@ export default function CampaignManagementClient() {
       <Card>
         <CardHeader>
           <div className="flex justify-between items-start">
-            <CardTitle>Email Templates</CardTitle>
+            <CardTitle>Messaging Templates</CardTitle>
             <Button onClick={() => handleOpenModal(null)}>
               <PlusCircle className="mr-2" />
               Create Template
             </Button>
           </div>
           <CardDescription>
-            These emails are sent automatically to leads who have not converted after a set number of days.
+            These messages are sent automatically to leads after a set period.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -157,8 +173,9 @@ export default function CampaignManagementClient() {
             <TableHeader>
               <TableRow>
                 <TableHead>Campaign</TableHead>
+                <TableHead>Type</TableHead>
                 <TableHead>Trigger</TableHead>
-                <TableHead>Subject</TableHead>
+                <TableHead>Message Content / Subject</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -171,12 +188,18 @@ export default function CampaignManagementClient() {
                       <div className="text-sm text-muted-foreground">{template.description}</div>
                     </TableCell>
                     <TableCell>
-                        {template.intervalDays === 0 && template.sendImmediatelyFor && template.sendImmediatelyFor.length > 0
-                            ? `Immediately for: ${template.sendImmediatelyFor.join(', ')}`
-                            : `${template.intervalDays} days`
+                        <Badge variant={template.type === 'sms' ? 'secondary' : 'outline'} className="capitalize">
+                            {template.type === 'sms' ? <MessageSquare className="mr-2"/> : <Mail className="mr-2" />}
+                            {template.type}
+                        </Badge>
+                    </TableCell>
+                    <TableCell>
+                        {template.intervalDays === 0 && template.intervalHours && template.intervalHours > 0 
+                            ? `${template.intervalHours} hour(s)`
+                            : `${template.intervalDays} day(s)`
                         }
                     </TableCell>
-                    <TableCell>{template.subject}</TableCell>
+                    <TableCell>{template.type === 'email' ? template.subject : template.body}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-2 justify-end">
                         <Button variant="outline" size="icon" onClick={() => handleOpenModal(template)}>
@@ -208,7 +231,7 @@ export default function CampaignManagementClient() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center">
+                  <TableCell colSpan={5} className="h-24 text-center">
                     No campaign templates found. Click "Create Template" to begin.
                   </TableCell>
                 </TableRow>
@@ -221,28 +244,49 @@ export default function CampaignManagementClient() {
        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{editingTemplate ? "Edit" : "Create"} Follow-up Template</DialogTitle>
+            <DialogTitle>{editingTemplate ? "Edit" : "Create"} Messaging Template</DialogTitle>
             <DialogDescription>
-              This email will be sent to leads who match the criteria after the specified interval.
+              This message will be sent to leads who match the criteria after the specified interval.
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4">
+              
+              <FormField control={form.control} name="type" render={({ field }) => (
+                  <FormItem className="space-y-3">
+                    <FormLabel>Template Type</FormLabel>
+                    <FormControl>
+                      <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4">
+                        <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="email" /></FormControl><FormLabel className="font-normal">Email</FormLabel></FormItem>
+                        <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="sms" /></FormControl><FormLabel className="font-normal">SMS</FormLabel></FormItem>
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField control={form.control} name="name" render={({ field }) => (
                   <FormItem><Label>Template Name</Label><FormControl><Input placeholder="e.g., 3-Day Follow Up" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
                  <FormField control={form.control} name="intervalDays" render={({ field }) => (
-                  <FormItem><Label>Send After (Days)</Label><FormControl><Input type="number" placeholder="3" {...field} /></FormControl><p className="text-xs text-muted-foreground">Set to 0 for immediate sending.</p><FormMessage /></FormItem>
+                  <FormItem><Label>Send After (Days)</Label><FormControl><Input type="number" placeholder="3" {...field} /></FormControl><p className="text-xs text-muted-foreground">Set to 0 for hourly sending.</p><FormMessage /></FormItem>
                 )} />
               </div>
-               <FormField control={form.control} name="description" render={({ field }) => (
-                  <FormItem><Label>Description (Internal)</Label><FormControl><Input placeholder="Friendly check-in after initial contact" {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField control={form.control} name="description" render={({ field }) => (
+                    <FormItem><Label>Description (Internal)</Label><FormControl><Input placeholder="Friendly check-in after initial contact" {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                {form.getValues('intervalDays') === 0 && (
+                    <FormField control={form.control} name="intervalHours" render={({ field }) => (
+                        <FormItem><Label>Send After (Hours)</Label><FormControl><Input type="number" placeholder="1" {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                )}
+              </div>
 
                <FormField control={form.control} name="sendImmediatelyFor" render={() => (
                 <FormItem>
-                    <Label>Send Immediately For</Label>
+                    <Label>Trigger Immediately For Source</Label>
                     <div className="flex flex-wrap gap-4 border p-4 rounded-md">
                         {knownLeadSources.map((source) => (
                         <FormField key={source.id} control={form.control} name="sendImmediatelyFor" render={({ field }) => (
@@ -263,20 +307,22 @@ export default function CampaignManagementClient() {
                         />
                         ))}
                     </div>
-                     <p className="text-xs text-muted-foreground">Select lead sources that should trigger this email immediately upon creation. Interval must be 0.</p>
+                     <p className="text-xs text-muted-foreground">Select lead sources that should trigger this message immediately upon creation. Interval must be 0 for this to work.</p>
                     <FormMessage />
                 </FormItem>
               )}
               />
-
-              <FormField control={form.control} name="subject" render={({ field }) => (
-                <FormItem><Label>Email Subject</Label><FormControl><Input placeholder="Following Up from FirstLight Home Care" {...field} /></FormControl><FormMessage /></FormItem>
-              )} />
+              
+              {templateType === 'email' && (
+                <FormField control={form.control} name="subject" render={({ field }) => (
+                    <FormItem><Label>Email Subject</Label><FormControl><Input placeholder="Following Up from FirstLight Home Care" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+              )}
               <FormField control={form.control} name="body" render={({ field }) => (
                 <FormItem>
-                    <Label>Email Body</Label>
-                    <FormControl><Textarea placeholder="<p>Hello {{clientName}},</p><p>We hope you're having a good week...</p>" {...field} rows={10} /></FormControl>
-                    <p className="text-xs text-muted-foreground">You can use `{'{{clientName}}'}` as a placeholder for the client's name. Use HTML for formatting.</p>
+                    <Label>Message Body</Label>
+                    <FormControl><Textarea placeholder="Enter your message here..." {...field} rows={8} /></FormControl>
+                    <p className="text-xs text-muted-foreground">You can use {`{{clientName}}`} and {`{{assessmentLink}}`} as placeholders.</p>
                     <FormMessage />
                 </FormItem>
               )} />
