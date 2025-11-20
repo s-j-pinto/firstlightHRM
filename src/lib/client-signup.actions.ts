@@ -168,10 +168,18 @@ export async function saveClientSignupForm(payload: z.infer<typeof clientSignupS
                 lastUpdatedAt: now,
             };
 
+            const otherTextfields = ['companionCare_other', 'personalCare_assistWithOther'];
+
             // Dynamically add all companion and personal care fields to the sync object
             Object.keys(formData).forEach(key => {
                 if (key.startsWith('companionCare_') || key.startsWith('personalCare_')) {
-                    dataToSync[key] = formData[key] || false; // Ensure boolean false instead of undefined
+                    if (otherTextfields.includes(key)) {
+                        // This is a text field, save as string or empty string
+                        dataToSync[key] = formData[key] || '';
+                    } else {
+                        // This is a checkbox, save as boolean
+                        dataToSync[key] = formData[key] || false;
+                    }
                 }
             });
 
@@ -478,5 +486,3 @@ export async function previewClientIntakePdf(formData: any) {
         return { error: `Failed to generate PDF: ${error.message}` };
     }
 }
-
-    
