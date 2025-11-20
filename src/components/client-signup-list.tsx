@@ -102,9 +102,14 @@ export default function ClientSignupList() {
           status = 'Pending (Reminder Sent)';
       }
 
-      const followupsSent = (contact.followUpHistory || [])
+      const emailFollowups = (contact.followUpHistory || [])
         .map((entry: any) => templatesMap.get(entry.templateId))
         .filter(Boolean);
+        
+      const allFollowups = [...emailFollowups];
+      if (contact.smsFollowUpSent) {
+        allFollowups.unshift("1-Hour SMS Follow-up"); // Add SMS to the beginning
+      }
 
       return {
         id: contact.id,
@@ -116,7 +121,7 @@ export default function ClientSignupList() {
         createdAt: contact.createdAt,
         status: status,
         source: contact.source || 'N/A',
-        followupsSent: followupsSent,
+        followupsSent: allFollowups,
       };
     });
 
