@@ -48,7 +48,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Form, FormControl, FormField, FormItem, FormMessage } from "./ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "./ui/form";
 import { Textarea } from "./ui/textarea";
 import { saveCampaignTemplate, deleteCampaignTemplate } from "@/lib/campaign.actions";
 import type { CampaignTemplate } from "@/lib/types";
@@ -321,7 +321,7 @@ export default function CampaignManagementClient() {
               )}
               <FormField control={form.control} name="body" render={({ field }) => (
                 <FormItem>
-                    <Label>Message Body</Label>
+                    <FormLabel>Message Body</FormLabel>
                     <FormControl><Textarea placeholder="Enter your message here..." {...field} rows={8} /></FormControl>
                     <p className="text-xs text-muted-foreground">You can use {`{{clientName}}`} and {`{{assessmentLink}}`} as placeholders.</p>
                     <FormMessage />
