@@ -7,6 +7,7 @@ import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { cookies } from 'next/headers';
 import { sendHomeVisitInvite } from './google-calendar.actions';
+import { sendSms } from './services/telnyx';
 
 const initialContactSchema = z.object({
   clientName: z.string().min(1, "Client's Name is required."),
@@ -256,4 +257,33 @@ export async function closeInitialContact(contactId: string, closureReason: stri
     console.error("Error closing initial contact:", error);
     return { error: true, message: `An error occurred: ${error.message}` };
   }
+}
+
+export async function sendManualSms(contactId: string, message: string) {
+    if (!contactId || !message) {
+        return { error: "Contact ID and message are required." };
+    }
+
+    try {
+        const contactDoc = await serverDb.collection('initial_contacts').doc(contactId).get();
+        if (!contactDoc.exists) {
+            return { error: "Contact not found." };
+        }
+        const clientPhone = contactDoc.data()?.clientPhone;
+        if (!clientPhone) {
+            return { error: "Contact does not have a phone number." };
+        }
+
+        const result = await sendSms(clientPhone, message, contactId);
+
+        if (result.success) {
+            revalidatePath(`/admin/initial-contact?contactId=${contactId}`);
+            revalidatePath(`/owner/initial-contact?contactId=${contactId}`);
+            return { message: "SMS sent successfully." };
+        } else {
+            return { error: result.message };
+        }
+    } catch (error: any) {
+        return { error: `Failed to send SMS: ${error.message}` };
+    }
 }

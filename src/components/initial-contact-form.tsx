@@ -1,13 +1,13 @@
 
 "use client";
 
-import { useState, useTransition, useEffect, useMemo } from "react";
+import { useState, useTransition, useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter, usePathname } from "next/navigation";
 import { format, differenceInYears } from "date-fns";
-import { CalendarIcon, Loader2, Save, FileText, AlertCircle, ExternalLink, XCircle, Activity } from "lucide-react";
+import { CalendarIcon, Loader2, Save, FileText, AlertCircle, ExternalLink, XCircle, Activity, Send, MessageSquare } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -28,9 +28,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { submitInitialContact, closeInitialContact } from "@/lib/initial-contact.actions";
-import { useDoc, useMemoFirebase, firestore } from "@/firebase";
-import { doc, query, collection, where, getDocs } from 'firebase/firestore';
+import { submitInitialContact, closeInitialContact, sendManualSms } from "@/lib/initial-contact.actions";
+import { useDoc, useCollection, useMemoFirebase, firestore } from "@/firebase";
+import { doc, query, collection, where, getDocs, orderBy } from 'firebase/firestore';
 import { createCsaFromContact } from "@/lib/client-signup.actions";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,6 +41,8 @@ import { Label } from "@/components/ui/label";
 import { HelpDialog } from "./HelpDialog";
 import { LevelOfCareForm } from "./level-of-care-form";
 import { SourceCombobox } from "./source-combobox";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import type { SmsMessage } from "@/lib/types";
 
 const companionCareCheckboxes = [
     { id: 'companionCare_mealPreparation', label: 'Meal preparation and clean up' },
@@ -114,6 +116,8 @@ const initialContactSchema = z.object({
   contactPhone: z.string().min(1, "Contact Phone is required."),
   languagePreference: z.string().optional(),
   additionalEmail: z.string().email("Please enter a valid email.").optional().or(z.literal('')),
+  createdAt: z.any().optional(),
+  createdBy: z.string().optional(),
   companionCare_mealPreparation: z.boolean().optional(),
     companionCare_cleanKitchen: z.boolean().optional(),
     companionCare_assistWithLaundry: z.boolean().optional(),
@@ -175,10 +179,14 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
   const [isClosureDialogOpen, setIsClosureDialogOpen] = useState(false);
   const [closureReason, setClosureReason] = useState("");
   const [isClosing, startClosingTransition] = useTransition();
+  const [isSmsOpen, setIsSmsOpen] = useState(false);
 
 
   const contactDocRef = useMemoFirebase(() => contactId ? doc(firestore, 'initial_contacts', contactId) : null, [contactId]);
   const { data: existingData, isLoading } = useDoc<any>(contactDocRef);
+  
+  const smsHistoryQuery = useMemoFirebase(() => contactId ? query(collection(firestore, `initial_contacts/${contactId}/sms_history`), orderBy('timestamp', 'asc')) : null, [contactId]);
+  const { data: smsHistory } = useCollection<SmsMessage>(smsHistoryQuery);
 
   const isCsaCreated = !!signupDocId;
   const isClosed = existingData?.status === 'Closed';
@@ -371,6 +379,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             
             <div className="flex justify-end -mb-4">
+                <Button type="button" variant="outline" size="icon" className="mr-2" onClick={() => setIsSmsOpen(true)} disabled={!contactId || isClosed}><MessageSquare/></Button>
                 <HelpDialog topic="initialContact" />
             </div>
 
@@ -799,7 +808,98 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
             </div>
           </form>
         </Form>
+
+        <Dialog open={isSmsOpen} onOpenChange={setIsSmsOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>SMS History with {existingData?.clientName}</DialogTitle>
+                    <DialogDescription>
+                        View messages and send a reply.
+                    </DialogDescription>
+                </DialogHeader>
+                <SmsChatInterface contactId={contactId} />
+            </DialogContent>
+        </Dialog>
+
       </CardContent>
     </Card>
   );
+}
+
+function SmsChatInterface({ contactId }: { contactId: string | null }) {
+    const [newMessage, setNewMessage] = useState('');
+    const [isSending, startSendingTransition] = useTransition();
+    const scrollAreaRef = useRef<HTMLDivElement>(null);
+    const { toast } = useToast();
+
+    const smsHistoryQuery = useMemoFirebase(() => 
+        contactId ? query(collection(firestore, `initial_contacts/${contactId}/sms_history`), orderBy('timestamp', 'asc')) : null, 
+        [contactId]
+    );
+    const { data: smsHistory, isLoading } = useCollection<SmsMessage>(smsHistoryQuery);
+    
+    useEffect(() => {
+        if (scrollAreaRef.current) {
+            scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+        }
+    }, [smsHistory]);
+
+    const handleSend = () => {
+        if (!contactId || !newMessage.trim()) return;
+
+        startSendingTransition(async () => {
+            const result = await sendManualSms(contactId, newMessage);
+            if (result.error) {
+                toast({ title: 'Error Sending SMS', description: result.error, variant: 'destructive' });
+            } else {
+                setNewMessage('');
+            }
+        });
+    };
+
+    return (
+        <div className="flex flex-col h-[60vh]">
+            <ScrollArea className="flex-1 p-4 border rounded-md" ref={scrollAreaRef}>
+                {isLoading ? (
+                    <div className="flex justify-center items-center h-full">
+                        <Loader2 className="animate-spin" />
+                    </div>
+                ) : smsHistory && smsHistory.length > 0 ? (
+                    <div className="space-y-4">
+                        {smsHistory.map(msg => (
+                            <div key={msg.id} className={cn("flex", msg.direction === 'outbound' ? 'justify-end' : 'justify-start')}>
+                                <div className={cn("max-w-xs p-3 rounded-lg", msg.direction === 'outbound' ? 'bg-accent text-accent-foreground' : 'bg-muted')}>
+                                    <p className="text-sm">{msg.text}</p>
+                                    <p className="text-xs text-right mt-1 opacity-70">
+                                        {msg.timestamp ? format((msg.timestamp as any).toDate(), 'PPp') : ''}
+                                    </p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="flex justify-center items-center h-full">
+                        <p className="text-muted-foreground">No SMS history for this contact.</p>
+                    </div>
+                )}
+            </ScrollArea>
+            <div className="mt-4 flex gap-2">
+                <Textarea 
+                    value={newMessage} 
+                    onChange={e => setNewMessage(e.target.value)} 
+                    placeholder="Type your message..."
+                    rows={2}
+                    onKeyDown={(e) => {
+                        if(e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSend();
+                        }
+                    }}
+                />
+                <Button onClick={handleSend} disabled={isSending || !newMessage.trim()}>
+                    {isSending ? <Loader2 className="animate-spin" /> : <Send />}
+                </Button>
+            </div>
+        </div>
+    )
 }

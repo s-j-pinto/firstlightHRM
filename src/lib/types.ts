@@ -450,13 +450,14 @@ export const initialContactSchema = z.object({
     status: z.string().optional(),
     clientDepositAmount: z.coerce.number().optional(),
 });
-export type InitialContact = z.infer<typeof initialContactSchema> & { id: string };
+export type InitialContact = z.infer<typeof initialContactSchema> & { id: string, smsFollowUpSent?: boolean, clientPhone?: string };
 
 export const campaignTemplateSchema = z.object({
     name: z.string(),
     description: z.string().optional(),
     type: z.enum(['email', 'sms']),
     intervalDays: z.number().min(0),
+    intervalHours: z.number().min(0).optional(),
     subject: z.string().optional(),
     body: z.string(),
     sendImmediatelyFor: z.array(z.string()).optional(),
@@ -569,3 +570,10 @@ export const levelOfCareSchema = z.object({
     level_4_severe_cognitive_and_memory_impairment: z.boolean().optional(),
   });
 export type LevelOfCareFormData = z.infer<typeof levelOfCareSchema>;
+
+export const smsMessageSchema = z.object({
+    text: z.string(),
+    direction: z.enum(['inbound', 'outbound']),
+    timestamp: z.any(),
+});
+export type SmsMessage = z.infer<typeof smsMessageSchema> & { id: string };
