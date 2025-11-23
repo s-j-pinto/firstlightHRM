@@ -36,5 +36,7 @@ env:
       - RUNTIME
   - variable: TELNYX_API_KEY
     secret: TELNYX_API_KEY
+  - variable: TELNYX_PUBLIC_KEY
+    secret: TELNYX_PUBLIC_KEY
   - variable: TELNYX_MESSAGING_PROFILE_ID
     value: ${TELNYX_MESSAGING_PROFILE_ID}

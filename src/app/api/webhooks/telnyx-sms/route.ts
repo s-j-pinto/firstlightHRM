@@ -2,19 +2,55 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverDb } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
+import telnyx from 'telnyx';
+
+// Disable the default body parser to access the raw body for signature verification
+export const config = {
+    api: {
+        bodyParser: false,
+    },
+};
+
+const apiKey = process.env.TELNYX_API_KEY;
+const publicKey = process.env.TELNYX_PUBLIC_KEY;
+let telnyxApi: ReturnType<typeof telnyx> | null = null;
+
+if (apiKey) {
+    telnyxApi = telnyx(apiKey);
+}
 
 export async function POST(request: NextRequest) {
-    try {
-        const payload = await request.json();
-        console.log('[Telnyx Webhook] Received payload:', JSON.stringify(payload, null, 2));
+    if (!telnyxApi) {
+        console.error('[Telnyx Webhook] Telnyx API not configured.');
+        return NextResponse.json({ success: false, error: 'Configuration error.' }, { status: 500 });
+    }
+    if (!publicKey) {
+        console.error('[Telnyx Webhook] Telnyx Public Key not configured.');
+        return NextResponse.json({ success: false, error: 'Configuration error.' }, { status: 500 });
+    }
 
-        const eventType = payload.data?.event_type;
+    try {
+        const rawBody = await request.text();
+        const signature = request.headers.get('telnyx-signature-ed25519');
+        const timestamp = request.headers.get('telnyx-timestamp');
+
+        if (!signature || !timestamp) {
+            console.warn('[Telnyx Webhook] Missing signature or timestamp headers.');
+            return NextResponse.json({ success: false, error: 'Missing required headers.' }, { status: 400 });
+        }
+        
+        // Verify the webhook signature
+        const event = telnyxApi.webhooks.constructEvent(rawBody, signature, timestamp, publicKey);
+        
+        console.log('[Telnyx Webhook] Received verified payload:', JSON.stringify(event, null, 2));
+
+        const eventType = event.data?.event_type;
         if (eventType !== 'message.received') {
             console.log(`[Telnyx Webhook] Ignoring event type: ${eventType}`);
             return NextResponse.json({ success: true, message: "Event ignored." });
         }
 
-        const message = payload.data.payload;
+        const message = event.data.payload;
         const fromNumber = message.from?.phone_number;
         const text = message.text;
 
@@ -25,6 +61,8 @@ export async function POST(request: NextRequest) {
 
         // Find the contact associated with the incoming phone number
         const contactsRef = serverDb.collection('initial_contacts');
+        // Note: Firestore does not support directly querying parts of a string. 
+        // This requires phone numbers to be stored in a consistent E.164 format.
         const query = contactsRef.where('clientPhone', '==', fromNumber).limit(1);
         const snapshot = await query.get();
 
@@ -49,6 +87,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true });
 
     } catch (error: any) {
+        if (error.type === 'TelnyxSignatureVerificationError') {
+            console.warn('[Telnyx Webhook] Invalid signature.', error.message);
+            return NextResponse.json({ success: false, error: 'Invalid signature.' }, { status: 400 });
+        }
         console.error('[Telnyx Webhook] Error processing webhook:', error);
         return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
     }
