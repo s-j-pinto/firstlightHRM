@@ -80,7 +80,7 @@ async function processNewLeadCampaigns(firestore: FirebaseFirestore.Firestore, n
     }
     
     const signupsSnap = await firestore.collection('client_signups').get();
-    const convertedContactIds = new Set(signupsSnap.docs.map(doc => doc.data().initialContactId));
+    const convertedContactIds = new Set(signupsSnap.docs.map(doc => doc.data().initialContactId).filter(Boolean));
 
     const eligibleContacts = contactsSnap.docs
         .map(doc => ({ id: doc.id, ...doc.data() } as InitialContact))
