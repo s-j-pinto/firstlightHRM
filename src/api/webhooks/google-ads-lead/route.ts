@@ -2,7 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { serverDb } from '@/firebase/server-init';
-import { Timestamp } from 'firebase-admin/firestore';
+import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 import type { CampaignTemplate } from '@/lib/types';
 
 /**
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
         });
 
         await contactRef.update({
-            followUpHistory: [{ templateId: templateId, sentAt: now }]
+            followUpHistory: FieldValue.arrayUnion({ templateId: templateId, sentAt: now })
         });
         console.log(`[Google Ads Webhook] Queued immediate follow-up email using template ${templateId} for contact ${contactRef.id}.`);
     } else {
