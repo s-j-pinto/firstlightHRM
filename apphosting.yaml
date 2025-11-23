@@ -37,4 +37,4 @@ env:
   - variable: TELNYX_API_KEY
     secret: TELNYX_API_KEY
   - variable: TELNYX_MESSAGING_PROFILE_ID
-    secret: TELNYX_MESSAGING_PROFILE_ID
+    value: ${TELNYX_MESSAGING_PROFILE_ID}
