@@ -12,30 +12,28 @@ import type { CampaignTemplate } from '@/lib/types';
  * follow-up email if a template is configured for it.
  */
 export async function POST(request: NextRequest) {
+  // 1. Security Validation: Check the secret key from Google Ads
+  const googleKey = request.nextUrl.searchParams.get('key');
+  const expectedKey = process.env.GOOGLE_ADS_WEBHOOK_SECRET;
+
+  if (!expectedKey) {
+    console.error('[Google Ads Webhook] Server error: GOOGLE_ADS_WEBHOOK_SECRET is not set in environment variables.');
+    return NextResponse.json({ success: false, error: 'Configuration error.' }, { status: 500 });
+  }
+
+  if (googleKey !== expectedKey) {
+    console.warn(`[Google Ads Webhook] Unauthorized attempt with invalid key: ${googleKey}`);
+    return NextResponse.json({ success: false, error: 'Unauthorized.' }, { status: 401 });
+  }
+
   try {
     const payload = await request.json();
-    
-    // If this is a test webhook from Google, return success immediately.
-    if (payload.is_test) {
-        console.log('[Google Ads Webhook] Received and acknowledged a test lead from Google Ads.');
-        return NextResponse.json({ success: true });
-    }
-
-    // 1. Security Validation: Check the secret key from Google Ads AFTER handling the test case.
-    const googleKey = request.nextUrl.searchParams.get('key');
-    const expectedKey = process.env.GOOGLE_ADS_WEBHOOK_SECRET;
-
-    if (!expectedKey) {
-        console.error('[Google Ads Webhook] Server error: GOOGLE_ADS_WEBHOOK_SECRET is not set in environment variables.');
-        return NextResponse.json({ success: false, error: 'Configuration error.' }, { status: 500 });
-    }
-
-    if (googleKey !== expectedKey) {
-        console.warn(`[Google Ads Webhook] Unauthorized attempt with invalid key: ${googleKey}`);
-        return NextResponse.json({ success: false, error: 'Unauthorized.' }, { status: 401 });
-    }
-
     const now = Timestamp.now();
+
+    if (payload.is_test) {
+        console.log('[Google Ads Webhook] Received a test lead from Google Ads.');
+    }
+
     const userData: { [key: string]: string } = {};
     if (Array.isArray(payload.user_column_data)) {
       for (const column of payload.user_column_data) {
@@ -56,6 +54,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: 'Incomplete lead data.' }, { status: 400 });
     }
 
+    const leadStatus = "Google Ads Lead Received";
     const contactData: any = {
       clientName: userData.clientName,
       clientEmail: userData.clientEmail,
@@ -66,7 +65,7 @@ export async function POST(request: NextRequest) {
       mainContact: userData.clientName,
       contactPhone: userData.clientPhone,
       promptedCall: "Google Ads Lead",
-      source: "Google Ads",
+      source: leadStatus,
       status: "New",
       createdAt: now,
       lastUpdatedAt: now,
@@ -79,10 +78,10 @@ export async function POST(request: NextRequest) {
     const contactRef = await serverDb.collection('initial_contacts').add(contactData);
     console.log(`[Google Ads Webhook] Successfully created initial contact ${contactRef.id} for lead: ${payload.lead_id}`);
 
-    // --- Immediate Follow-up Logic ---
+    // --- Immediate Follow-up Logic to Client ---
     const templatesSnap = await serverDb.collection('campaign_templates')
         .where('intervalDays', '==', 0)
-        .where('sendImmediatelyFor', 'array-contains', "Google Ads")
+        .where('sendImmediatelyFor', 'array-contains', leadStatus)
         .limit(1)
         .get();
 
@@ -90,10 +89,8 @@ export async function POST(request: NextRequest) {
         const template = templatesSnap.docs[0].data() as CampaignTemplate;
         const templateId = templatesSnap.docs[0].id;
 
-        // Generate the unique link for the assessment form
         const assessmentLink = `${process.env.NEXT_PUBLIC_BASE_URL}/lead-intake?id=${contactRef.id}`;
         
-        // Replace placeholders in the email body
         let emailHtml = template.body.replace(/{{clientName}}/g, contactData.clientName);
         emailHtml = emailHtml.replace(/{{assessmentLink}}/g, assessmentLink);
 
@@ -110,8 +107,36 @@ export async function POST(request: NextRequest) {
         });
         console.log(`[Google Ads Webhook] Queued immediate follow-up email using template ${templateId} for contact ${contactRef.id}.`);
     } else {
-        console.log(`[Google Ads Webhook] No immediate follow-up template found for source "Google Ads".`);
+        console.log(`[Google Ads Webhook] No immediate follow-up template found for status "${leadStatus}".`);
     }
+
+    // --- NEW: Internal Notification Logic ---
+    const ownerEmail = process.env.OWNER_EMAIL;
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const internalRecipients = [ownerEmail, adminEmail].filter(Boolean) as string[];
+
+    if (internalRecipients.length > 0) {
+        const internalEmail = {
+            to: internalRecipients,
+            message: {
+                subject: `New Google Ads Lead Received: ${contactData.clientName}`,
+                html: `
+                    <p>A new lead has been received from Google Ads.</p>
+                    <ul>
+                        <li><strong>Client Name:</strong> ${contactData.clientName}</li>
+                        <li><strong>Phone Number:</strong> ${contactData.clientPhone}</li>
+                        <li><strong>Email Address:</strong> ${contactData.clientEmail}</li>
+                    </ul>
+                    <p>Please log in to the FirstLightHRM app to follow up.</p>
+                `
+            }
+        };
+        await serverDb.collection('mail').add(internalEmail);
+        console.log(`[Google Ads Webhook] Queued internal notification for lead ${contactRef.id} to ${internalRecipients.join(', ')}.`);
+    } else {
+        console.warn('[Google Ads Webhook] OWNER_EMAIL or ADMIN_EMAIL not set. Skipping internal notification.');
+    }
+
 
     return NextResponse.json({ success: true });
 
