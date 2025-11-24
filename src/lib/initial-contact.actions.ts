@@ -122,8 +122,10 @@ export async function submitInitialContact(payload: SubmitPayload) {
         status = "In-Home Visit Scheduled";
     }
 
+    const { createdAt, ...restOfData } = validation.data;
+
     const dataToSave = {
-        ...validation.data,
+        ...restOfData,
         status: status,
         lastUpdatedAt: now,
     };
@@ -135,11 +137,9 @@ export async function submitInitialContact(payload: SubmitPayload) {
             docId = contactRef.id;
         }
         
-        // Fetch the existing document to compare against
         const existingDoc = await contactRef.get();
         const existingData = existingDoc.data();
 
-        // Save logic (create or update)
         if (existingDoc.exists) {
             await contactRef.update({ ...dataToSave });
         } else {
@@ -150,7 +150,6 @@ export async function submitInitialContact(payload: SubmitPayload) {
             });
         }
 
-        // Handle referral code only if it's a new contact or if the referral code is new
         if (dataToSave.referralCode && dataToSave.source === "App Referral") {
             const referralQuery = await firestore.collection('referrals').where('newClientInitialContactId', '==', docId).get();
             if (referralQuery.empty) {
@@ -169,13 +168,11 @@ export async function submitInitialContact(payload: SubmitPayload) {
             }
         }
         
-        // --- Intelligent Calendar Invite Logic ---
         const oldVisitDate = existingData?.dateOfHomeVisit?.toDate();
         const oldVisitTime = existingData?.timeOfVisit;
         const newVisitDate = dataToSave.dateOfHomeVisit;
         const newVisitTime = dataToSave.timeOfVisit;
         
-        // Check if a visit is set and if the date or time has changed
         const hasDateChanged = oldVisitDate?.getTime() !== newVisitDate?.getTime();
         const hasTimeChanged = oldVisitTime !== newVisitTime;
         const shouldSendInvite = dataToSave.inHomeVisitSet === "Yes" && newVisitDate && newVisitTime && (hasDateChanged || hasTimeChanged);
@@ -224,13 +221,10 @@ export async function closeInitialContact(contactId: string, closureReason: stri
   try {
     const contactRef = firestore.collection("initial_contacts").doc(contactId);
 
-    // 1. Read first: Find the associated client_signups document outside the transaction
     const signupQuery = firestore.collection("client_signups").where("initialContactId", "==", contactId).limit(1);
     const signupSnapshot = await signupQuery.get();
     
-    // 2. Transact second: Perform all writes in a single atomic operation
     await firestore.runTransaction(async (transaction) => {
-      // Update the initial_contacts document
       transaction.update(contactRef, {
         status: "Closed",
         closureReason: closureReason,
@@ -238,7 +232,6 @@ export async function closeInitialContact(contactId: string, closureReason: stri
         sendFollowUpCampaigns: false,
       });
 
-      // If a signup document was found, update it as well
       if (!signupSnapshot.empty) {
         const signupDocRef = signupSnapshot.docs[0].ref;
         transaction.update(signupDocRef, {
@@ -287,3 +280,5 @@ export async function sendManualSms(contactId: string, message: string) {
         return { error: `Failed to send SMS: ${error.message}` };
     }
 }
+
+    
