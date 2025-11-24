@@ -1,0 +1,11 @@
+
+{
+  "name": "Google Local Campaign Immediate Followup",
+  "description": "An immediate email sent to leads from a local Google Ads campaign, prompting them to complete an assessment.",
+  "type": "email",
+  "intervalDays": 0,
+  "intervalHours": 0,
+  "sendImmediatelyFor": ["Google Ads Lead Received"],
+  "subject": "Thank You for Your Interest in FirstLight Home Care",
+  "body": "<!DOCTYPE html><html><head><style>body{font-family:sans-serif;line-height:1.6;}.container{max-width:600px;margin:auto;padding:20px;border:1px solid #ddd;border-radius:10px;}h1{color:#333;}p{color:#555;}.button{background-color:#E07A5F;color:white;padding:12px 25px;text-decoration:none;border-radius:5px;font-size:16px;display:inline-block;}.footer{margin-top:20px;font-size:12px;color:#888;}</style></head><body><div class=\"container\"><h1>Thank You for Contacting FirstLight Home Care</h1><p>Dear {{clientName}},</p><p>Thank you for reaching out to us. We understand that finding the right care for yourself or a loved one is a significant decision, and we're here to help every step of the way.</p><p>To help us better understand your unique needs, we invite you to complete our online self-assessment. It's a quick and easy way for us to gather the initial information needed to provide you with the best possible care options.</p><div style=\"text-align:center;margin:30px 0;\"><a href=\"{{assessmentLink}}\" class=\"button\">Start Your Self-Assessment</a></div><p>Once you complete the assessment, a member of our team will be in touch shortly to discuss the next steps and schedule an in-home visit at your convenience.</p><p>We look forward to speaking with you soon.</p><p>Warmly,<br>The FirstLight Home Care Team</p><div class=\"footer\"><p>FirstLight Home Care of Rancho Cucamonga | (909) 321-4466</p></div></div></body></html>"
+}
