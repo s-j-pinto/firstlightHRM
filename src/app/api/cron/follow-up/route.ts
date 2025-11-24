@@ -53,6 +53,7 @@ export async function GET(request: NextRequest) {
             const queryStartDate = subDays(now, interval + 2); // Adding buffer
             
             const contactsQuery = await firestore.collection('initial_contacts')
+                .where('sendFollowUpCampaigns', '==', true)
                 .where('createdAt', '>=', Timestamp.fromDate(queryStartDate))
                 .get();
 
@@ -66,11 +67,6 @@ export async function GET(request: NextRequest) {
             for (const doc of contactsQuery.docs) {
                 const contact = { id: doc.id, ...doc.data() } as InitialContact;
                 results.contactsChecked++;
-
-                // Filter for eligibility in code
-                if(contact.sendFollowUpCampaigns !== true) {
-                    continue;
-                }
 
                 const contactCreatedAt = (contact.createdAt as Timestamp)?.toDate();
                 if (!contactCreatedAt) {
