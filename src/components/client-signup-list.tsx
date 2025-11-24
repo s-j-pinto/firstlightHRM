@@ -31,10 +31,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import type { CampaignTemplate } from '@/lib/types';
 
 const intakeStatuses = [
@@ -67,7 +67,7 @@ const safeToDate = (value: any): Date | null => {
     if (value.toDate && typeof value.toDate === 'function') {
         return value.toDate();
     }
-    // Check for serialized Timestamp format
+    // Check for serialized Timestamp format from server
     if (typeof value === 'object' && 'seconds' in value && 'nanoseconds' in value) {
         return new Date(value.seconds * 1000 + value.nanoseconds / 1000000);
     }
