@@ -69,9 +69,11 @@ async function processNewLeadCampaigns(firestore: FirebaseFirestore.Firestore, n
     }
     const templates = templatesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as CampaignTemplate));
 
+    // Query for leads that are new and haven't opted out of campaigns.
+    // where('sendFollowUpCampaigns', '!=', false) includes docs where the field is true OR missing (older docs).
     const contactsSnap = await firestore.collection('initial_contacts')
-        .where('sendFollowUpCampaigns', '==', true)
         .where('status', '==', 'New')
+        .where('sendFollowUpCampaigns', '!=', false) 
         .get();
 
     if (contactsSnap.empty) {
@@ -79,8 +81,13 @@ async function processNewLeadCampaigns(firestore: FirebaseFirestore.Firestore, n
         return;
     }
     
-    const signupsSnap = await firestore.collection('client_signups').get();
-    const convertedContactIds = new Set(signupsSnap.docs.map(doc => doc.data().initialContactId).filter(Boolean));
+    // Fetch only the initialContactId from signups for efficient filtering.
+    const signupsSnap = await firestore.collection('client_signups').select('initialContactId').get();
+    const convertedContactIds = new Set(
+        signupsSnap.docs
+            .map(doc => doc.data().initialContactId)
+            .filter((id): id is string => !!id) // Ensure we only have valid string IDs
+    );
 
     const eligibleContacts = contactsSnap.docs
         .map(doc => ({ id: doc.id, ...doc.data() } as InitialContact))
@@ -89,13 +96,12 @@ async function processNewLeadCampaigns(firestore: FirebaseFirestore.Firestore, n
     results.newLeadsProcessed = eligibleContacts.length;
 
     for (const template of templates) {
-        if (template.intervalDays === 0) continue;
+        if (!template.intervalDays || template.intervalDays <= 0) continue; // Skip immediate-send templates
 
         const intervalDays = template.intervalDays;
         const followUpDate = startOfDay(subDays(now, intervalDays));
 
         for (const contact of eligibleContacts) {
-            // Robustly check for a valid createdAt timestamp.
             const createdAtTimestamp = contact.createdAt as Timestamp;
             if (!createdAtTimestamp || typeof createdAtTimestamp.toDate !== 'function') {
                 console.warn(`[Cron] Skipping contact ${contact.id} due to invalid 'createdAt' field.`);
@@ -110,8 +116,10 @@ async function processNewLeadCampaigns(firestore: FirebaseFirestore.Firestore, n
                 console.warn(`[Cron] Skipping contact ${contact.id} due to missing email.`);
                 continue;
             }
-
+            
+            // Check if the creation date is before the follow-up trigger date and it hasn't been sent.
             if (isBefore(createdAt, followUpDate) && !hasBeenSent) {
+                console.log(`[Cron] Sending template ${template.id} to contact ${contact.id}.`);
                 const assessmentLink = `${process.env.NEXT_PUBLIC_BASE_URL}/lead-intake?id=${contact.id}`;
                 let emailHtml = template.body.replace(/{{clientName}}/g, contact.clientName);
                 emailHtml = emailHtml.replace(/{{assessmentLink}}/g, assessmentLink);
@@ -121,8 +129,11 @@ async function processNewLeadCampaigns(firestore: FirebaseFirestore.Firestore, n
                     message: { subject: template.subject, html: emailHtml },
                 });
 
-                followUpHistory.push({ templateId: template.id, sentAt: Timestamp.now() });
-                await firestore.collection('initial_contacts').doc(contact.id).update({ followUpHistory });
+                // Use arrayUnion to atomically add to the history array
+                const contactRef = firestore.collection('initial_contacts').doc(contact.id);
+                await contactRef.update({ 
+                    followUpHistory: Timestamp.firestore.FieldValue.arrayUnion({ templateId: template.id, sentAt: Timestamp.now() })
+                });
                 
                 results.newLeadEmailsSent++;
             }
@@ -178,4 +189,5 @@ async function processPendingSignatureReminders(firestore: FirebaseFirestore.Fir
             console.log(`[Cron] Sent signature reminder to ${clientEmail} for signup ID ${signupId}.`);
         }
     }
-}
+
+    
