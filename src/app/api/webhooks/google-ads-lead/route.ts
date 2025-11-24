@@ -112,8 +112,8 @@ export async function POST(request: NextRequest) {
 
     // --- Internal Notification Logic ---
     const ownerEmail = process.env.OWNER_EMAIL;
-    const staffingAdminEmail = process.env.STAFFING_ADMIN_EMAIL;
-    const internalRecipients = [ownerEmail, staffingAdminEmail].filter(Boolean) as string[];
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const internalRecipients = [ownerEmail, adminEmail].filter(Boolean) as string[];
 
     if (internalRecipients.length > 0) {
         const internalEmail = {
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
         await serverDb.collection('mail').add(internalEmail);
         console.log(`[Google Ads Webhook] Queued internal notification for lead ${contactRef.id} to ${internalRecipients.join(', ')}.`);
     } else {
-        console.warn('[Google Ads Webhook] OWNER_EMAIL or STAFFING_ADMIN_EMAIL not set. Skipping internal notification.');
+        console.warn('[Google Ads Webhook] OWNER_EMAIL or ADMIN_EMAIL not set. Skipping internal notification.');
     }
 
 
