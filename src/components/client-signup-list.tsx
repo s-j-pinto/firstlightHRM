@@ -67,7 +67,7 @@ const safeToDate = (value: any): Date | null => {
     if (value.toDate && typeof value.toDate === 'function') {
         return value.toDate();
     }
-    // Check for serialized Timestamp format from server
+    // Check for serialized Timestamp format from server (plain object)
     if (typeof value === 'object' && 'seconds' in value && 'nanoseconds' in value) {
         return new Date(value.seconds * 1000 + value.nanoseconds / 1000000);
     }
