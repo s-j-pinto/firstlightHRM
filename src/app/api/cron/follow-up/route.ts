@@ -5,6 +5,23 @@ import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 import type { InitialContact, CampaignTemplate } from '@/lib/types';
 import { subDays, isBefore, startOfDay } from 'date-fns';
 
+// Helper to safely convert Firestore Timestamps or serialized strings to Date objects
+const safeToDate = (value: any): Date | null => {
+    if (!value) return null;
+    // Check for Firestore Timestamp which has a toDate method
+    if (value.toDate && typeof value.toDate === 'function') {
+        return value.toDate();
+    }
+    // Handle ISO date strings or numbers (milliseconds)
+    const d = new Date(value);
+    if (!isNaN(d.getTime())) {
+        return d;
+    }
+    console.warn(`[CRON] Could not parse date value:`, value);
+    return null;
+};
+
+
 /**
  * API route to handle a cron job for sending scheduled email follow-ups.
  */
@@ -61,7 +78,13 @@ export async function GET(request: NextRequest) {
 
             for (const contact of eligibleContacts) {
                 results.contactsChecked++;
-                const createdAt = (contact.createdAt as Timestamp).toDate();
+                
+                const createdAt = safeToDate(contact.createdAt);
+
+                if (!createdAt) {
+                    console.warn(`[CRON] Skipping contact ${contact.id}: Invalid or missing createdAt date.`);
+                    continue;
+                }
 
                 // Skip if the contact is too new for this template
                 if (isBefore(targetDate, createdAt)) {
@@ -70,7 +93,6 @@ export async function GET(request: NextRequest) {
                 
                 // Skip if the contact has already started the full signup process
                 if (convertedContactIds.has(contact.id)) {
-                    console.log(`[CRON] Skipping contact ${contact.id}: Already converted to client signup.`);
                     continue;
                 }
 
