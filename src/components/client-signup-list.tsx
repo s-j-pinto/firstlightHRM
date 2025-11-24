@@ -60,6 +60,20 @@ const dateRanges = {
 
 type DateRangeKey = keyof typeof dateRanges;
 
+// Helper to safely convert Firestore Timestamps or serialized strings to Date objects
+const safeToDate = (value: any): Date | null => {
+    if (!value) return null;
+    if (value.toDate && typeof value.toDate === 'function') {
+        return value.toDate(); // It's a Firestore Timestamp
+    }
+    const d = new Date(value);
+    if (!isNaN(d.getTime())) {
+        return d; // It's a valid date string or number
+    }
+    return null;
+};
+
+
 export default function ClientSignupList() {
   const pathname = usePathname();
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -138,7 +152,7 @@ export default function ClientSignupList() {
         
         const days = dateRanges[dateFilter].days;
         const cutoffDate = subDays(new Date(), days);
-        const itemDate = item.createdAt?.toDate();
+        const itemDate = safeToDate(item.createdAt);
         
         return itemDate && isAfter(itemDate, cutoffDate);
     });
@@ -235,7 +249,7 @@ export default function ClientSignupList() {
                     <div className="text-sm text-muted-foreground">{item.clientCity}</div>
                   </TableCell>
                   <TableCell>
-                    {item.createdAt ? format((item.createdAt as any).toDate(), 'PPp') : 'N/A'}
+                    {item.createdAt ? format(safeToDate(item.createdAt) || new Date(), 'PPp') : 'N/A'}
                   </TableCell>
                   <TableCell>{item.source}</TableCell>
                   <TableCell>
