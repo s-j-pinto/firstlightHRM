@@ -189,5 +189,4 @@ async function processPendingSignatureReminders(firestore: FirebaseFirestore.Fir
             console.log(`[Cron] Sent signature reminder to ${clientEmail} for signup ID ${signupId}.`);
         }
     }
-
-    
+}
