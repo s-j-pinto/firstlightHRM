@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { serverDb } from '@/firebase/server-init';
 import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 import type { InitialContact, CampaignTemplate } from '@/lib/types';
-import { subDays } from 'date-fns';
+import { subDays, isWithinInterval } from 'date-fns';
 
 /**
  * API route to handle a cron job for sending scheduled email follow-ups.
@@ -44,18 +44,18 @@ export async function GET(request: NextRequest) {
 
         for (const template of templates) {
             const interval = template.intervalDays;
-            // Look for contacts created 'interval' days ago. We look in a 24-hour window.
-            const targetDateStart = subDays(now, interval);
-            const targetDateEnd = subDays(now, interval -1 );
+            // Target date is `interval` days ago. We'll look for contacts created around that day.
+            const targetDate = subDays(now, interval);
+            // To avoid complex range queries, fetch contacts from the last (interval + 1) days and filter in code.
+            const queryStartDate = subDays(now, interval + 1);
 
             const contactsQuery = await firestore.collection('initial_contacts')
                 .where('sendFollowUpCampaigns', '==', true)
-                .where('createdAt', '>=', Timestamp.fromDate(targetDateStart))
-                .where('createdAt', '<', Timestamp.fromDate(targetDateEnd))
+                .where('createdAt', '>=', Timestamp.fromDate(queryStartDate))
                 .get();
 
             if (contactsQuery.empty) {
-                console.log(`[CRON] No contacts found for template "${template.name}" (interval: ${interval} days).`);
+                console.log(`[CRON] No recent contacts found for template "${template.name}" (interval: ${interval} days).`);
                 continue;
             }
             
@@ -63,6 +63,17 @@ export async function GET(request: NextRequest) {
 
             for (const doc of contactsQuery.docs) {
                 const contact = { id: doc.id, ...doc.data() } as InitialContact;
+                const contactCreatedAt = (contact.createdAt as Timestamp)?.toDate();
+
+                if (!contactCreatedAt) continue;
+
+                // Check if the contact was created within the 24-hour window of the target date.
+                const isTargetDay = isWithinInterval(contactCreatedAt, {
+                    start: subDays(now, interval + 1),
+                    end: subDays(now, interval),
+                });
+                
+                if (!isTargetDay) continue;
 
                 // Skip if the contact has already started the full signup process
                 if (convertedContactIds.has(contact.id)) {
