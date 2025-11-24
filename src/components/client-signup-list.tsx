@@ -31,10 +31,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from './ui/badge';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Checkbox } from './ui/checkbox';
-import { Label } from './ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import type { CampaignTemplate } from '@/lib/types';
 
 const intakeStatuses = [
