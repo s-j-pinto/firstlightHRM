@@ -1,7 +1,20 @@
 
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "client_signups",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "signatureReminderSent",
+          "order": "ASCENDING"
+        }
+      ]
+    }
+  ],
   "fieldOverrides": []
 }
-
-    
