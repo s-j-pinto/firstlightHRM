@@ -63,15 +63,15 @@ type DateRangeKey = keyof typeof dateRanges;
 // Helper to safely convert Firestore Timestamps or serialized strings to Date objects
 const safeToDate = (value: any): Date | null => {
     if (!value) return null;
-    // Check for Firestore Timestamp (both on server and serialized on client)
+    // Check for Firestore Timestamp (server-side)
     if (value.toDate && typeof value.toDate === 'function') {
         return value.toDate();
     }
-    // Check for serialized Timestamp format from server (plain object)
+    // Check for serialized Timestamp from server (plain object with seconds/nanoseconds)
     if (typeof value === 'object' && 'seconds' in value && 'nanoseconds' in value) {
         return new Date(value.seconds * 1000 + value.nanoseconds / 1000000);
     }
-    // Handle string or number representations
+    // Handle ISO date strings or numbers (milliseconds)
     const d = new Date(value);
     if (!isNaN(d.getTime())) {
         return d;
