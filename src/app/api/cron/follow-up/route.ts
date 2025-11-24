@@ -95,7 +95,14 @@ async function processNewLeadCampaigns(firestore: FirebaseFirestore.Firestore, n
         const followUpDate = startOfDay(subDays(now, intervalDays));
 
         for (const contact of eligibleContacts) {
-            const createdAt = (contact.createdAt as Timestamp).toDate();
+            // Robustly check for a valid createdAt timestamp.
+            const createdAtTimestamp = contact.createdAt as Timestamp;
+            if (!createdAtTimestamp || typeof createdAtTimestamp.toDate !== 'function') {
+                console.warn(`[Cron] Skipping contact ${contact.id} due to invalid 'createdAt' field.`);
+                continue;
+            }
+            const createdAt = createdAtTimestamp.toDate();
+
             const followUpHistory = contact.followUpHistory || [];
             const hasBeenSent = followUpHistory.some((entry: any) => entry.templateId === template.id);
             
