@@ -48,11 +48,11 @@ export async function GET(request: NextRequest) {
             const interval = template.intervalDays;
             console.log(`[CRON] Processing template "${template.name}" with interval: ${interval} days.`);
 
-            // To avoid complex range queries, fetch contacts from the last (interval + 1) days and filter in code.
+            // Query for contacts created in a broader window to avoid complex queries.
+            // We will filter more precisely in the code.
             const queryStartDate = subDays(now, interval + 2); // Adding buffer
-
+            
             const contactsQuery = await firestore.collection('initial_contacts')
-                .where('sendFollowUpCampaigns', '==', true)
                 .where('createdAt', '>=', Timestamp.fromDate(queryStartDate))
                 .get();
 
@@ -66,6 +66,11 @@ export async function GET(request: NextRequest) {
             for (const doc of contactsQuery.docs) {
                 const contact = { id: doc.id, ...doc.data() } as InitialContact;
                 results.contactsChecked++;
+
+                // Filter for eligibility in code
+                if(contact.sendFollowUpCampaigns !== true) {
+                    continue;
+                }
 
                 const contactCreatedAt = (contact.createdAt as Timestamp)?.toDate();
                 if (!contactCreatedAt) {
@@ -125,7 +130,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ success: true, ...results });
 
     } catch (error: any) {
-        console.error('[CRON] CRITICAL: Cron job failed with an unhandled error:', error);
+        console.error(`[CRON] Cron job failed:`, error);
         results.errors++;
         return NextResponse.json({ success: false, error: error.message, ...results }, { status: 500 });
     }
