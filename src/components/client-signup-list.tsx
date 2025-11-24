@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useMemo, useState } from 'react';
@@ -63,7 +64,7 @@ type DateRangeKey = keyof typeof dateRanges;
 // Helper to safely convert Firestore Timestamps or serialized strings to Date objects
 const safeToDate = (value: any): Date | null => {
     if (!value) return null;
-    // Check for Firestore Timestamp (server-side)
+    // Check for Firestore Timestamp (server-side) which has a toDate method
     if (value.toDate && typeof value.toDate === 'function') {
         return value.toDate();
     }
