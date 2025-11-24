@@ -1,147 +1,107 @@
 
-
 import { NextRequest, NextResponse } from 'next/server';
 import { serverDb } from '@/firebase/server-init';
 import { Timestamp, FieldValue } from 'firebase-admin/firestore';
-import type { CampaignTemplate } from '@/lib/types';
+import type { InitialContact, CampaignTemplate } from '@/lib/types';
+import { subDays } from 'date-fns';
 
 /**
- * API route to handle incoming webhook requests from Google Ads Lead Form extensions.
- * This endpoint receives lead data, validates it, and creates a new document
- * in the 'initial_contacts' Firestore collection. It will also trigger an immediate
- * follow-up email if a template is configured for it.
+ * API route to handle a cron job for sending scheduled email follow-ups.
  */
-export async function POST(request: NextRequest) {
-  // 1. Security Validation: Check the secret key from Google Ads
-  const googleKey = request.nextUrl.searchParams.get('key');
-  const expectedKey = process.env.GOOGLE_ADS_WEBHOOK_SECRET;
-
-  if (!expectedKey) {
-    console.error('[Google Ads Webhook] Server error: GOOGLE_ADS_WEBHOOK_SECRET is not set in environment variables.');
-    return NextResponse.json({ success: false, error: 'Configuration error.' }, { status: 500 });
-  }
-
-  if (googleKey !== expectedKey) {
-    console.warn(`[Google Ads Webhook] Unauthorized attempt with invalid key: ${googleKey}`);
-    return NextResponse.json({ success: false, error: 'Unauthorized.' }, { status: 401 });
-  }
-
-  try {
-    const payload = await request.json();
-    const now = Timestamp.now();
-
-    if (payload.is_test) {
-        console.log('[Google Ads Webhook] Received a test lead from Google Ads.');
+export async function GET(request: NextRequest) {
+    // 1. Secure the endpoint
+    const authHeader = request.headers.get('authorization');
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+        console.error('[CRON] Unauthorized access attempt.');
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userData: { [key: string]: string } = {};
-    if (Array.isArray(payload.user_column_data)) {
-      for (const column of payload.user_column_data) {
-        if (column.column_id === 'FULL_NAME' || column.column_id === 'full_name') {
-          userData.clientName = column.string_value;
-        } else if (column.column_id === 'EMAIL' || column.column_id === 'email') {
-          userData.clientEmail = column.string_value;
-        } else if (column.column_id === 'PHONE_NUMBER' || column.column_id === 'phone_number') {
-          userData.clientPhone = column.string_value;
-        } else {
-            userData[column.column_id] = column.string_value;
-        }
-      }
-    }
-    
-    if (!userData.clientName || !userData.clientEmail || !userData.clientPhone) {
-        console.error('[Google Ads Webhook] Payload missing required fields (Name, Email, or Phone).', payload);
-        return NextResponse.json({ success: false, error: 'Incomplete lead data.' }, { status: 400 });
-    }
-
-    const leadSource = "Google Ads Lead Received";
-    const contactData: any = {
-      clientName: userData.clientName,
-      clientEmail: userData.clientEmail,
-      clientPhone: userData.clientPhone,
-      clientAddress: userData.address || '',
-      city: userData.city || '',
-      zip: userData.zip || '',
-      mainContact: userData.clientName,
-      contactPhone: userData.clientPhone,
-      promptedCall: "Google Ads Lead",
-      source: leadSource,
-      status: "New", // Correctly set the initial status to "New"
-      createdAt: now,
-      lastUpdatedAt: now,
-      googleAdsLeadId: payload.lead_id || null,
-      googleAdsCampaignId: payload.campaign_id || null,
-      followUpHistory: [], // Initialize history
-      ...userData
+    console.log('[CRON] Starting daily follow-up job.');
+    const firestore = serverDb;
+    const now = new Date();
+    const results = {
+        contactsChecked: 0,
+        emailsSent: 0,
+        errors: 0,
     };
 
-    const contactRef = await serverDb.collection('initial_contacts').add(contactData);
-    console.log(`[Google Ads Webhook] Successfully created initial contact ${contactRef.id} for lead: ${payload.lead_id}`);
+    try {
+        // Find all active campaign templates (excluding immediate-send ones)
+        const templatesSnap = await firestore.collection('campaign_templates')
+            .where('intervalDays', '>', 0)
+            .get();
 
-    // --- Immediate Follow-up Logic to Client ---
-    const templatesSnap = await serverDb.collection('campaign_templates')
-        .where('intervalDays', '==', 0)
-        .where('sendImmediatelyFor', 'array-contains', leadSource)
-        .limit(1)
-        .get();
-
-    if (!templatesSnap.empty) {
-        const template = templatesSnap.docs[0].data() as CampaignTemplate;
-        const templateId = templatesSnap.docs[0].id;
-
-        const assessmentLink = `${process.env.NEXT_PUBLIC_BASE_URL}/lead-intake?id=${contactRef.id}`;
+        if (templatesSnap.empty) {
+            console.log('[CRON] No active follow-up templates found. Job finished.');
+            return NextResponse.json({ success: true, message: "No templates to process." });
+        }
         
-        let emailHtml = template.body.replace(/{{clientName}}/g, contactData.clientName);
-        emailHtml = emailHtml.replace(/{{assessmentLink}}/g, assessmentLink);
+        const templates = templatesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as CampaignTemplate & { id: string }));
 
-        await serverDb.collection('mail').add({
-            to: [contactData.clientEmail],
-            message: {
-                subject: template.subject,
-                html: emailHtml,
-            },
-        });
+        // Get a list of all contact IDs that have been converted to a full signup
+        const signupsSnap = await firestore.collection('client_signups').select('initialContactId').get();
+        const convertedContactIds = new Set(signupsSnap.docs.map(doc => doc.data().initialContactId).filter(Boolean));
 
-        await contactRef.update({
-            followUpHistory: FieldValue.arrayUnion({ templateId: templateId, sentAt: now })
-        });
-        console.log(`[Google Ads Webhook] Queued immediate follow-up email using template ${templateId} for contact ${contactRef.id}.`);
-    } else {
-        console.log(`[Google Ads Webhook] No immediate follow-up template found for status "${leadSource}".`);
-    }
+        for (const template of templates) {
+            const interval = template.intervalDays;
+            // Look for contacts created 'interval' days ago. We look in a 24-hour window.
+            const targetDateStart = subDays(now, interval);
+            const targetDateEnd = subDays(now, interval -1 );
 
-    // --- NEW: Internal Notification Logic ---
-    const ownerEmail = process.env.OWNER_EMAIL;
-    const adminEmail = process.env.ADMIN_EMAIL;
-    const internalRecipients = [ownerEmail, adminEmail].filter(Boolean) as string[];
+            const contactsQuery = await firestore.collection('initial_contacts')
+                .where('sendFollowUpCampaigns', '==', true)
+                .where('createdAt', '>=', Timestamp.fromDate(targetDateStart))
+                .where('createdAt', '<', Timestamp.fromDate(targetDateEnd))
+                .get();
 
-    if (internalRecipients.length > 0) {
-        const internalEmail = {
-            to: internalRecipients,
-            message: {
-                subject: `New Google Ads Lead Received: ${contactData.clientName}`,
-                html: `
-                    <p>A new lead has been received from Google Ads.</p>
-                    <ul>
-                        <li><strong>Client Name:</strong> ${contactData.clientName}</li>
-                        <li><strong>Phone Number:</strong> ${contactData.clientPhone}</li>
-                        <li><strong>Email Address:</strong> ${contactData.clientEmail}</li>
-                    </ul>
-                    <p>Please log in to the FirstLightHRM app to follow up.</p>
-                `
+            if (contactsQuery.empty) {
+                console.log(`[CRON] No contacts found for template "${template.name}" (interval: ${interval} days).`);
+                continue;
             }
-        };
-        await serverDb.collection('mail').add(internalEmail);
-        console.log(`[Google Ads Webhook] Queued internal notification for lead ${contactRef.id} to ${internalRecipients.join(', ')}.`);
-    } else {
-        console.warn('[Google Ads Webhook] OWNER_EMAIL or ADMIN_EMAIL not set. Skipping internal notification.');
+            
+            results.contactsChecked += contactsQuery.docs.length;
+
+            for (const doc of contactsQuery.docs) {
+                const contact = { id: doc.id, ...doc.data() } as InitialContact;
+
+                // Skip if the contact has already started the full signup process
+                if (convertedContactIds.has(contact.id)) {
+                    continue;
+                }
+
+                // Check if this specific template has already been sent
+                const hasBeenSent = contact.followUpHistory?.some((entry: any) => entry.templateId === template.id);
+                if (hasBeenSent) {
+                    continue;
+                }
+                
+                const assessmentLink = `${process.env.NEXT_PUBLIC_BASE_URL}/lead-intake?id=${contact.id}`;
+                let emailHtml = template.body.replace(/{{clientName}}/g, contact.clientName);
+                emailHtml = emailHtml.replace(/{{assessmentLink}}/g, assessmentLink);
+
+                await firestore.collection('mail').add({
+                    to: [contact.clientEmail],
+                    message: {
+                        subject: template.subject,
+                        html: emailHtml,
+                    },
+                });
+
+                await doc.ref.update({
+                    followUpHistory: FieldValue.arrayUnion({ templateId: template.id, sentAt: Timestamp.now() })
+                });
+
+                results.emailsSent++;
+                console.log(`[CRON] Queued email using template "${template.name}" for contact ${contact.id}.`);
+            }
+        }
+
+        console.log('[CRON] Daily follow-up job completed successfully.', results);
+        return NextResponse.json({ success: true, ...results });
+
+    } catch (error: any) {
+        console.error('[CRON] Cron job failed:', error);
+        results.errors++;
+        return NextResponse.json({ success: false, error: error.message, ...results }, { status: 500 });
     }
-
-
-    return NextResponse.json({ success: true });
-
-  } catch (error: any) {
-    console.error('[Google Ads Webhook] Error processing webhook:', error);
-    return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
-  }
 }
