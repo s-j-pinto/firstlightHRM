@@ -52,8 +52,8 @@ export async function GET(request: NextRequest) {
             // We will filter more precisely in the code.
             const queryStartDate = subDays(now, interval + 2); // Adding buffer
             
+            // SIMPLIFIED QUERY: Only filter by date to avoid composite index requirement.
             const contactsQuery = await firestore.collection('initial_contacts')
-                .where('sendFollowUpCampaigns', '==', true)
                 .where('createdAt', '>=', Timestamp.fromDate(queryStartDate))
                 .get();
 
@@ -67,6 +67,11 @@ export async function GET(request: NextRequest) {
             for (const doc of contactsQuery.docs) {
                 const contact = { id: doc.id, ...doc.data() } as InitialContact;
                 results.contactsChecked++;
+
+                // In-memory filter for sendFollowUpCampaigns
+                if (contact.sendFollowUpCampaigns !== true) {
+                    continue;
+                }
 
                 const contactCreatedAt = (contact.createdAt as Timestamp)?.toDate();
                 if (!contactCreatedAt) {
