@@ -2,7 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { serverDb } from '@/firebase/server-init';
-import { Timestamp } from 'firebase-admin/firestore';
+import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 import type { CampaignTemplate } from '@/lib/types';
 
 /**
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: 'Incomplete lead data.' }, { status: 400 });
     }
 
-    const leadStatus = "Google Ads Lead Received";
+    const leadSource = "Google Ads Lead Received";
     const contactData: any = {
       clientName: userData.clientName,
       clientEmail: userData.clientEmail,
@@ -65,7 +65,8 @@ export async function POST(request: NextRequest) {
       mainContact: userData.clientName,
       contactPhone: userData.clientPhone,
       promptedCall: "Google Ads Lead",
-      status: leadStatus,
+      source: leadSource,
+      status: "New",
       createdAt: now,
       lastUpdatedAt: now,
       googleAdsLeadId: payload.lead_id || null,
@@ -77,10 +78,10 @@ export async function POST(request: NextRequest) {
     const contactRef = await serverDb.collection('initial_contacts').add(contactData);
     console.log(`[Google Ads Webhook] Successfully created initial contact ${contactRef.id} for lead: ${payload.lead_id}`);
 
-    // --- Immediate Follow-up Logic ---
+    // --- Immediate Follow-up Logic to Client ---
     const templatesSnap = await serverDb.collection('campaign_templates')
         .where('intervalDays', '==', 0)
-        .where('sendImmediatelyFor', 'array-contains', leadStatus)
+        .where('sendImmediatelyFor', 'array-contains', leadSource)
         .limit(1)
         .get();
 
@@ -88,13 +89,10 @@ export async function POST(request: NextRequest) {
         const template = templatesSnap.docs[0].data() as CampaignTemplate;
         const templateId = templatesSnap.docs[0].id;
 
-        // Generate the unique link for the assessment form
         const assessmentLink = `${process.env.NEXT_PUBLIC_BASE_URL}/lead-intake?id=${contactRef.id}`;
         
-        // Replace placeholders in the email body
         let emailHtml = template.body.replace(/{{clientName}}/g, contactData.clientName);
         emailHtml = emailHtml.replace(/{{assessmentLink}}/g, assessmentLink);
-
 
         await serverDb.collection('mail').add({
             to: [contactData.clientEmail],
@@ -105,12 +103,40 @@ export async function POST(request: NextRequest) {
         });
 
         await contactRef.update({
-            followUpHistory: [{ templateId: templateId, sentAt: now }]
+            followUpHistory: FieldValue.arrayUnion({ templateId: templateId, sentAt: now })
         });
         console.log(`[Google Ads Webhook] Queued immediate follow-up email using template ${templateId} for contact ${contactRef.id}.`);
     } else {
-        console.log(`[Google Ads Webhook] No immediate follow-up template found for status "${leadStatus}".`);
+        console.log(`[Google Ads Webhook] No immediate follow-up template found for status "${leadSource}".`);
     }
+
+    // --- Internal Notification Logic ---
+    const ownerEmail = process.env.OWNER_EMAIL;
+    const staffingAdminEmail = process.env.STAFFING_ADMIN_EMAIL;
+    const internalRecipients = [ownerEmail, staffingAdminEmail].filter(Boolean) as string[];
+
+    if (internalRecipients.length > 0) {
+        const internalEmail = {
+            to: internalRecipients,
+            message: {
+                subject: `New Google Ads Lead Received: ${contactData.clientName}`,
+                html: `
+                    <p>A new lead has been received from Google Ads.</p>
+                    <ul>
+                        <li><strong>Client Name:</strong> ${contactData.clientName}</li>
+                        <li><strong>Phone Number:</strong> ${contactData.clientPhone}</li>
+                        <li><strong>Email Address:</strong> ${contactData.clientEmail}</li>
+                    </ul>
+                    <p>Please log in to the FirstLightHRM app to follow up.</p>
+                `
+            }
+        };
+        await serverDb.collection('mail').add(internalEmail);
+        console.log(`[Google Ads Webhook] Queued internal notification for lead ${contactRef.id} to ${internalRecipients.join(', ')}.`);
+    } else {
+        console.warn('[Google Ads Webhook] OWNER_EMAIL or STAFFING_ADMIN_EMAIL not set. Skipping internal notification.');
+    }
+
 
     return NextResponse.json({ success: true });
 
