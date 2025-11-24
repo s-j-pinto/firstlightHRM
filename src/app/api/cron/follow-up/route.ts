@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { serverDb } from '@/firebase/server-init';
 import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 import type { InitialContact, CampaignTemplate } from '@/lib/types';
-import { subDays, startOfDay, isBefore } from 'date-fns';
+import { subDays, isBefore, startOfDay } from 'date-fns';
 
 /**
  * API route to handle a cron job for sending scheduled email follow-ups.
@@ -43,30 +43,30 @@ export async function GET(request: NextRequest) {
         const signupsSnap = await firestore.collection('client_signups').select('initialContactId').get();
         const convertedContactIds = new Set(signupsSnap.docs.map(doc => doc.data().initialContactId).filter(Boolean));
         console.log(`[CRON] Found ${convertedContactIds.size} converted client signups to exclude.`);
+        
+        // Fetch all contacts eligible for campaigns in one go to avoid complex queries.
+        const contactsQuery = await firestore.collection('initial_contacts')
+            .where('sendFollowUpCampaigns', '==', true)
+            .get();
+
+        const eligibleContacts = contactsQuery.docs.map(doc => ({ id: doc.id, ...doc.data() } as InitialContact));
+        console.log(`[CRON] Found ${eligibleContacts.length} total contacts eligible for campaigns to check.`);
 
         for (const template of templates) {
             const interval = template.intervalDays;
             console.log(`[CRON] Processing template "${template.name}" with interval: ${interval} days.`);
-
-            // The date before which a contact is eligible for this template.
+            
+            // The date on or before which a contact is eligible for this template.
             const targetDate = startOfDay(subDays(now, interval));
 
-            // Query for all contacts that are eligible for campaigns and were created before the target date.
-            const contactsQuery = await firestore.collection('initial_contacts')
-                .where('sendFollowUpCampaigns', '==', true)
-                .where('createdAt', '<=', Timestamp.fromDate(targetDate))
-                .get();
-
-            if (contactsQuery.empty) {
-                console.log(`[CRON] No contacts found matching criteria for template "${template.name}".`);
-                continue;
-            }
-            
-            console.log(`[CRON] Found ${contactsQuery.docs.length} contacts to check for template "${template.name}".`);
-
-            for (const doc of contactsQuery.docs) {
-                const contact = { id: doc.id, ...doc.data() } as InitialContact;
+            for (const contact of eligibleContacts) {
                 results.contactsChecked++;
+                const createdAt = (contact.createdAt as Timestamp).toDate();
+
+                // Skip if the contact is too new for this template
+                if (isBefore(targetDate, createdAt)) {
+                    continue;
+                }
                 
                 // Skip if the contact has already started the full signup process
                 if (convertedContactIds.has(contact.id)) {
@@ -77,7 +77,6 @@ export async function GET(request: NextRequest) {
                 // Check if this specific template has already been sent
                 const hasBeenSent = contact.followUpHistory?.some((entry: any) => entry.templateId === template.id);
                 if (hasBeenSent) {
-                    // This is expected for contacts older than the interval, so we don't log it to avoid noise.
                     continue;
                 }
                 
@@ -95,7 +94,7 @@ export async function GET(request: NextRequest) {
                     },
                 });
 
-                await doc.ref.update({
+                await firestore.collection('initial_contacts').doc(contact.id).update({
                     followUpHistory: FieldValue.arrayUnion({ templateId: template.id, sentAt: Timestamp.now() })
                 });
 
