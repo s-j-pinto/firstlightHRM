@@ -163,8 +163,16 @@ export default function ClientSignupList() {
         
         return itemDate && isAfter(itemDate, cutoffDate);
     });
-
-    return filteredIntakes;
+    
+    // Sort the final list by createdAt in descending order
+    return filteredIntakes.sort((a, b) => {
+        const dateA = safeToDate(a.createdAt);
+        const dateB = safeToDate(b.createdAt);
+        if (dateA && dateB) {
+            return dateB.getTime() - dateA.getTime();
+        }
+        return 0; // Fallback if dates are invalid
+    });
 
   }, [contacts, signups, statusFilter, dateFilter, showClosed, templatesMap]);
 
