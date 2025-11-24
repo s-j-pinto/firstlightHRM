@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { serverDb } from '@/firebase/server-init';
-import { Timestamp } from 'firebase-admin/firestore';
+import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 import { subDays, isBefore, startOfDay } from 'date-fns';
 import type { CampaignTemplate, InitialContact } from '@/lib/types';
 
@@ -89,11 +89,13 @@ async function processNewLeadCampaigns(firestore: FirebaseFirestore.Firestore, n
             .filter((id): id is string => !!id) // Ensure we only have valid string IDs
     );
 
+    // Filter out contacts that have already started the signup process.
     const eligibleContacts = contactsSnap.docs
         .map(doc => ({ id: doc.id, ...doc.data() } as InitialContact))
         .filter(contact => !convertedContactIds.has(contact.id));
     
     results.newLeadsProcessed = eligibleContacts.length;
+    console.log(`[Cron] Found ${eligibleContacts.length} eligible new leads to process for campaigns.`);
 
     for (const template of templates) {
         if (!template.intervalDays || template.intervalDays <= 0) continue; // Skip immediate-send templates
@@ -103,6 +105,7 @@ async function processNewLeadCampaigns(firestore: FirebaseFirestore.Firestore, n
 
         for (const contact of eligibleContacts) {
             const createdAtTimestamp = contact.createdAt as Timestamp;
+            // Ensure createdAt is a valid Firestore Timestamp before proceeding
             if (!createdAtTimestamp || typeof createdAtTimestamp.toDate !== 'function') {
                 console.warn(`[Cron] Skipping contact ${contact.id} due to invalid 'createdAt' field.`);
                 continue;
@@ -132,7 +135,7 @@ async function processNewLeadCampaigns(firestore: FirebaseFirestore.Firestore, n
                 // Use arrayUnion to atomically add to the history array
                 const contactRef = firestore.collection('initial_contacts').doc(contact.id);
                 await contactRef.update({ 
-                    followUpHistory: Timestamp.firestore.FieldValue.arrayUnion({ templateId: template.id, sentAt: Timestamp.now() })
+                    followUpHistory: FieldValue.arrayUnion({ templateId: template.id, sentAt: Timestamp.now() })
                 });
                 
                 results.newLeadEmailsSent++;
