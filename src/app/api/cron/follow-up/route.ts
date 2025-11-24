@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { serverDb } from '@/firebase/server-init';
 import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 import type { InitialContact, CampaignTemplate } from '@/lib/types';
-import { subDays, isWithinInterval } from 'date-fns';
+import { subDays, startOfDay, isBefore } from 'date-fns';
 
 /**
  * API route to handle a cron job for sending scheduled email follow-ups.
@@ -48,50 +48,26 @@ export async function GET(request: NextRequest) {
             const interval = template.intervalDays;
             console.log(`[CRON] Processing template "${template.name}" with interval: ${interval} days.`);
 
-            // Query for contacts created in a broader window to avoid complex queries.
-            // We will filter more precisely in the code.
-            const queryStartDate = subDays(now, interval + 2); // Adding buffer
-            
-            // SIMPLIFIED QUERY: Only filter by date to avoid composite index requirement.
+            // The date before which a contact is eligible for this template.
+            const targetDate = startOfDay(subDays(now, interval));
+
+            // Query for all contacts that are eligible for campaigns and were created before the target date.
             const contactsQuery = await firestore.collection('initial_contacts')
-                .where('createdAt', '>=', Timestamp.fromDate(queryStartDate))
+                .where('sendFollowUpCampaigns', '==', true)
+                .where('createdAt', '<=', Timestamp.fromDate(targetDate))
                 .get();
 
             if (contactsQuery.empty) {
-                console.log(`[CRON] No recent contacts found for template "${template.name}".`);
+                console.log(`[CRON] No contacts found matching criteria for template "${template.name}".`);
                 continue;
             }
             
-            console.log(`[CRON] Found ${contactsQuery.docs.length} recent contacts to check for template "${template.name}".`);
+            console.log(`[CRON] Found ${contactsQuery.docs.length} contacts to check for template "${template.name}".`);
 
             for (const doc of contactsQuery.docs) {
                 const contact = { id: doc.id, ...doc.data() } as InitialContact;
                 results.contactsChecked++;
-
-                // In-memory filter for sendFollowUpCampaigns
-                if (contact.sendFollowUpCampaigns !== true) {
-                    continue;
-                }
-
-                const contactCreatedAt = (contact.createdAt as Timestamp)?.toDate();
-                if (!contactCreatedAt) {
-                    console.log(`[CRON] Skipping contact ${contact.id}: Missing or invalid createdAt field.`);
-                    continue;
-                }
-
-                // Check if the contact was created within the 24-hour window of the target date.
-                const isTargetDay = isWithinInterval(contactCreatedAt, {
-                    start: subDays(now, interval + 1),
-                    end: subDays(now, interval),
-                });
                 
-                if (!isTargetDay) {
-                    // This is expected, so we don't log every skip unless debugging verbosely.
-                    continue;
-                }
-                
-                console.log(`[CRON] Contact ${contact.id} matches target day for template "${template.name}". Checking other criteria...`);
-
                 // Skip if the contact has already started the full signup process
                 if (convertedContactIds.has(contact.id)) {
                     console.log(`[CRON] Skipping contact ${contact.id}: Already converted to client signup.`);
@@ -101,7 +77,7 @@ export async function GET(request: NextRequest) {
                 // Check if this specific template has already been sent
                 const hasBeenSent = contact.followUpHistory?.some((entry: any) => entry.templateId === template.id);
                 if (hasBeenSent) {
-                    console.log(`[CRON] Skipping contact ${contact.id}: Template "${template.name}" already sent.`);
+                    // This is expected for contacts older than the interval, so we don't log it to avoid noise.
                     continue;
                 }
                 
