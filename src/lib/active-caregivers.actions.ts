@@ -1,4 +1,3 @@
-
 "use server";
 
 import { revalidatePath } from 'next/cache';
@@ -116,10 +115,100 @@ export async function processActiveCaregiverUpload(data: Record<string, any>[]) 
     const message = `Upload complete. Created: ${createdCount}, Updated: ${updatedCount}, Deactivated: ${deactivatedCount}.`;
     console.log(`[Action Success] ${message}`);
     revalidatePath('/admin/manage-active-caregivers');
+    revalidatePath('/staffing-admin/manage-active-caregivers');
     return { message: message };
 
   } catch (error: any) {
     console.error('[Action Error] Critical error during upload process:', error);
+    return { message: `An error occurred during the upload: ${error.message}`, error: true };
+  }
+}
+
+export async function processCaregiverAvailabilityUpload(data: { email: string; day_of_week: string; shift: string }[]) {
+  console.log(`[Action Start] processCaregiverAvailabilityUpload received ${data.length} rows.`);
+  const firestore = serverDb;
+  const profilesCollection = firestore.collection('caregiver_profiles');
+
+  const availabilityByEmail: { [email: string]: { [day: string]: string[] } } = {};
+  const validDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+  const validShifts = ['morning', 'afternoon', 'evening', 'night'];
+
+  // 1. Aggregate availability data from the CSV
+  for (const row of data) {
+    const email = (row.email || '').trim().toLowerCase();
+    const day = (row.day_of_week || '').trim().toLowerCase();
+    const shift = (row.shift || '').trim().toLowerCase();
+
+    if (!email || !validDays.includes(day) || !validShifts.includes(shift)) {
+      console.warn('Skipping invalid row:', row);
+      continue;
+    }
+
+    if (!availabilityByEmail[email]) {
+      availabilityByEmail[email] = { monday: [], tuesday: [], wednesday: [], thursday: [], friday: [], saturday: [], sunday: [] };
+    }
+
+    if (!availabilityByEmail[email][day].includes(shift)) {
+      availabilityByEmail[email][day].push(shift);
+    }
+  }
+
+  const emails = Object.keys(availabilityByEmail);
+  if (emails.length === 0) {
+    return { message: "No valid availability data found in the CSV.", error: true };
+  }
+
+  try {
+    let batch = firestore.batch();
+    let operations = 0;
+    let updatedCount = 0;
+    const notFoundEmails: string[] = [];
+
+    // 2. Fetch all matching caregiver profiles in one go
+    const querySnapshot = await profilesCollection.where('email', 'in', emails).get();
+    
+    const profileMap = new Map<string, FirebaseFirestore.DocumentReference>();
+    querySnapshot.forEach(doc => {
+      const docData = doc.data();
+      const email = (docData.email || '').trim().toLowerCase();
+      if(email) {
+        profileMap.set(email, doc.ref);
+      }
+    });
+
+    // 3. Update profiles in a batch
+    for (const email of emails) {
+      const docRef = profileMap.get(email);
+      if (docRef) {
+        batch.update(docRef, { availability: availabilityByEmail[email] });
+        updatedCount++;
+        operations++;
+
+        if (operations >= 499) {
+          await batch.commit();
+          batch = firestore.batch();
+          operations = 0;
+        }
+      } else {
+        notFoundEmails.push(email);
+      }
+    }
+
+    if (operations > 0) {
+      await batch.commit();
+    }
+
+    let message = `Availability updated for ${updatedCount} caregivers.`;
+    if (notFoundEmails.length > 0) {
+      message += ` Could not find profiles for ${notFoundEmails.length} emails: ${notFoundEmails.slice(0, 5).join(', ')}...`;
+      console.warn('Not found emails:', notFoundEmails);
+    }
+
+    revalidatePath('/admin/advanced-search');
+    return { message };
+
+  } catch (error: any) {
+    console.error('[Action Error] Critical error during availability upload:', error);
     return { message: `An error occurred during the upload: ${error.message}`, error: true };
   }
 }
