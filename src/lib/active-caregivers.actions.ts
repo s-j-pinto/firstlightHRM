@@ -126,48 +126,70 @@ export async function processActiveCaregiverUpload(data: Record<string, any>[]) 
   }
 }
 
-export async function processCaregiverAvailabilityUpload(data: Record<string, any>[]) {
-  console.log(`[Action Start] processCaregiverAvailabilityUpload received ${data.length} rows.`);
+export async function processCaregiverAvailabilityUpload(csvText: string) {
+  console.log(`[Action Start] processCaregiverAvailabilityUpload received CSV text.`);
   const firestore = serverDb;
-  const caregiversCollection = firestore.collection('caregivers_active');
   const now = Timestamp.now();
   const weekIdentifier = `week_${now.toDate().getFullYear()}_${now.toDate().getMonth() + 1}_${now.toDate().getDate()}`;
+  
+  const lines = csvText.split('\n').map(line => line.trim()).filter(line => line);
+  
+  if (lines.length < 2) {
+      return { message: "CSV is either empty or invalid. Expected headers and data rows.", error: true };
+  }
+
+  // Expecting "Caregiver Name" in A1, days of week in the rest of the first row
+  const headers = lines[0].split(',').map(h => h.trim());
+  const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  const dayIndices: { [day: string]: number } = {};
+
+  daysOfWeek.forEach(day => {
+      const index = headers.indexOf(day);
+      if (index !== -1) {
+          dayIndices[day.toLowerCase()] = index;
+      }
+  });
 
   const availabilityByCaregiverName: { [name: string]: { [day: string]: string[] } } = {};
-  const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  
+  // Start from the first data row
+  for (let i = 1; i < lines.length; i++) {
+    const row = lines[i].split(',');
+    const caregiverName = (row[0] || '').trim();
 
-  for (const row of data) {
-    const caregiverName = (row["Caregiver Name"] || '').trim();
     if (!caregiverName) {
       console.warn('Skipping row with no Caregiver Name:', row);
       continue;
     }
-
+    
     const weeklyAvailability: { [day: string]: string[] } = {};
-    for (const day of daysOfWeek) {
-        const dayData = (row[day] || '').trim();
-        if (dayData && dayData.toLowerCase().includes('available')) {
-            // Updated logic to find all "Available" time slots and clean them up
-            const availableSlots = dayData.split('\n')
-                .map((s: string) => s.trim())
-                .filter((s: string) => s.toLowerCase().startsWith('available'))
-                .map((s: string) => {
+
+    for(const day in dayIndices) {
+        const columnIndex = dayIndices[day];
+        const cellData = (row[columnIndex] || '').trim();
+        
+        if (cellData && cellData.toLowerCase().includes('available')) {
+            const timeSlots = cellData.split('\n')
+                .map(s => s.trim())
+                .filter(s => s.toLowerCase().startsWith('available'))
+                .map(s => {
                     return s.replace(/available/i, '')
                             .replace(/(\d{1,2}:\d{2}):\d{2}/g, '$1') // Remove seconds
-                            .replace(/ To /i, '-')
+                            .replace(/ To /ig, '-')
+                            .replace(/\s+-\s+/g, '-')
                             .trim();
                 });
-            
-            if (availableSlots.length > 0) {
-                 weeklyAvailability[day.toLowerCase()] = availableSlots;
+            if (timeSlots.length > 0) {
+                 weeklyAvailability[day] = timeSlots;
             }
         }
     }
-    if (Object.keys(weeklyAvailability).length > 0) {
-      availabilityByCaregiverName[caregiverName] = weeklyAvailability;
+
+     if (Object.keys(weeklyAvailability).length > 0) {
+        availabilityByCaregiverName[caregiverName] = weeklyAvailability;
     }
   }
-  
+
   const caregiverNames = Object.keys(availabilityByCaregiverName);
   if (caregiverNames.length === 0) {
     return { message: "No valid availability data found in the CSV.", error: true };
@@ -179,7 +201,7 @@ export async function processCaregiverAvailabilityUpload(data: Record<string, an
     let updatedCount = 0;
     const notFoundNames: string[] = [];
 
-    const querySnapshot = await caregiversCollection.where('Name', 'in', caregiverNames).get();
+    const querySnapshot = await firestore.collection('caregivers_active').where('Name', 'in', caregiverNames).get();
     
     const profileMap = new Map<string, FirebaseFirestore.DocumentReference>();
     querySnapshot.forEach(doc => {

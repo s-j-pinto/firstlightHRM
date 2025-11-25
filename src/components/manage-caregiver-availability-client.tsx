@@ -2,7 +2,6 @@
 "use client";
 
 import { useState, useTransition, ChangeEvent } from 'react';
-import Papa from 'papaparse';
 import { processCaregiverAvailabilityUpload } from '@/lib/active-caregivers.actions';
 
 import { Input } from '@/components/ui/input';
@@ -29,38 +28,28 @@ export default function ManageCaregiverAvailabilityClient() {
       return;
     }
 
-    startUploadTransition(async () => {
-      Papa.parse(file, {
-        header: true,
-        skipEmptyLines: true,
-        complete: async (results) => {
-          const requiredFields = ["Caregiver Name", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-          const headers = results.meta.fields;
-          if (!headers || !requiredFields.every(field => headers.includes(field))) {
-            toast({
-              title: 'Invalid CSV Format',
-              description: `The CSV must contain the following columns: ${requiredFields.join(', ')}`,
-              variant: 'destructive',
-            });
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const text = e.target?.result as string;
+        if (!text) {
+            toast({ title: 'File Error', description: 'Could not read the selected file.', variant: 'destructive' });
             return;
-          }
-
-          const uploadResult = await processCaregiverAvailabilityUpload(results.data as any[]);
-          
-          if (uploadResult.error) {
-            toast({ title: 'Upload Failed', description: uploadResult.message, variant: 'destructive' });
-          } else {
-            toast({ title: 'Upload Successful', description: uploadResult.message });
-            setFile(null);
-            const fileInput = document.getElementById('availability-file-upload') as HTMLInputElement;
-            if(fileInput) fileInput.value = '';
-          }
-        },
-        error: (error) => {
-          toast({ title: 'Parsing Error', description: `Error parsing CSV file: ${error.message}`, variant: 'destructive' });
         }
-      });
-    });
+
+        startUploadTransition(async () => {
+            const uploadResult = await processCaregiverAvailabilityUpload(text);
+            
+            if (uploadResult.error) {
+                toast({ title: 'Upload Failed', description: uploadResult.message, variant: 'destructive' });
+            } else {
+                toast({ title: 'Upload Successful', description: uploadResult.message });
+                setFile(null);
+                const fileInput = document.getElementById('availability-file-upload') as HTMLInputElement;
+                if (fileInput) fileInput.value = '';
+            }
+        });
+    };
+    reader.readAsText(file);
   };
 
   return (
@@ -69,7 +58,7 @@ export default function ManageCaregiverAvailabilityClient() {
         <CardHeader>
           <CardTitle>Upload Caregiver Availability</CardTitle>
           <CardDescription>
-            Upload a weekly availability schedule as a CSV file. The columns should be "Caregiver Name", "Monday", "Tuesday", etc. The cells should contain available time slots (e.g., "9am-5pm", "Available 1pm-4pm, 6pm-10pm").
+            Upload a weekly availability schedule as a CSV file. The first column should be "Caregiver Name", followed by columns for each day of the week ("Monday", "Tuesday", etc.). The cells should contain "Available" followed by time slots (e.g., "Available 9am-5pm").
           </CardDescription>
         </CardHeader>
         <CardContent>
