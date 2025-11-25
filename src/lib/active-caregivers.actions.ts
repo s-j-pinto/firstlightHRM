@@ -134,12 +134,14 @@ export async function processCaregiverAvailabilityUpload(csvText: string) {
   
   const lines = csvText.split(/\r?\n/).map(line => line.trim()).filter(line => line);
   
-  if (lines.length < 3) { // Must have 2 header rows and at least one pair of data rows
+  if (lines.length < 4) { // 2 header rows + at least one caregiver pair
       return { message: "CSV is too short. Expected 2 header rows and at least one pair of caregiver/availability rows.", error: true };
   }
 
   const daysHeader = lines[0].split(',').map(h => h.trim().toLowerCase());
-  const dataRows = lines.slice(2);
+  console.log('[Action Debug] Parsed Days Header:', daysHeader);
+
+  const dataRows = lines.slice(2); // Skip the two header rows
 
   const dayIndices: { [day: string]: number } = {};
   daysHeader.forEach((day, index) => {
@@ -161,11 +163,15 @@ export async function processCaregiverAvailabilityUpload(csvText: string) {
         continue;
     }
     
-    // The name is expected to be in the first column of its row.
     const caregiverName = (nameLine.split(',')[0] || '').trim();
     if (!caregiverName) {
         console.warn(`Skipping pair with no caregiver name at line index ${i+2}`);
         continue;
+    }
+    
+    // Debug log for the first 10 caregiver names
+    if (caregiverNamesToProcess.length < 10) {
+      console.log(`[Action Debug] Processing caregiver #${caregiverNamesToProcess.length + 1}: ${caregiverName}`);
     }
 
     caregiverNamesToProcess.push(caregiverName);
