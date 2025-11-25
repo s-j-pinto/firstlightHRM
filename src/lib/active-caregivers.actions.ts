@@ -162,7 +162,6 @@ export async function processCaregiverAvailabilityUpload(csvText: string) {
         continue;
     }
     
-    // The name is expected to be in the first column of its row
     const caregiverName = (nameLine.split(',')[0] || '').trim();
     if (!caregiverName) {
         console.warn(`Skipping pair with no caregiver name at line ${i+1}`);
@@ -209,16 +208,22 @@ export async function processCaregiverAvailabilityUpload(csvText: string) {
     let updatedCount = 0;
     const notFoundNames: string[] = [];
 
-    const querySnapshot = await firestore.collection('caregivers_active').where('Name', 'in', caregiverNamesToProcess).get();
-    
     const profileMap = new Map<string, FirebaseFirestore.DocumentReference>();
-    querySnapshot.forEach(doc => {
-      const docData = doc.data();
-      const name = (docData.Name || '').trim();
-      if (name) {
-        profileMap.set(name, doc.ref);
-      }
-    });
+
+    // Chunk the names array to handle Firestore's 'in' query limit of 30.
+    const CHUNK_SIZE = 30;
+    for (let i = 0; i < caregiverNamesToProcess.length; i += CHUNK_SIZE) {
+        const chunk = caregiverNamesToProcess.slice(i, i + CHUNK_SIZE);
+        const querySnapshot = await firestore.collection('caregivers_active').where('Name', 'in', chunk).get();
+        
+        querySnapshot.forEach(doc => {
+            const docData = doc.data();
+            const name = (docData.Name || '').trim();
+            if (name) {
+                profileMap.set(name, doc.ref);
+            }
+        });
+    }
 
     for (const name of caregiverNamesToProcess) {
       const caregiverRef = profileMap.get(name);
@@ -260,3 +265,5 @@ export async function processCaregiverAvailabilityUpload(csvText: string) {
     return { message: `An error occurred during the upload: ${error.message}`, error: true };
   }
 }
+
+    
