@@ -134,39 +134,48 @@ export async function processCaregiverAvailabilityUpload(csvText: string) {
   
   const lines = csvText.split('\n').map(line => line.trim()).filter(line => line);
   
-  if (lines.length < 2) {
-      return { message: "CSV is either empty or invalid. Expected headers and data rows.", error: true };
+  if (lines.length < 3) { // Must have header, and at least one pair of name/availability rows
+      return { message: "CSV is too short. Expected a header row and at least one pair of caregiver/availability rows.", error: true };
   }
 
-  // Expecting "Caregiver Name" in A1, days of week in the rest of the first row
-  const headers = lines[0].split(',').map(h => h.trim());
-  const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+  const daysOfWeek = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+  
   const dayIndices: { [day: string]: number } = {};
-
   daysOfWeek.forEach(day => {
       const index = headers.indexOf(day);
       if (index !== -1) {
-          dayIndices[day.toLowerCase()] = index;
+          dayIndices[day] = index;
       }
   });
 
+  const caregiverNamesToProcess: string[] = [];
   const availabilityByCaregiverName: { [name: string]: { [day: string]: string[] } } = {};
-  
-  // Start from the first data row
-  for (let i = 1; i < lines.length; i++) {
-    const row = lines[i].split(',');
-    const caregiverName = (row[0] || '').trim();
 
-    if (!caregiverName) {
-      console.warn('Skipping row with no Caregiver Name:', row);
-      continue;
+  // Process rows in pairs (caregiver name, then availability)
+  for (let i = 1; i < lines.length; i += 2) {
+    const nameLine = lines[i];
+    const availabilityLine = lines[i + 1];
+
+    if (!nameLine || !availabilityLine) {
+        console.warn(`Skipping incomplete pair at line ${i+1}`);
+        continue;
     }
     
+    // The name is expected to be in the first column of its row
+    const caregiverName = (nameLine.split(',')[0] || '').trim();
+    if (!caregiverName) {
+        console.warn(`Skipping pair with no caregiver name at line ${i+1}`);
+        continue;
+    }
+
+    caregiverNamesToProcess.push(caregiverName);
+    const availabilityRow = availabilityLine.split(',');
     const weeklyAvailability: { [day: string]: string[] } = {};
 
-    for(const day in dayIndices) {
+    for (const day in dayIndices) {
         const columnIndex = dayIndices[day];
-        const cellData = (row[columnIndex] || '').trim();
+        const cellData = (availabilityRow[columnIndex] || '').trim();
         
         if (cellData && cellData.toLowerCase().includes('available')) {
             const timeSlots = cellData.split('\n')
@@ -184,15 +193,14 @@ export async function processCaregiverAvailabilityUpload(csvText: string) {
             }
         }
     }
-
-     if (Object.keys(weeklyAvailability).length > 0) {
+    
+    if (Object.keys(weeklyAvailability).length > 0) {
         availabilityByCaregiverName[caregiverName] = weeklyAvailability;
     }
   }
 
-  const caregiverNames = Object.keys(availabilityByCaregiverName);
-  if (caregiverNames.length === 0) {
-    return { message: "No valid availability data found in the CSV.", error: true };
+  if (caregiverNamesToProcess.length === 0) {
+    return { message: "No valid caregiver availability data found in the CSV.", error: true };
   }
 
   try {
@@ -201,7 +209,7 @@ export async function processCaregiverAvailabilityUpload(csvText: string) {
     let updatedCount = 0;
     const notFoundNames: string[] = [];
 
-    const querySnapshot = await firestore.collection('caregivers_active').where('Name', 'in', caregiverNames).get();
+    const querySnapshot = await firestore.collection('caregivers_active').where('Name', 'in', caregiverNamesToProcess).get();
     
     const profileMap = new Map<string, FirebaseFirestore.DocumentReference>();
     querySnapshot.forEach(doc => {
@@ -212,9 +220,9 @@ export async function processCaregiverAvailabilityUpload(csvText: string) {
       }
     });
 
-    for (const name of caregiverNames) {
+    for (const name of caregiverNamesToProcess) {
       const caregiverRef = profileMap.get(name);
-      if (caregiverRef) {
+      if (caregiverRef && availabilityByCaregiverName[name]) {
         const availabilityDocRef = caregiverRef.collection('availability').doc(weekIdentifier);
         const availabilityData = availabilityByCaregiverName[name];
         
