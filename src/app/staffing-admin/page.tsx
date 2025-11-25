@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -5,7 +6,6 @@ import { CareLogGroupAdmin } from '@/components/carelog-group-admin';
 import { CareLogTemplateAdmin } from '@/components/carelog-template-admin';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HelpDialog } from '@/components/HelpDialog';
-import { WeeklyScheduleHeader } from '@/components/weekly-schedule-header';
 
 export default function StaffingAdminPage() {
   const [activeTab, setActiveTab] = useState("groups");
@@ -24,10 +24,6 @@ export default function StaffingAdminPage() {
         <HelpDialog topic={activeTab === 'groups' ? 'carelogGroups' : 'carelogTemplates'} />
       </div>
 
-      <div className="mb-8">
-        <WeeklyScheduleHeader />
-      </div>
-      
       <Tabs defaultValue="groups" onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="groups">Manage Groups</TabsTrigger>

@@ -4,6 +4,7 @@
 import { revalidatePath } from 'next/cache';
 import { serverDb } from '@/firebase/server-init';
 import { WriteBatch, Timestamp } from 'firebase-admin/firestore';
+import type { Client } from './types';
 
 export async function processActiveCaregiverUpload(data: Record<string, any>[]) {
   console.log(`[Action Start] processActiveCaregiverUpload received ${data.length} rows.`);
@@ -145,13 +146,12 @@ export async function processCaregiverAvailabilityUpload(data: Record<string, an
     const weeklyAvailability: { [day: string]: string[] } = {};
     for (const day of daysOfWeek) {
         const dayData = (row[day] || '').trim();
-        if (dayData) {
-            // Find all "Available" time slots in the cell.
+        if (dayData && dayData.toLowerCase().includes('available')) {
+            // Updated logic to find all "Available" time slots and clean them up
             const availableSlots = dayData.split('\n')
                 .map((s: string) => s.trim())
                 .filter((s: string) => s.toLowerCase().startsWith('available'))
                 .map((s: string) => {
-                    // Clean up the string: "Available 4:00:00 PM To 7:00:00 PM" -> "4:00 PM-7:00 PM"
                     return s.replace(/available/i, '')
                             .replace(/(\d{1,2}:\d{2}):\d{2}/g, '$1') // Remove seconds
                             .replace(/ To /i, '-')
@@ -160,14 +160,12 @@ export async function processCaregiverAvailabilityUpload(data: Record<string, an
             
             if (availableSlots.length > 0) {
                  weeklyAvailability[day.toLowerCase()] = availableSlots;
-            } else {
-                 weeklyAvailability[day.toLowerCase()] = [];
             }
-        } else {
-            weeklyAvailability[day.toLowerCase()] = [];
         }
     }
-    availabilityByCaregiverName[caregiverName] = weeklyAvailability;
+    if (Object.keys(weeklyAvailability).length > 0) {
+      availabilityByCaregiverName[caregiverName] = weeklyAvailability;
+    }
   }
   
   const caregiverNames = Object.keys(availabilityByCaregiverName);
@@ -195,21 +193,16 @@ export async function processCaregiverAvailabilityUpload(data: Record<string, an
     for (const name of caregiverNames) {
       const caregiverRef = profileMap.get(name);
       if (caregiverRef) {
-        // Create a reference to the new document in the subcollection.
         const availabilityDocRef = caregiverRef.collection('availability').doc(weekIdentifier);
-        
         const availabilityData = availabilityByCaregiverName[name];
         
-        // Add the set operation for the new availability document to the batch.
         batch.set(availabilityDocRef, { ...availabilityData, createdAt: now });
-        
-        // Also update the main caregiver document's timestamp.
         batch.update(caregiverRef, { lastUpdatedAt: now });
 
         updatedCount++;
-        operations += 2; // We are doing two operations per caregiver now.
+        operations += 2; 
 
-        if (operations >= 498) { // Keep well under the 500 limit
+        if (operations >= 498) {
           await batch.commit();
           batch = firestore.batch();
           operations = 0;
