@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useTransition, ChangeEvent } from 'react';
@@ -33,7 +34,7 @@ export default function ManageCaregiverAvailabilityClient() {
         header: true,
         skipEmptyLines: true,
         complete: async (results) => {
-          const requiredFields = ["email", "day_of_week", "shift"];
+          const requiredFields = ["Caregiver Name", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
           const headers = results.meta.fields;
           if (!headers || !requiredFields.every(field => headers.includes(field))) {
             toast({
@@ -68,7 +69,7 @@ export default function ManageCaregiverAvailabilityClient() {
         <CardHeader>
           <CardTitle>Upload Caregiver Availability</CardTitle>
           <CardDescription>
-            Upload a CSV file to update caregiver availability. The file should contain columns: `email`, `day_of_week` (e.g., monday, tuesday), and `shift` (e.g., morning, afternoon, evening, night). This process will replace all existing availability data for the caregivers in the file.
+            Upload a weekly availability schedule as a CSV file. The columns should be "Caregiver Name", "Monday", "Tuesday", etc. The cells should contain available time slots (e.g., "9am-5pm", "Available 1pm-4pm, 6pm-10pm").
           </CardDescription>
         </CardHeader>
         <CardContent>

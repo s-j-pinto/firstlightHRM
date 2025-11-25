@@ -1,3 +1,4 @@
+
 "use server";
 
 import { revalidatePath } from 'next/cache';
@@ -124,37 +125,39 @@ export async function processActiveCaregiverUpload(data: Record<string, any>[]) 
   }
 }
 
-export async function processCaregiverAvailabilityUpload(data: { email: string; day_of_week: string; shift: string }[]) {
+export async function processCaregiverAvailabilityUpload(data: Record<string, any>[]) {
   console.log(`[Action Start] processCaregiverAvailabilityUpload received ${data.length} rows.`);
   const firestore = serverDb;
-  const profilesCollection = firestore.collection('caregiver_profiles');
+  const caregiversCollection = firestore.collection('caregivers_active');
+  const now = Timestamp.now();
+  const weekIdentifier = `week_${now.toDate().getFullYear()}_${now.toDate().getMonth() + 1}_${now.toDate().getDate()}`;
 
-  const availabilityByEmail: { [email: string]: { [day: string]: string[] } } = {};
-  const validDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-  const validShifts = ['morning', 'afternoon', 'evening', 'night'];
+  const availabilityByCaregiverName: { [name: string]: { [day: string]: string[] } } = {};
+  const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
-  // 1. Aggregate availability data from the CSV
   for (const row of data) {
-    const email = (row.email || '').trim().toLowerCase();
-    const day = (row.day_of_week || '').trim().toLowerCase();
-    const shift = (row.shift || '').trim().toLowerCase();
-
-    if (!email || !validDays.includes(day) || !validShifts.includes(shift)) {
-      console.warn('Skipping invalid row:', row);
+    const caregiverName = (row["Caregiver Name"] || '').trim();
+    if (!caregiverName) {
+      console.warn('Skipping row with no Caregiver Name:', row);
       continue;
     }
 
-    if (!availabilityByEmail[email]) {
-      availabilityByEmail[email] = { monday: [], tuesday: [], wednesday: [], thursday: [], friday: [], saturday: [], sunday: [] };
+    const weeklyAvailability: { [day: string]: string[] } = {};
+    for (const day of daysOfWeek) {
+      const dayData = (row[day] || '').trim();
+      if (dayData) {
+        // Extract time slots, removing "Available" text and splitting by comma/newline
+        const slots = dayData.replace(/Available/gi, '').trim().split(/[\n,]/).map((s: string) => s.trim()).filter(Boolean);
+        weeklyAvailability[day.toLowerCase()] = slots;
+      } else {
+        weeklyAvailability[day.toLowerCase()] = [];
+      }
     }
-
-    if (!availabilityByEmail[email][day].includes(shift)) {
-      availabilityByEmail[email][day].push(shift);
-    }
+    availabilityByCaregiverName[caregiverName] = weeklyAvailability;
   }
-
-  const emails = Object.keys(availabilityByEmail);
-  if (emails.length === 0) {
+  
+  const caregiverNames = Object.keys(availabilityByCaregiverName);
+  if (caregiverNames.length === 0) {
     return { message: "No valid availability data found in the CSV.", error: true };
   }
 
@@ -162,25 +165,29 @@ export async function processCaregiverAvailabilityUpload(data: { email: string; 
     let batch = firestore.batch();
     let operations = 0;
     let updatedCount = 0;
-    const notFoundEmails: string[] = [];
+    const notFoundNames: string[] = [];
 
-    // 2. Fetch all matching caregiver profiles in one go
-    const querySnapshot = await profilesCollection.where('email', 'in', emails).get();
+    const querySnapshot = await caregiversCollection.where('Name', 'in', caregiverNames).get();
     
     const profileMap = new Map<string, FirebaseFirestore.DocumentReference>();
     querySnapshot.forEach(doc => {
       const docData = doc.data();
-      const email = (docData.email || '').trim().toLowerCase();
-      if(email) {
-        profileMap.set(email, doc.ref);
+      const name = (docData.Name || '').trim();
+      if (name) {
+        profileMap.set(name, doc.ref);
       }
     });
 
-    // 3. Update profiles in a batch
-    for (const email of emails) {
-      const docRef = profileMap.get(email);
+    for (const name of caregiverNames) {
+      const docRef = profileMap.get(name);
       if (docRef) {
-        batch.update(docRef, { availability: availabilityByEmail[email] });
+        const updatePayload = {
+            weeklyAvailability: {
+                [weekIdentifier]: availabilityByCaregiverName[name]
+            },
+            lastUpdatedAt: now
+        };
+        batch.set(docRef, updatePayload, { merge: true });
         updatedCount++;
         operations++;
 
@@ -190,7 +197,7 @@ export async function processCaregiverAvailabilityUpload(data: { email: string; 
           operations = 0;
         }
       } else {
-        notFoundEmails.push(email);
+        notFoundNames.push(name);
       }
     }
 
@@ -199,12 +206,12 @@ export async function processCaregiverAvailabilityUpload(data: { email: string; 
     }
 
     let message = `Availability updated for ${updatedCount} caregivers.`;
-    if (notFoundEmails.length > 0) {
-      message += ` Could not find profiles for ${notFoundEmails.length} emails: ${notFoundEmails.slice(0, 5).join(', ')}...`;
-      console.warn('Not found emails:', notFoundEmails);
+    if (notFoundNames.length > 0) {
+      message += ` Could not find active profiles for ${notFoundNames.length} names: ${notFoundNames.slice(0, 5).join(', ')}...`;
+      console.warn('Not found names:', notFoundNames);
     }
 
-    revalidatePath('/admin/advanced-search');
+    revalidatePath('/staffing-admin/manage-active-caregivers');
     return { message };
 
   } catch (error: any) {
