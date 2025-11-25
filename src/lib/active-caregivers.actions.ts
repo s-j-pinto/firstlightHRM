@@ -144,13 +144,28 @@ export async function processCaregiverAvailabilityUpload(data: Record<string, an
 
     const weeklyAvailability: { [day: string]: string[] } = {};
     for (const day of daysOfWeek) {
-      const dayData = (row[day] || '').trim();
-      if (dayData) {
-        const slots = dayData.replace(/Available/gi, '').trim().split(/[\n,]/).map((s: string) => s.trim()).filter(Boolean);
-        weeklyAvailability[day.toLowerCase()] = slots;
-      } else {
-        weeklyAvailability[day.toLowerCase()] = [];
-      }
+        const dayData = (row[day] || '').trim();
+        if (dayData) {
+            // Find all "Available" time slots in the cell.
+            const availableSlots = dayData.split('\n')
+                .map((s: string) => s.trim())
+                .filter((s: string) => s.toLowerCase().startsWith('available'))
+                .map((s: string) => {
+                    // Clean up the string: "Available 4:00:00 PM To 7:00:00 PM" -> "4:00 PM-7:00 PM"
+                    return s.replace(/available/i, '')
+                            .replace(/(\d{1,2}:\d{2}):\d{2}/g, '$1') // Remove seconds
+                            .replace(/ To /i, '-')
+                            .trim();
+                });
+            
+            if (availableSlots.length > 0) {
+                 weeklyAvailability[day.toLowerCase()] = availableSlots;
+            } else {
+                 weeklyAvailability[day.toLowerCase()] = [];
+            }
+        } else {
+            weeklyAvailability[day.toLowerCase()] = [];
+        }
     }
     availabilityByCaregiverName[caregiverName] = weeklyAvailability;
   }
