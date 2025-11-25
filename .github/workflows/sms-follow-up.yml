@@ -1,11 +1,11 @@
 
-name: 1-Hour SMS Follow-up Cron Job
+name: 2-Hour SMS Follow-up Cron Job
 
 on:
   schedule:
-    # Runs every 15 minutes.
+    # Runs every 2 hours.
     # See https://crontab.guru/ for cron syntax.
-    - cron: '*/15 * * * *'
+    - cron: '0 */2 * * *'
   workflow_dispatch: # Allows manual triggering from the Actions tab in GitHub for testing
 
 jobs:
