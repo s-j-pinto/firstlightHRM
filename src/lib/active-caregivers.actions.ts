@@ -132,39 +132,39 @@ export async function processCaregiverAvailabilityUpload(csvText: string) {
   const now = Timestamp.now();
   const weekIdentifier = `week_${now.toDate().getFullYear()}_${now.toDate().getMonth() + 1}_${now.toDate().getDate()}`;
   
-  const lines = csvText.split('\n').map(line => line.trim()).filter(line => line);
+  const lines = csvText.split(/\r?\n/).map(line => line.trim()).filter(line => line);
   
-  if (lines.length < 3) { // Must have header, and at least one pair of name/availability rows
-      return { message: "CSV is too short. Expected a header row and at least one pair of caregiver/availability rows.", error: true };
+  if (lines.length < 3) { // Must have 2 header rows and at least one pair of data rows
+      return { message: "CSV is too short. Expected 2 header rows and at least one pair of caregiver/availability rows.", error: true };
   }
 
-  const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-  const daysOfWeek = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
-  
+  const daysHeader = lines[0].split(',').map(h => h.trim().toLowerCase());
+  const dataRows = lines.slice(2);
+
   const dayIndices: { [day: string]: number } = {};
-  daysOfWeek.forEach(day => {
-      const index = headers.indexOf(day);
-      if (index !== -1) {
-          dayIndices[day] = index;
+  daysHeader.forEach((day, index) => {
+      if (day) {
+        dayIndices[day] = index;
       }
   });
 
   const caregiverNamesToProcess: string[] = [];
   const availabilityByCaregiverName: { [name: string]: { [day: string]: string[] } } = {};
 
-  // Process rows in pairs (caregiver name, then availability)
-  for (let i = 1; i < lines.length; i += 2) {
-    const nameLine = lines[i];
-    const availabilityLine = lines[i + 1];
+  // Process data rows in pairs
+  for (let i = 0; i < dataRows.length; i += 2) {
+    const nameLine = dataRows[i];
+    const availabilityLine = dataRows[i + 1];
 
     if (!nameLine || !availabilityLine) {
-        console.warn(`Skipping incomplete pair at line ${i+1}`);
+        console.warn(`Skipping incomplete pair at line index ${i+2}`);
         continue;
     }
     
+    // The name is expected to be in the first column of its row.
     const caregiverName = (nameLine.split(',')[0] || '').trim();
     if (!caregiverName) {
-        console.warn(`Skipping pair with no caregiver name at line ${i+1}`);
+        console.warn(`Skipping pair with no caregiver name at line index ${i+2}`);
         continue;
     }
 
@@ -177,7 +177,7 @@ export async function processCaregiverAvailabilityUpload(csvText: string) {
         const cellData = (availabilityRow[columnIndex] || '').trim();
         
         if (cellData && cellData.toLowerCase().includes('available')) {
-            const timeSlots = cellData.split('\n')
+            const timeSlots = cellData.split(/\s*\n\s*/) // Split by newlines
                 .map(s => s.trim())
                 .filter(s => s.toLowerCase().startsWith('available'))
                 .map(s => {
@@ -265,5 +265,3 @@ export async function processCaregiverAvailabilityUpload(csvText: string) {
     return { message: `An error occurred during the upload: ${error.message}`, error: true };
   }
 }
-
-    
