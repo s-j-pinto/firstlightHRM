@@ -146,7 +146,6 @@ export async function processCaregiverAvailabilityUpload(data: Record<string, an
     for (const day of daysOfWeek) {
       const dayData = (row[day] || '').trim();
       if (dayData) {
-        // Extract time slots, removing "Available" text and splitting by comma/newline
         const slots = dayData.replace(/Available/gi, '').trim().split(/[\n,]/).map((s: string) => s.trim()).filter(Boolean);
         weeklyAvailability[day.toLowerCase()] = slots;
       } else {
@@ -179,19 +178,23 @@ export async function processCaregiverAvailabilityUpload(data: Record<string, an
     });
 
     for (const name of caregiverNames) {
-      const docRef = profileMap.get(name);
-      if (docRef) {
-        const updatePayload = {
-            weeklyAvailability: {
-                [weekIdentifier]: availabilityByCaregiverName[name]
-            },
-            lastUpdatedAt: now
-        };
-        batch.set(docRef, updatePayload, { merge: true });
-        updatedCount++;
-        operations++;
+      const caregiverRef = profileMap.get(name);
+      if (caregiverRef) {
+        // Create a reference to the new document in the subcollection.
+        const availabilityDocRef = caregiverRef.collection('availability').doc(weekIdentifier);
+        
+        const availabilityData = availabilityByCaregiverName[name];
+        
+        // Add the set operation for the new availability document to the batch.
+        batch.set(availabilityDocRef, { ...availabilityData, createdAt: now });
+        
+        // Also update the main caregiver document's timestamp.
+        batch.update(caregiverRef, { lastUpdatedAt: now });
 
-        if (operations >= 499) {
+        updatedCount++;
+        operations += 2; // We are doing two operations per caregiver now.
+
+        if (operations >= 498) { // Keep well under the 500 limit
           await batch.commit();
           batch = firestore.batch();
           operations = 0;

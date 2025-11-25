@@ -20,7 +20,7 @@ service cloud.firestore {
     }
     function isActiveCaregiver() {
       let isCaregiver = exists(/databases/$(database)/documents/caregivers_active/$(request.auth.uid));
-      let isActive = get(/databases/$(database)/documents/caregivers_active/$(request.auth.uid)).data.status == 'ACTIVE';
+      let isActive = get(/databases/$(database)/documents/caregivers_active/$(request.auth.uid)).data.status == 'Active';
       return isCaregiver && isActive;
     }
     function isClientUser() {
@@ -71,6 +71,12 @@ service cloud.firestore {
     match /caregivers_active/{caregiverId} {
       allow read: if isAnyAdmin() || isActiveCaregiver();
       allow write: if isAnyAdmin(); // Only admins can modify this collection.
+
+      // Scalable subcollection for weekly availability
+      match /availability/{weekId} {
+        allow read: if isAnyAdmin() || request.auth.uid == caregiverId;
+        allow write: if isAnyAdmin();
+      }
     }
 
     // Client records (synced from external system).
@@ -202,32 +208,6 @@ service cloud.firestore {
     // Campaign templates can be read and managed only by the Owner.
     match /campaign_templates/{templateId} {
       allow read, write: if isOwner();
-    }
-    /**
-     * @description Controls access to level_of_care_assessments. Open for all.
-     * @path /level_of_care_assessments/{assessmentsId}
-     * @allow (get, list) - Any user can level_of_care_assessments.
-     * @allow (create) - Any authenticated user can create a level_of_care_assessments.
-     * @deny (update, delete) - No user can update or delete a level_of_care_assessments.
-     * @principle Open read access.
-     */
-    match /level_of_care_assessments/{assessmentsId} {
-      allow get, list: if true;
-      allow create, update: if isSignedIn();
-      allow delete: if false;
-    }
-    /**
-     * @description Controls access to sms_history. Open for all.
-     * @path /initial_contacts/{initialContactId}/sms_history/{smsHistoryId}
-     * @allow (get, list) - Any user can sms_history.
-     * @allow (create) - Any authenticated user can create a sms_history.
-     * @deny (update, delete) - No user can update or delete a sms_history.
-     * @principle Open read access.
-     */
-    match /initial_contacts/{initialContactId}/sms_history/{smsHistoryId} {
-      allow get, list: if true;
-      allow create, update: if isSignedIn();
-      allow delete: if false;
     }
   }
 }
