@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useTransition, ChangeEvent, ReactNode } from 'react';
@@ -10,21 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Upload } from 'lucide-react';
 import { Label } from '@/components/ui/label';
-
-// Function to extract time from "Scheduled Availability\n5:00:00 AM To 8:00:00 PM"
-function extractTimes(text: string): { startTime: string; endTime: string } | null {
-  if (!text || !text.includes("Scheduled Availability")) return null;
-  
-  const lines = text.split('\n').map(l => l.trim());
-  const timeLine = lines.find(l => l.includes("To"));
-  if (!timeLine) return null;
-
-  const timeParts = timeLine.split("To").map(t => t.trim());
-  if (timeParts.length !== 2) return null;
-
-  return { startTime: timeParts[0], endTime: timeParts[1] };
-}
-
 
 export default function ManageCaregiverAvailabilityClient() {
   const [file, setFile] = useState<File | null>(null);
@@ -51,39 +35,41 @@ export default function ManageCaregiverAvailabilityClient() {
                 const rows = results.data as Record<string, string>[];
                 const headers = results.meta.fields;
 
-                if (!headers || rows.length === 0) {
-                    toast({ title: 'Parsing Error', description: 'Could not read headers or rows from the CSV.', variant: 'destructive' });
+                if (!headers || rows.length < 2) {
+                    toast({ title: 'Parsing Info', description: 'CSV must have headers and at least two data rows.', variant: 'default' });
                     return;
                 }
 
-                const debugExtraction: { caregiver: string, availabilityCellContent: string, header: string }[] = [];
-                let lastCaregiverName: string | null = null;
+                const debugExtraction: { caregiver: string, header: string, availabilityCellContent: string }[] = [];
                 const caregiverNameHeader = headers[0];
                 
-                rows.forEach(row => {
-                    const currentNameCell = row[caregiverNameHeader]?.trim();
+                // Use a for loop to inspect current and next row
+                for (let i = 0; i < rows.length - 1; i++) {
+                    const currentRow = rows[i];
+                    const nextRow = rows[i+1];
                     
-                    if (currentNameCell && currentNameCell !== "Total H's") {
-                         lastCaregiverName = currentNameCell;
-                    }
+                    const caregiverName = currentRow[caregiverNameHeader]?.trim();
 
-                    if (lastCaregiverName) {
+                    // Check if the current row looks like a caregiver name row
+                    if (caregiverName && caregiverName !== "Total H's" && !caregiverName.includes("Scheduled Availability")) {
+                        
+                        // Now, look for availability in the *next* row
                         for (const header of headers) {
-                            if (header === caregiverNameHeader) continue;
+                            if (header === caregiverNameHeader) continue; // Skip the name column
 
-                            const availabilityCell = row[header]?.trim();
-                            if (availabilityCell && availabilityCell.includes("Scheduled Availability")) {
-                                if (debugExtraction.length < 5) {
-                                    debugExtraction.push({
-                                        caregiver: lastCaregiverName,
-                                        availabilityCellContent: availabilityCell,
-                                        header: header
+                            const availabilityCellContent = nextRow[header]?.trim();
+                            if (availabilityCellContent && availabilityCellContent.includes("Scheduled Availability")) {
+                                if (debugExtraction.length < 10) { // Increased limit for better debugging
+                                     debugExtraction.push({
+                                        caregiver: caregiverName,
+                                        header: header.replace(/\n/g, ' '), // Show header for context
+                                        availabilityCellContent: availabilityCellContent.replace(/\n/g, ' '),
                                     });
                                 }
                             }
                         }
                     }
-                });
+                }
                 
                 let toastDescription: ReactNode = 'No valid availability data could be extracted. The debug array is empty.';
 
