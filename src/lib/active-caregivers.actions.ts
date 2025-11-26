@@ -4,7 +4,6 @@
 import { revalidatePath } from 'next/cache';
 import { serverDb } from '@/firebase/server-init';
 import { WriteBatch, Timestamp } from 'firebase-admin/firestore';
-import Papa from 'papaparse';
 import { format, parse as dateParse } from 'date-fns';
 
 // Helper function to robustly parse 12-hour AM/PM time strings to 24-hour format
@@ -30,26 +29,25 @@ function parseTo24HourFormat(timeStr: string): string | null {
 }
 
 
-export async function processActiveCaregiverUpload(csvText: string) {
+export async function processActiveCaregiverUpload(rows: Record<string, any>[]) {
   const firestore = serverDb;
   const now = Timestamp.now();
   
-  const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
-  const rows: Record<string, string>[] = parsed.data as Record<string, string>[];
-  const headers = parsed.meta.fields || [];
-
-  if (rows.length < 2) { // Need at least header, caregiver name, and availability row
-    return { message: "CSV is missing necessary data rows.", error: true, caregiversFound: [] };
+  if (!rows || rows.length < 2) { // Need at least header, caregiver name, and availability row
+    return { message: "CSV is missing necessary data rows.", error: true };
   }
+
+  const headers = Object.keys(rows[0]);
   
   try {
     const allCaregiverNames = new Set<string>();
-    rows.forEach(row => {
-        const nameCell = row[headers[0]]?.trim();
-        if (nameCell && !nameCell.includes("Scheduled Availability") && nameCell !== "Total H's") {
+    for (let i = 0; i < rows.length - 1; i++) {
+        const nameCell = rows[i][headers[0]]?.trim();
+        // Check if the current row looks like a caregiver name row
+        if (nameCell && nameCell !== "Total H's" && !nameCell.includes("Scheduled Availability")) {
             allCaregiverNames.add(nameCell);
         }
-    });
+    }
 
     const caregiverNameArray = Array.from(allCaregiverNames);
     const profileMap = new Map<string, FirebaseFirestore.DocumentReference>();
@@ -64,44 +62,40 @@ export async function processActiveCaregiverUpload(csvText: string) {
             });
         }
     } else {
-        return { message: "No caregiver names could be identified from the first column of the CSV.", error: true, caregiversFound: [] };
+        return { message: "No caregiver names could be identified from the CSV.", error: true };
     }
 
     let batch = firestore.batch();
     let operations = 0;
     const weeklyData: { [caregiverId: string]: { [weekIdentifier: string]: any } } = {};
-    const debugPreview: { name: string, data: string[] }[] = [];
 
-    // This loop mirrors the provided Node.js logic
-    headers.forEach(header => {
-        if (!header.trim() || header.toLowerCase() === 'care giver') return;
+    for (let i = 0; i < rows.length - 1; i++) {
+        const currentNameRow = rows[i];
+        const nextAvailabilityRow = rows[i+1];
+        const caregiverName = currentNameRow[headers[0]]?.trim();
 
-        const headerParts = header.split('\n');
-        if (headerParts.length < 2) return; // Skip invalid headers
+        if (caregiverName && caregiverName !== "Total H's" && !caregiverName.includes("Scheduled Availability")) {
+            const caregiverRef = profileMap.get(caregiverName);
+            if (!caregiverRef) continue;
 
-        const rawDate = headerParts[1];
-        if (!rawDate) return;
-        
-        const recordDate = dateParse(rawDate.trim(), 'M/d/yyyy', new Date());
-        if (isNaN(recordDate.getTime())) return;
-        
-        const weekIdentifier = `week_${format(recordDate, 'yyyy-ww')}`;
-        const dayKey = format(recordDate, 'eeee').toLowerCase();
+            headers.forEach(header => {
+                if (!header.trim() || header === headers[0]) return; // Skip name column
 
-        let lastCaregiverName: string | null = null;
+                const headerParts = header.split('\n');
+                if (headerParts.length < 2) return;
 
-        rows.forEach(row => {
-            const nameCell = row[headers[0]]?.trim();
-            const availabilityCell = row[header]?.trim();
+                const rawDate = headerParts[1];
+                if (!rawDate) return;
 
-            if (nameCell && !nameCell.includes("Scheduled Availability") && nameCell !== "Total H's") {
-                lastCaregiverName = nameCell;
-            }
+                const recordDate = dateParse(rawDate.trim(), 'M/d/yyyy', new Date());
+                if (isNaN(recordDate.getTime())) return;
 
-            if (lastCaregiverName && availabilityCell && availabilityCell.includes("Scheduled Availability")) {
-                 const caregiverRef = profileMap.get(lastCaregiverName);
-                 if (caregiverRef) {
-                     const timeLine = availabilityCell.split('\n').find(l => l.includes("To"));
+                const weekIdentifier = `week_${format(recordDate, 'yyyy-ww')}`;
+                const dayKey = format(recordDate, 'eeee').toLowerCase();
+                const availabilityCell = nextAvailabilityRow[header]?.trim();
+                
+                if (availabilityCell && availabilityCell.includes("Scheduled Availability")) {
+                    const timeLine = availabilityCell.split('\n').find(l => l.includes("To"));
                      if (timeLine) {
                          const timeParts = timeLine.split("To").map(t => t.trim());
                          if (timeParts.length === 2) {
@@ -111,31 +105,20 @@ export async function processActiveCaregiverUpload(csvText: string) {
                              if (formattedStartTime && formattedEndTime) {
                                 if (!weeklyData[caregiverRef.id]) weeklyData[caregiverRef.id] = {};
                                 if (!weeklyData[caregiverRef.id][weekIdentifier]) {
-                                    weeklyData[caregiverRef.id][weekIdentifier] = { createdAt: now, caregiverId: caregiverRef.id, caregiverName: lastCaregiverName };
+                                    weeklyData[caregiverRef.id][weekIdentifier] = { createdAt: now, caregiverId: caregiverRef.id, caregiverName: caregiverName };
                                 }
                                 if (!weeklyData[caregiverRef.id][weekIdentifier][dayKey]) {
                                     weeklyData[caregiverRef.id][weekIdentifier][dayKey] = [];
                                 }
                                 const timeSlotString = `${formattedStartTime} - ${formattedEndTime}`;
                                 weeklyData[caregiverRef.id][weekIdentifier][dayKey].push(timeSlotString);
-
-                                // Add to debug preview
-                                const debugEntry = debugPreview.find(e => e.name === lastCaregiverName);
-                                const debugString = `${dayKey}: ${timeSlotString}`;
-                                if (debugEntry) {
-                                    if(debugEntry.data.length < 5) debugEntry.data.push(debugString);
-                                } else {
-                                    if (debugPreview.length < 5) {
-                                        debugPreview.push({ name: lastCaregiverName, data: [debugString] });
-                                    }
-                                }
                              }
                          }
                      }
-                 }
-            }
-        });
-    });
+                }
+            });
+        }
+    }
 
     let updatedCaregiverCount = 0;
     for (const caregiverId in weeklyData) {
@@ -168,10 +151,10 @@ export async function processActiveCaregiverUpload(csvText: string) {
     }
     
     revalidatePath('/staffing-admin/manage-active-caregivers');
-    return { message: `Upload finished. Attempted to process availability for ${updatedCaregiverCount} caregivers.`, debugPreview: debugPreview };
+    return { message: `Upload finished. Processed availability for ${updatedCaregiverCount} caregivers.` };
 
   } catch (error: any) {
       console.error('[Action Error] Critical error during availability upload:', error);
-      return { message: `An error occurred during the upload: ${error.message}`, error: true, debugPreview: [] };
+      return { message: `An error occurred during the upload: ${error.message}`, error: true };
   }
 }

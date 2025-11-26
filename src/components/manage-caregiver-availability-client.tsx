@@ -3,6 +3,7 @@
 
 import { useState, useTransition, ChangeEvent, ReactNode } from 'react';
 import Papa from 'papaparse';
+import { processActiveCaregiverUpload } from '@/lib/active-caregivers.actions';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -32,64 +33,21 @@ export default function ManageCaregiverAvailabilityClient() {
         Papa.parse(file, {
             header: true,
             skipEmptyLines: true,
-            complete: (results) => {
+            complete: async (results) => {
                 const rows = results.data as Record<string, string>[];
-                const headers = results.meta.fields;
-
-                if (!headers || rows.length < 2) {
-                    toast({ title: 'Parsing Info', description: 'CSV must have headers and at least two data rows.', variant: 'default' });
-                    return;
-                }
-
-                const debugExtraction: { caregiver: string, header: string, availabilityCellContent: string }[] = [];
-                const caregiverNameHeader = headers[0];
-                
-                // Use a for loop to inspect current and next row
-                for (let i = 0; i < rows.length - 1; i++) {
-                    const currentRow = rows[i];
-                    const nextRow = rows[i+1];
-                    
-                    const caregiverName = currentRow[caregiverNameHeader]?.trim();
-
-                    // Check if the current row looks like a caregiver name row
-                    if (caregiverName && caregiverName !== "Total H's" && !caregiverName.includes("Scheduled Availability")) {
-                        
-                        // Now, look for availability in the *next* row
-                        for (const header of headers) {
-                            if (header === caregiverNameHeader) continue; // Skip the name column
-
-                            const availabilityCellContent = nextRow[header]?.trim();
-                            
-                            // Only process cells that explicitly contain "Scheduled Availability"
-                            if (availabilityCellContent && availabilityCellContent.includes("Scheduled Availability")) {
-                                if (debugExtraction.length < 10) { 
-                                     debugExtraction.push({
-                                        caregiver: caregiverName,
-                                        header: header.replace(/\n/g, ' '), // Show header for context
-                                        availabilityCellContent: availabilityCellContent.replace(/\n/g, ' '),
-                                    });
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                let toastDescription: ReactNode = 'No valid availability data could be extracted. The debug array is empty.';
-
-                if (debugExtraction.length > 0) {
-                     toastDescription = (
-                        <pre className="mt-2 w-full rounded-md bg-slate-950 p-4 max-h-60 overflow-y-auto">
-                            <code className="text-white">{JSON.stringify(debugExtraction, null, 2)}</code>
-                        </pre>
-                    );
-                }
+                const uploadResult = await processActiveCaregiverUpload(rows);
 
                 toast({
-                    title: 'Debug Info: Extracted Availability Cells',
-                    description: toastDescription,
-                    variant: 'default',
-                    duration: 20000
+                    title: uploadResult.error ? 'Upload Failed' : 'Upload Successful',
+                    description: uploadResult.message,
+                    variant: uploadResult.error ? 'destructive' : 'default',
                 });
+                
+                if (!uploadResult.error) {
+                    setFile(null);
+                    const fileInput = document.getElementById('availability-file-upload') as HTMLInputElement;
+                    if(fileInput) fileInput.value = '';
+                }
             },
             error: (error) => {
                 toast({ title: 'Parsing Error', description: `Error parsing CSV file: ${error.message}`, variant: 'destructive' });
@@ -104,7 +62,7 @@ export default function ManageCaregiverAvailabilityClient() {
         <CardHeader>
           <CardTitle>Upload Caregiver Availability</CardTitle>
           <CardDescription>
-            Upload a weekly availability schedule as a CSV file. This tool will now parse the file in your browser and show you what it found.
+            Upload a weekly availability schedule as a CSV file. The system will parse the file and update the availability records in the database.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -115,7 +73,7 @@ export default function ManageCaregiverAvailabilityClient() {
             </div>
             <Button onClick={handleUploadAndParse} disabled={isParsing || !file}>
               {isParsing ? <Loader2 className="animate-spin mr-2" /> : <Upload className="mr-2" />}
-              Test Parse Availability
+              Upload Availability
             </Button>
           </div>
         </CardContent>
