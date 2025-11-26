@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useTransition, ChangeEvent } from 'react';
+import { useState, useTransition, ChangeEvent, ReactNode } from 'react';
 import { processActiveCaregiverUpload } from '@/lib/active-caregivers.actions';
 
 import { Input } from '@/components/ui/input';
@@ -42,10 +42,10 @@ export default function ManageCaregiverAvailabilityClient() {
                 }
                 
                 if (uploadResult.debugPreview && uploadResult.debugPreview.length > 0) {
-                     const description = (
-                        <div className="text-xs space-y-2">
+                     const description: ReactNode = (
+                        <div className="text-xs space-y-2 mt-2">
                             <p>Here's a sample of the data parsed from your CSV:</p>
-                            <ul className="list-disc pl-4">
+                            <ul className="list-disc pl-4 bg-muted p-2 rounded-md">
                                 {uploadResult.debugPreview.map(item => (
                                     <li key={item.name}>
                                         <strong>{item.name}:</strong>

@@ -38,8 +38,8 @@ export async function processActiveCaregiverUpload(csvText: string) {
   const rows: Record<string, string>[] = parsed.data as Record<string, string>[];
   const headers = parsed.meta.fields || [];
 
-  if (rows.length < 1) {
-    return { message: "CSV must have at least a header row and one data row.", error: true, caregiversFound: [] };
+  if (rows.length < 2) { // Need at least header, caregiver name, and availability row
+    return { message: "CSV is missing necessary data rows.", error: true, caregiversFound: [] };
   }
   
   try {
@@ -76,8 +76,11 @@ export async function processActiveCaregiverUpload(csvText: string) {
     headers.forEach(header => {
         if (!header.trim() || header.toLowerCase() === 'care giver') return;
 
-        const [day, rawDate] = header.split('\n');
-        if (!day || !rawDate) return;
+        const headerParts = header.split('\n');
+        if (headerParts.length < 2) return; // Skip invalid headers
+
+        const rawDate = headerParts[1];
+        if (!rawDate) return;
         
         const recordDate = dateParse(rawDate.trim(), 'M/d/yyyy', new Date());
         if (isNaN(recordDate.getTime())) return;
@@ -91,13 +94,11 @@ export async function processActiveCaregiverUpload(csvText: string) {
             const nameCell = row[headers[0]]?.trim();
             const availabilityCell = row[header]?.trim();
 
-            // Condition to identify a caregiver name row
             if (nameCell && !nameCell.includes("Scheduled Availability") && nameCell !== "Total H's") {
                 lastCaregiverName = nameCell;
             }
 
-            // Condition to identify an availability row corresponding to the last caregiver
-            if (lastCaregiverName && availabilityCell && availabilityCell.includes("Scheduled Availability") && row[headers[0]] === '') {
+            if (lastCaregiverName && availabilityCell && availabilityCell.includes("Scheduled Availability")) {
                  const caregiverRef = profileMap.get(lastCaregiverName);
                  if (caregiverRef) {
                      const timeLine = availabilityCell.split('\n').find(l => l.includes("To"));
@@ -144,11 +145,10 @@ export async function processActiveCaregiverUpload(csvText: string) {
             const dataToSet = weeklyData[caregiverId][weekId];
             dataToSet.lastUpdatedAt = now;
             
-            // To ensure arrays are overwritten, not merged, we set the entire day's schedule
             const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
             days.forEach(day => {
                 if (!dataToSet[day]) {
-                    dataToSet[day] = []; // Ensure empty days are explicitly cleared
+                    dataToSet[day] = []; // Ensure empty days are explicitly cleared to overwrite old data
                 }
             });
 
@@ -168,7 +168,7 @@ export async function processActiveCaregiverUpload(csvText: string) {
     }
     
     revalidatePath('/staffing-admin/manage-active-caregivers');
-    return { message: `Upload finished. Updated availability for ${updatedCaregiverCount} caregivers.`, debugPreview: debugPreview };
+    return { message: `Upload finished. Attempted to process availability for ${updatedCaregiverCount} caregivers.`, debugPreview: debugPreview };
 
   } catch (error: any) {
       console.error('[Action Error] Critical error during availability upload:', error);
