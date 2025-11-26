@@ -85,7 +85,7 @@ export default function ManageCaregiverAvailabilityClient() {
         <CardHeader>
           <CardTitle>Upload Caregiver Availability</CardTitle>
           <CardDescription>
-            Upload a weekly availability schedule as a CSV file. The first column should be "Caregiver Name", followed by columns for each day of the week ("Monday", "Tuesday", etc.). The cells should contain "Available" followed by time slots (e.g., "Available 9am-5pm").
+            Upload a weekly availability schedule as a CSV file. The file should have two header rows (Day, then Date), followed by pairs of rows for each caregiver (Name, then Availability).
           </CardDescription>
         </CardHeader>
         <CardContent>
