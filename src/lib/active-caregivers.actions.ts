@@ -132,44 +132,58 @@ export async function processCaregiverAvailabilityUpload(csvText: string) {
   const parsed = Papa.parse(csvText, { header: false });
   const data: string[][] = parsed.data as string[][];
 
-  if (data.length < 3) {
-      return { message: "CSV must have at least 3 rows (2 header rows + 1 data row).", error: true };
+  if (data.length < 4) {
+      return { message: "CSV must have at least 4 rows (2 header rows + 2 data rows).", error: true };
   }
 
   const dayHeader = data[0];
   const dateHeader = data[1];
-  console.log('[Action Debug] Parsed Days Header:', dayHeader);
-  console.log('[Action Debug] Parsed Dates Header:', dateHeader);
-
+  
   const availabilityRecords: { caregiverName: string; day: string; date: string; startTime: string; endTime: string }[] = [];
   const allCaregiverNames = new Set<string>();
 
-  // Iterate over columns (days)
+  // Iterate through columns
   for (let colIndex = 0; colIndex < dayHeader.length; colIndex++) {
-      const day = dayHeader[colIndex]?.trim();
-      const date = dateHeader[colIndex]?.trim();
+    const day = dayHeader[colIndex]?.trim();
+    const date = dateHeader[colIndex]?.trim();
+    if (!day || !date) continue;
 
-      if (!day || !date) continue;
+    let lastCaregiver: string | null = null;
 
-      // Iterate over data rows, starting from the 3rd row
-      for (let rowIndex = 2; rowIndex < data.length; rowIndex += 2) {
-          const caregiverName = data[rowIndex]?.[colIndex]?.trim();
-          const availabilityString = data[rowIndex + 1]?.[colIndex]?.trim();
-
-          if (caregiverName && availabilityString && availabilityString.toLowerCase().startsWith('scheduled availability')) {
-              allCaregiverNames.add(caregiverName);
-              
-              const timeMatch = availabilityString.match(/(\d{1,2}:\d{2}:\d{2}\s*(?:AM|PM))\s*To\s*(\d{1,2}:\d{2}:\d{2}\s*(?:AM|PM))/i);
-              if (timeMatch) {
-                  const startTime = timeMatch[1];
-                  const endTime = timeMatch[2];
-                  availabilityRecords.push({ caregiverName, day, date, startTime, endTime });
-              }
-          }
+    // Iterate through rows for the current column
+    for (let rowIndex = 2; rowIndex < data.length; rowIndex++) {
+      const cellValue = data[rowIndex]?.[colIndex]?.trim();
+      if (!cellValue || cellValue === "Total H's") {
+        continue;
       }
+      
+      const isAvailability = cellValue.toLowerCase().startsWith('scheduled availability');
+
+      if (!isAvailability) {
+        // It's a caregiver name
+        lastCaregiver = cellValue;
+        allCaregiverNames.add(lastCaregiver);
+      } else {
+        // It's availability info
+        if (lastCaregiver) {
+          const timeMatch = cellValue.match(/(\d{1,2}:\d{2}:\d{2}\s*(?:AM|PM))\s*To\s*(\d{1,2}:\d{2}:\d{2}\s*(?:AM|PM))/i);
+          if (timeMatch) {
+            const startTime = timeMatch[1];
+            const endTime = timeMatch[2];
+            availabilityRecords.push({
+              caregiverName: lastCaregiver,
+              day,
+              date,
+              startTime,
+              endTime,
+            });
+          }
+        }
+      }
+    }
   }
 
-  if (allCaregiverNames.size === 0) {
+  if (availabilityRecords.length === 0) {
       return { message: "No valid caregiver availability data found in the CSV.", error: true };
   }
   
@@ -188,7 +202,7 @@ export async function processCaregiverAvailabilityUpload(csvText: string) {
 
       let batch = firestore.batch();
       let operations = 0;
-      let updatedCaregivers = new Set<string>();
+      const updatedCaregivers = new Set<string>();
       
       const weeklyData: { [caregiverId: string]: { [weekIdentifier: string]: any } } = {};
 
@@ -252,5 +266,3 @@ export async function processCaregiverAvailabilityUpload(csvText: string) {
       return { message: `An error occurred during the upload: ${error.message}`, error: true };
   }
 }
-
-    
