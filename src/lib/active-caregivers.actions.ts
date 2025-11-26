@@ -139,46 +139,31 @@ export async function processCaregiverAvailabilityUpload(csvText: string) {
   const dayHeader = data[0];
   const dateHeader = data[1];
   
-  const availabilityRecords: { caregiverName: string; day: string; date: string; startTime: string; endTime: string }[] = [];
+  const availabilityRecords: { caregiverName: string; day: string; date: string; availability: string; }[] = [];
   const allCaregiverNames = new Set<string>();
 
-  // Iterate through columns
-  for (let colIndex = 0; colIndex < dayHeader.length; colIndex++) {
+  for (let colIndex = 1; colIndex < dayHeader.length; colIndex++) {
     const day = dayHeader[colIndex]?.trim();
     const date = dateHeader[colIndex]?.trim();
     if (!day || !date) continue;
 
     let lastCaregiver: string | null = null;
-
-    // Iterate through rows for the current column
     for (let rowIndex = 2; rowIndex < data.length; rowIndex++) {
-      const cellValue = data[rowIndex]?.[colIndex]?.trim();
-      if (!cellValue || cellValue === "Total H's") {
-        continue;
-      }
-      
-      const isAvailability = cellValue.toLowerCase().startsWith('scheduled availability');
+      const caregiverNameCell = data[rowIndex]?.[0]?.trim();
+      const availabilityCell = data[rowIndex]?.[colIndex]?.trim();
 
-      if (!isAvailability) {
-        // It's a caregiver name
-        lastCaregiver = cellValue;
-        allCaregiverNames.add(lastCaregiver);
-      } else {
-        // It's availability info
-        if (lastCaregiver) {
-          const timeMatch = cellValue.match(/(\d{1,2}:\d{2}:\d{2}\s*(?:AM|PM))\s*To\s*(\d{1,2}:\d{2}:\d{2}\s*(?:AM|PM))/i);
-          if (timeMatch) {
-            const startTime = timeMatch[1];
-            const endTime = timeMatch[2];
-            availabilityRecords.push({
-              caregiverName: lastCaregiver,
-              day,
-              date,
-              startTime,
-              endTime,
-            });
-          }
-        }
+      if (caregiverNameCell && caregiverNameCell !== "Total H's") {
+          lastCaregiver = caregiverNameCell;
+          allCaregiverNames.add(lastCaregiver);
+      }
+
+      if (lastCaregiver && availabilityCell && availabilityCell.toLowerCase().startsWith('scheduled availability')) {
+        availabilityRecords.push({
+          caregiverName: lastCaregiver,
+          day,
+          date,
+          availability: availabilityCell,
+        });
       }
     }
   }
@@ -229,7 +214,23 @@ export async function processCaregiverAvailabilityUpload(csvText: string) {
                   weeklyData[caregiverRef.id][weekIdentifier][dayKey] = [];
               }
               
-              weeklyData[caregiverRef.id][weekIdentifier][dayKey].push(`${record.startTime} - ${record.endTime}`);
+              const timeMatch = record.availability.match(/(\d{1,2}:\d{2}:\d{2}\s*(?:AM|PM))\s*To\s*(\d{1,2}:\d{2}:\d{2}\s*(?:AM|PM))/i);
+              if (timeMatch) {
+                  try {
+                    const startTimeStr = timeMatch[1];
+                    const endTimeStr = timeMatch[2];
+                    
+                    const startTime = dateParse(startTimeStr, 'h:mm:ss a', new Date());
+                    const endTime = dateParse(endTimeStr, 'h:mm:ss a', new Date());
+                    
+                    const formattedStartTime = format(startTime, 'HH:mm');
+                    const formattedEndTime = format(endTime, 'HH:mm');
+
+                    weeklyData[caregiverRef.id][weekIdentifier][dayKey].push(`${formattedStartTime} - ${formattedEndTime}`);
+                  } catch (e) {
+                      console.warn(`Could not parse time for caregiver ${record.caregiverName} on ${record.date}: ${timeMatch[0]}`);
+                  }
+              }
           }
       }
 
