@@ -331,7 +331,6 @@
         "Caregiver Lic": { "type": "string" },
         "TTiD-PIN": { "type": "string" },
         "status": { "type": "string", "enum": ["Active", "Inactive"] },
-        "weeklyAvailability": { "type": "object", "description": "A map of weekly availability schedules." },
         "createdAt": { "type": "string", "format": "date-time" },
         "lastUpdatedAt": { "type": "string", "format": "date-time" }
       },

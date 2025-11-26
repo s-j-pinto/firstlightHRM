@@ -129,139 +129,124 @@ export async function processCaregiverAvailabilityUpload(csvText: string) {
   const firestore = serverDb;
   const now = Timestamp.now();
   
-  const parsed = Papa.parse(csvText, { header: false, skipEmptyLines: true });
-  const rows: string[][] = parsed.data;
+  const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: false });
+  const rows: Record<string, string>[] = parsed.data as Record<string, string>[];
+  const headers = parsed.meta.fields || [];
 
-  if (rows.length < 3) {
-      return { message: "CSV must have at least 3 rows (day, date, and data).", error: true };
-  }
-
-  const dayHeaderRow = rows[0]; 
-  const dateHeaderRow = rows[1];
-
-  const allCaregiverNames = new Set<string>();
-  rows.slice(2).forEach(row => {
-      if (row.length > 0) {
-          const firstCol = row[0]?.trim();
-          if(firstCol && !firstCol.includes("Scheduled Availability") && firstCol !== "Total H's") {
-              allCaregiverNames.add(firstCol);
-          }
-      }
-  });
-
-  if (allCaregiverNames.size === 0) {
-    return { message: "No caregiver names found in the first column of the CSV.", error: true };
+  if (rows.length < 2) {
+    return { message: "CSV must have at least 2 rows for headers and data.", error: true };
   }
   
   try {
-      const caregiverNameArray = Array.from(allCaregiverNames);
-      const profileMap = new Map<string, FirebaseFirestore.DocumentReference>();
+    const allCaregiverNames = new Set<string>();
+    rows.forEach(row => {
+        const firstColValue = row[headers[0]]?.trim();
+        if (firstColValue && !firstColValue.includes("Scheduled Availability") && firstColValue !== "Total H's") {
+            allCaregiverNames.add(firstColValue);
+        }
+    });
 
-      const CHUNK_SIZE = 30;
-      for (let i = 0; i < caregiverNameArray.length; i += CHUNK_SIZE) {
-          const chunk = caregiverNameArray.slice(i, i + CHUNK_SIZE);
-          const querySnapshot = await firestore.collection('caregivers_active').where('Name', 'in', chunk).get();
-          querySnapshot.forEach(doc => {
-              profileMap.set(doc.data().Name, doc.ref);
-          });
-      }
+    if (allCaregiverNames.size === 0) {
+        return { message: "No caregiver names found in the first column.", error: true };
+    }
 
-      let batch = firestore.batch();
-      let operations = 0;
-      const updatedCaregivers = new Set<string>();
-      const weeklyData: { [caregiverId: string]: { [weekIdentifier: string]: any } } = {};
+    const caregiverNameArray = Array.from(allCaregiverNames);
+    const profileMap = new Map<string, FirebaseFirestore.DocumentReference>();
+
+    const CHUNK_SIZE = 30;
+    for (let i = 0; i < caregiverNameArray.length; i += CHUNK_SIZE) {
+        const chunk = caregiverNameArray.slice(i, i + CHUNK_SIZE);
+        const querySnapshot = await firestore.collection('caregivers_active').where('Name', 'in', chunk).get();
+        querySnapshot.forEach(doc => {
+            profileMap.set(doc.data().Name, doc.ref);
+        });
+    }
+
+    let batch = firestore.batch();
+    let operations = 0;
+    const weeklyData: { [caregiverId: string]: { [weekIdentifier: string]: any } } = {};
       
-      const columnCount = dayHeaderRow.length;
+    // Iterate through each column (day) by its header
+    for (const header of headers) {
+        if (!header.trim()) continue;
 
-      // Iterate through each column (each day)
-      for (let colIndex = 1; colIndex < columnCount; colIndex++) {
-          const day = dayHeaderRow[colIndex]?.trim();
-          const dateStr = dateHeaderRow[colIndex]?.trim();
-          
-          if (!day || !dateStr) continue;
+        const [day, rawDate] = header.split('\n');
+        if (!day || !rawDate) continue;
 
-          let lastCaregiverName: string | null = null;
-          
-          // Iterate through rows for this specific day's column
-          for (let rowIndex = 2; rowIndex < rows.length; rowIndex++) {
-              const cellValue = rows[rowIndex][colIndex]?.trim();
-              const potentialCaregiverName = rows[rowIndex][0]?.trim();
-              
-              if (potentialCaregiverName && !potentialCaregiverName.includes("Scheduled Availability") && potentialCaregiverName !== "Total H's") {
-                  lastCaregiverName = potentialCaregiverName;
-              }
+        const recordDate = dateParse(rawDate.trim(), 'M/d/yyyy', new Date());
+        if (isNaN(recordDate.getTime())) continue;
 
-              if (lastCaregiverName && cellValue && cellValue.toLowerCase().startsWith('scheduled availability')) {
+        const weekIdentifier = `week_${format(recordDate, 'yyyy-ww')}`;
+        const dayKey = format(recordDate, 'eeee').toLowerCase();
+
+        let lastCaregiverName: string | null = null;
+        
+        // Iterate down the rows for the current column
+        for (const row of rows) {
+            const cellValue = row[header]?.trim();
+            if (!cellValue || cellValue === "Total H's") continue;
+
+            if (!cellValue.includes("Scheduled Availability")) {
+                lastCaregiverName = cellValue;
+            } else {
+                if (!lastCaregiverName) continue;
+                
                 const caregiverRef = profileMap.get(lastCaregiverName);
                 if (caregiverRef) {
-                    const recordDate = dateParse(dateStr, 'M/d/yyyy', new Date());
-                    const weekIdentifier = `week_${format(recordDate, 'yyyy-ww')}`;
-                    const dayKey = format(recordDate, 'eeee').toLowerCase();
-
-                    if (!weeklyData[caregiverRef.id]) weeklyData[caregiverRef.id] = {};
-                    if (!weeklyData[caregiverRef.id][weekIdentifier]) {
-                        weeklyData[caregiverRef.id][weekIdentifier] = {
-                            createdAt: now, updatedAt: now, caregiverId: caregiverRef.id, caregiverName: lastCaregiverName,
-                        };
-                    }
-                    if (!weeklyData[caregiverRef.id][weekIdentifier][dayKey]) {
-                        weeklyData[caregiverRef.id][weekIdentifier][dayKey] = [];
-                    }
-
                     const timeMatch = cellValue.match(/(\d{1,2}:\d{2}:\d{2}\s*(?:AM|PM))\s*To\s*(\d{1,2}:\d{2}:\d{2}\s*(?:AM|PM))/i);
                     if (timeMatch) {
                         try {
-                            const startTimeStr = timeMatch[1];
-                            const endTimeStr = timeMatch[2];
-                            
-                            let startTime = dateParse(startTimeStr, 'hh:mm:ss a', new Date());
-                            let endTime = dateParse(endTimeStr, 'hh:mm:ss a', new Date());
+                            const startTime = dateParse(timeMatch[1], 'h:mm:ss a', new Date());
+                            const endTime = dateParse(timeMatch[2], 'h:mm:ss a', new Date());
 
                             if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
-                                throw new Error(`Invalid time format for caregiver ${lastCaregiverName}.`);
+                                throw new Error(`Invalid time format for caregiver ${lastCaregiverName}. Value: "${cellValue}"`);
                             }
                             
                             const formattedStartTime = format(startTime, 'HH:mm');
                             const formattedEndTime = format(endTime, 'HH:mm');
-                        
+
+                            if (!weeklyData[caregiverRef.id]) weeklyData[caregiverRef.id] = {};
+                            if (!weeklyData[caregiverRef.id][weekIdentifier]) {
+                                weeklyData[caregiverRef.id][weekIdentifier] = {
+                                    createdAt: now, updatedAt: now, caregiverId: caregiverRef.id, caregiverName: lastCaregiverName,
+                                };
+                            }
+                            if (!weeklyData[caregiverRef.id][weekIdentifier][dayKey]) {
+                                weeklyData[caregiverRef.id][weekIdentifier][dayKey] = [];
+                            }
                             weeklyData[caregiverRef.id][weekIdentifier][dayKey].push(`${formattedStartTime} - ${formattedEndTime}`);
-                            updatedCaregivers.add(lastCaregiverName);
+
                         } catch (e: any) {
-                            console.error(`CRITICAL: Could not parse time for caregiver ${lastCaregiverName} on ${dateStr}. Value: "${cellValue}". Error: ${e.message}`);
-                            throw new Error(`Invalid time value found for ${lastCaregiverName} on ${dateStr}. Please check the format in your CSV.`);
+                            console.error(`CRITICAL: Could not parse time for caregiver ${lastCaregiverName} on ${rawDate}. Value: "${cellValue}". Error: ${e.message}`);
+                            throw new Error(`Invalid time value found for ${lastCaregiverName}. Please check the format in your CSV.`);
                         }
                     }
                 }
-              }
-          }
-      }
+            }
+        }
+    }
 
-       for (const caregiverId in weeklyData) {
-          for (const weekId in weeklyData[caregiverId]) {
-              const availabilityDocRef = firestore.collection('caregivers_active').doc(caregiverId).collection('availability').doc(weekId);
-              batch.set(availabilityDocRef, weeklyData[caregiverId][weekId], { merge: true });
-              operations++;
+    for (const caregiverId in weeklyData) {
+        for (const weekId in weeklyData[caregiverId]) {
+            const availabilityDocRef = firestore.collection('caregivers_active').doc(caregiverId).collection('availability').doc(weekId);
+            batch.set(availabilityDocRef, weeklyData[caregiverId][weekId], { merge: true });
+            operations++;
 
-              if (operations >= 499) {
-                  await batch.commit();
-                  batch = firestore.batch();
-                  operations = 0;
-              }
-          }
-      }
+            if (operations >= 499) {
+                await batch.commit();
+                batch = firestore.batch();
+                operations = 0;
+            }
+        }
+    }
 
-      if (operations > 0) {
-          await batch.commit();
-      }
-
-      const notFoundNames = caregiverNameArray.filter(name => !profileMap.has(name));
-      let message = `Availability updated for ${updatedCaregivers.size} caregivers.`;
-      if (notFoundNames.length > 0) {
-          message += ` Could not find active profiles for ${notFoundNames.length} names: ${notFoundNames.slice(0, 5).join(', ')}...`;
-      }
-      
-      revalidatePath('/staffing-admin/manage-active-caregivers');
-      return { message };
+    if (operations > 0) {
+        await batch.commit();
+    }
+    
+    revalidatePath('/staffing-admin/manage-active-caregivers');
+    return { message: `Availability updated for ${Object.keys(weeklyData).length} caregivers.` };
 
   } catch (error: any) {
       console.error('[Action Error] Critical error during availability upload:', error);
