@@ -142,31 +142,39 @@ export async function processCaregiverAvailabilityUpload(csvText: string) {
   const availabilityRecords: { caregiverName: string; day: string; date: string; availability: string; }[] = [];
   const allCaregiverNames = new Set<string>();
 
-  for (let colIndex = 1; colIndex < dayHeader.length; colIndex++) {
+  // Iterate through columns (days)
+  for (let colIndex = 0; colIndex < dayHeader.length; colIndex++) {
     const day = dayHeader[colIndex]?.trim();
     const date = dateHeader[colIndex]?.trim();
-    if (!day || !date) continue;
 
-    let lastCaregiver: string | null = null;
-    for (let rowIndex = 2; rowIndex < data.length; rowIndex++) {
-      const caregiverNameCell = data[rowIndex]?.[0]?.trim();
-      const availabilityCell = data[rowIndex]?.[colIndex]?.trim();
+    if (!day || !date) continue; // Skip empty header columns
 
-      if (caregiverNameCell && caregiverNameCell !== "Total H's") {
-          lastCaregiver = caregiverNameCell;
-          allCaregiverNames.add(lastCaregiver);
-      }
+    // Iterate through data rows in pairs
+    for (let rowIndex = 2; rowIndex < data.length; rowIndex += 2) {
+      const nameRow = data[rowIndex];
+      const availabilityRow = data[rowIndex + 1];
 
-      if (lastCaregiver && availabilityCell && availabilityCell.toLowerCase().startsWith('scheduled availability')) {
+      // Ensure both rows exist
+      if (!nameRow || !availabilityRow) continue;
+
+      const caregiverName = nameRow[colIndex]?.trim();
+      const availabilityInfo = availabilityRow[colIndex]?.trim();
+
+      // Validate that we have a caregiver name and availability info
+      if (!caregiverName || !availabilityInfo || caregiverName === "Total H's" || availabilityInfo === "") continue;
+
+      if (availabilityInfo.toLowerCase().startsWith('scheduled availability')) {
+        allCaregiverNames.add(caregiverName);
         availabilityRecords.push({
-          caregiverName: lastCaregiver,
+          caregiverName,
           day,
           date,
-          availability: availabilityCell,
+          availability: availabilityInfo,
         });
       }
     }
   }
+
 
   if (availabilityRecords.length === 0) {
       return { message: "No valid caregiver availability data found in the CSV.", error: true };
