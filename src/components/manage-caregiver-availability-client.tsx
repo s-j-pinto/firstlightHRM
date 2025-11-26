@@ -31,7 +31,7 @@ export default function ManageCaregiverAvailabilityClient() {
 
     startParsingTransition(() => {
         Papa.parse(file, {
-            header: false, // We will handle headers manually
+            header: false,
             skipEmptyLines: true,
             complete: async (results) => {
                 const rows: string[][] = results.data as string[][];
@@ -42,42 +42,33 @@ export default function ManageCaregiverAvailabilityClient() {
 
                 const headers = rows[0];
                 const parsedData: Record<string, any>[] = [];
-                let lastCaregiverName: string | null = null;
                 
-                // Start from row 1, as row 0 is headers
-                for (let i = 1; i < rows.length; i++) {
-                    const row = rows[i];
-                    const firstCell = row[0]?.trim();
+                for (let i = 1; i < rows.length - 1; i++) {
+                    const nameRow = rows[i];
+                    const availabilityRow = rows[i + 1];
+                    const caregiverName = nameRow[0]?.trim();
 
-                    // Check if the current row is a caregiver name row
-                    if (firstCell && firstCell !== "Total H's") {
-                        lastCaregiverName = firstCell;
-                        
-                        // The availability is in the *next* row
-                        if (i + 1 < rows.length) {
-                            const availabilityRow = rows[i + 1];
-                            
-                            // Iterate through columns of the availability row
-                            for (let j = 1; j < headers.length; j++) {
-                                const availabilityCell = availabilityRow[j]?.trim();
-                                if (availabilityCell && availabilityCell.includes("Scheduled Availability")) {
-                                    parsedData.push({
-                                        caregiverName: lastCaregiverName,
-                                        header: headers[j],
-                                        availability: availabilityCell,
-                                    });
-                                }
+                    if (caregiverName && caregiverName !== "Total H's" && !caregiverName.includes("Scheduled Availability")) {
+                        headers.forEach((header, j) => {
+                            if (j === 0) return; // Skip the name column header
+
+                            const availabilityCell = availabilityRow[j]?.trim();
+                            if (availabilityCell && availabilityCell.includes("Scheduled Availability")) {
+                                parsedData.push({
+                                    caregiverName: caregiverName,
+                                    header: header,
+                                    availability: availabilityCell,
+                                });
                             }
-                        }
-                        // We processed the name and availability rows, so we can skip the next row in the main loop
-                        i++; 
+                        });
+                        i++; // Increment i again because we've processed the availability row
                     }
                 }
                 
                 if (parsedData.length === 0) {
                      toast({
                         title: "Parsing Issue",
-                        description: "Could not find any 'Scheduled Availability' data linked to a caregiver name. Please check the CSV format.",
+                        description: "Not able to find scheduled availabilty data linked to caregiver name. Pls check csv format.",
                         variant: "destructive",
                         duration: 8000,
                     });
