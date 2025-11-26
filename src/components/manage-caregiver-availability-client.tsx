@@ -37,44 +37,22 @@ export default function ManageCaregiverAvailabilityClient() {
         }
 
         const lines = text.split(/\r?\n/);
-        if (lines.length < 2) {
-            toast({ title: 'Invalid CSV', description: 'The CSV must have at least two header rows.', variant: 'destructive' });
+        if (lines.length < 4) { // 2 header rows + 1 caregiver pair
+            toast({ title: 'Invalid CSV', description: 'The CSV must have at least 4 rows to read the first caregiver record.', variant: 'destructive' });
             return;
         }
         
-        const daysHeader = lines[0].split(',').map(h => h.trim());
-        const datesHeader = lines[1].split(',').map(h => h.trim());
-
-        // Correctly iterate over all columns to build the full header string.
-        const combinedHeader = daysHeader.map((day, index) => {
-            if (day && index < datesHeader.length) {
-                return `${day} (${datesHeader[index] || ''})`;
-            }
-            return null;
-        }).filter(Boolean).join(' | ');
-
+        const caregiverName = lines[2].split(',')[0]?.trim() || '[No Name Found]';
+        const availabilityData = lines[3]?.trim() || '[No Availability Data Found]';
 
         toast({
-            title: 'CSV Header Read',
-            description: `Combined Header: ${combinedHeader}`,
-            duration: 8000,
+            title: 'First Caregiver Record Parsed',
+            description: `Name: ${caregiverName} | Availability: ${availabilityData}`,
+            duration: 10000,
         });
-        
-        // Temporarily disabled full upload for debugging header
-        /*
-        startUploadTransition(async () => {
-            const uploadResult = await processCaregiverAvailabilityUpload(text);
-            
-            if (uploadResult.error) {
-                toast({ title: 'Upload Failed', description: uploadResult.message, variant: 'destructive' });
-            } else {
-                toast({ title: 'Upload Successful', description: uploadResult.message });
-                setFile(null);
-                const fileInput = document.getElementById('availability-file-upload') as HTMLInputElement;
-                if (fileInput) fileInput.value = '';
-            }
-        });
-        */
+    };
+    reader.onerror = () => {
+        toast({ title: 'File Read Error', description: 'There was an error reading the file.', variant: 'destructive' });
     };
     reader.readAsText(file);
   };
