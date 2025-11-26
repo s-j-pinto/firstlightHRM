@@ -7,148 +7,28 @@ import { WriteBatch, Timestamp } from 'firebase-admin/firestore';
 import Papa from 'papaparse';
 import { format, parse as dateParse } from 'date-fns';
 
-function createCompositeKey(name: string, mobile: string, address: string, city: string): string {
-    const normalizedName = (name || '').trim().toLowerCase();
-    const normalizedMobile = (mobile || '').replace(/\D/g, ''); // Remove non-digits
-    const normalizedAddress = (address || '').trim().toLowerCase();
-    const normalizedCity = (city || '').trim().toLowerCase();
-    return `${normalizedName}|${normalizedMobile}|${normalizedAddress}|${normalizedCity}`;
-}
-
-export async function processActiveCaregiverUpload(data: Record<string, any>[]) {
-  console.log(`[Action Start] processActiveCaregiverUpload received ${data.length} rows.`);
-  const firestore = serverDb;
-  const caregiversCollection = firestore.collection('caregivers_active');
-  const now = Timestamp.now();
-
-  try {
-    const existingCaregiversSnap = await caregiversCollection.where('status', '==', 'Active').get();
-    const existingCaregiversMap = new Map<string, { id: string, data: any }>();
-    existingCaregiversSnap.forEach(doc => {
-      const docData = doc.data();
-      const email = (docData.Email || '').trim().toLowerCase();
-      if (email) {
-        existingCaregiversMap.set(email, { id: doc.id, data: docData });
-      }
-    });
-    console.log(`[Action] Found ${existingCaregiversMap.size} existing active caregivers.`);
-
-    let batch: WriteBatch = firestore.batch();
-    let operations = 0;
-    let createdCount = 0;
-    let updatedCount = 0;
-    const processedEmails = new Set<string>();
-
-    for (const row of data) {
-      const email = (row['Email'] || row['email'] || '').trim().toLowerCase();
-      if (!email) {
-        console.warn('[Action] Skipping row due to missing email:', row);
-        continue;
-      }
-      processedEmails.add(email);
-      
-      const caregiverData = {
-        'Name': row['Name'] || '',
-        'dob': row['dob'] || '',
-        'Address': row['Address'] || '',
-        'Apt': row['Apt'] || '',
-        'City': row['City'] || '',
-        'State': row['State'] || '',
-        'Zip': row['Zip'] || '',
-        'Mobile': row['Mobile'] || '',
-        'Hire Date': row['Hire Date'] || '',
-        'Email': email,
-        'Drivers Lic': row['Drivers Lic'] || '',
-        'Caregiver Lic': row['Caregiver Lic'] || '',
-        'TTiD-PIN': row['TTiD-PIN'] || '',
-        status: 'Active',
-        lastUpdatedAt: now,
-      };
-
-      const existingCaregiver = existingCaregiversMap.get(email);
-
-      if (existingCaregiver) {
-        const docRef = caregiversCollection.doc(existingCaregiver.id);
-        batch.update(docRef, caregiverData);
-        updatedCount++;
-        existingCaregiversMap.delete(email);
-      } else {
-        const query = caregiversCollection.where('Email', '==', email).limit(1);
-        const snapshot = await query.get();
-
-        if (snapshot.empty) {
-            const docRef = caregiversCollection.doc();
-            batch.set(docRef, { ...caregiverData, createdAt: now });
-            createdCount++;
-        } else {
-            const docRef = snapshot.docs[0].ref;
-            batch.update(docRef, caregiverData);
-            updatedCount++;
-        }
-      }
-
-      operations++;
-      if (operations >= 499) {
-        await batch.commit();
-        batch = firestore.batch();
-        operations = 0;
-      }
-    }
-
-    let deactivatedCount = 0;
-    for (const [email, { id }] of existingCaregiversMap.entries()) {
-        console.log(`[Action] Deactivating caregiver not in CSV: ${email}`);
-        const docRef = caregiversCollection.doc(id);
-        batch.update(docRef, { status: 'Inactive', lastUpdatedAt: now });
-        deactivatedCount++;
-        operations++;
-        if (operations >= 499) {
-            await batch.commit();
-            batch = firestore.batch();
-            operations = 0;
-        }
-    }
-
-    if (operations > 0) {
-      await batch.commit();
-    }
-
-    const message = `Upload complete. Created: ${createdCount}, Updated: ${updatedCount}, Deactivated: ${deactivatedCount}.`;
-    console.log(`[Action Success] ${message}`);
-    revalidatePath('/admin/manage-active-caregivers');
-    revalidatePath('/staffing-admin/manage-active-caregivers');
-    return { message: message };
-
-  } catch (error: any) {
-    console.error('[Action Error] Critical error during upload process:', error);
-    return { message: `An error occurred during the upload: ${error.message}`, error: true };
-  }
-}
-
-export async function processCaregiverAvailabilityUpload(csvText: string) {
+export async function processActiveCaregiverUpload(csvText: string) {
   const firestore = serverDb;
   const now = Timestamp.now();
   
-  const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: false });
+  const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
   const rows: Record<string, string>[] = parsed.data as Record<string, string>[];
   const headers = parsed.meta.fields || [];
 
   if (rows.length < 2) {
-    return { message: "CSV must have at least 2 rows for headers and data.", error: true };
+    return { message: "CSV must have at least a header row and one data row.", error: true, caregiversFound: [] };
   }
   
   try {
     const allCaregiverNames = new Set<string>();
     rows.forEach(row => {
-        const firstColValue = row[headers[0]]?.trim();
-        if (firstColValue && !firstColValue.includes("Scheduled Availability") && firstColValue !== "Total H's") {
-            allCaregiverNames.add(firstColValue);
-        }
+        headers.forEach(header => {
+            const cellValue = row[header]?.trim();
+            if (cellValue && !cellValue.includes("Scheduled Availability") && cellValue !== "Total H's") {
+                allCaregiverNames.add(cellValue);
+            }
+        });
     });
-
-    if (allCaregiverNames.size === 0) {
-        return { message: "No caregiver names found in the first column.", error: true };
-    }
 
     const caregiverNameArray = Array.from(allCaregiverNames);
     const profileMap = new Map<string, FirebaseFirestore.DocumentReference>();
@@ -184,7 +64,7 @@ export async function processCaregiverAvailabilityUpload(csvText: string) {
         // Iterate down the rows for the current column
         for (const row of rows) {
             const cellValue = row[header]?.trim();
-            if (!cellValue || cellValue === "Total H's") continue;
+            if (!cellValue || cellValue.includes("Total H's")) continue;
 
             if (!cellValue.includes("Scheduled Availability")) {
                 lastCaregiverName = cellValue;
@@ -200,7 +80,8 @@ export async function processCaregiverAvailabilityUpload(csvText: string) {
                             const endTime = dateParse(timeMatch[2], 'h:mm:ss a', new Date());
 
                             if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
-                                throw new Error(`Invalid time format for caregiver ${lastCaregiverName}. Value: "${cellValue}"`);
+                                console.warn(`Invalid time format for caregiver ${lastCaregiverName}. Value: "${cellValue}"`);
+                                continue;
                             }
                             
                             const formattedStartTime = format(startTime, 'HH:mm');
@@ -246,10 +127,10 @@ export async function processCaregiverAvailabilityUpload(csvText: string) {
     }
     
     revalidatePath('/staffing-admin/manage-active-caregivers');
-    return { message: `Availability updated for ${Object.keys(weeklyData).length} caregivers.` };
+    return { message: `Availability updated for ${Object.keys(weeklyData).length} caregivers.`, caregiversFound: Array.from(allCaregiverNames) };
 
   } catch (error: any) {
       console.error('[Action Error] Critical error during availability upload:', error);
-      return { message: `An error occurred during the upload: ${error.message}`, error: true };
+      return { message: `An error occurred during the upload: ${error.message}`, error: true, caregiversFound: [] };
   }
 }

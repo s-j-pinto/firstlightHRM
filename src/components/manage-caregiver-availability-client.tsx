@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useTransition, ChangeEvent } from 'react';
-import { processCaregiverAvailabilityUpload } from '@/lib/active-caregivers.actions';
+import { processActiveCaregiverUpload } from '@/lib/active-caregivers.actions';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -33,12 +33,26 @@ export default function ManageCaregiverAvailabilityClient() {
         reader.onload = async (event) => {
             if (event.target && typeof event.target.result === 'string') {
                 const csvText = event.target.result;
-                const uploadResult = await processCaregiverAvailabilityUpload(csvText);
+                const uploadResult = await processActiveCaregiverUpload(csvText);
 
                 if (uploadResult.error) {
                     toast({ title: 'Upload Failed', description: uploadResult.message, variant: 'destructive', duration: 10000 });
                 } else {
                     toast({ title: 'Upload Successful', description: uploadResult.message });
+                }
+
+                if (uploadResult.caregiversFound && uploadResult.caregiversFound.length > 0) {
+                    toast({
+                        title: 'Caregivers Parsed from CSV',
+                        description: `Found ${uploadResult.caregiversFound.length} unique names: ${uploadResult.caregiversFound.join(', ')}`,
+                        duration: 15000,
+                    });
+                } else {
+                     toast({
+                        title: 'No Caregivers Found',
+                        description: 'The parser did not identify any caregiver names in the uploaded file. Please check the file format.',
+                        variant: 'destructive',
+                    });
                 }
             }
         };
