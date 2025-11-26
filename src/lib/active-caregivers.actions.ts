@@ -129,34 +129,34 @@ export async function processCaregiverAvailabilityUpload(csvText: string) {
   const firestore = serverDb;
   const now = Timestamp.now();
   
-  const parsed = Papa.parse<any[]>(csvText, { header: true, skipEmptyLines: true });
-  const rows = parsed.data;
-  const headers = parsed.meta.fields || [];
+  const parsed = Papa.parse(csvText, { header: false, skipEmptyLines: true });
+  const rows: string[][] = parsed.data;
 
-  if (rows.length < 2) {
-      return { message: "CSV must have at least 2 rows (date headers and data).", error: true };
+  if (rows.length < 3) {
+      return { message: "CSV must have at least 3 rows (day, date, and data).", error: true };
   }
 
-  // First data row is the date header
-  const dateHeaderRow = rows[0]; 
+  const dayHeaderRow = rows[0]; 
+  const dateHeaderRow = rows[1];
 
   const allCaregiverNames = new Set<string>();
-  rows.slice(1).forEach(row => {
-    const caregiverName = row[headers[0]]?.trim();
-    if(caregiverName && caregiverName !== "Total H's") {
-        allCaregiverNames.add(caregiverName);
-    }
+  rows.slice(2).forEach(row => {
+      if (row.length > 0) {
+          const firstCol = row[0]?.trim();
+          if(firstCol && !firstCol.includes("Scheduled Availability") && firstCol !== "Total H's") {
+              allCaregiverNames.add(firstCol);
+          }
+      }
   });
 
   if (allCaregiverNames.size === 0) {
     return { message: "No caregiver names found in the first column of the CSV.", error: true };
   }
-
+  
   try {
       const caregiverNameArray = Array.from(allCaregiverNames);
       const profileMap = new Map<string, FirebaseFirestore.DocumentReference>();
 
-      // Fetch caregiver profiles in chunks to avoid firestore limitations
       const CHUNK_SIZE = 30;
       for (let i = 0; i < caregiverNameArray.length; i += CHUNK_SIZE) {
           const chunk = caregiverNameArray.slice(i, i + CHUNK_SIZE);
@@ -170,24 +170,27 @@ export async function processCaregiverAvailabilityUpload(csvText: string) {
       let operations = 0;
       const updatedCaregivers = new Set<string>();
       const weeklyData: { [caregiverId: string]: { [weekIdentifier: string]: any } } = {};
+      
+      const columnCount = dayHeaderRow.length;
 
-      // Iterate through each data column (each day)
-      for (const dayHeader of headers.slice(1)) {
-          const dateStr = dateHeaderRow[dayHeader]?.trim();
-          if (!dateStr) continue;
+      // Iterate through each column (each day)
+      for (let colIndex = 1; colIndex < columnCount; colIndex++) {
+          const day = dayHeaderRow[colIndex]?.trim();
+          const dateStr = dateHeaderRow[colIndex]?.trim();
+          
+          if (!day || !dateStr) continue;
 
           let lastCaregiverName: string | null = null;
           
           // Iterate through rows for this specific day's column
-          for (let i = 1; i < rows.length; i++) {
-              const row = rows[i];
-              const cellValue = row[dayHeader]?.trim();
-              const potentialCaregiverName = row[headers[0]]?.trim();
-
-              if(potentialCaregiverName && potentialCaregiverName !== "Total H's") {
+          for (let rowIndex = 2; rowIndex < rows.length; rowIndex++) {
+              const cellValue = rows[rowIndex][colIndex]?.trim();
+              const potentialCaregiverName = rows[rowIndex][0]?.trim();
+              
+              if (potentialCaregiverName && !potentialCaregiverName.includes("Scheduled Availability") && potentialCaregiverName !== "Total H's") {
                   lastCaregiverName = potentialCaregiverName;
               }
-              
+
               if (lastCaregiverName && cellValue && cellValue.toLowerCase().startsWith('scheduled availability')) {
                 const caregiverRef = profileMap.get(lastCaregiverName);
                 if (caregiverRef) {
@@ -195,36 +198,27 @@ export async function processCaregiverAvailabilityUpload(csvText: string) {
                     const weekIdentifier = `week_${format(recordDate, 'yyyy-ww')}`;
                     const dayKey = format(recordDate, 'eeee').toLowerCase();
 
-                     if (!weeklyData[caregiverRef.id]) {
-                        weeklyData[caregiverRef.id] = {};
-                    }
+                    if (!weeklyData[caregiverRef.id]) weeklyData[caregiverRef.id] = {};
                     if (!weeklyData[caregiverRef.id][weekIdentifier]) {
                         weeklyData[caregiverRef.id][weekIdentifier] = {
-                            createdAt: now,
-                            updatedAt: now,
-                            caregiverId: caregiverRef.id,
-                            caregiverName: lastCaregiverName,
+                            createdAt: now, updatedAt: now, caregiverId: caregiverRef.id, caregiverName: lastCaregiverName,
                         };
                     }
-                    
                     if (!weeklyData[caregiverRef.id][weekIdentifier][dayKey]) {
                         weeklyData[caregiverRef.id][weekIdentifier][dayKey] = [];
                     }
 
                     const timeMatch = cellValue.match(/(\d{1,2}:\d{2}:\d{2}\s*(?:AM|PM))\s*To\s*(\d{1,2}:\d{2}:\d{2}\s*(?:AM|PM))/i);
                     if (timeMatch) {
-                         try {
+                        try {
                             const startTimeStr = timeMatch[1];
                             const endTimeStr = timeMatch[2];
                             
                             let startTime = dateParse(startTimeStr, 'hh:mm:ss a', new Date());
-                            if (isNaN(startTime.getTime())) startTime = dateParse(startTimeStr, 'h:mm:ss a', new Date());
-
                             let endTime = dateParse(endTimeStr, 'hh:mm:ss a', new Date());
-                            if (isNaN(endTime.getTime())) endTime = dateParse(endTimeStr, 'h:mm:ss a', new Date());
 
                             if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
-                                throw new Error(`Invalid time format. Could not parse '${startTimeStr}' or '${endTimeStr}'.`);
+                                throw new Error(`Invalid time format for caregiver ${lastCaregiverName}.`);
                             }
                             
                             const formattedStartTime = format(startTime, 'HH:mm');
