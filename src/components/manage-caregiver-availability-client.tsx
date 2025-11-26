@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useTransition, ChangeEvent, ReactNode } from 'react';
@@ -58,8 +59,10 @@ export default function ManageCaregiverAvailabilityClient() {
                             if (header === caregiverNameHeader) continue; // Skip the name column
 
                             const availabilityCellContent = nextRow[header]?.trim();
+                            
+                            // Only process cells that explicitly contain "Scheduled Availability"
                             if (availabilityCellContent && availabilityCellContent.includes("Scheduled Availability")) {
-                                if (debugExtraction.length < 10) { // Increased limit for better debugging
+                                if (debugExtraction.length < 10) { 
                                      debugExtraction.push({
                                         caregiver: caregiverName,
                                         header: header.replace(/\n/g, ' '), // Show header for context
