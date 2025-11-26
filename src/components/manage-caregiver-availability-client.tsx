@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useTransition, ChangeEvent, ReactNode } from 'react';
-import { processActiveCaregiverUpload } from '@/lib/active-caregivers.actions';
+import Papa from 'papaparse';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -11,9 +11,24 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Upload } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 
+// Function to extract time from "Scheduled Availability\n5:00:00 AM To 8:00:00 PM"
+function extractTimes(text: string): { startTime: string; endTime: string } | null {
+  if (!text || !text.includes("Scheduled Availability")) return null;
+  
+  const lines = text.split('\n').map(l => l.trim());
+  const timeLine = lines.find(l => l.includes("To"));
+  if (!timeLine) return null;
+
+  const timeParts = timeLine.split("To").map(t => t.trim());
+  if (timeParts.length !== 2) return null;
+
+  return { startTime: timeParts[0], endTime: timeParts[1] };
+}
+
+
 export default function ManageCaregiverAvailabilityClient() {
   const [file, setFile] = useState<File | null>(null);
-  const [isUploading, startUploadTransition] = useTransition();
+  const [isParsing, startParsingTransition] = useTransition();
   const { toast } = useToast();
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -22,58 +37,87 @@ export default function ManageCaregiverAvailabilityClient() {
     }
   };
 
-  const handleUpload = () => {
+  const handleUploadAndParse = () => {
     if (!file) {
       toast({ title: 'No file selected', description: 'Please select a CSV file to upload.', variant: 'destructive' });
       return;
     }
 
-    startUploadTransition(() => {
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-            if (event.target && typeof event.target.result === 'string') {
-                const csvText = event.target.result;
-                const uploadResult = await processActiveCaregiverUpload(csvText);
+    startParsingTransition(() => {
+        Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: (results) => {
+                const rows = results.data as Record<string, string>[];
+                const headers = results.meta.fields;
 
-                if (uploadResult.error) {
-                    toast({ title: 'Upload Failed', description: uploadResult.message, variant: 'destructive', duration: 10000 });
-                } else {
-                    toast({ title: 'Upload Finished', description: uploadResult.message, duration: 10000 });
+                if (!headers || rows.length === 0) {
+                    toast({ title: 'Parsing Error', description: 'Could not read headers or rows from the CSV.', variant: 'destructive' });
+                    return;
+                }
+
+                const parsedData: any[] = [];
+                const caregiverNameHeader = headers[0]; // Assuming the first column is always caregiver names
+
+                // Iterate through each DAY column (skip the first caregiver name column)
+                for (let i = 1; i < headers.length; i++) {
+                    const currentDayHeader = headers[i];
+                    if (!currentDayHeader.includes('\n')) continue; // Skip columns that aren't day/date
+
+                    const [day, date] = currentDayHeader.split('\n');
+                    let lastCaregiverName: string | null = null;
+
+                    // Iterate through each ROW for the current day
+                    rows.forEach(row => {
+                        const nameCell = row[caregiverNameHeader]?.trim();
+                        const availabilityCell = row[currentDayHeader]?.trim();
+
+                        // Update last caregiver name if the cell has a value and isn't a special value
+                        if (nameCell && nameCell !== "Total H's") {
+                            lastCaregiverName = nameCell;
+                        }
+                        
+                        // If we have a last caregiver and the availability cell has the magic words
+                        if (lastCaregiverName && availabilityCell && availabilityCell.includes("Scheduled Availability")) {
+                             const times = extractTimes(availabilityCell);
+                             if (times) {
+                                 parsedData.push({
+                                     day: day.trim(),
+                                     date: date.trim(),
+                                     caregiver: lastCaregiverName,
+                                     availabilityType: "Scheduled Availability",
+                                     startTime: times.startTime,
+                                     endTime: times.endTime
+                                 });
+                             }
+                        }
+                    });
                 }
                 
-                if (uploadResult.debugPreview && uploadResult.debugPreview.length > 0) {
-                     const description: ReactNode = (
-                        <div className="text-xs space-y-2 mt-2">
-                            <p>Here's a sample of the data parsed from your CSV:</p>
-                            <ul className="list-disc pl-4 bg-muted p-2 rounded-md">
-                                {uploadResult.debugPreview.map(item => (
-                                    <li key={item.name}>
-                                        <strong>{item.name}:</strong>
-                                        <ul className="list-disc pl-5">
-                                            {item.data.map((slot, index) => <li key={index}>{slot}</li>)}
-                                        </ul>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    );
-
-                    toast({
-                        title: `Found ${uploadResult.debugPreview.length} caregivers to process.`,
-                        description: description,
-                        duration: 20000,
-                    });
-                } else if (!uploadResult.error) {
+                if (parsedData.length === 0) {
                      toast({
-                        title: 'No Availability Data Found',
-                        description: 'The parser did not find any valid "Scheduled Availability" data to process. Please check the file format.',
+                        title: 'Parsing Complete: No Data Found',
+                        description: 'The file was read, but no "Scheduled Availability" data could be extracted. Please check the file format and content.',
                         variant: 'destructive',
-                        duration: 10000
+                        duration: 15000
+                    });
+                } else {
+                    const previewDescription = (
+                        <pre className="mt-2 w-full rounded-md bg-slate-950 p-4 max-h-60 overflow-y-auto">
+                            <code className="text-white">{JSON.stringify(parsedData.slice(0, 10), null, 2)}</code>
+                        </pre>
+                    );
+                    toast({
+                        title: `Successfully Parsed ${parsedData.length} Records`,
+                        description: previewDescription,
+                        duration: 20000
                     });
                 }
+            },
+            error: (error) => {
+                toast({ title: 'Parsing Error', description: `Error parsing CSV file: ${error.message}`, variant: 'destructive' });
             }
-        };
-        reader.readAsText(file);
+        });
     });
   };
 
@@ -83,7 +127,7 @@ export default function ManageCaregiverAvailabilityClient() {
         <CardHeader>
           <CardTitle>Upload Caregiver Availability</CardTitle>
           <CardDescription>
-            Upload a weekly availability schedule as a CSV file. The file should have a header row with days/dates, and subsequent rows for each caregiver's schedule.
+            Upload a weekly availability schedule as a CSV file. The file should have a header row with days/dates, and subsequent rows for each caregiver's schedule. This tool will now parse the file in your browser and show you what it found.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -92,9 +136,9 @@ export default function ManageCaregiverAvailabilityClient() {
                 <Label htmlFor="availability-file-upload">Availability CSV File</Label>
                 <Input id="availability-file-upload" type="file" accept=".csv" onChange={handleFileChange} />
             </div>
-            <Button onClick={handleUpload} disabled={isUploading || !file}>
-              {isUploading ? <Loader2 className="animate-spin mr-2" /> : <Upload className="mr-2" />}
-              Upload Availability
+            <Button onClick={handleUploadAndParse} disabled={isParsing || !file}>
+              {isParsing ? <Loader2 className="animate-spin mr-2" /> : <Upload className="mr-2" />}
+              Test Parse Availability
             </Button>
           </div>
         </CardContent>
