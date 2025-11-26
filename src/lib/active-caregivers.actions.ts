@@ -222,21 +222,31 @@ export async function processCaregiverAvailabilityUpload(csvText: string) {
                   weeklyData[caregiverRef.id][weekIdentifier][dayKey] = [];
               }
               
+              console.log(`[DEBUG] Raw Availability Info: "${record.availability}"`);
               const timeMatch = record.availability.match(/(\d{1,2}:\d{2}:\d{2}\s*(?:AM|PM))\s*To\s*(\d{1,2}:\d{2}:\d{2}\s*(?:AM|PM))/i);
+              console.log(`[DEBUG] Regex Match Result:`, timeMatch);
+
               if (timeMatch) {
                   try {
                     const startTimeStr = timeMatch[1];
                     const endTimeStr = timeMatch[2];
+                    console.log(`[DEBUG] Extracted Times: Start="${startTimeStr}", End="${endTimeStr}"`);
                     
                     const startTime = dateParse(startTimeStr, 'h:mm:ss a', new Date());
                     const endTime = dateParse(endTimeStr, 'h:mm:ss a', new Date());
+                    console.log(`[DEBUG] Parsed Dates: Start="${startTime}", End="${endTime}"`);
+
+                    if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+                        throw new Error('date-fns returned an invalid date.');
+                    }
                     
                     const formattedStartTime = format(startTime, 'HH:mm');
                     const formattedEndTime = format(endTime, 'HH:mm');
+                    console.log(`[DEBUG] Formatted Times: Start="${formattedStartTime}", End="${formattedEndTime}"`);
 
                     weeklyData[caregiverRef.id][weekIdentifier][dayKey].push(`${formattedStartTime} - ${formattedEndTime}`);
-                  } catch (e) {
-                      console.warn(`Could not parse time for caregiver ${record.caregiverName} on ${record.date}: ${timeMatch[0]}`);
+                  } catch (e: any) {
+                      console.error(`[DEBUG] CRITICAL: Could not parse time for caregiver ${record.caregiverName} on ${record.date}. Value: "${timeMatch[0]}". Error: ${e.message}`);
                   }
               }
           }
