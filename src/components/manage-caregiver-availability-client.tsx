@@ -56,70 +56,51 @@ export default function ManageCaregiverAvailabilityClient() {
                     return;
                 }
 
-                const parsedData: any[] = [];
-                const debugExtraction: { caregiver: string, availabilityCellContent: string }[] = [];
-                const caregiverNameHeader = headers[0]; 
+                const debugExtraction: { caregiver: string, availabilityCellContent: string, header: string }[] = [];
+                let lastCaregiverName: string | null = null;
+                const caregiverNameHeader = headers[0];
+                
+                rows.forEach(row => {
+                    const currentNameCell = row[caregiverNameHeader]?.trim();
+                    
+                    if (currentNameCell && currentNameCell !== "Total H's") {
+                         lastCaregiverName = currentNameCell;
+                    }
 
-                for (let i = 1; i < headers.length; i++) {
-                    const currentDayHeader = headers[i];
-                    if (!currentDayHeader || !currentDayHeader.includes('\n')) continue; 
+                    if (lastCaregiverName) {
+                        for (const header of headers) {
+                            if (header === caregiverNameHeader) continue;
 
-                    const [day, date] = currentDayHeader.split('\n');
-                    let lastCaregiverName: string | null = null;
-
-                    rows.forEach(row => {
-                        const nameCell = row[caregiverNameHeader]?.trim();
-                        const availabilityCell = row[currentDayHeader]?.trim();
-
-                        if (nameCell && nameCell !== "Total H's") {
-                            lastCaregiverName = nameCell;
-                        }
-                        
-                        if (lastCaregiverName && availabilityCell) {
-                             if (debugExtraction.length < 5) {
-                                debugExtraction.push({ caregiver: lastCaregiverName, availabilityCellContent: availabilityCell });
-                            }
-                            if (availabilityCell.includes("Scheduled Availability")) {
-                                const times = extractTimes(availabilityCell);
-                                if (times) {
-                                    parsedData.push({
-                                        day: day.trim(),
-                                        date: date.trim(),
+                            const availabilityCell = row[header]?.trim();
+                            if (availabilityCell && availabilityCell.includes("Scheduled Availability")) {
+                                if (debugExtraction.length < 5) {
+                                    debugExtraction.push({
                                         caregiver: lastCaregiverName,
-                                        availabilityType: "Scheduled Availability",
-                                        startTime: times.startTime,
-                                        endTime: times.endTime
+                                        availabilityCellContent: availabilityCell,
+                                        header: header
                                     });
                                 }
                             }
                         }
-                    });
-                }
+                    }
+                });
                 
-                if (parsedData.length === 0) {
-                    const debugDescription = (
+                let toastDescription: ReactNode = 'No valid availability data could be extracted. The debug array is empty.';
+
+                if (debugExtraction.length > 0) {
+                     toastDescription = (
                         <pre className="mt-2 w-full rounded-md bg-slate-950 p-4 max-h-60 overflow-y-auto">
                             <code className="text-white">{JSON.stringify(debugExtraction, null, 2)}</code>
                         </pre>
                     );
-                     toast({
-                        title: 'Debug Info: What is being extracted for availability',
-                        description: debugDescription,
-                        variant: 'default',
-                        duration: 20000
-                    });
-                } else {
-                    const previewDescription = (
-                        <pre className="mt-2 w-full rounded-md bg-slate-950 p-4 max-h-60 overflow-y-auto">
-                            <code className="text-white">{JSON.stringify(parsedData.slice(0, 10), null, 2)}</code>
-                        </pre>
-                    );
-                    toast({
-                        title: `Successfully Parsed ${parsedData.length} Records`,
-                        description: previewDescription,
-                        duration: 20000
-                    });
                 }
+
+                toast({
+                    title: 'Debug Info: Extracted Availability Cells',
+                    description: toastDescription,
+                    variant: 'default',
+                    duration: 20000
+                });
             },
             error: (error) => {
                 toast({ title: 'Parsing Error', description: `Error parsing CSV file: ${error.message}`, variant: 'destructive' });
