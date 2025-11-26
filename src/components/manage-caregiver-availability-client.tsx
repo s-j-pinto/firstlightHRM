@@ -45,7 +45,14 @@ export default function ManageCaregiverAvailabilityClient() {
         const daysHeader = lines[0].split(',').map(h => h.trim());
         const datesHeader = lines[1].split(',').map(h => h.trim());
 
-        const combinedHeader = daysHeader.map((day, index) => `${day} (${datesHeader[index] || ''})`).join(' | ');
+        const combinedHeader = daysHeader.map((day, index) => {
+            // Only include pairs where the day exists
+            if (day) {
+                return `${day} (${datesHeader[index] || ''})`;
+            }
+            return null;
+        }).filter(Boolean).join(' | ');
+
 
         toast({
             title: 'CSV Header Read',
