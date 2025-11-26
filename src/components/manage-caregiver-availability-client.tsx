@@ -3,6 +3,8 @@
 
 import { useState, useTransition, ChangeEvent } from 'react';
 import { processCaregiverAvailabilityUpload } from '@/lib/active-caregivers.actions';
+import Papa from 'papaparse';
+import { format, parse as dateParse } from 'date-fns';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -28,27 +30,84 @@ export default function ManageCaregiverAvailabilityClient() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const text = e.target?.result as string;
-        if (!text) {
-            toast({ title: 'File Error', description: 'Could not read the selected file.', variant: 'destructive' });
-            return;
-        }
+    startUploadTransition(() => {
+        Papa.parse(file, {
+            header: false,
+            complete: async (results) => {
+                const data = results.data as string[][];
 
-        startUploadTransition(async () => {
-          const result = await processCaregiverAvailabilityUpload(text);
-          if (result.error) {
-            toast({ title: 'Upload Failed', description: result.message, variant: 'destructive' });
-          } else {
-            toast({ title: 'Upload Successful', description: result.message });
-          }
+                if (data.length < 4) {
+                    toast({ title: 'Invalid CSV', description: "CSV must have at least 4 rows.", variant: 'destructive' });
+                    return;
+                }
+
+                const dayHeader = data[0];
+                let lastCaregiver: string | null = null;
+
+                try {
+                    for (let colIndex = 0; colIndex < dayHeader.length; colIndex++) {
+                        const day = dayHeader[colIndex]?.trim();
+                        if (!day) continue;
+
+                        for (let rowIndex = 2; rowIndex < data.length; rowIndex++) {
+                            const row = data[rowIndex];
+                            const cellValue = row?.[colIndex]?.trim();
+                            
+                            if (!cellValue || cellValue === "Total H's") continue;
+
+                            if (!cellValue.includes("Scheduled Availability")) {
+                                lastCaregiver = cellValue;
+                            } else {
+                                if (!lastCaregiver) continue;
+
+                                const timeMatch = cellValue.match(/(\d{1,2}:\d{2}:\d{2}\s*(?:AM|PM))\s*To\s*(\d{1,2}:\d{2}:\d{2}\s*(?:AM|PM))/i);
+                                if (timeMatch) {
+                                    const startTimeStr = timeMatch[1];
+                                    const endTimeStr = timeMatch[2];
+
+                                    // Attempt to parse the time strings
+                                    const startTime = dateParse(startTimeStr, 'h:mm:ss a', new Date());
+                                    const endTime = dateParse(endTimeStr, 'h:mm:ss a', new Date());
+
+                                    if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+                                        // This is the error condition
+                                        throw new Error(`Invalid time value found. Offending Cell: Column ${colIndex + 1}, Row ${rowIndex + 1}. Value: "${cellValue}"`);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // If loop completes without error, it means parsing was successful
+                    toast({
+                        title: "CSV Parsed Successfully",
+                        description: "No time format errors found. Ready to process on the server.",
+                    });
+
+                    // You can now proceed with the actual server-side upload if desired
+                    // For now, we just show success.
+                    const uploadResult = await processCaregiverAvailabilityUpload(results.data as any[]);
+                    if (uploadResult.error) {
+                        toast({ title: 'Upload Failed', description: uploadResult.message, variant: 'destructive' });
+                    } else {
+                        toast({ title: 'Upload Successful', description: uploadResult.message });
+                    }
+
+
+                } catch (error: any) {
+                    toast({
+                        title: "Parsing Error",
+                        description: error.message,
+                        variant: "destructive",
+                        duration: 10000,
+                    });
+                }
+            },
+            error: (error: any) => {
+                toast({ title: 'File Read Error', description: error.message, variant: 'destructive' });
+            }
         });
-    };
-    reader.onerror = () => {
-        toast({ title: 'File Read Error', description: 'There was an error reading the file.', variant: 'destructive' });
-    };
-    reader.readAsText(file);
+    });
   };
 
   return (
