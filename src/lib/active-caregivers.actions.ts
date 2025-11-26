@@ -157,7 +157,7 @@ export async function processCaregiverAvailabilityUpload(csvText: string) {
       // Ensure both rows exist
       if (!nameRow || !availabilityRow) continue;
 
-      const caregiverName = nameRow[colIndex]?.trim();
+      const caregiverName = nameRow[0]?.trim();
       const availabilityInfo = availabilityRow[colIndex]?.trim();
 
       // Validate that we have a caregiver name and availability info
@@ -232,12 +232,22 @@ export async function processCaregiverAvailabilityUpload(csvText: string) {
                     const endTimeStr = timeMatch[2];
                     console.log(`[DEBUG] Extracted Times: Start="${startTimeStr}", End="${endTimeStr}"`);
                     
-                    const startTime = dateParse(startTimeStr, 'h:mm:ss a', new Date());
-                    const endTime = dateParse(endTimeStr, 'h:mm:ss a', new Date());
+                    // Try parsing with hh for 12-hour format which is more common
+                    let startTime = dateParse(startTimeStr, 'hh:mm:ss a', new Date());
+                    let endTime = dateParse(endTimeStr, 'hh:mm:ss a', new Date());
+                    
+                    // Fallback to h if hh fails
+                    if (isNaN(startTime.getTime())) {
+                        startTime = dateParse(startTimeStr, 'h:mm:ss a', new Date());
+                    }
+                    if (isNaN(endTime.getTime())) {
+                        endTime = dateParse(endTimeStr, 'h:mm:ss a', new Date());
+                    }
+
                     console.log(`[DEBUG] Parsed Dates: Start="${startTime}", End="${endTime}"`);
 
                     if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
-                        throw new Error('date-fns returned an invalid date.');
+                        throw new Error(`date-fns returned an invalid date for value: "${startTimeStr}" or "${endTimeStr}"`);
                     }
                     
                     const formattedStartTime = format(startTime, 'HH:mm');
