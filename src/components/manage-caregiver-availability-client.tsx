@@ -3,7 +3,6 @@
 
 import { useState, useTransition, ChangeEvent } from 'react';
 import { processCaregiverAvailabilityUpload } from '@/lib/active-caregivers.actions';
-import Papa from 'papaparse';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -53,7 +52,7 @@ export default function ManageCaregiverAvailabilityClient() {
         <CardHeader>
           <CardTitle>Upload Caregiver Availability</CardTitle>
           <CardDescription>
-            Upload a weekly availability schedule as a CSV file. The file should have two header rows (Day, then Date), followed by pairs of rows for each caregiver (Name, then Availability).
+            Upload a weekly availability schedule as a CSV file. The file should have a header row with days/dates, and subsequent rows for each caregiver's schedule.
           </CardDescription>
         </CardHeader>
         <CardContent>
