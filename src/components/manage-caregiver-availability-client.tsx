@@ -37,11 +37,20 @@ export default function ManageCaregiverAvailabilityClient() {
         }
 
         const lines = text.split(/\r?\n/);
-        const header = lines[0] || 'Header not found';
+        if (lines.length < 2) {
+            toast({ title: 'Invalid CSV', description: 'The CSV must have at least two header rows.', variant: 'destructive' });
+            return;
+        }
+        
+        const daysHeader = lines[0].split(',').map(h => h.trim());
+        const datesHeader = lines[1].split(',').map(h => h.trim());
+
+        const combinedHeader = daysHeader.map((day, index) => `${day} (${datesHeader[index] || ''})`).join(' | ');
 
         toast({
             title: 'CSV Header Read',
-            description: `Header: ${header}`,
+            description: `Combined Header: ${combinedHeader}`,
+            duration: 8000,
         });
         
         // Temporarily disabled full upload for debugging header
