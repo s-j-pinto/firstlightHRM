@@ -38,20 +38,37 @@ export default function ManageCaregiverAvailabilityClient() {
                 if (uploadResult.error) {
                     toast({ title: 'Upload Failed', description: uploadResult.message, variant: 'destructive', duration: 10000 });
                 } else {
-                    toast({ title: 'Upload Successful', description: uploadResult.message });
+                    toast({ title: 'Upload Finished', description: uploadResult.message, duration: 10000 });
                 }
+                
+                if (uploadResult.debugPreview && uploadResult.debugPreview.length > 0) {
+                     const description = (
+                        <div className="text-xs space-y-2">
+                            <p>Here's a sample of the data parsed from your CSV:</p>
+                            <ul className="list-disc pl-4">
+                                {uploadResult.debugPreview.map(item => (
+                                    <li key={item.name}>
+                                        <strong>{item.name}:</strong>
+                                        <ul className="list-disc pl-5">
+                                            {item.data.map((slot, index) => <li key={index}>{slot}</li>)}
+                                        </ul>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    );
 
-                if (uploadResult.caregiversFound && uploadResult.caregiversFound.length > 0) {
                     toast({
-                        title: 'Caregivers Parsed from CSV',
-                        description: `Found ${uploadResult.caregiversFound.length} unique names: ${uploadResult.caregiversFound.join(', ')}`,
-                        duration: 15000,
+                        title: `Found ${uploadResult.debugPreview.length} caregivers to process.`,
+                        description: description,
+                        duration: 20000,
                     });
-                } else {
+                } else if (!uploadResult.error) {
                      toast({
-                        title: 'No Caregivers Found',
-                        description: 'The parser did not identify any caregiver names in the uploaded file. Please check the file format.',
+                        title: 'No Availability Data Found',
+                        description: 'The parser did not find any valid "Scheduled Availability" data to process. Please check the file format.',
                         variant: 'destructive',
+                        duration: 10000
                     });
                 }
             }
