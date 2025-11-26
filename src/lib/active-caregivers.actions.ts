@@ -4,7 +4,16 @@
 import { revalidatePath } from 'next/cache';
 import { serverDb } from '@/firebase/server-init';
 import { WriteBatch, Timestamp } from 'firebase-admin/firestore';
-import type { Client } from './types';
+import Papa from 'papaparse';
+import { format, parse as dateParse } from 'date-fns';
+
+function createCompositeKey(name: string, mobile: string, address: string, city: string): string {
+    const normalizedName = (name || '').trim().toLowerCase();
+    const normalizedMobile = (mobile || '').replace(/\D/g, ''); // Remove non-digits
+    const normalizedAddress = (address || '').trim().toLowerCase();
+    const normalizedCity = (city || '').trim().toLowerCase();
+    return `${normalizedName}|${normalizedMobile}|${normalizedAddress}|${normalizedCity}`;
+}
 
 export async function processActiveCaregiverUpload(data: Record<string, any>[]) {
   console.log(`[Action Start] processActiveCaregiverUpload received ${data.length} rows.`);
@@ -13,7 +22,6 @@ export async function processActiveCaregiverUpload(data: Record<string, any>[]) 
   const now = Timestamp.now();
 
   try {
-    // 1. Fetch only ACTIVE caregivers to correctly determine who needs deactivation.
     const existingCaregiversSnap = await caregiversCollection.where('status', '==', 'Active').get();
     const existingCaregiversMap = new Map<string, { id: string, data: any }>();
     existingCaregiversSnap.forEach(doc => {
@@ -31,7 +39,6 @@ export async function processActiveCaregiverUpload(data: Record<string, any>[]) 
     let updatedCount = 0;
     const processedEmails = new Set<string>();
 
-    // 2. Process the uploaded CSV data.
     for (const row of data) {
       const email = (row['Email'] || row['email'] || '').trim().toLowerCase();
       if (!email) {
@@ -61,25 +68,19 @@ export async function processActiveCaregiverUpload(data: Record<string, any>[]) 
       const existingCaregiver = existingCaregiversMap.get(email);
 
       if (existingCaregiver) {
-        // Update existing active caregiver
         const docRef = caregiversCollection.doc(existingCaregiver.id);
         batch.update(docRef, caregiverData);
         updatedCount++;
-        // Remove from map so we know who is left to deactivate
         existingCaregiversMap.delete(email);
       } else {
-        // This could be a new caregiver, or an inactive one being reactivated.
-        // To handle both cases, we query by email.
         const query = caregiversCollection.where('Email', '==', email).limit(1);
         const snapshot = await query.get();
 
         if (snapshot.empty) {
-            // This is a completely new caregiver.
             const docRef = caregiversCollection.doc();
             batch.set(docRef, { ...caregiverData, createdAt: now });
             createdCount++;
         } else {
-            // This caregiver exists but was inactive. Reactivate and update them.
             const docRef = snapshot.docs[0].ref;
             batch.update(docRef, caregiverData);
             updatedCount++;
@@ -94,7 +95,6 @@ export async function processActiveCaregiverUpload(data: Record<string, any>[]) 
       }
     }
 
-    // 3. Any caregivers left in the map were active but not in the CSV. Deactivate them.
     let deactivatedCount = 0;
     for (const [email, { id }] of existingCaregiversMap.entries()) {
         console.log(`[Action] Deactivating caregiver not in CSV: ${email}`);
@@ -109,7 +109,6 @@ export async function processActiveCaregiverUpload(data: Record<string, any>[]) 
         }
     }
 
-    // 4. Commit any remaining operations.
     if (operations > 0) {
       await batch.commit();
     }
@@ -127,147 +126,131 @@ export async function processActiveCaregiverUpload(data: Record<string, any>[]) 
 }
 
 export async function processCaregiverAvailabilityUpload(csvText: string) {
-  console.log(`[Action Start] processCaregiverAvailabilityUpload received CSV text.`);
   const firestore = serverDb;
   const now = Timestamp.now();
-  const weekIdentifier = `week_${now.toDate().getFullYear()}_${now.toDate().getMonth() + 1}_${now.toDate().getDate()}`;
   
-  const lines = csvText.split(/\r?\n/).map(line => line.trim()).filter(line => line);
-  
-  if (lines.length < 4) { // 2 header rows + at least one caregiver pair
-      return { message: "CSV is too short. Expected 2 header rows and at least one pair of caregiver/availability rows.", error: true };
+  const parsed = Papa.parse(csvText, { header: false });
+  const data: string[][] = parsed.data as string[][];
+
+  if (data.length < 3) {
+      return { message: "CSV must have at least 3 rows (2 header rows + 1 data row).", error: true };
   }
 
-  const daysHeader = lines[0].split(',').map(h => h.trim().toLowerCase());
-  console.log('[Action Debug] Parsed Days Header:', daysHeader);
+  const dayHeader = data[0];
+  const dateHeader = data[1];
+  console.log('[Action Debug] Parsed Days Header:', dayHeader);
+  console.log('[Action Debug] Parsed Dates Header:', dateHeader);
 
-  const dataRows = lines.slice(2); // Skip the two header rows
+  const availabilityRecords: { caregiverName: string; day: string; date: string; startTime: string; endTime: string }[] = [];
+  const allCaregiverNames = new Set<string>();
 
-  const dayIndices: { [day: string]: number } = {};
-  daysHeader.forEach((day, index) => {
-      if (day) {
-        dayIndices[day] = index;
+  // Iterate over columns (days)
+  for (let colIndex = 0; colIndex < dayHeader.length; colIndex++) {
+      const day = dayHeader[colIndex]?.trim();
+      const date = dateHeader[colIndex]?.trim();
+
+      if (!day || !date) continue;
+
+      // Iterate over data rows, starting from the 3rd row
+      for (let rowIndex = 2; rowIndex < data.length; rowIndex += 2) {
+          const caregiverName = data[rowIndex]?.[colIndex]?.trim();
+          const availabilityString = data[rowIndex + 1]?.[colIndex]?.trim();
+
+          if (caregiverName && availabilityString && availabilityString.toLowerCase().startsWith('scheduled availability')) {
+              allCaregiverNames.add(caregiverName);
+              
+              const timeMatch = availabilityString.match(/(\d{1,2}:\d{2}:\d{2}\s*(?:AM|PM))\s*To\s*(\d{1,2}:\d{2}:\d{2}\s*(?:AM|PM))/i);
+              if (timeMatch) {
+                  const startTime = timeMatch[1];
+                  const endTime = timeMatch[2];
+                  availabilityRecords.push({ caregiverName, day, date, startTime, endTime });
+              }
+          }
       }
-  });
-
-  const caregiverNamesToProcess: string[] = [];
-  const availabilityByCaregiverName: { [name: string]: { [day: string]: string[] } } = {};
-
-  // Process data rows in pairs
-  for (let i = 0; i < dataRows.length; i += 2) {
-    const nameLine = dataRows[i];
-    const availabilityLine = dataRows[i + 1];
-
-    if (!nameLine || !availabilityLine) {
-        console.warn(`Skipping incomplete pair at line index ${i+2}`);
-        continue;
-    }
-    
-    const caregiverName = (nameLine.split(',')[0] || '').trim();
-    if (!caregiverName) {
-        console.warn(`Skipping pair with no caregiver name at line index ${i+2}`);
-        continue;
-    }
-    
-    // Debug log for the first 10 caregiver names
-    if (caregiverNamesToProcess.length < 10) {
-      console.log(`[Action Debug] Processing caregiver #${caregiverNamesToProcess.length + 1}: ${caregiverName}`);
-    }
-
-    caregiverNamesToProcess.push(caregiverName);
-    const availabilityRow = availabilityLine.split(',');
-    const weeklyAvailability: { [day: string]: string[] } = {};
-
-    for (const day in dayIndices) {
-        const columnIndex = dayIndices[day];
-        const cellData = (availabilityRow[columnIndex] || '').trim();
-        
-        if (cellData && cellData.toLowerCase().includes('available')) {
-            const timeSlots = cellData.split(/\s*\n\s*/) // Split by newlines
-                .map(s => s.trim())
-                .filter(s => s.toLowerCase().startsWith('available'))
-                .map(s => {
-                    return s.replace(/available/i, '')
-                            .replace(/(\d{1,2}:\d{2}):\d{2}/g, '$1') // Remove seconds
-                            .replace(/ To /ig, '-')
-                            .replace(/\s+-\s+/g, '-')
-                            .trim();
-                });
-            if (timeSlots.length > 0) {
-                 weeklyAvailability[day] = timeSlots;
-            }
-        }
-    }
-    
-    if (Object.keys(weeklyAvailability).length > 0) {
-        availabilityByCaregiverName[caregiverName] = weeklyAvailability;
-    }
   }
 
-  if (caregiverNamesToProcess.length === 0) {
-    return { message: "No valid caregiver availability data found in the CSV.", error: true };
+  if (allCaregiverNames.size === 0) {
+      return { message: "No valid caregiver availability data found in the CSV.", error: true };
   }
-
+  
   try {
-    let batch = firestore.batch();
-    let operations = 0;
-    let updatedCount = 0;
-    const notFoundNames: string[] = [];
+      const caregiverNameArray = Array.from(allCaregiverNames);
+      const profileMap = new Map<string, FirebaseFirestore.DocumentReference>();
 
-    const profileMap = new Map<string, FirebaseFirestore.DocumentReference>();
-
-    // Chunk the names array to handle Firestore's 'in' query limit of 30.
-    const CHUNK_SIZE = 30;
-    for (let i = 0; i < caregiverNamesToProcess.length; i += CHUNK_SIZE) {
-        const chunk = caregiverNamesToProcess.slice(i, i + CHUNK_SIZE);
-        const querySnapshot = await firestore.collection('caregivers_active').where('Name', 'in', chunk).get();
-        
-        querySnapshot.forEach(doc => {
-            const docData = doc.data();
-            const name = (docData.Name || '').trim();
-            if (name) {
-                profileMap.set(name, doc.ref);
-            }
-        });
-    }
-
-    for (const name of caregiverNamesToProcess) {
-      const caregiverRef = profileMap.get(name);
-      if (caregiverRef && availabilityByCaregiverName[name]) {
-        const availabilityDocRef = caregiverRef.collection('availability').doc(weekIdentifier);
-        const availabilityData = availabilityByCaregiverName[name];
-        
-        batch.set(availabilityDocRef, { ...availabilityData, createdAt: now });
-        batch.update(caregiverRef, { lastUpdatedAt: now });
-
-        updatedCount++;
-        operations += 2; 
-
-        if (operations >= 498) {
-          await batch.commit();
-          batch = firestore.batch();
-          operations = 0;
-        }
-      } else {
-        notFoundNames.push(name);
+      const CHUNK_SIZE = 30;
+      for (let i = 0; i < caregiverNameArray.length; i += CHUNK_SIZE) {
+          const chunk = caregiverNameArray.slice(i, i + CHUNK_SIZE);
+          const querySnapshot = await firestore.collection('caregivers_active').where('Name', 'in', chunk).get();
+          querySnapshot.forEach(doc => {
+              profileMap.set(doc.data().Name, doc.ref);
+          });
       }
-    }
 
-    if (operations > 0) {
-      await batch.commit();
-    }
+      let batch = firestore.batch();
+      let operations = 0;
+      let updatedCaregivers = new Set<string>();
+      
+      const weeklyData: { [caregiverId: string]: { [weekIdentifier: string]: any } } = {};
 
-    let message = `Availability updated for ${updatedCount} caregivers.`;
-    if (notFoundNames.length > 0) {
-      message += ` Could not find active profiles for ${notFoundNames.length} names: ${notFoundNames.slice(0, 5).join(', ')}...`;
-      console.warn('Not found names:', notFoundNames);
-    }
+      for (const record of availabilityRecords) {
+          const caregiverRef = profileMap.get(record.caregiverName);
+          if (caregiverRef) {
+              const recordDate = dateParse(record.date, 'M/d/yyyy', new Date());
+              const weekIdentifier = `week_${format(recordDate, 'yyyy-ww')}`;
+              
+              if (!weeklyData[caregiverRef.id]) {
+                  weeklyData[caregiverRef.id] = {};
+              }
+              if (!weeklyData[caregiverRef.id][weekIdentifier]) {
+                  weeklyData[caregiverRef.id][weekIdentifier] = {
+                      createdAt: now,
+                      updatedAt: now,
+                      caregiverId: caregiverRef.id,
+                      caregiverName: record.caregiverName,
+                  };
+              }
+              
+              const dayKey = record.day.toLowerCase();
+              if (!weeklyData[caregiverRef.id][weekIdentifier][dayKey]) {
+                  weeklyData[caregiverRef.id][weekIdentifier][dayKey] = [];
+              }
+              
+              weeklyData[caregiverRef.id][weekIdentifier][dayKey].push(`${record.startTime} - ${record.endTime}`);
+          }
+      }
 
-    revalidatePath('/staffing-admin/manage-active-caregivers');
-    return { message };
+      for (const caregiverId in weeklyData) {
+          for (const weekId in weeklyData[caregiverId]) {
+              const availabilityDocRef = firestore.collection('caregivers_active').doc(caregiverId).collection('availability').doc(weekId);
+              batch.set(availabilityDocRef, weeklyData[caregiverId][weekId], { merge: true });
+              updatedCaregivers.add(weeklyData[caregiverId][weekId].caregiverName);
+              operations++;
+
+              if (operations >= 499) {
+                  await batch.commit();
+                  batch = firestore.batch();
+                  operations = 0;
+              }
+          }
+      }
+
+      if (operations > 0) {
+          await batch.commit();
+      }
+
+      const notFoundNames = caregiverNameArray.filter(name => !profileMap.has(name));
+      let message = `Availability updated for ${updatedCaregivers.size} caregivers.`;
+      if (notFoundNames.length > 0) {
+          message += ` Could not find active profiles for ${notFoundNames.length} names: ${notFoundNames.slice(0, 5).join(', ')}...`;
+      }
+      
+      revalidatePath('/staffing-admin/manage-active-caregivers');
+      return { message };
 
   } catch (error: any) {
-    console.error('[Action Error] Critical error during availability upload:', error);
-    return { message: `An error occurred during the upload: ${error.message}`, error: true };
+      console.error('[Action Error] Critical error during availability upload:', error);
+      return { message: `An error occurred during the upload: ${error.message}`, error: true };
   }
 }
+
+    

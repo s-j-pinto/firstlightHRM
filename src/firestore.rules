@@ -140,17 +140,17 @@ service cloud.firestore {
     }
     
     /**
-     * @description Controls access to initial_contacts. Open for all.
-     * @path /initial_contacts/{initialContactId}
-     * @allow (get, list) - Any user can view care logs.
-     * @allow (create) - Any authenticated user can create a initial_contacts.
-     * @deny (update, delete) - No user can update or delete a initial_contacts.
-     * @principle Open read access.
+     * @description Controls access to initial_contacts and its subcollections.
      */
     match /initial_contacts/{initialContactId} {
       allow get, list: if true;
       allow create, update: if isAnyAdmin();
       allow delete: if false;
+
+      // SMS history is private to admins
+      match /sms_history/{messageId} {
+        allow read, create, write, delete: if isAnyAdmin();
+      }
     }
     /**
      * @description Controls access to video_checkin_requests. Open for all.
@@ -211,3 +211,5 @@ service cloud.firestore {
     }
   }
 }
+
+    

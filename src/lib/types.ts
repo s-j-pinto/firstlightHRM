@@ -1,5 +1,4 @@
 
-
 import { z } from "zod";
 
 export const generalInfoSchema = z.object({
@@ -158,7 +157,6 @@ export const activeCaregiverSchema = z.object({
   status: z.enum(["Active", "Inactive"]),
   createdAt: z.any(),
   lastUpdatedAt: z.any(),
-  weeklyAvailability: z.any().optional(),
 });
 
 export type ActiveCaregiver = z.infer<typeof activeCaregiverSchema> & { id: string };
@@ -579,3 +577,5 @@ export const smsMessageSchema = z.object({
     timestamp: z.any(),
 });
 export type SmsMessage = z.infer<typeof smsMessageSchema> & { id: string };
+
+    
