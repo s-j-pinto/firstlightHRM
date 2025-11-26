@@ -340,8 +340,10 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "title": "CaregiverAvailability",
         "type": "object",
-        "description": "Represents a single week of availability for a caregiver.",
+        "description": "Represents a single week of availability for a caregiver, aggregated from daily schedules.",
         "properties": {
+            "caregiverId": { "type": "string", "description": "The ID of the caregiver in the caregivers_active collection." },
+            "caregiverName": { "type": "string", "description": "The name of the caregiver for easy reference." },
             "monday": { "type": "array", "items": { "type": "string" } },
             "tuesday": { "type": "array", "items": { "type": "string" } },
             "wednesday": { "type": "array", "items": { "type": "string" } },
@@ -349,9 +351,10 @@
             "friday": { "type": "array", "items": { "type": "string" } },
             "saturday": { "type": "array", "items": { "type": "string" } },
             "sunday": { "type": "array", "items": { "type": "string" } },
-            "createdAt": { "type": "string", "format": "date-time" }
+            "createdAt": { "type": "string", "format": "date-time" },
+            "lastUpdatedAt": { "type": "string", "format": "date-time" }
         },
-        "required": ["createdAt"]
+        "required": ["caregiverId", "caregiverName", "createdAt", "lastUpdatedAt"]
     },
     "Client": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -553,7 +556,7 @@
     },
     "/caregivers_active/{caregiverId}/availability/{weekId}": {
         "schema": { "$ref": "#/entities/CaregiverAvailability" },
-        "description": "Stores a caregiver's availability for a specific week."
+        "description": "Stores a caregiver's availability for a specific week, aggregated from daily schedules."
     },
     "/Clients/{clientId}": {
       "schema": { "$ref": "#/entities/Client" },

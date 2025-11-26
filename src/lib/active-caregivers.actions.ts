@@ -9,6 +9,7 @@ import { format, parse as dateParse } from 'date-fns';
 
 // Helper function to robustly parse 12-hour AM/PM time strings to 24-hour format
 function parseTo24HourFormat(timeStr: string): string | null {
+    if (!timeStr) return null;
     const timeMatch = timeStr.match(/(\d{1,2}):(\d{2}):(\d{2})\s*(AM|PM)/i);
     if (!timeMatch) {
         console.warn(`[Time Parser] Could not match time format for: "${timeStr}"`);
@@ -71,7 +72,7 @@ export async function processActiveCaregiverUpload(csvText: string) {
     const weeklyData: { [caregiverId: string]: { [weekIdentifier: string]: any } } = {};
       
     for (const header of headers) {
-        if (!header.trim()) continue;
+        if (!header.trim() || header.trim() === 'Care Giver') continue;
 
         const [day, rawDate] = header.split('\n');
         if (!day || !rawDate) continue;
@@ -85,14 +86,14 @@ export async function processActiveCaregiverUpload(csvText: string) {
         let lastCaregiverName: string | null = null;
         
         for (const row of rows) {
-            const nameCell = row[headers[0]]?.trim(); // Caregiver names are always in the first column
+            const nameCell = row[headers[0]]?.trim();
             const availabilityCell = row[header]?.trim();
 
             if (nameCell && !nameCell.includes("Scheduled Availability") && nameCell !== "Total H's") {
                 lastCaregiverName = nameCell;
             }
 
-            if (lastCaregiverName && availabilityCell && availabilityCell.includes("Scheduled Availability")) {
+            if (lastCaregiverName && availabilityCell && availabilityCell.includes("Scheduled Availability") && row[headers[0]] === '') {
                 const caregiverRef = profileMap.get(lastCaregiverName);
                 if (caregiverRef) {
                     const timeLine = availabilityCell.split('\n').find(l => l.includes("To"));
@@ -105,7 +106,7 @@ export async function processActiveCaregiverUpload(csvText: string) {
                             if (formattedStartTime && formattedEndTime) {
                                 if (!weeklyData[caregiverRef.id]) weeklyData[caregiverRef.id] = {};
                                 if (!weeklyData[caregiverRef.id][weekIdentifier]) {
-                                    weeklyData[caregiverRef.id][weekIdentifier] = { createdAt: now, updatedAt: now, caregiverId: caregiverRef.id, caregiverName: lastCaregiverName };
+                                    weeklyData[caregiverRef.id][weekIdentifier] = { createdAt: now, caregiverId: caregiverRef.id, caregiverName: lastCaregiverName };
                                 }
                                 if (!weeklyData[caregiverRef.id][weekIdentifier][dayKey]) {
                                     weeklyData[caregiverRef.id][weekIdentifier][dayKey] = [];
@@ -115,8 +116,6 @@ export async function processActiveCaregiverUpload(csvText: string) {
                         }
                     }
                 }
-                // Reset after processing availability for a caregiver in a given row
-                lastCaregiverName = null;
             }
         }
     }
@@ -126,7 +125,9 @@ export async function processActiveCaregiverUpload(csvText: string) {
         updatedCaregiverCount++;
         for (const weekId in weeklyData[caregiverId]) {
             const availabilityDocRef = firestore.collection('caregivers_active').doc(caregiverId).collection('availability').doc(weekId);
-            batch.set(availabilityDocRef, weeklyData[caregiverId][weekId], { merge: true });
+            const dataToSet = weeklyData[caregiverId][weekId];
+            dataToSet.lastUpdatedAt = now;
+            batch.set(availabilityDocRef, dataToSet, { merge: true });
             operations++;
 
             if (operations >= 499) {
