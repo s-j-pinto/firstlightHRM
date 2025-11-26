@@ -103,9 +103,9 @@ export default function ManageCaregiverAvailabilityClient() {
                         </pre>
                     );
                      toast({
-                        title: 'Parsing Complete: No "Scheduled Availability" Data Found',
+                        title: 'Debug Info: What is being extracted for availability',
                         description: debugDescription,
-                        variant: 'destructive',
+                        variant: 'default',
                         duration: 20000
                     });
                 } else {
