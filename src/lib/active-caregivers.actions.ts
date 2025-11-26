@@ -129,11 +129,11 @@ export async function processCaregiverAvailabilityUpload(csvText: string) {
   const firestore = serverDb;
   const now = Timestamp.now();
   
-  const parsed = Papa.parse(csvText, { header: false });
-  const data: string[][] = parsed.data as string[][];
+  const parsed = Papa.parse<string[]>(csvText, { header: false, skipEmptyLines: true });
+  const data = parsed.data;
 
-  if (data.length < 4) {
-      return { message: "CSV must have at least 4 rows (2 header rows + 2 data rows).", error: true };
+  if (data.length < 2) {
+      return { message: "CSV must have at least 2 rows (headers + data).", error: true };
   }
 
   const dayHeader = data[0];
@@ -142,31 +142,29 @@ export async function processCaregiverAvailabilityUpload(csvText: string) {
   const availabilityRecords: { caregiverName: string; day: string; date: string; availability: string; }[] = [];
   const allCaregiverNames = new Set<string>();
 
-  // Iterate through columns (days)
-  for (let colIndex = 0; colIndex < dayHeader.length; colIndex++) {
+  // Iterate through columns (days), starting from the second column
+  for (let colIndex = 1; colIndex < dayHeader.length; colIndex++) {
     const day = dayHeader[colIndex]?.trim();
     const date = dateHeader[colIndex]?.trim();
 
     if (!day || !date) continue; // Skip empty header columns
+    
+    let lastCaregiver: string | null = null;
 
-    // Iterate through data rows in pairs
-    for (let rowIndex = 2; rowIndex < data.length; rowIndex += 2) {
-      const nameRow = data[rowIndex];
-      const availabilityRow = data[rowIndex + 1];
-
-      // Ensure both rows exist
-      if (!nameRow || !availabilityRow) continue;
-
-      const caregiverName = nameRow[0]?.trim();
-      const availabilityInfo = availabilityRow[colIndex]?.trim();
-
-      // Validate that we have a caregiver name and availability info
-      if (!caregiverName || !availabilityInfo || caregiverName === "Total H's" || availabilityInfo === "") continue;
-
-      if (availabilityInfo.toLowerCase().startsWith('scheduled availability')) {
-        allCaregiverNames.add(caregiverName);
+    // Iterate through data rows, starting from the third row
+    for (let rowIndex = 2; rowIndex < data.length; rowIndex++) {
+      const row = data[rowIndex];
+      const caregiverNameInRow = row[0]?.trim();
+      const availabilityInfo = row[colIndex]?.trim();
+      
+      if (caregiverNameInRow && caregiverNameInRow !== "Total H's") {
+          lastCaregiver = caregiverNameInRow;
+      }
+      
+      if (lastCaregiver && availabilityInfo && availabilityInfo.toLowerCase().startsWith('scheduled availability')) {
+        allCaregiverNames.add(lastCaregiver);
         availabilityRecords.push({
-          caregiverName,
+          caregiverName: lastCaregiver,
           day,
           date,
           availability: availabilityInfo,
@@ -184,6 +182,7 @@ export async function processCaregiverAvailabilityUpload(csvText: string) {
       const caregiverNameArray = Array.from(allCaregiverNames);
       const profileMap = new Map<string, FirebaseFirestore.DocumentReference>();
 
+      // Fetch caregiver profiles in chunks to avoid firestore limitations
       const CHUNK_SIZE = 30;
       for (let i = 0; i < caregiverNameArray.length; i += CHUNK_SIZE) {
           const chunk = caregiverNameArray.slice(i, i + CHUNK_SIZE);
@@ -222,41 +221,30 @@ export async function processCaregiverAvailabilityUpload(csvText: string) {
                   weeklyData[caregiverRef.id][weekIdentifier][dayKey] = [];
               }
               
-              console.log(`[DEBUG] Raw Availability Info: "${record.availability}"`);
               const timeMatch = record.availability.match(/(\d{1,2}:\d{2}:\d{2}\s*(?:AM|PM))\s*To\s*(\d{1,2}:\d{2}:\d{2}\s*(?:AM|PM))/i);
-              console.log(`[DEBUG] Regex Match Result:`, timeMatch);
-
+             
               if (timeMatch) {
                   try {
                     const startTimeStr = timeMatch[1];
                     const endTimeStr = timeMatch[2];
-                    console.log(`[DEBUG] Extracted Times: Start="${startTimeStr}", End="${endTimeStr}"`);
                     
-                    // Try parsing with hh for 12-hour format which is more common
                     let startTime = dateParse(startTimeStr, 'hh:mm:ss a', new Date());
-                    let endTime = dateParse(endTimeStr, 'hh:mm:ss a', new Date());
-                    
-                    // Fallback to h if hh fails
-                    if (isNaN(startTime.getTime())) {
-                        startTime = dateParse(startTimeStr, 'h:mm:ss a', new Date());
-                    }
-                    if (isNaN(endTime.getTime())) {
-                        endTime = dateParse(endTimeStr, 'h:mm:ss a', new Date());
-                    }
+                    if (isNaN(startTime.getTime())) startTime = dateParse(startTimeStr, 'h:mm:ss a', new Date());
 
-                    console.log(`[DEBUG] Parsed Dates: Start="${startTime}", End="${endTime}"`);
+                    let endTime = dateParse(endTimeStr, 'hh:mm:ss a', new Date());
+                    if (isNaN(endTime.getTime())) endTime = dateParse(endTimeStr, 'h:mm:ss a', new Date());
 
                     if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
-                        throw new Error(`date-fns returned an invalid date for value: "${startTimeStr}" or "${endTimeStr}"`);
+                        throw new Error(`Invalid time format. Could not parse '${startTimeStr}' or '${endTimeStr}'.`);
                     }
                     
                     const formattedStartTime = format(startTime, 'HH:mm');
                     const formattedEndTime = format(endTime, 'HH:mm');
-                    console.log(`[DEBUG] Formatted Times: Start="${formattedStartTime}", End="${formattedEndTime}"`);
-
+                   
                     weeklyData[caregiverRef.id][weekIdentifier][dayKey].push(`${formattedStartTime} - ${formattedEndTime}`);
                   } catch (e: any) {
-                      console.error(`[DEBUG] CRITICAL: Could not parse time for caregiver ${record.caregiverName} on ${record.date}. Value: "${timeMatch[0]}". Error: ${e.message}`);
+                      console.error(`CRITICAL: Could not parse time for caregiver ${record.caregiverName} on ${record.date}. Value: "${record.availability}". Error: ${e.message}`);
+                      throw new Error(`Invalid time value found for ${record.caregiverName} on ${record.date}. Please check the format in your CSV.`);
                   }
               }
           }
