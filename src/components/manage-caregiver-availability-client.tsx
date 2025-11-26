@@ -36,6 +36,16 @@ export default function ManageCaregiverAvailabilityClient() {
             return;
         }
 
+        const lines = text.split(/\r?\n/);
+        const header = lines[0] || 'Header not found';
+
+        toast({
+            title: 'CSV Header Read',
+            description: `Header: ${header}`,
+        });
+        
+        // Temporarily disabled full upload for debugging header
+        /*
         startUploadTransition(async () => {
             const uploadResult = await processCaregiverAvailabilityUpload(text);
             
@@ -48,6 +58,7 @@ export default function ManageCaregiverAvailabilityClient() {
                 if (fileInput) fileInput.value = '';
             }
         });
+        */
     };
     reader.readAsText(file);
   };
