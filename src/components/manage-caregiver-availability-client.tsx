@@ -57,49 +57,56 @@ export default function ManageCaregiverAvailabilityClient() {
                 }
 
                 const parsedData: any[] = [];
-                const caregiverNameHeader = headers[0]; // Assuming the first column is always caregiver names
+                const debugExtraction: { caregiver: string, availabilityCellContent: string }[] = [];
+                const caregiverNameHeader = headers[0]; 
 
-                // Iterate through each DAY column (skip the first caregiver name column)
                 for (let i = 1; i < headers.length; i++) {
                     const currentDayHeader = headers[i];
-                    if (!currentDayHeader.includes('\n')) continue; // Skip columns that aren't day/date
+                    if (!currentDayHeader || !currentDayHeader.includes('\n')) continue; 
 
                     const [day, date] = currentDayHeader.split('\n');
                     let lastCaregiverName: string | null = null;
 
-                    // Iterate through each ROW for the current day
                     rows.forEach(row => {
                         const nameCell = row[caregiverNameHeader]?.trim();
                         const availabilityCell = row[currentDayHeader]?.trim();
 
-                        // Update last caregiver name if the cell has a value and isn't a special value
                         if (nameCell && nameCell !== "Total H's") {
                             lastCaregiverName = nameCell;
                         }
                         
-                        // If we have a last caregiver and the availability cell has the magic words
-                        if (lastCaregiverName && availabilityCell && availabilityCell.includes("Scheduled Availability")) {
-                             const times = extractTimes(availabilityCell);
-                             if (times) {
-                                 parsedData.push({
-                                     day: day.trim(),
-                                     date: date.trim(),
-                                     caregiver: lastCaregiverName,
-                                     availabilityType: "Scheduled Availability",
-                                     startTime: times.startTime,
-                                     endTime: times.endTime
-                                 });
-                             }
+                        if (lastCaregiverName && availabilityCell) {
+                             if (debugExtraction.length < 5) {
+                                debugExtraction.push({ caregiver: lastCaregiverName, availabilityCellContent: availabilityCell });
+                            }
+                            if (availabilityCell.includes("Scheduled Availability")) {
+                                const times = extractTimes(availabilityCell);
+                                if (times) {
+                                    parsedData.push({
+                                        day: day.trim(),
+                                        date: date.trim(),
+                                        caregiver: lastCaregiverName,
+                                        availabilityType: "Scheduled Availability",
+                                        startTime: times.startTime,
+                                        endTime: times.endTime
+                                    });
+                                }
+                            }
                         }
                     });
                 }
                 
                 if (parsedData.length === 0) {
+                    const debugDescription = (
+                        <pre className="mt-2 w-full rounded-md bg-slate-950 p-4 max-h-60 overflow-y-auto">
+                            <code className="text-white">{JSON.stringify(debugExtraction, null, 2)}</code>
+                        </pre>
+                    );
                      toast({
-                        title: 'Parsing Complete: No Data Found',
-                        description: 'The file was read, but no "Scheduled Availability" data could be extracted. Please check the file format and content.',
+                        title: 'Parsing Complete: No "Scheduled Availability" Data Found',
+                        description: debugDescription,
                         variant: 'destructive',
-                        duration: 15000
+                        duration: 20000
                     });
                 } else {
                     const previewDescription = (
@@ -127,7 +134,7 @@ export default function ManageCaregiverAvailabilityClient() {
         <CardHeader>
           <CardTitle>Upload Caregiver Availability</CardTitle>
           <CardDescription>
-            Upload a weekly availability schedule as a CSV file. The file should have a header row with days/dates, and subsequent rows for each caregiver's schedule. This tool will now parse the file in your browser and show you what it found.
+            Upload a weekly availability schedule as a CSV file. This tool will now parse the file in your browser and show you what it found.
           </CardDescription>
         </CardHeader>
         <CardContent>
