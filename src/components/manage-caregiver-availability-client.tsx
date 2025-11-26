@@ -45,9 +45,9 @@ export default function ManageCaregiverAvailabilityClient() {
         const daysHeader = lines[0].split(',').map(h => h.trim());
         const datesHeader = lines[1].split(',').map(h => h.trim());
 
+        // Correctly iterate over all columns to build the full header string.
         const combinedHeader = daysHeader.map((day, index) => {
-            // Only include pairs where the day exists
-            if (day) {
+            if (day && index < datesHeader.length) {
                 return `${day} (${datesHeader[index] || ''})`;
             }
             return null;
