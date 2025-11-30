@@ -243,21 +243,20 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
 
       form.reset(convertedData);
 
+      // This timeout gives the DOM time to update so the refs are attached.
       setTimeout(() => {
         for (const key in sigPads) {
             const padKey = key as keyof typeof sigPads;
             const formKey = key as keyof ClientSignupFormData;
             const sigPad = sigPads[padKey].current;
-            const sigData = formData[formKey];
+            // Use the most recent form data from the reset
+            const sigData = form.getValues(formKey);
 
             if (sigPad && sigData) {
-                // Ensure the pad is clear before attempting to load new data
-                sigPad.clear();
-                // fromDataURL will draw the signature if the data is valid
                 sigPad.fromDataURL(sigData);
             }
         }
-    }, 250); // Small delay to ensure canvas elements are ready
+    }, 250); 
     }
   }, [existingSignupData, form, isClientMode]);
 
@@ -267,8 +266,20 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
     }
   }, [isPrintMode, isLoading]);
 
+  const saveAllSignaturesToState = () => {
+    Object.keys(sigPads).forEach(key => {
+        const padKey = key as keyof typeof sigPads;
+        const formKey = key as keyof ClientSignupFormData;
+        const pad = sigPads[padKey].current;
+        if (pad && !pad.isEmpty()) {
+            form.setValue(formKey, pad.toDataURL(), { shouldValidate: true });
+        }
+    });
+  }
 
   const handleSave = async (status: "Incomplete" | "Pending Client Signatures") => {
+    saveAllSignaturesToState();
+
     const isSendingAction = status === "Pending Client Signatures";
     const draftFields: (keyof ClientSignupFormData)[] = ['clientName', 'clientCity', 'clientState', 'clientPhone', 'clientEmail'];
     const fieldsToValidate = isSendingAction ? undefined : draftFields;
@@ -287,15 +298,6 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
   
     const transitionAction = isSendingAction ? startSendingTransition : startSavingTransition;
     transitionAction(async () => {
-      Object.keys(sigPads).forEach(key => {
-        const padKey = key as keyof typeof sigPads;
-        const formKey = key as keyof ClientSignupFormData;
-        const pad = sigPads[padKey].current;
-        if (pad && !pad.isEmpty()) {
-            form.setValue(formKey, pad.toDataURL());
-        }
-      });
-  
       const result = await saveClientSignupForm({
         signupId: signupId,
         formData: form.getValues(),
@@ -330,14 +332,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
   };
 
   const handleFinalize = async () => {
-    Object.keys(sigPads).forEach(key => {
-        const padKey = key as keyof typeof sigPads;
-        const formKey = key as keyof ClientSignupFormData;
-        const pad = sigPads[padKey].current;
-        if (pad && !pad.isEmpty()) {
-            form.setValue(formKey, pad.toDataURL(), { shouldValidate: true });
-        }
-    });
+    saveAllSignaturesToState();
     
     // Explicitly trigger validation against the stricter schema
     const isValid = await form.trigger();
@@ -382,14 +377,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
     startSubmittingTransition(async () => {
         if (!signupId) return;
         
-        Object.keys(sigPads).forEach(key => {
-            const padKey = key as keyof typeof sigPads;
-            const formKey = key as keyof ClientSignupFormData;
-            const pad = sigPads[padKey].current;
-            if (pad && !pad.isEmpty()) {
-                form.setValue(formKey, pad.toDataURL(), { shouldValidate: true });
-            }
-        });
+        saveAllSignaturesToState();
 
         const payload = {
             signupId,
@@ -422,6 +410,8 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
   };
 
   const handlePreviewPdf = () => {
+    saveAllSignaturesToState();
+
     startPreviewingTransition(async () => {
       const formData = form.getValues();
       try {
@@ -457,8 +447,9 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
   };
 
 
-  const clearSignature = (sigPadRef: React.RefObject<SignatureCanvas>) => {
+  const clearSignature = (sigPadRef: React.RefObject<SignatureCanvas>, fieldName: keyof ClientSignupFormData) => {
     sigPadRef.current?.clear();
+    form.setValue(fieldName, '');
   };
   
   const receivedTransportationWaiver = form.watch('receivedTransportationWaiver');
@@ -659,12 +650,9 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                             <div className="space-y-2">
                                 <FormLabel>Signed (Client)</FormLabel>
                                 <div className="relative rounded-md border bg-white">
-                                    {form.getValues('clientSignature') && (isPublished || (mode === 'owner' && !isClientMode)) ?
-                                        <Image src={form.getValues('clientSignature')} alt="Signature" width={200} height={100} className="w-full h-24 object-contain" /> :
-                                        <SignatureCanvas ref={sigPads.clientSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isPublished || (mode === 'owner' && isClientMode)} onEnd={() => { if (sigPads.clientSignature.current && !sigPads.clientSignature.current.isEmpty()) { form.setValue('clientSignature', sigPads.clientSignature.current.toDataURL()); } }} />
-                                    }
+                                    <SignatureCanvas ref={sigPads.clientSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isPublished || (mode === 'owner' && isClientMode)} onEnd={() => { if (sigPads.clientSignature.current && !sigPads.clientSignature.current.isEmpty()) { form.setValue('clientSignature', sigPads.clientSignature.current.toDataURL()); } }} />
                                     {!(isPublished || (mode === 'owner' && isClientMode)) && (
-                                        <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => clearSignature(sigPads.clientSignature)}>
+                                        <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => clearSignature(sigPads.clientSignature, 'clientSignature')}>
                                             <RefreshCw className="w-4 h-4" />
                                         </Button>
                                     )}
@@ -679,12 +667,9 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                             <div className="space-y-2">
                                 <FormLabel>Signed (Responsible Party)</FormLabel>
                                 <div className="relative rounded-md border bg-white">
-                                     {form.getValues('clientRepresentativeSignature') && (isPublished || (mode === 'owner' && !isClientMode)) ?
-                                        <Image src={form.getValues('clientRepresentativeSignature')} alt="Signature" width={200} height={100} className="w-full h-24 object-contain" /> :
-                                        <SignatureCanvas ref={sigPads.clientRepresentativeSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isPublished || (mode === 'owner' && isClientMode)} onEnd={() => { if (sigPads.clientRepresentativeSignature.current && !sigPads.clientRepresentativeSignature.current.isEmpty()) { form.setValue('clientRepresentativeSignature', sigPads.clientRepresentativeSignature.current.toDataURL()); } }} />
-                                    }
+                                    <SignatureCanvas ref={sigPads.clientRepresentativeSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isPublished || (mode === 'owner' && isClientMode)} onEnd={() => { if (sigPads.clientRepresentativeSignature.current && !sigPads.clientRepresentativeSignature.current.isEmpty()) { form.setValue('clientRepresentativeSignature', sigPads.clientRepresentativeSignature.current.toDataURL()); } }} />
                                     {!(isPublished || (mode === 'owner' && isClientMode)) && (
-                                        <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => clearSignature(sigPads.clientRepresentativeSignature)}>
+                                        <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => clearSignature(sigPads.clientRepresentativeSignature, 'clientRepresentativeSignature')}>
                                             <RefreshCw className="w-4 h-4" />
                                         </Button>
                                     )}
@@ -701,7 +686,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                                 <div className="relative rounded-md border bg-white">
                                     <SignatureCanvas ref={sigPads.firstLightRepresentativeSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isClientMode || isPublished} onEnd={() => { if (sigPads.firstLightRepresentativeSignature.current && !sigPads.firstLightRepresentativeSignature.current.isEmpty()) { form.setValue('firstLightRepresentativeSignature', sigPads.firstLightRepresentativeSignature.current.toDataURL()); } }} />
                                     {!isPublished && !isClientMode && (
-                                        <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => clearSignature(sigPads.firstLightRepresentativeSignature)}>
+                                        <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => clearSignature(sigPads.firstLightRepresentativeSignature, 'firstLightRepresentativeSignature')}>
                                             <RefreshCw className="w-4 h-4" />
                                         </Button>
                                     )}
@@ -772,12 +757,9 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                                 <div className="space-y-2">
                                     <FormLabel>Signed (Client or Responsible Party)</FormLabel>
                                     <div className="relative rounded-md border bg-white">
-                                        {form.getValues('transportationWaiverClientSignature') && (isPublished || (mode === 'owner' && !isClientMode)) ?
-                                            <Image src={form.getValues('transportationWaiverClientSignature')} alt="Signature" width={200} height={100} className="w-full h-24 object-contain" /> :
-                                            <SignatureCanvas ref={sigPads.transportationWaiverClientSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isPublished || (mode === 'owner' && isClientMode)} onEnd={() => { if (sigPads.transportationWaiverClientSignature.current && !sigPads.transportationWaiverClientSignature.current.isEmpty()) { form.setValue('transportationWaiverClientSignature', sigPads.transportationWaiverClientSignature.current.toDataURL()); } }} />
-                                        }
+                                        <SignatureCanvas ref={sigPads.transportationWaiverClientSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isPublished || (mode === 'owner' && isClientMode)} onEnd={() => { if (sigPads.transportationWaiverClientSignature.current && !sigPads.transportationWaiverClientSignature.current.isEmpty()) { form.setValue('transportationWaiverClientSignature', sigPads.transportationWaiverClientSignature.current.toDataURL()); } }} />
                                         {!(isPublished || (mode === 'owner' && isClientMode)) && (
-                                            <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => clearSignature(sigPads.transportationWaiverClientSignature)}>
+                                            <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => clearSignature(sigPads.transportationWaiverClientSignature, 'transportationWaiverClientSignature')}>
                                                 <RefreshCw className="w-4 h-4" />
                                             </Button>
                                         )}
@@ -789,12 +771,9 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                                 <div className="space-y-2">
                                     <FormLabel>Witness (FirstLight Home Care Representative)</FormLabel>
                                     <div className="relative rounded-md border bg-white">
-                                        {form.getValues('transportationWaiverWitnessSignature') ?
-                                            <Image src={form.getValues('transportationWaiverWitnessSignature')} alt="Signature" width={200} height={100} className="w-full h-24 object-contain" /> :
-                                            <SignatureCanvas ref={sigPads.transportationWaiverWitnessSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isClientMode || isPublished} onEnd={() => { if (sigPads.transportationWaiverWitnessSignature.current && !sigPads.transportationWaiverWitnessSignature.current.isEmpty()) { form.setValue('transportationWaiverWitnessSignature', sigPads.transportationWaiverWitnessSignature.current.toDataURL()); } }} />
-                                        }
+                                        <SignatureCanvas ref={sigPads.transportationWaiverWitnessSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isClientMode || isPublished} onEnd={() => { if (sigPads.transportationWaiverWitnessSignature.current && !sigPads.transportationWaiverWitnessSignature.current.isEmpty()) { form.setValue('transportationWaiverWitnessSignature', sigPads.transportationWaiverWitnessSignature.current.toDataURL()); } }} />
                                         {!isPublished && !isClientMode && (
-                                            <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => clearSignature(sigPads.transportationWaiverWitnessSignature)}>
+                                            <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => clearSignature(sigPads.transportationWaiverWitnessSignature, 'transportationWaiverWitnessSignature')}>
                                                 <RefreshCw className="w-4 h-4" />
                                             </Button>
                                         )}
@@ -857,12 +836,9 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                         <div className="space-y-2">
                             <FormLabel>Client Signature/Responsible Party</FormLabel>
                             <div className="relative rounded-md border bg-white">
-                                {form.getValues('agreementClientSignature') && (isPublished || (mode === 'owner' && !isClientMode)) ?
-                                    <Image src={form.getValues('agreementClientSignature')} alt="Signature" width={200} height={100} className="w-full h-24 object-contain" /> :
-                                    <SignatureCanvas ref={sigPads.agreementClientSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isPublished || (mode === 'owner' && isClientMode)} onEnd={() => { if (sigPads.agreementClientSignature.current && !sigPads.agreementClientSignature.current.isEmpty()) { form.setValue('agreementClientSignature', sigPads.agreementClientSignature.current.toDataURL()); } }} />
-                                }
+                                <SignatureCanvas ref={sigPads.agreementClientSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isPublished || (mode === 'owner' && isClientMode)} onEnd={() => { if (sigPads.agreementClientSignature.current && !sigPads.agreementClientSignature.current.isEmpty()) { form.setValue('agreementClientSignature', sigPads.agreementClientSignature.current.toDataURL()); } }} />
                                 {!(isPublished || (mode === 'owner' && isClientMode)) && (
-                                    <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => clearSignature(sigPads.agreementClientSignature)}>
+                                    <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => clearSignature(sigPads.agreementClientSignature, 'agreementClientSignature')}>
                                         <RefreshCw className="w-4 h-4" />
                                     </Button>
                                 )}
@@ -880,7 +856,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                             <div className="relative rounded-md border bg-white">
                                 <SignatureCanvas ref={sigPads.agreementRepSignature} canvasProps={{ className: 'w-full h-24' }} disabled={isClientMode || isPublished} onEnd={() => { if (sigPads.agreementRepSignature.current && !sigPads.agreementRepSignature.current.isEmpty()) { form.setValue('agreementRepSignature', sigPads.agreementRepSignature.current.toDataURL()); } }} />
                                 {!isPublished && !isClientMode && (
-                                    <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => clearSignature(sigPads.agreementRepSignature)}>
+                                    <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => clearSignature(sigPads.agreementRepSignature, 'agreementRepSignature')}>
                                         <RefreshCw className="w-4 h-4" />
                                     </Button>
                                 )}
@@ -951,3 +927,4 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
     </Card>
   );
 }
+
