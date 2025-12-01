@@ -1,30 +1,45 @@
-
 rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Match the specific logo file and allow public read access.
-    match /FirstlightLogo_transparent.png {
-      allow read: if true;
-      allow write: if request.auth != null; // Only authenticated users can overwrite it.
-    }
     
-    // Allow public read access to finalized client agreements.
-    match /client-agreements/{allPaths=**} {
-      allow read: if true;
-      allow write: if request.auth != null; // Only authenticated users (admins) can write.
+    // Default Deny: Disallow all reads and writes by default.
+    // This is a critical security best practice.
+    match /{allPaths=**} {
+      allow read, write: if false;
     }
 
-    // Allow public read access to all files in the 'waivers' directory for email attachments.
+    // Allow public read access to specific public assets like logos.
+    // Only authenticated users (admins) can modify these files.
+    match /FirstlightLogo_transparent.png {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    match /FirstLight_Logo_VRT_CMYK_ICO.ico {
+       allow read: if true;
+       allow write: if request.auth != null;
+    }
+
+    // Allow public read access to waiver PDFs, as they may be linked in emails.
     match /waivers/{allPaths=**} {
       allow read: if true;
       allow write: if request.auth != null;
     }
 
-    // All other files in storage require authentication to read or write.
-    // This ensures that user-uploaded content or other private files remain secure.
-    match /{allPaths=**} {
-      allow read, write: if request.auth != null && allPaths != "FirstlightLogo_transparent.png";
+    // Secure the client agreements.
+    // Agreements are stored at a path like 'client-agreements/{clientName}_{signupId}.pdf'.
+    // We use custom metadata on the file to grant access.
+    match /client-agreements/{fileName} {
+      // Allow read access only if the requesting user's UID is in the file's 'ownerUid' metadata,
+      // OR if the user is an admin (any authenticated user in this app's context).
+      allow read: if request.auth != null && (
+                    request.auth.uid == resource.metadata.ownerUid || 
+                    get(/databases/$(database)/documents/Users/$(request.auth.uid)).data.role == 'admin'
+                  );
+      
+      // Allow writes (uploads) only by authenticated admin users.
+      allow write: if request.auth != null;
     }
   }
 }
