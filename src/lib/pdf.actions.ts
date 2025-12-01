@@ -7,10 +7,24 @@ import { format } from 'date-fns';
 
 const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
 
+/**
+ * Strips out problematic, non-printable Unicode control characters that can cause
+ * PDF generation to fail with encoding errors.
+ * @param text The input string to sanitize.
+ * @returns A cleaned string with control characters removed.
+ */
+function sanitizeText(text: string | null | undefined): string {
+    if (!text) return '';
+    // This regex removes most characters in the "General Punctuation" and "Number Forms"
+    // blocks of Unicode, which includes problematic ones like U+202A.
+    return text.replace(/[\u2000-\u206F]/g, '');
+}
+
+
 // Helper function to draw text and handle undefined values
 async function drawText(page: any, text: string | undefined, x: number, y: number, font: any, size: number, color = rgb(0, 0, 0)) {    
     if (text) {
-        page.drawText(text, { x, y, font, size, color });
+        page.drawText(sanitizeText(text), { x, y, font, size, color });
     }
 }
 
@@ -106,6 +120,7 @@ async function drawFooter(page: any, font: PDFFont) {
 }
 
 function drawWrappedText(page: any, text: string, font: PDFFont, fontSize: number, x: number, y: number, maxWidth: number, lineHeight: number): number {
+    text = sanitizeText(text);
     if (!text) return y;
     const words = text.split(' ');
     let line = '';
@@ -132,6 +147,7 @@ function drawWrappedText(page: any, text: string, font: PDFFont, fontSize: numbe
 }
 
 function drawTextWithBoldHighlight(page: any, text: string, boldText: string, font: PDFFont, boldFont: PDFFont, fontSize: number, x: number, y: number): void {
+    text = sanitizeText(text);
     const parts = text.split(boldText);
     let currentX = x;
 
@@ -149,6 +165,7 @@ function drawTextWithBoldHighlight(page: any, text: string, boldText: string, fo
 }
 
 function drawWrappedTextWithBoldHighlight(page: any, text: string, boldText: string, font: PDFFont, boldFont: PDFFont, fontSize: number, x: number, y: number, maxWidth: number, lineHeight: number): number {
+    text = sanitizeText(text);
     if (!text) return y;
     const words = text.split(' ');
     let line = '';
@@ -561,4 +578,5 @@ export async function generateClientIntakePdf(formData: any) {
     return pdfBytes;
 }
 
+    
     
