@@ -5,6 +5,10 @@ import CancelledInterviewsReport from "@/components/cancelled-interviews-report"
 import CandidateStatusReport from "@/components/candidate-status-report";
 import ClientCareRequestsReport from '@/components/client-care-requests-report';
 import ReferralsRewardsReport from '@/components/referrals-rewards-report';
+import LeadConversionFunnelReport from '@/components/lead-conversion-funnel-report';
+import LeadSourcePerformanceReport from '@/components/lead-source-performance-report';
+import LostLeadAnalysisReport from '@/components/lost-lead-analysis-report';
+import LevelOfCareReport from '@/components/level-of-care-report';
 import {
   Select,
   SelectContent,
@@ -15,7 +19,7 @@ import {
 import { HelpDialog } from '@/components/HelpDialog';
 
 export default function OwnerReportsPage() {
-  const [selectedReport, setSelectedReport] = useState('candidate_status');
+  const [selectedReport, setSelectedReport] = useState('lead_conversion_funnel');
 
   return (
     <div className="space-y-6">
@@ -27,12 +31,16 @@ export default function OwnerReportsPage() {
                 </p>
             </div>
             <div className="flex items-center gap-4">
-                <div className="w-full sm:w-[280px]">
+                <div className="w-full sm:w-[320px]">
                     <Select value={selectedReport} onValueChange={setSelectedReport}>
                         <SelectTrigger>
                             <SelectValue placeholder="Select a report" />
                         </SelectTrigger>
                         <SelectContent>
+                            <SelectItem value="lead_conversion_funnel">Lead Conversion Funnel</SelectItem>
+                            <SelectItem value="lead_source_performance">Lead Source Performance</SelectItem>
+                            <SelectItem value="lost_lead_analysis">Lost Lead Analysis</SelectItem>
+                            <SelectItem value="level_of_care">Level of Care Needs Analysis</SelectItem>
                             <SelectItem value="candidate_status">Candidate Interview Status</SelectItem>
                             <SelectItem value="cancelled_interviews">Cancelled Phone Screen Appointments</SelectItem>
                             <SelectItem value="client_care_requests">Client Care Request Status</SelectItem>
@@ -45,6 +53,10 @@ export default function OwnerReportsPage() {
         </div>
       
       <div className="mt-6">
+        {selectedReport === 'lead_conversion_funnel' && <LeadConversionFunnelReport />}
+        {selectedReport === 'lead_source_performance' && <LeadSourcePerformanceReport />}
+        {selectedReport === 'lost_lead_analysis' && <LostLeadAnalysisReport />}
+        {selectedReport === 'level_of_care' && <LevelOfCareReport />}
         {selectedReport === 'candidate_status' && <CandidateStatusReport />}
         {selectedReport === 'cancelled_interviews' && <CancelledInterviewsReport />}
         {selectedReport === 'client_care_requests' && <ClientCareRequestsReport />}
@@ -53,5 +65,3 @@ export default function OwnerReportsPage() {
     </div>
   );
 }
-
-    
