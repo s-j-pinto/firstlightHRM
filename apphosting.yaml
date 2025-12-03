@@ -17,15 +17,15 @@ env:
   - variable: GEMINI_API_KEY
     secret: GEMINI_API_KEY
   - variable: ADMIN_EMAIL
-    secret: NEXT_PUBLIC_ADMIN_EMAIL
+    value: ${NEXT_PUBLIC_ADMIN_EMAIL}
     availability:
       - RUNTIME
   - variable: STAFFING_ADMIN_EMAIL
-    secret: NEXT_PUBLIC_STAFFING_ADMIN_EMAIL
+    value: ${NEXT_PUBLIC_STAFFING_ADMIN_EMAIL}
     availability:
       - RUNTIME
   - variable: OWNER_EMAIL
-    secret: NEXT_PUBLIC_OWNER_EMAIL
+    value: ${NEXT_PUBLIC_OWNER_EMAIL}
     availability:
       - RUNTIME
   - variable: NEXT_PUBLIC_BASE_URL
