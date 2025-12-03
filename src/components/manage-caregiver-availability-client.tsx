@@ -40,7 +40,7 @@ function extractAndMergeAvailable(cell: string): string {
 
   if (matches.length === 0) return "";
 
-  // Merge all available times into single line
+  // Merge all available times into single line, separated by a comma and space for readability
   return matches.map(m => `Available ${m[1]} To ${m[2]}`).join(", ");
 }
 
@@ -65,7 +65,10 @@ export default function ManageCaregiverAvailabilityClient() {
     startParsingTransition(() => {
         Papa.parse(file, {
             header: true,
-            skipEmptyLines: true,
+            skip_empty_lines: true,
+            relax_quotes: true,
+            relax_column_count: true,
+            trim: true,
             complete: async (results) => {
                 const rows: Record<string, string>[] = results.data as Record<string, string>[];
                 let headerColumns = results.meta.fields;
@@ -93,21 +96,29 @@ export default function ManageCaregiverAvailabilityClient() {
                     
                     const scheduleRow: Record<string, any> = {};
                     
-                    // The first column is always the date/label, don't process it for time.
-                    scheduleRow[headerColumns[0]] = row[headerColumns[0]];
-
-                    // Normalize all schedule cells (columns 2 through end)
-                    for (let i = 1; i < headerColumns.length; i++) {
-                        const col = headerColumns[i];
-                        if (col && row[col]) {
-                            scheduleRow[col] = extractAndMergeAvailable(row[col]);
-                        } else if (col) {
+                    // Normalize all schedule cells (all columns)
+                    headerColumns.forEach((col) => {
+                        if (row[col]) {
+                            const extracted = extractAndMergeAvailable(row[col]);
+                            // Also keep the original value if no 'Available' text is found, but it's not empty
+                            scheduleRow[col] = extracted !== "" ? extracted : row[col];
+                        } else {
                             scheduleRow[col] = ""; // Ensure empty cells are preserved as empty strings
                         }
-                    }
+                    });
+
                     currentCaregiver.schedule.push(scheduleRow);
                 }
                 
+                // DEBUGGING TOAST
+                toast({
+                    title: "Generated JSON for Server",
+                    description: `Found ${caregivers.length} caregivers. Check the browser console for the full JSON object.`,
+                    duration: 15000, // Keep toast open for 15 seconds
+                });
+                console.log("Generated JSON to be sent to server:", JSON.stringify(caregivers, null, 2));
+
+
                 if (caregivers.length === 0) {
                      toast({
                         title: "Parsing Failed",
