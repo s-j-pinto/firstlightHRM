@@ -16,10 +16,6 @@ import { Label } from '@/components/ui/label';
  * Detect if a row is a caregiver name row by checking if all columns after the first are empty.
  */
 function isCaregiverNameRow(row: Record<string, string>, headerColumns: string[]) {
-  const name = row[headerColumns[0]];
-  if (!name || name.trim() === "") {
-    return false;
-  }
   for (let i = 1; i < headerColumns.length; i++) {
     const col = headerColumns[i];
     if (!col) continue;
@@ -65,10 +61,7 @@ export default function ManageCaregiverAvailabilityClient() {
     startParsingTransition(() => {
         Papa.parse(file, {
             header: true,
-            skip_empty_lines: true,
-            relax_quotes: true,
-            relax_column_count: true,
-            trim: true,
+            skipEmptyLines: true,
             complete: async (results) => {
                 const rows: Record<string, string>[] = results.data as Record<string, string>[];
                 let headerColumns = results.meta.fields;
@@ -99,9 +92,8 @@ export default function ManageCaregiverAvailabilityClient() {
                     // Normalize all schedule cells (all columns)
                     headerColumns.forEach((col) => {
                         if (row[col]) {
-                            const extracted = extractAndMergeAvailable(row[col]);
-                            // Also keep the original value if no 'Available' text is found, but it's not empty
-                            scheduleRow[col] = extracted !== "" ? extracted : row[col];
+                            // Corrected logic: apply extraction to every column and only keep the result.
+                            scheduleRow[col] = extractAndMergeAvailable(row[col]);
                         } else {
                             scheduleRow[col] = ""; // Ensure empty cells are preserved as empty strings
                         }
