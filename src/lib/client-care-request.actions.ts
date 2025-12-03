@@ -21,7 +21,7 @@ type RequestCareFormValues = z.infer<typeof requestCareSchema>;
 
 export async function submitCareRequest(payload: RequestCareFormValues) {
     const validation = requestCareSchema.safeParse(payload);
-    const staffingAdminEmail = process.env.STAFFING_ADMIN_EMAIL || "admin-rc@firstlighthomecare.com";
+    const staffingAdminEmail = process.env.NEXT_PUBLIC_STAFFING_ADMIN_EMAIL || "admin-rc@firstlighthomecare.com";
 
     if (!validation.success) {
         return { message: "Invalid data provided.", error: true };

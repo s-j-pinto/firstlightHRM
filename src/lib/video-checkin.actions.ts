@@ -18,7 +18,7 @@ type RequestFormData = z.infer<typeof requestSchema>;
 
 export async function requestVideoCheckin(payload: RequestFormData) {
     const validation = requestSchema.safeParse(payload);
-    const staffingAdminEmail = process.env.STAFFING_ADMIN_EMAIL || "admin-rc@firstlighthomecare.com";
+    const staffingAdminEmail = process.env.NEXT_PUBLIC_STAFFING_ADMIN_EMAIL || "admin-rc@firstlighthomecare.com";
 
     if (!validation.success) {
         return { message: "Invalid data provided.", error: true };
