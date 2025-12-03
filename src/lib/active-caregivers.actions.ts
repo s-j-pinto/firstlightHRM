@@ -9,13 +9,15 @@ import { format, parse as dateParse } from 'date-fns';
 // Helper function to robustly parse 12-hour AM/PM time strings to 24-hour format
 function parseTo24HourFormat(timeStr: string): string | null {
     if (!timeStr) return null;
-    const timeMatch = timeStr.match(/(\d{1,2}):(\d{2}):(\d{2})\s*(AM|PM)/i);
+    const timeMatch = timeStr.match(/(\d{1,2}):(\d{2}):(\d{2})\s*(AM|PM)/i) || timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
     if (!timeMatch) {
         console.warn(`[Time Parser] Could not match time format for: "${timeStr}"`);
         return null;
     }
 
-    let [_, hours, minutes, seconds, ampm] = timeMatch;
+    let [_, hours, minutes, ampm] = timeMatch;
+    // If seconds are present, they are ignored for the 24-hour format string
+    
     let hour = parseInt(hours, 10);
 
     if (ampm.toUpperCase() === 'PM' && hour < 12) {
@@ -29,27 +31,16 @@ function parseTo24HourFormat(timeStr: string): string | null {
 }
 
 
-export async function processActiveCaregiverUpload(rows: Record<string, any>[]) {
+export async function processActiveCaregiverUpload(caregivers: { name: string; schedule: Record<string, any>[] }[]) {
   const firestore = serverDb;
   const now = Timestamp.now();
   
-  if (!rows || rows.length < 2) { // Need at least header, caregiver name, and availability row
-    return { message: "CSV is missing necessary data rows.", error: true };
+  if (!caregivers || caregivers.length === 0) {
+    return { message: "No valid caregiver data was processed from the CSV.", error: true };
   }
 
-  const headers = Object.keys(rows[0]);
-  
   try {
-    const allCaregiverNames = new Set<string>();
-    for (let i = 0; i < rows.length - 1; i++) {
-        const nameCell = rows[i][headers[0]]?.trim();
-        // Check if the current row looks like a caregiver name row
-        if (nameCell && nameCell !== "Total H's" && !nameCell.includes("Scheduled Availability")) {
-            allCaregiverNames.add(nameCell);
-        }
-    }
-
-    const caregiverNameArray = Array.from(allCaregiverNames);
+    const caregiverNameArray = caregivers.map(c => c.name);
     const profileMap = new Map<string, FirebaseFirestore.DocumentReference>();
     
     if (caregiverNameArray.length > 0) {
@@ -69,54 +60,51 @@ export async function processActiveCaregiverUpload(rows: Record<string, any>[]) 
     let operations = 0;
     const weeklyData: { [caregiverId: string]: { [weekIdentifier: string]: any } } = {};
 
-    for (let i = 0; i < rows.length - 1; i++) {
-        const currentNameRow = rows[i];
-        const nextAvailabilityRow = rows[i+1];
-        const caregiverName = currentNameRow[headers[0]]?.trim();
+    for (const caregiver of caregivers) {
+        const caregiverRef = profileMap.get(caregiver.name);
+        if (!caregiverRef) continue;
 
-        if (caregiverName && caregiverName !== "Total H's" && !caregiverName.includes("Scheduled Availability")) {
-            const caregiverRef = profileMap.get(caregiverName);
-            if (!caregiverRef) continue;
+        for (const scheduleRow of caregiver.schedule) {
+            const headers = Object.keys(scheduleRow);
+            const scheduleDateString = scheduleRow[headers[0]];
+            if (!scheduleDateString || isNaN(dateParse(scheduleDateString, 'MM/dd/yyyy', new Date()).getTime())) continue;
 
-            headers.forEach(header => {
-                if (!header.trim() || header === headers[0]) return; // Skip name column
+            const recordDate = dateParse(scheduleDateString, 'MM/dd/yyyy', new Date());
+            const weekIdentifier = `week_${format(recordDate, 'yyyy-ww')}`;
+            const dayKey = format(recordDate, 'eeee').toLowerCase();
 
-                const headerParts = header.split('\n');
-                if (headerParts.length < 2) return;
-
-                const rawDate = headerParts[1];
-                if (!rawDate) return;
-
-                const recordDate = dateParse(rawDate.trim(), 'M/d/yyyy', new Date());
-                if (isNaN(recordDate.getTime())) return;
-
-                const weekIdentifier = `week_${format(recordDate, 'yyyy-ww')}`;
-                const dayKey = format(recordDate, 'eeee').toLowerCase();
-                const availabilityCell = nextAvailabilityRow[header]?.trim();
+            let daySlots: string[] = [];
+            
+            // Iterate over day columns (Sunday, Monday, etc.)
+            for (let i = 1; i < headers.length; i++) {
+                const dayColumnHeader = headers[i];
+                const availabilityCell = scheduleRow[dayColumnHeader];
                 
-                if (availabilityCell && availabilityCell.includes("Scheduled Availability")) {
-                    const timeLine = availabilityCell.split('\n').find(l => l.includes("To"));
-                     if (timeLine) {
-                         const timeParts = timeLine.split("To").map(t => t.trim());
-                         if (timeParts.length === 2) {
-                             const formattedStartTime = parseTo24HourFormat(timeParts[0]);
-                             const formattedEndTime = parseTo24HourFormat(timeParts[1]);
-
-                             if (formattedStartTime && formattedEndTime) {
-                                if (!weeklyData[caregiverRef.id]) weeklyData[caregiverRef.id] = {};
-                                if (!weeklyData[caregiverRef.id][weekIdentifier]) {
-                                    weeklyData[caregiverRef.id][weekIdentifier] = { createdAt: now, caregiverId: caregiverRef.id, caregiverName: caregiverName };
-                                }
-                                if (!weeklyData[caregiverRef.id][weekIdentifier][dayKey]) {
-                                    weeklyData[caregiverRef.id][weekIdentifier][dayKey] = [];
-                                }
-                                const timeSlotString = `${formattedStartTime} - ${formattedEndTime}`;
-                                weeklyData[caregiverRef.id][weekIdentifier][dayKey].push(timeSlotString);
-                             }
-                         }
-                     }
+                if (availabilityCell && typeof availabilityCell === 'string') {
+                    const timeSlots = availabilityCell.split(',');
+                    for(const slot of timeSlots) {
+                        const matches = slot.match(/Available\s*(.*?)\s*To\s*(.*)/i);
+                        if (matches && matches.length === 3) {
+                            const formattedStartTime = parseTo24HourFormat(matches[1].trim());
+                            const formattedEndTime = parseTo24HourFormat(matches[2].trim());
+                            if(formattedStartTime && formattedEndTime) {
+                                daySlots.push(`${formattedStartTime} - ${formattedEndTime}`);
+                            }
+                        }
+                    }
                 }
-            });
+            }
+            
+            if (daySlots.length > 0) {
+                if (!weeklyData[caregiverRef.id]) weeklyData[caregiverRef.id] = {};
+                if (!weeklyData[caregiverRef.id][weekIdentifier]) {
+                    weeklyData[caregiverRef.id][weekIdentifier] = { createdAt: now, caregiverId: caregiverRef.id, caregiverName: caregiver.name };
+                }
+                 if (!weeklyData[caregiverRef.id][weekIdentifier][dayKey]) {
+                    weeklyData[caregiverRef.id][weekIdentifier][dayKey] = [];
+                }
+                weeklyData[caregiverRef.id][weekIdentifier][dayKey].push(...daySlots);
+            }
         }
     }
 
@@ -131,7 +119,10 @@ export async function processActiveCaregiverUpload(rows: Record<string, any>[]) 
             const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
             days.forEach(day => {
                 if (!dataToSet[day]) {
-                    dataToSet[day] = []; // Ensure empty days are explicitly cleared to overwrite old data
+                    dataToSet[day] = []; // Ensure empty days are explicitly cleared
+                } else {
+                    // Remove duplicates
+                    dataToSet[day] = [...new Set(dataToSet[day])];
                 }
             });
 

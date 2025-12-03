@@ -13,17 +13,14 @@ import { Loader2, Upload } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 
 /**
- * Detect if a row is a caregiver name row by checking if columns 2-7 are empty.
+ * Detect if a row is a caregiver name row by checking if all columns after the first are empty.
  */
 function isCaregiverNameRow(row: Record<string, string>, headerColumns: string[]) {
-  // A row must have at least a name in the first column.
   const name = row[headerColumns[0]];
   if (!name || name.trim() === "") {
     return false;
   }
-  
-  // A name row should have nothing in the subsequent day columns.
-  for (let i = 1; i <= 6; i++) {
+  for (let i = 1; i < headerColumns.length; i++) {
     const col = headerColumns[i];
     if (!col) continue;
     const val = row[col];
@@ -33,19 +30,18 @@ function isCaregiverNameRow(row: Record<string, string>, headerColumns: string[]
 }
 
 /**
- * Extract all occurrences of "Available {start} To {end}" in a cell.
- * Joins multiple occurrences with a newline.
+ * Extract all occurrences of "Available {start} To {end}" in a cell
+ * and merge into a single string, separated by commas.
  */
-function extractAvailable(cell: string): string {
+function extractAndMergeAvailable(cell: string): string {
   if (!cell || typeof cell !== "string") return "";
 
-  // Global regex to find all "Available..." patterns
   const matches = [...cell.matchAll(/Available\s*(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)\s*To\s*(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)/gi)];
 
   if (matches.length === 0) return "";
 
-  // Rebuild a clean, normalized string with all found time slots
-  return matches.map(m => `Available ${m[1]} To ${m[2]}`).join("\n");
+  // Merge all available times into single line
+  return matches.map(m => `Available ${m[1]} To ${m[2]}`).join(", ");
 }
 
 
@@ -72,7 +68,7 @@ export default function ManageCaregiverAvailabilityClient() {
             skipEmptyLines: true,
             complete: async (results) => {
                 const rows: Record<string, string>[] = results.data as Record<string, string>[];
-                const headerColumns = results.meta.fields;
+                let headerColumns = results.meta.fields;
 
                 if (!headerColumns || rows.length < 1) {
                     toast({ title: "Invalid CSV", description: "The CSV file is empty or improperly formatted.", variant: "destructive" });
@@ -93,23 +89,23 @@ export default function ManageCaregiverAvailabilityClient() {
                         continue; // Move to the next row after finding a name
                     }
 
-                    // If we are under a caregiver, process this as a schedule row
-                    if (currentCaregiver) {
-                         // A schedule row must have a date in the first column to be valid
-                        const scheduleDate = row[headerColumns[0]];
-                        if (!scheduleDate || scheduleDate.trim() === "") continue;
+                    if (!currentCaregiver) continue;
+                    
+                    const scheduleRow: Record<string, any> = {};
+                    
+                    // The first column is always the date/label, don't process it for time.
+                    scheduleRow[headerColumns[0]] = row[headerColumns[0]];
 
-                        const scheduleRow: Record<string, any> = { Date: scheduleDate };
-                        
-                        // Normalize all schedule cells (columns 2–7)
-                        for (let i = 1; i < headerColumns.length; i++) {
-                            const col = headerColumns[i];
-                            if (col) {
-                                scheduleRow[col] = extractAvailable(row[col]);
-                            }
+                    // Normalize all schedule cells (columns 2 through end)
+                    for (let i = 1; i < headerColumns.length; i++) {
+                        const col = headerColumns[i];
+                        if (col && row[col]) {
+                            scheduleRow[col] = extractAndMergeAvailable(row[col]);
+                        } else if (col) {
+                            scheduleRow[col] = ""; // Ensure empty cells are preserved as empty strings
                         }
-                        currentCaregiver.schedule.push(scheduleRow);
                     }
+                    currentCaregiver.schedule.push(scheduleRow);
                 }
                 
                 if (caregivers.length === 0) {
