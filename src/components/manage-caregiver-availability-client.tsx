@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useTransition, ChangeEvent, ReactNode } from 'react';
+import { useState, useTransition, ChangeEvent } from 'react';
 import Papa from 'papaparse';
 import { processActiveCaregiverUpload } from '@/lib/active-caregivers.actions';
 
@@ -11,6 +11,43 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Upload } from 'lucide-react';
 import { Label } from '@/components/ui/label';
+
+/**
+ * Detect if a row is a caregiver name row by checking if columns 2-7 are empty.
+ */
+function isCaregiverNameRow(row: Record<string, string>, headerColumns: string[]) {
+  // A row must have at least a name in the first column.
+  const name = row[headerColumns[0]];
+  if (!name || name.trim() === "") {
+    return false;
+  }
+  
+  // A name row should have nothing in the subsequent day columns.
+  for (let i = 1; i <= 6; i++) {
+    const col = headerColumns[i];
+    if (!col) continue;
+    const val = row[col];
+    if (val && String(val).trim() !== "") return false;
+  }
+  return true;
+}
+
+/**
+ * Extract all occurrences of "Available {start} To {end}" in a cell.
+ * Joins multiple occurrences with a newline.
+ */
+function extractAvailable(cell: string): string {
+  if (!cell || typeof cell !== "string") return "";
+
+  // Global regex to find all "Available..." patterns
+  const matches = [...cell.matchAll(/Available\s*(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)\s*To\s*(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)/gi)];
+
+  if (matches.length === 0) return "";
+
+  // Rebuild a clean, normalized string with all found time slots
+  return matches.map(m => `Available ${m[1]} To ${m[2]}`).join("\n");
+}
+
 
 export default function ManageCaregiverAvailabilityClient() {
   const [file, setFile] = useState<File | null>(null);
@@ -31,51 +68,61 @@ export default function ManageCaregiverAvailabilityClient() {
 
     startParsingTransition(() => {
         Papa.parse(file, {
-            header: false,
+            header: true,
             skipEmptyLines: true,
             complete: async (results) => {
-                const rows: string[][] = results.data as string[][];
-                if (rows.length < 2) {
-                    toast({ title: "Invalid CSV", description: "Not enough rows to process.", variant: "destructive" });
+                const rows: Record<string, string>[] = results.data as Record<string, string>[];
+                const headerColumns = results.meta.fields;
+
+                if (!headerColumns || rows.length < 1) {
+                    toast({ title: "Invalid CSV", description: "The CSV file is empty or improperly formatted.", variant: "destructive" });
                     return;
                 }
 
-                const headers = rows[0];
-                const parsedData: Record<string, any>[] = [];
-                
-                for (let i = 1; i < rows.length - 1; i++) {
-                    const nameRow = rows[i];
-                    const availabilityRow = rows[i + 1];
-                    const caregiverName = nameRow[0]?.trim();
+                const caregivers: { name: string; schedule: Record<string, any>[] }[] = [];
+                let currentCaregiver: { name: string; schedule: Record<string, any>[] } | null = null;
 
-                    if (caregiverName && caregiverName !== "Total H's" && !caregiverName.includes("Scheduled Availability")) {
-                        headers.forEach((header, j) => {
-                            if (j === 0) return; // Skip the name column header
+                for (const row of rows) {
+                    // Check if it's a caregiver name row
+                    if (isCaregiverNameRow(row, headerColumns)) {
+                        const name = row[headerColumns[0]];
+                        if (name && name.trim() !== "") {
+                            currentCaregiver = { name: name.trim(), schedule: [] };
+                            caregivers.push(currentCaregiver);
+                        }
+                        continue; // Move to the next row after finding a name
+                    }
 
-                            const availabilityCell = availabilityRow[j]?.trim();
-                            if (availabilityCell && availabilityCell.includes("Scheduled Availability")) {
-                                parsedData.push({
-                                    caregiverName: caregiverName,
-                                    header: header,
-                                    availability: availabilityCell,
-                                });
+                    // If we are under a caregiver, process this as a schedule row
+                    if (currentCaregiver) {
+                         // A schedule row must have a date in the first column to be valid
+                        const scheduleDate = row[headerColumns[0]];
+                        if (!scheduleDate || scheduleDate.trim() === "") continue;
+
+                        const scheduleRow: Record<string, any> = { Date: scheduleDate };
+                        
+                        // Normalize all schedule cells (columns 2–7)
+                        for (let i = 1; i < headerColumns.length; i++) {
+                            const col = headerColumns[i];
+                            if (col) {
+                                scheduleRow[col] = extractAvailable(row[col]);
                             }
-                        });
-                        i++; // Increment i again because we've processed the availability row
+                        }
+                        currentCaregiver.schedule.push(scheduleRow);
                     }
                 }
                 
-                if (parsedData.length === 0) {
+                if (caregivers.length === 0) {
                      toast({
-                        title: "Parsing Issue",
-                        description: "Not able to find scheduled availabilty data linked to caregiver name. Pls check csv format.",
+                        title: "Parsing Failed",
+                        description: "Could not find any valid caregiver schedules in the provided format.",
                         variant: "destructive",
                         duration: 8000,
                     });
                     return;
                 }
 
-                const uploadResult = await processActiveCaregiverUpload(parsedData);
+                const uploadResult = await processActiveCaregiverUpload(caregivers);
 
                 toast({
                     title: uploadResult.error ? 'Upload Failed' : 'Upload Successful',
@@ -89,7 +136,7 @@ export default function ManageCaregiverAvailabilityClient() {
                     if(fileInput) fileInput.value = '';
                 }
             },
-            error: (error) => {
+            error: (error: any) => {
                 toast({ title: 'Parsing Error', description: `Error parsing CSV file: ${error.message}`, variant: 'destructive' });
             }
         });
