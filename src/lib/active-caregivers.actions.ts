@@ -65,45 +65,47 @@ export async function processActiveCaregiverUpload(caregivers: { name: string; s
         if (!caregiverRef) continue;
 
         for (const scheduleRow of caregiver.schedule) {
-            const headers = Object.keys(scheduleRow);
-            const scheduleDateString = scheduleRow[headers[0]];
-            if (!scheduleDateString || isNaN(dateParse(scheduleDateString, 'MM/dd/yyyy', new Date()).getTime())) continue;
-
-            const recordDate = dateParse(scheduleDateString, 'MM/dd/yyyy', new Date());
-            const weekIdentifier = `week_${format(recordDate, 'yyyy-ww')}`;
-            const dayKey = format(recordDate, 'eeee').toLowerCase();
-
-            let daySlots: string[] = [];
             
-            // Iterate over day columns (Sunday, Monday, etc.)
-            for (let i = 1; i < headers.length; i++) {
-                const dayColumnHeader = headers[i];
-                const availabilityCell = scheduleRow[dayColumnHeader];
+            for (const header in scheduleRow) {
+                if (!Object.prototype.hasOwnProperty.call(scheduleRow, header)) continue;
+
+                const dateMatch = header.match(/\n(\d{1,2}\/\d{1,2}\/\d{4})/);
+                if (!dateMatch) continue;
+
+                const scheduleDateString = dateMatch[1];
+                const recordDate = dateParse(scheduleDateString, 'MM/dd/yyyy', new Date());
+                if (isNaN(recordDate.getTime())) continue;
+
+                const weekIdentifier = `week_${format(recordDate, 'yyyy-ww')}`;
+                const dayKey = format(recordDate, 'eeee').toLowerCase();
+
+                const availabilityCell = scheduleRow[header];
+                if (!availabilityCell || typeof availabilityCell !== 'string') continue;
                 
-                if (availabilityCell && typeof availabilityCell === 'string') {
-                    const timeSlots = availabilityCell.split(',');
-                    for(const slot of timeSlots) {
-                        const matches = slot.match(/Available\s*(.*?)\s*To\s*(.*)/i);
-                        if (matches && matches.length === 3) {
-                            const formattedStartTime = parseTo24HourFormat(matches[1].trim());
-                            const formattedEndTime = parseTo24HourFormat(matches[2].trim());
-                            if(formattedStartTime && formattedEndTime) {
-                                daySlots.push(`${formattedStartTime} - ${formattedEndTime}`);
-                            }
+                const daySlots: string[] = [];
+                const timeSlots = availabilityCell.split(',');
+
+                for (const slot of timeSlots) {
+                    const matches = slot.match(/Available\s*(.*?)\s*To\s*(.*)/i);
+                    if (matches && matches.length === 3) {
+                        const formattedStartTime = parseTo24HourFormat(matches[1].trim());
+                        const formattedEndTime = parseTo24HourFormat(matches[2].trim());
+                        if (formattedStartTime && formattedEndTime) {
+                            daySlots.push(`${formattedStartTime} - ${formattedEndTime}`);
                         }
                     }
                 }
-            }
-            
-            if (daySlots.length > 0) {
-                if (!weeklyData[caregiverRef.id]) weeklyData[caregiverRef.id] = {};
-                if (!weeklyData[caregiverRef.id][weekIdentifier]) {
-                    weeklyData[caregiverRef.id][weekIdentifier] = { createdAt: now, caregiverId: caregiverRef.id, caregiverName: caregiver.name };
+                
+                if (daySlots.length > 0) {
+                    if (!weeklyData[caregiverRef.id]) weeklyData[caregiverRef.id] = {};
+                    if (!weeklyData[caregiverRef.id][weekIdentifier]) {
+                        weeklyData[caregiverRef.id][weekIdentifier] = { createdAt: now, caregiverId: caregiverRef.id, caregiverName: caregiver.name };
+                    }
+                     if (!weeklyData[caregiverRef.id][weekIdentifier][dayKey]) {
+                        weeklyData[caregiverRef.id][weekIdentifier][dayKey] = [];
+                    }
+                    weeklyData[caregiverRef.id][weekIdentifier][dayKey].push(...daySlots);
                 }
-                 if (!weeklyData[caregiverRef.id][weekIdentifier][dayKey]) {
-                    weeklyData[caregiverRef.id][weekIdentifier][dayKey] = [];
-                }
-                weeklyData[caregiverRef.id][weekIdentifier][dayKey].push(...daySlots);
             }
         }
     }
