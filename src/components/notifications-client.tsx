@@ -32,7 +32,6 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Define the shape of the email documents from the 'mail' collection
 interface MailDocument {
@@ -122,44 +121,40 @@ export default function NotificationsClient() {
             </Select>
           </div>
         </CardHeader>
-        <CardContent className="flex-1 p-0 overflow-hidden">
-          <div className="flex flex-row-reverse h-full">
-            <ScrollArea className="h-full w-full">
-              {isLoading ? (
-                  <div className="flex justify-center items-center h-full">
-                  <Loader2 className="animate-spin text-accent" />
-                  </div>
-              ) : filteredMail.length === 0 ? (
-                  <div className="p-4 text-center text-muted-foreground">No notifications found.</div>
-              ) : (
-                  <div className="space-y-2 p-4">
-                  {filteredMail.map((mail) => (
-                      <button
-                      key={mail.id}
-                      onClick={() => setSelectedMail(mail)}
-                      className={cn(
-                          "w-full text-left p-3 rounded-lg border transition-colors",
-                          selectedMail?.id === mail.id
-                          ? "bg-accent text-accent-foreground border-accent"
-                          : "hover:bg-muted/50"
-                      )}
-                      >
-                      <div className="flex justify-between items-start">
-                          <div className="flex-1 overflow-hidden">
-                              <p className="text-sm font-semibold truncate">{mail.to.join(", ")}</p>
-                              <p className="text-xs text-muted-foreground truncate">{mail.message.subject}</p>
-                          </div>
-                          <StatusIcon status={mail.delivery?.state} />
+        <CardContent className="flex-1 min-h-0 overflow-y-auto">
+          {isLoading ? (
+              <div className="flex justify-center items-center h-full">
+              <Loader2 className="animate-spin text-accent" />
+              </div>
+          ) : filteredMail.length === 0 ? (
+              <div className="p-4 text-center text-muted-foreground">No notifications found.</div>
+          ) : (
+              <div className="space-y-2">
+              {filteredMail.map((mail) => (
+                  <button
+                  key={mail.id}
+                  onClick={() => setSelectedMail(mail)}
+                  className={cn(
+                      "w-full text-left p-3 rounded-lg border transition-colors",
+                      selectedMail?.id === mail.id
+                      ? "bg-accent text-accent-foreground border-accent"
+                      : "hover:bg-muted/50"
+                  )}
+                  >
+                  <div className="flex justify-between items-start">
+                      <div className="flex-1 overflow-hidden">
+                          <p className="text-sm font-semibold truncate">{mail.to.join(", ")}</p>
+                          <p className="text-xs text-muted-foreground truncate">{mail.message.subject}</p>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                          {mail.delivery?.startTime ? format((mail.delivery.startTime as any).toDate(), 'PPp') : 'Pending...'}
-                      </p>
-                      </button>
-                  ))}
+                      <StatusIcon status={mail.delivery?.state} />
                   </div>
-              )}
-            </ScrollArea>
-          </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                      {mail.delivery?.startTime ? format((mail.delivery.startTime as any).toDate(), 'PPp') : 'Pending...'}
+                  </p>
+                  </button>
+              ))}
+              </div>
+          )}
         </CardContent>
       </Card>
 
@@ -171,9 +166,9 @@ export default function NotificationsClient() {
             {selectedMail ? `Details for email sent to ${selectedMail.to.join(', ')}` : "Select an email from the list to view its content."}
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex-1 overflow-auto">
+        <CardContent className="flex-1 min-h-0 overflow-auto">
           {selectedMail ? (
-            <div className="space-y-4">
+            <div className="space-y-4 h-full">
                 {selectedMail.delivery?.state === 'ERROR' && selectedMail.delivery.error && (
                     <Alert variant="destructive">
                         <AlertCircle className="h-4 w-4" />
@@ -183,7 +178,7 @@ export default function NotificationsClient() {
                         </AlertDescription>
                     </Alert>
                 )}
-              <div className="border rounded-lg overflow-hidden h-[calc(100vh-20rem)] flex flex-col">
+              <div className="border rounded-lg overflow-hidden h-full flex flex-col">
                 <div className="p-4 bg-muted/50 text-sm border-b">
                   <p><strong>To:</strong> {selectedMail.to.join(', ')}</p>
                   <p><strong>Subject:</strong> {selectedMail.message.subject}</p>
