@@ -33,7 +33,6 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useToast } from "@/hooks/use-toast";
 
 // Define the shape of the email documents from the 'mail' collection
 interface MailDocument {
@@ -61,7 +60,6 @@ export default function NotificationsClient() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const { toast } = useToast();
 
   const mailQuery = useMemoFirebase(
     () => query(collection(firestore, "mail"), orderBy("delivery.startTime", "desc")),
@@ -192,7 +190,6 @@ export default function NotificationsClient() {
                 <div className="p-4 bg-white h-[calc(100vh-24rem)] overflow-y-auto">
                   <iframe
                     key={selectedMail.id} // Force re-mount on email change
-                    ref={iframeRef}
                     className="w-full h-full border-0"
                     title="Email Content"
                     srcDoc={selectedMail.message.html}
