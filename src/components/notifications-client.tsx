@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import { useMemo, useState, useRef, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { collection, query, orderBy } from "firebase/firestore";
 import { firestore, useCollection, useMemoFirebase } from "@/firebase";
 import { format } from "date-fns";
@@ -23,13 +23,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 
@@ -57,7 +50,6 @@ interface MailDocument {
 export default function NotificationsClient() {
   const [selectedMail, setSelectedMail] = useState<MailDocument | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
 
   const mailQuery = useMemoFirebase(
     () => query(collection(firestore, "mail"), orderBy("delivery.startTime", "desc")),
@@ -69,16 +61,14 @@ export default function NotificationsClient() {
     if (!mailDocs) return [];
     
     return mailDocs.filter(mail => {
+      if (!searchTerm) return true;
       const lowerSearch = searchTerm.toLowerCase();
       const recipientMatch = mail.to.some(r => r.toLowerCase().includes(lowerSearch));
       const subjectMatch = mail.message.subject.toLowerCase().includes(lowerSearch);
       
-      const status = mail.delivery?.state || "PENDING";
-      const statusMatch = statusFilter === 'all' || status.toLowerCase() === statusFilter;
-      
-      return (recipientMatch || subjectMatch) && statusMatch;
+      return recipientMatch || subjectMatch;
     });
-  }, [mailDocs, searchTerm, statusFilter]);
+  }, [mailDocs, searchTerm]);
 
   const StatusIcon = ({ status }: { status?: string }) => {
     switch (status) {
@@ -108,17 +98,6 @@ export default function NotificationsClient() {
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
             </div>
-             <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
-                    <SelectValue placeholder="Filter by status..." />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="SUCCESS">Success</SelectItem>
-                    <SelectItem value="ERROR">Error</SelectItem>
-                    <SelectItem value="PENDING">Pending</SelectItem>
-                </SelectContent>
-            </Select>
           </div>
         </CardHeader>
         <CardContent className="flex-1 min-h-0 overflow-y-auto">
