@@ -21,10 +21,12 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
+import { Button } from "./ui/button";
 
 // Define the shape of the email documents from the 'mail' collection
 interface MailDocument {
@@ -50,6 +52,8 @@ interface MailDocument {
 export default function NotificationsClient() {
   const [selectedMail, setSelectedMail] = useState<MailDocument | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const emailsPerPage = 10;
   const iframeRef = React.useRef<HTMLIFrameElement>(null);
 
   const mailQuery = useMemoFirebase(
@@ -70,6 +74,18 @@ export default function NotificationsClient() {
       return recipientMatch || subjectMatch;
     });
   }, [mailDocs, searchTerm]);
+
+  // Reset to page 1 whenever the search term changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+  
+  const paginatedMail = useMemo(() => {
+    const startIndex = (currentPage - 1) * emailsPerPage;
+    return filteredMail.slice(startIndex, startIndex + emailsPerPage);
+  }, [filteredMail, currentPage, emailsPerPage]);
+  
+  const totalPages = Math.ceil(filteredMail.length / emailsPerPage);
 
   React.useEffect(() => {
     if (selectedMail && iframeRef.current) {
@@ -118,11 +134,11 @@ export default function NotificationsClient() {
               <div className="flex justify-center items-center h-full">
               <Loader2 className="animate-spin text-accent" />
               </div>
-          ) : filteredMail.length === 0 ? (
+          ) : paginatedMail.length === 0 ? (
               <div className="p-4 text-center text-muted-foreground">No notifications found.</div>
           ) : (
               <div className="space-y-2">
-              {filteredMail.map((mail) => (
+              {paginatedMail.map((mail) => (
                   <button
                   key={mail.id}
                   onClick={() => setSelectedMail(mail)}
@@ -148,6 +164,29 @@ export default function NotificationsClient() {
               </div>
           )}
         </CardContent>
+         <CardFooter className="flex justify-between items-center p-2 border-t">
+          <span className="text-xs text-muted-foreground">
+            Page {currentPage} of {totalPages}
+          </span>
+          <div className="flex gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </Button>
+          </div>
+        </CardFooter>
       </Card>
 
       {/* Right Pane: Email Preview */}
@@ -177,6 +216,7 @@ export default function NotificationsClient() {
                 </div>
                 <div className="p-0 bg-white flex-1">
                   <iframe
+                    key={selectedMail.id}
                     ref={iframeRef}
                     className="w-full h-full border-0"
                     title="Email Content"
