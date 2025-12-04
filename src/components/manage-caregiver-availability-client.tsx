@@ -24,7 +24,7 @@ const DAY_COLUMNS = [
 
 /**
  * Extract "Available" or "Scheduled Availability" ranges from a cell.
- * Keeps and combines both types of availability.
+ * If "Available" exists, it is prioritized.
  */
 function extractAvailability(cell: string | null | undefined): string {
   if (!cell || typeof cell !== "string") return "";
@@ -40,19 +40,23 @@ function extractAvailability(cell: string | null | undefined): string {
   let matches = [];
   let m;
 
-  // Extract ALL "Available" entries
+  // Extract ALL "Available" entries first
   while ((m = availableRegex.exec(text)) !== null) {
     matches.push(`Available\n${m[1]} To ${m[2]}`);
   }
 
-  // Extract ALL "Scheduled Availability" entries
+  // If any "Available" entries are found, return only those
+  if (matches.length > 0) {
+    return matches.join("\n\n");
+  }
+
+  // Otherwise, extract "Scheduled Availability" entries
   while ((m = scheduledRegex.exec(text)) !== null) {
     matches.push(`Scheduled Availability\n${m[1]} To ${m[2]}`);
   }
 
   return matches.join("\n\n");
 }
-
 
 /**
  * Determine if the row is a caregiver name row.
@@ -162,6 +166,8 @@ export default function ManageCaregiverAvailabilityClient() {
               });
               return;
           }
+          
+          console.log("Parsed Caregiver Data:", JSON.stringify(caregivers, null, 2));
 
           const uploadResult = await processActiveCaregiverUpload(caregivers);
 
