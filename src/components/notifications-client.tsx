@@ -50,6 +50,7 @@ interface MailDocument {
 export default function NotificationsClient() {
   const [selectedMail, setSelectedMail] = useState<MailDocument | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const iframeRef = React.useRef<HTMLIFrameElement>(null);
 
   const mailQuery = useMemoFirebase(
     () => query(collection(firestore, "mail"), orderBy("delivery.startTime", "desc")),
@@ -69,6 +70,18 @@ export default function NotificationsClient() {
       return recipientMatch || subjectMatch;
     });
   }, [mailDocs, searchTerm]);
+
+  React.useEffect(() => {
+    if (selectedMail && iframeRef.current) {
+        const iframe = iframeRef.current;
+        const document = iframe.contentDocument || iframe.contentWindow?.document;
+        if (document) {
+            document.open();
+            document.write(selectedMail.message.html);
+            document.close();
+        }
+    }
+  }, [selectedMail]);
 
   const StatusIcon = ({ status }: { status?: string }) => {
     switch (status) {
@@ -100,7 +113,7 @@ export default function NotificationsClient() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="flex-1 overflow-y-auto">
+        <CardContent className="flex-1 min-h-0 overflow-y-auto">
           {isLoading ? (
               <div className="flex justify-center items-center h-full">
               <Loader2 className="animate-spin text-accent" />
@@ -164,10 +177,9 @@ export default function NotificationsClient() {
                 </div>
                 <div className="p-0 bg-white flex-1">
                   <iframe
-                    key={selectedMail.id} // Force re-mount on email change
+                    ref={iframeRef}
                     className="w-full h-full border-0"
                     title="Email Content"
-                    srcDoc={selectedMail.message.html}
                     sandbox="allow-scripts allow-same-origin"
                   />
                 </div>
