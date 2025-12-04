@@ -41,21 +41,43 @@ export async function processActiveCaregiverUpload(caregivers: { name: string; s
     const profileMap = new Map<string, FirebaseFirestore.DocumentReference>();
 
     allCaregiversSnap.forEach(doc => {
-        const name = doc.data().Name;
-        if (name) {
-            // Key by "Last, First"
-            profileMap.set(name.trim(), doc.ref);
+      const name = doc.data().Name;
+      if (name) {
+        const trimmedName = name.trim();
+        profileMap.set(trimmedName, doc.ref);
+        
+        // Also map "Last, First" to the same ref if it's different
+        if (trimmedName.includes(', ')) {
+            const parts = trimmedName.split(', ');
+            if(parts.length === 2) {
+                const reversedName = `${parts[1]} ${parts[0]}`;
+                if (!profileMap.has(reversedName)) {
+                    profileMap.set(reversedName, doc.ref);
+                }
+            }
+        } else if (trimmedName.includes(' ')) {
+             const parts = trimmedName.split(' ');
+             if(parts.length > 1) {
+                const lastName = parts.pop();
+                const firstName = parts.join(' ');
+                const reversedName = `${lastName}, ${firstName}`;
+                 if (!profileMap.has(reversedName)) {
+                    profileMap.set(reversedName, doc.ref);
+                }
+             }
         }
+      }
     });
+    console.log(`[Action] Built profile map with ${profileMap.size} name variations.`);
 
     let batch = firestore.batch();
     let operations = 0;
     let caregiversUpdatedCount = 0;
 
     for (const caregiver of caregivers) {
-        const caregiverRef = profileMap.get(caregiver.name);
+        const caregiverRef = profileMap.get(caregiver.name.trim());
         if (!caregiverRef) {
-            console.warn(`[Action] Could not find active caregiver profile for name: "${caregiver.name}"`);
+            console.warn(`[Action] Could not find active caregiver profile for name: "${caregiver.name.trim()}"`);
             continue;
         }
 
@@ -66,28 +88,33 @@ export async function processActiveCaregiverUpload(caregivers: { name: string; s
         };
 
         let hasData = false;
+        console.log(`[Action] Processing schedule for: ${caregiver.name}`);
+
         for (const day in caregiver.schedule) {
             const dayKey = day.toLowerCase();
             const cellText = caregiver.schedule[day];
             const timeSlots: string[] = [];
             
             if(cellText) {
-                // Split by one or more newlines to handle various spacings
                 const availabilityEntries = cellText.split(/\n\n+/).filter(e => e.trim());
+                 console.log(`[Action] Day: ${day}, Entries Found: ${availabilityEntries.length}`);
                 
                 for(const entry of availabilityEntries) {
-                    const timeParts = entry.split('\n');
-                    if (timeParts.length === 2) {
-                        const timeRange = timeParts[1].trim(); // "5:00:00 AM To 8:00:00 PM"
-                        const [startTimeStr, endTimeStr] = timeRange.split(' To ');
+                    // Use a regex to find the time range more reliably
+                    const timeRangeMatch = entry.match(/(\d{1,2}:\d{2}:\d{2}\s*[AP]M)\s*To\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)/i);
 
+                    if (timeRangeMatch) {
+                        const startTimeStr = timeRangeMatch[1];
+                        const endTimeStr = timeRangeMatch[2];
                         const formattedStartTime = parseTo24HourFormat(startTimeStr);
                         const formattedEndTime = parseTo24HourFormat(endTimeStr);
                         
                         if (formattedStartTime && formattedEndTime) {
-                           // Store only the time range, without the "Available" or "Scheduled" prefix
                            timeSlots.push(`${formattedStartTime} - ${formattedEndTime}`);
+                           console.log(`[Action] ... Parsed and added slot: ${formattedStartTime} - ${formattedEndTime}`);
                         }
+                    } else {
+                        console.warn(`[Action] ... Could not parse time range from entry: "${entry}"`);
                     }
                 }
             }
@@ -96,24 +123,28 @@ export async function processActiveCaregiverUpload(caregivers: { name: string; s
         }
         
         if (hasData) {
+            console.log(`[Action] Data found for ${caregiver.name}. Preparing to update Firestore.`);
             const availabilityDocRef = firestore.collection('caregivers_active').doc(caregiverRef.id).collection('availability').doc('current_week');
             batch.set(availabilityDocRef, availabilityData, { merge: true });
             operations++;
+            caregiversUpdatedCount++;
+        } else {
+             console.log(`[Action] No valid data found for ${caregiver.name}. Skipping update.`);
         }
     }
     
-    caregiversUpdatedCount = operations;
-
     if (operations > 0) {
+        console.log(`[Action] Committing batch with ${operations} operations.`);
         await batch.commit();
+    } else {
+        console.log('[Action] No operations to commit.');
     }
     
     revalidatePath('/staffing-admin/manage-active-caregivers');
-    return { message: `Upload finished. Processed availability for ${caregiversUpdatedCount} caregivers.` };
+    return { message: `Upload finished. Processed availability for ${caregivers.length} caregivers. Updated ${caregiversUpdatedCount} records.` };
 
   } catch (error: any) {
       console.error('[Action Error] Critical error during availability upload:', error);
       return { message: `An error occurred during the upload: ${error.message}`, error: true };
   }
 }
-
