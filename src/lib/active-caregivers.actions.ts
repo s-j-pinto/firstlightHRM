@@ -45,13 +45,6 @@ export async function processActiveCaregiverUpload(caregivers: { name: string; s
         if (name) {
             // Key by "Last, First"
             profileMap.set(name.trim(), doc.ref);
-            
-            // Also key by "First Last" if possible
-            const parts = name.split(',').map((p: string) => p.trim());
-            if (parts.length === 2) {
-                const firstNameFirst = `${parts[1]} ${parts[0]}`;
-                profileMap.set(firstNameFirst, doc.ref);
-            }
         }
     });
 
@@ -80,27 +73,21 @@ export async function processActiveCaregiverUpload(caregivers: { name: string; s
             
             if(cellText) {
                 // Split by one or more newlines to handle various spacings
-                const availabilityEntries = cellText.split(/\n+/).filter(e => e.trim());
-                
-                let currentType = '';
-                let tempStartTime = '';
+                const availabilityEntries = cellText.split(/\n\n+/).filter(e => e.trim());
                 
                 for(const entry of availabilityEntries) {
-                    if (entry.startsWith('Available') || entry.startsWith('Scheduled Availability')) {
-                        currentType = entry.trim();
-                    } else if (entry.includes('To')) {
-                         const timeParts = entry.split('To');
-                         if (timeParts.length === 2) {
-                             const startTimeStr = timeParts[0].trim();
-                             const endTimeStr = timeParts[1].trim();
+                    const timeParts = entry.split('\n');
+                    if (timeParts.length === 2) {
+                        const timeRange = timeParts[1].trim(); // "5:00:00 AM To 8:00:00 PM"
+                        const [startTimeStr, endTimeStr] = timeRange.split(' To ');
 
-                             const formattedStartTime = parseTo24HourFormat(startTimeStr);
-                             const formattedEndTime = parseTo24HourFormat(endTimeStr);
-                             
-                             if (formattedStartTime && formattedEndTime) {
-                                timeSlots.push(`${currentType}: ${formattedStartTime} - ${formattedEndTime}`);
-                             }
-                         }
+                        const formattedStartTime = parseTo24HourFormat(startTimeStr);
+                        const formattedEndTime = parseTo24HourFormat(endTimeStr);
+                        
+                        if (formattedStartTime && formattedEndTime) {
+                           // Store only the time range, without the "Available" or "Scheduled" prefix
+                           timeSlots.push(`${formattedStartTime} - ${formattedEndTime}`);
+                        }
                     }
                 }
             }
@@ -129,3 +116,4 @@ export async function processActiveCaregiverUpload(caregivers: { name: string; s
       return { message: `An error occurred during the upload: ${error.message}`, error: true };
   }
 }
+
