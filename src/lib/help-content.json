@@ -1,3 +1,4 @@
+
 {
   "initialContact": {
     "title": "Initial Contact Form Guide",
@@ -270,8 +271,7 @@
         "type": "list",
         "items": [
           "<strong>Upload CSV:</strong> Select a CSV file containing your client list. The file must contain columns for at least 'Client Name' and 'Mobile'.",
-          "<strong>Syncing Process:</strong> When you upload, the system will update existing clients, add new ones, and automatically mark any client not present in the file as 'INACTIVE'. This ensures your list is always current.",
-          "<strong>View Clients:</strong> The list below the upload button shows all currently 'ACTIVE' clients in the database."
+          "<strong>Syncing Process:</strong> When you upload, the system will update existing clients, add new ones, and automatically mark any client not present in the file as 'INACTIVE'. This ensures your list is always current."
         ]
       }
     ]
@@ -360,6 +360,29 @@
           "<strong>Immediate Sending:</strong> If you set the interval to 0, you can choose which lead sources (e.g., 'Google Ads', 'App Referral') should trigger this email instantly."
         ]
       }
+    ]
+  },
+  "notifications": {
+    "title": "Notifications Sent Guide",
+    "content": [
+        {
+            "type": "paragraph",
+            "text": "This page serves as an outbox for all automated and manual emails sent from the system. It allows you to monitor the delivery status and content of each message."
+        },
+        {
+            "type": "heading",
+            "text": "Features"
+        },
+        {
+            "type": "list",
+            "items": [
+                "<strong>Email List:</strong> The left pane shows a chronological list of all sent emails. You can see the recipient, subject, and time sent.",
+                "<strong>Search & Filter:</strong> Use the search bar to find emails by recipient or subject. Use the dropdown to filter by delivery status (Success, Error, Pending).",
+                "<strong>Status Indicators:</strong> A quick-glance icon next to each email shows its delivery status: a green check for success, a red 'X' for error, a clock for pending, and a spinner for processing.",
+                "<strong>Email Preview:</strong> Click an email in the list to see its full, formatted content in the right pane, exactly as the recipient saw it.",
+                "<strong>Error Details:</strong> If an email failed to send, a prominent error box will appear in the preview pane, showing the specific reason for the failure (e.g., 'Invalid email address')."
+            ]
+        }
     ]
   },
   "clientDashboard": {

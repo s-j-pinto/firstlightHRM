@@ -109,6 +109,9 @@ export function AppHeader() {
                 <Link href="/owner/campaigns" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
                     Campaigns
                 </Link>
+                 <Link href="/owner/notifications" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
+                    Notifications Sent
+                </Link>
                  <Link href="/owner/reports" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
                     Reports
                 </Link>
