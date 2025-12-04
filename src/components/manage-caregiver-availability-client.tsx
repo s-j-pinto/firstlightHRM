@@ -24,6 +24,7 @@ const DAY_COLUMNS = [
 
 /**
  * Extract "Available" or "Scheduled Availability" ranges from a cell.
+ * Keeps and combines both types of availability.
  */
 function extractAvailability(cell: string | null | undefined): string {
   if (!cell || typeof cell !== "string") return "";
@@ -39,12 +40,12 @@ function extractAvailability(cell: string | null | undefined): string {
   let matches = [];
   let m;
 
+  // Extract ALL "Available" entries
   while ((m = availableRegex.exec(text)) !== null) {
     matches.push(`Available\n${m[1]} To ${m[2]}`);
   }
 
-  if (matches.length > 0) return matches.join("\n\n");
-
+  // Extract ALL "Scheduled Availability" entries
   while ((m = scheduledRegex.exec(text)) !== null) {
     matches.push(`Scheduled Availability\n${m[1]} To ${m[2]}`);
   }
@@ -56,6 +57,7 @@ function extractAvailability(cell: string | null | undefined): string {
 /**
  * Determine if the row is a caregiver name row.
  * Name rows look like: "Aguirre, Ana",,,,,,
+ * Meaning: first column has value, columns 2–8 are empty.
  */
 function isCaregiverNameRow(rowObj: Record<string, string>): boolean {
   const keys = Object.keys(rowObj);
@@ -160,8 +162,6 @@ export default function ManageCaregiverAvailabilityClient() {
               });
               return;
           }
-
-          console.log("Parsed Caregiver Data to be sent to server:", JSON.stringify(caregivers, null, 2));
 
           const uploadResult = await processActiveCaregiverUpload(caregivers);
 
