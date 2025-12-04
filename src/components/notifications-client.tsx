@@ -164,14 +164,14 @@ export default function NotificationsClient() {
       </Card>
 
       {/* Right Pane: Email Preview */}
-      <Card className="md:col-span-2 lg:col-span-3">
+      <Card className="md:col-span-2 lg:col-span-3 flex flex-col">
         <CardHeader>
           <CardTitle>Email Preview</CardTitle>
           <CardDescription>
             {selectedMail ? `Details for email sent to ${selectedMail.to.join(', ')}` : "Select an email from the list to view its content."}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex-1 overflow-auto">
           {selectedMail ? (
             <div className="space-y-4">
                 {selectedMail.delivery?.state === 'ERROR' && selectedMail.delivery.error && (
@@ -183,12 +183,12 @@ export default function NotificationsClient() {
                         </AlertDescription>
                     </Alert>
                 )}
-              <div className="border rounded-lg overflow-hidden">
+              <div className="border rounded-lg overflow-hidden h-[calc(100vh-20rem)] flex flex-col">
                 <div className="p-4 bg-muted/50 text-sm border-b">
                   <p><strong>To:</strong> {selectedMail.to.join(', ')}</p>
                   <p><strong>Subject:</strong> {selectedMail.message.subject}</p>
                 </div>
-                <div className="p-4 bg-white h-[calc(100vh-24rem)] overflow-y-auto">
+                <div className="p-0 bg-white flex-1">
                   <iframe
                     key={selectedMail.id} // Force re-mount on email change
                     className="w-full h-full border-0"
@@ -200,7 +200,7 @@ export default function NotificationsClient() {
               </div>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center h-[60vh] text-center text-muted-foreground border-2 border-dashed rounded-lg">
+            <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground border-2 border-dashed rounded-lg">
                 <Mail className="h-16 w-16 mb-4" />
                 <h3 className="text-lg font-medium">No Email Selected</h3>
                 <p>Select an email from the left panel to see its details here.</p>
