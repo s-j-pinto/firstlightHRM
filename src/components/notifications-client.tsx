@@ -166,9 +166,9 @@ export default function NotificationsClient() {
             {selectedMail ? `Details for email sent to ${selectedMail.to.join(', ')}` : "Select an email from the list to view its content."}
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex-1 min-h-0 overflow-auto">
+        <CardContent className="flex-1 min-h-0 overflow-y-auto">
           {selectedMail ? (
-            <div className="space-y-4 h-full">
+            <div className="space-y-4 h-full flex flex-col">
                 {selectedMail.delivery?.state === 'ERROR' && selectedMail.delivery.error && (
                     <Alert variant="destructive">
                         <AlertCircle className="h-4 w-4" />
@@ -178,7 +178,7 @@ export default function NotificationsClient() {
                         </AlertDescription>
                     </Alert>
                 )}
-              <div className="border rounded-lg overflow-hidden h-full flex flex-col">
+              <div className="border rounded-lg overflow-hidden h-full flex flex-col flex-1">
                 <div className="p-4 bg-muted/50 text-sm border-b">
                   <p><strong>To:</strong> {selectedMail.to.join(', ')}</p>
                   <p><strong>Subject:</strong> {selectedMail.message.subject}</p>
