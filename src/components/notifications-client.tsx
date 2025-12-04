@@ -100,7 +100,7 @@ export default function NotificationsClient() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="flex-1 min-h-0 overflow-y-auto">
+        <CardContent className="flex-1 overflow-y-auto">
           {isLoading ? (
               <div className="flex justify-center items-center h-full">
               <Loader2 className="animate-spin text-accent" />
