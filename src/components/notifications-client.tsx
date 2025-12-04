@@ -84,18 +84,6 @@ export default function NotificationsClient() {
     });
   }, [mailDocs, searchTerm, statusFilter]);
 
-  useEffect(() => {
-    if (selectedMail && iframeRef.current) {
-      const iframe = iframeRef.current;
-      iframe.srcdoc = selectedMail.message.html;
-      toast({
-        title: "Selected Email Body (Debug)",
-        description: <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4"><code className="text-white">{selectedMail.message.html}</code></pre>,
-        duration: 20000
-      });
-    }
-  }, [selectedMail, toast]);
-
   const StatusIcon = ({ status }: { status?: string }) => {
     switch (status) {
       case "SUCCESS":
@@ -203,9 +191,11 @@ export default function NotificationsClient() {
                 </div>
                 <div className="p-4 bg-white h-[calc(100vh-24rem)] overflow-y-auto">
                   <iframe
+                    key={selectedMail.id} // Force re-mount on email change
                     ref={iframeRef}
                     className="w-full h-full border-0"
                     title="Email Content"
+                    srcDoc={selectedMail.message.html}
                     sandbox="allow-scripts allow-same-origin"
                   />
                 </div>
