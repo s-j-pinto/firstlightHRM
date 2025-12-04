@@ -59,7 +59,6 @@ export default function NotificationsClient() {
   const [selectedMail, setSelectedMail] = useState<MailDocument | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const mailQuery = useMemoFirebase(
     () => query(collection(firestore, "mail"), orderBy("delivery.startTime", "desc")),
@@ -123,7 +122,7 @@ export default function NotificationsClient() {
             </Select>
           </div>
         </CardHeader>
-        <CardContent className="flex-1 overflow-hidden p-0">
+        <CardContent className="flex-1 p-0 overflow-hidden">
           <ScrollArea className="h-full">
             {isLoading ? (
                 <div className="flex justify-center items-center h-full">
