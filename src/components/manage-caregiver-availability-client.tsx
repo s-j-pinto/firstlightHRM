@@ -161,6 +161,8 @@ export default function ManageCaregiverAvailabilityClient() {
               return;
           }
 
+          console.log("Parsed Caregiver Data to be sent to server:", JSON.stringify(caregivers, null, 2));
+
           const uploadResult = await processActiveCaregiverUpload(caregivers);
 
           toast({
