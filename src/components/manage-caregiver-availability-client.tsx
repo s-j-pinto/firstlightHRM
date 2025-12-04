@@ -12,32 +12,68 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Upload } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 
-/**
- * Detect if a row is a caregiver name row by checking if all columns after the first are empty.
- */
-function isCaregiverNameRow(row: Record<string, string>, headerColumns: string[]) {
-  for (let i = 1; i < headerColumns.length; i++) {
-    const col = headerColumns[i];
-    if (!col) continue;
-    const val = row[col];
-    if (val && String(val).trim() !== "") return false;
-  }
-  return true;
-}
+const DAY_COLUMNS = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+];
 
 /**
- * Extract all occurrences of "Available {start} To {end}" in a cell
- * and merge into a single string, separated by commas.
+ * Extract "Available" or "Scheduled Availability" ranges from a cell.
  */
-function extractAndMergeAvailable(cell: string): string {
+function extractAvailability(cell: string | null | undefined): string {
   if (!cell || typeof cell !== "string") return "";
 
-  const matches = [...cell.matchAll(/Available\s*(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)\s*To\s*(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)/gi)];
+  const text = cell.replace(/\r/g, "");
 
-  if (matches.length === 0) return "";
+  const availableRegex =
+    /Available\s*\n?\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)\s*To\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)/gi;
 
-  // Merge all available times into single line, separated by a comma and space for readability
-  return matches.map(m => `Available ${m[1]} To ${m[2]}`).join(", ");
+  const scheduledRegex =
+    /Scheduled Availability\s*\n?\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)\s*To\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)/gi;
+
+  let matches = [];
+  let m;
+
+  while ((m = availableRegex.exec(text)) !== null) {
+    matches.push(`Available\n${m[1]} To ${m[2]}`);
+  }
+
+  if (matches.length > 0) return matches.join("\n\n");
+
+  while ((m = scheduledRegex.exec(text)) !== null) {
+    matches.push(`Scheduled Availability\n${m[1]} To ${m[2]}`);
+  }
+
+  return matches.join("\n\n");
+}
+
+
+/**
+ * Determine if the row is a caregiver name row.
+ * Name rows look like: "Aguirre, Ana",,,,,,
+ */
+function isCaregiverNameRow(rowObj: Record<string, string>): boolean {
+  const keys = Object.keys(rowObj);
+  if (keys.length === 0) return false;
+
+  const name = rowObj[keys[0]];
+  if (!name || !name.trim()) return false;
+
+  // Check if columns 2–8 (indices 1-7) are empty or undefined
+  for (let i = 1; i <= 7; i++) {
+    const col = keys[i];
+    if (!col) continue;
+
+    const val = rowObj[col];
+    if (val && val.trim()) return false;
+  }
+
+  return true;
 }
 
 
@@ -59,86 +95,90 @@ export default function ManageCaregiverAvailabilityClient() {
     }
 
     startParsingTransition(() => {
-        Papa.parse(file, {
-            header: true,
-            skipEmptyLines: true,
-            complete: async (results) => {
-                const rows: Record<string, string>[] = results.data as Record<string, string>[];
-                let headerColumns = results.meta.fields;
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: false,
+        complete: async (results) => {
+          const rows: Record<string, string>[] = results.data as Record<string, string>[];
+          const headerColumns = results.meta.fields;
 
-                if (!headerColumns || rows.length < 1) {
-                    toast({ title: "Invalid CSV", description: "The CSV file is empty or improperly formatted.", variant: "destructive" });
-                    return;
-                }
+          if (!headerColumns || rows.length < 1) {
+            toast({ title: "Invalid CSV", description: "The CSV file is empty or improperly formatted.", variant: "destructive" });
+            return;
+          }
+          
+          const caregivers: { name: string; schedule: Record<string, string> }[] = [];
+          let currentCaregiver: { name: string; schedule: Record<string, string> } | null = null;
 
-                const caregivers: { name: string; schedule: Record<string, any>[] }[] = [];
-                let currentCaregiver: { name: string; schedule: Record<string, any>[] } | null = null;
+          for (const row of rows) {
+              if (isCaregiverNameRow(row)) {
+                  if (currentCaregiver) {
+                      caregivers.push(currentCaregiver);
+                  }
+                  
+                  const name = row[headerColumns[0]].trim();
+                  currentCaregiver = {
+                      name: name,
+                      schedule: {},
+                  };
+                  DAY_COLUMNS.forEach(day => {
+                      if (currentCaregiver) currentCaregiver.schedule[day] = "";
+                  });
+                  continue;
+              }
 
-                for (const row of rows) {
-                    // Check if it's a caregiver name row
-                    if (isCaregiverNameRow(row, headerColumns)) {
-                        const name = row[headerColumns[0]];
-                        if (name && name.trim() !== "") {
-                            currentCaregiver = { name: name.trim(), schedule: [] };
-                            caregivers.push(currentCaregiver);
-                        }
-                        continue; // Move to the next row after finding a name
-                    }
+              if (currentCaregiver) {
+                  DAY_COLUMNS.forEach((day, i) => {
+                      const colName = headerColumns[i + 1]; // col 0 is name, 1-7 are days
+                      if (!colName) return;
 
-                    if (!currentCaregiver) continue;
-                    
-                    const scheduleRow: Record<string, any> = {};
-                    
-                    // Normalize all schedule cells (all columns)
-                    headerColumns.forEach((col) => {
-                        if (row[col]) {
-                            // Corrected logic: apply extraction to every column and only keep the result.
-                            scheduleRow[col] = extractAndMergeAvailable(row[col]);
-                        } else {
-                            scheduleRow[col] = ""; // Ensure empty cells are preserved as empty strings
-                        }
-                    });
+                      const cell = row[colName];
+                      if (cell && cell.trim()) {
+                          const cleaned = extractAvailability(cell);
+                          if (cleaned) {
+                              if (currentCaregiver.schedule[day]) {
+                                  currentCaregiver.schedule[day] += "\n\n" + cleaned;
+                              } else {
+                                  currentCaregiver.schedule[day] = cleaned;
+                              }
+                          }
+                      }
+                  });
+              }
+          }
+          
+          if (currentCaregiver) {
+              caregivers.push(currentCaregiver);
+          }
+          
+          if (caregivers.length === 0) {
+              toast({
+                  title: "Parsing Failed",
+                  description: "Could not find any valid caregiver schedules in the provided format.",
+                  variant: "destructive",
+                  duration: 8000,
+              });
+              return;
+          }
 
-                    currentCaregiver.schedule.push(scheduleRow);
-                }
-                
-                // DEBUGGING TOAST
-                toast({
-                    title: "Generated JSON for Server",
-                    description: `Found ${caregivers.length} caregivers. Check the browser console for the full JSON object.`,
-                    duration: 15000, // Keep toast open for 15 seconds
-                });
-                console.log("Generated JSON to be sent to server:", JSON.stringify(caregivers, null, 2));
+          const uploadResult = await processActiveCaregiverUpload(caregivers);
 
+          toast({
+              title: uploadResult.error ? 'Upload Failed' : 'Upload Successful',
+              description: uploadResult.message,
+              variant: uploadResult.error ? 'destructive' : 'default',
+          });
 
-                if (caregivers.length === 0) {
-                     toast({
-                        title: "Parsing Failed",
-                        description: "Could not find any valid caregiver schedules in the provided format.",
-                        variant: "destructive",
-                        duration: 8000,
-                    });
-                    return;
-                }
-
-                const uploadResult = await processActiveCaregiverUpload(caregivers);
-
-                toast({
-                    title: uploadResult.error ? 'Upload Failed' : 'Upload Successful',
-                    description: uploadResult.message,
-                    variant: uploadResult.error ? 'destructive' : 'default',
-                });
-                
-                if (!uploadResult.error) {
-                    setFile(null);
-                    const fileInput = document.getElementById('availability-file-upload') as HTMLInputElement;
-                    if(fileInput) fileInput.value = '';
-                }
-            },
-            error: (error: any) => {
-                toast({ title: 'Parsing Error', description: `Error parsing CSV file: ${error.message}`, variant: 'destructive' });
-            }
-        });
+          if (!uploadResult.error) {
+              setFile(null);
+              const fileInput = document.getElementById('availability-file-upload') as HTMLInputElement;
+              if (fileInput) fileInput.value = '';
+          }
+        },
+        error: (error: any) => {
+          toast({ title: 'Parsing Error', description: `Error parsing CSV file: ${error.message}`, variant: 'destructive' });
+        }
+      });
     });
   };
 
