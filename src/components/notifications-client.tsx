@@ -59,6 +59,7 @@ export default function NotificationsClient() {
   const [selectedMail, setSelectedMail] = useState<MailDocument | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const mailQuery = useMemoFirebase(
     () => query(collection(firestore, "mail"), orderBy("delivery.startTime", "desc")),
@@ -80,6 +81,13 @@ export default function NotificationsClient() {
       return (recipientMatch || subjectMatch) && statusMatch;
     });
   }, [mailDocs, searchTerm, statusFilter]);
+
+  useEffect(() => {
+    if (selectedMail && iframeRef.current) {
+      const iframe = iframeRef.current;
+      iframe.srcdoc = selectedMail.message.html;
+    }
+  }, [selectedMail]);
 
   const StatusIcon = ({ status }: { status?: string }) => {
     switch (status) {
@@ -188,10 +196,10 @@ export default function NotificationsClient() {
                 </div>
                 <div className="p-4 bg-white h-[calc(100vh-24rem)] overflow-y-auto">
                   <iframe
-                    srcDoc={selectedMail.message.html}
+                    ref={iframeRef}
                     className="w-full h-full border-0"
                     title="Email Content"
-                    sandbox="allow-same-origin"
+                    sandbox="allow-scripts allow-same-origin"
                   />
                 </div>
               </div>
