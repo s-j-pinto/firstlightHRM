@@ -123,41 +123,43 @@ export default function NotificationsClient() {
           </div>
         </CardHeader>
         <CardContent className="flex-1 p-0 overflow-hidden">
-          <ScrollArea className="h-full">
-            {isLoading ? (
-                <div className="flex justify-center items-center h-full">
-                <Loader2 className="animate-spin text-accent" />
-                </div>
-            ) : filteredMail.length === 0 ? (
-                <div className="p-4 text-center text-muted-foreground">No notifications found.</div>
-            ) : (
-                <div className="space-y-2 p-4">
-                {filteredMail.map((mail) => (
-                    <button
-                    key={mail.id}
-                    onClick={() => setSelectedMail(mail)}
-                    className={cn(
-                        "w-full text-left p-3 rounded-lg border transition-colors",
-                        selectedMail?.id === mail.id
-                        ? "bg-accent text-accent-foreground border-accent"
-                        : "hover:bg-muted/50"
-                    )}
-                    >
-                    <div className="flex justify-between items-start">
-                        <div className="flex-1 overflow-hidden">
-                            <p className="text-sm font-semibold truncate">{mail.to.join(", ")}</p>
-                            <p className="text-xs text-muted-foreground truncate">{mail.message.subject}</p>
-                        </div>
-                        <StatusIcon status={mail.delivery?.state} />
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                        {mail.delivery?.startTime ? format((mail.delivery.startTime as any).toDate(), 'PPp') : 'Pending...'}
-                    </p>
-                    </button>
-                ))}
-                </div>
-            )}
-          </ScrollArea>
+          <div className="flex flex-row-reverse h-full">
+            <ScrollArea className="h-full w-full">
+              {isLoading ? (
+                  <div className="flex justify-center items-center h-full">
+                  <Loader2 className="animate-spin text-accent" />
+                  </div>
+              ) : filteredMail.length === 0 ? (
+                  <div className="p-4 text-center text-muted-foreground">No notifications found.</div>
+              ) : (
+                  <div className="space-y-2 p-4">
+                  {filteredMail.map((mail) => (
+                      <button
+                      key={mail.id}
+                      onClick={() => setSelectedMail(mail)}
+                      className={cn(
+                          "w-full text-left p-3 rounded-lg border transition-colors",
+                          selectedMail?.id === mail.id
+                          ? "bg-accent text-accent-foreground border-accent"
+                          : "hover:bg-muted/50"
+                      )}
+                      >
+                      <div className="flex justify-between items-start">
+                          <div className="flex-1 overflow-hidden">
+                              <p className="text-sm font-semibold truncate">{mail.to.join(", ")}</p>
+                              <p className="text-xs text-muted-foreground truncate">{mail.message.subject}</p>
+                          </div>
+                          <StatusIcon status={mail.delivery?.state} />
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                          {mail.delivery?.startTime ? format((mail.delivery.startTime as any).toDate(), 'PPp') : 'Pending...'}
+                      </p>
+                      </button>
+                  ))}
+                  </div>
+              )}
+            </ScrollArea>
+          </div>
         </CardContent>
       </Card>
 
