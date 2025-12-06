@@ -7,11 +7,12 @@
     "dev": "next dev --turbopack -p 9002",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
-    "build": "DISABLE_VULN_CHECK=1 next build",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "genkit:prod": "genkit start"
+    "genkit:prod": "genkit start",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@genkit-ai/google-genai": "^1.21.0",
@@ -38,8 +39,6 @@
     "@radix-ui/react-tabs": "^1.1.3",
     "@radix-ui/react-toast": "^1.2.6",
     "@radix-ui/react-tooltip": "^1.1.8",
-    "firebase-admin": "^12.6.0",
-    "telnyx": "^1.27.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
@@ -48,6 +47,7 @@
     "dotenv": "^16.5.0",
     "embla-carousel-react": "^8.6.0",
     "firebase": "^11.9.1",
+    "firebase-admin": "^12.6.0",
     "genkit": "^1.21.0",
     "google-auth-library": "^9.11.0",
     "googleapis": "^140.0.1",
@@ -64,6 +64,7 @@
     "recharts": "^2.15.1",
     "tailwind-merge": "^3.0.1",
     "tailwindcss-animate": "^1.0.7",
+    "telnyx": "^1.27.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {

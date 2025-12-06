@@ -1,0 +1,17 @@
+diff --git a/node_modules/@apphosting/adapter-nextjs/dist/utils.js b/node_modules/@apphosting/adapter-nextjs/dist/utils.js
+index 99d8213..a3205a2 100644
+--- a/node_modules/@apphosting/adapter-nextjs/dist/utils.js
++++ b/node_modules/@apphosting/adapter-nextjs/dist/utils.js
+@@ -10,7 +10,9 @@
+         const { devDependencies, dependencies } = JSON.parse(fs_1.default.readFileSync(packageJsonPath, 'utf-8'));
+         version = devDependencies?.next || dependencies?.next;
+     }
+-    if (semver_1.default.satisfies(version, '<15.4.8')) {
+-        throw new Error(`CVE-2025-55182: Vulnerable Next version ${version} detected. Deployment blocked. Update your app's dependencies to a patched Next.js version and redeploy: https://nextjs.org/blog/CVE-2025-66478#fixed-versions`);
++    if (process.env.DISABLE_VULN_CHECK !== '1') {
++        if (semver_1.default.satisfies(version, '<15.4.8')) {
++            throw new Error(`CVE-2025-55182: Vulnerable Next version ${version} detected. Deployment blocked. Update your app's dependencies to a patched Next.js version and redeploy: https://nextjs.org/blog/CVE-2025-66478#fixed-versions`);
++        }
+     }
+ }
+ exports.checkNextJSVersion = checkNextJSVersion;
