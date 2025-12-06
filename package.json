@@ -11,8 +11,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "genkit:prod": "genkit start",
-    "postinstall": "patch-package"
+    "genkit:prod": "genkit start"
   },
   "dependencies": {
     "@genkit-ai/google-genai": "^1.21.0",
@@ -54,7 +53,6 @@
     "lucide-react": "^0.475.0",
     "next": "15.3.5",
     "papaparse": "^5.4.1",
-    "patch-package": "^8.0.0",
     "pdf-lib": "^1.17.1",
     "react": "^18",
     "react-day-picker": "^8.10.1",
