@@ -306,7 +306,6 @@ export default function AdminDashboard() {
 
                     <Button 
                       onClick={() => setEditingAppointment(appointment)}
-                      disabled={appointment.inviteSent}
                       variant="outline" 
                       className="w-full"
                     >

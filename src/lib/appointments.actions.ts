@@ -120,15 +120,16 @@ export async function updateAppointment(appointmentId: string, newStartTime: Dat
             return { message: "Appointment not found.", error: true };
         }
 
+        // Reset inviteSent to false whenever the appointment is updated
         await appointmentRef.update({
             startTime: newStartTime,
             endTime: newEndTime,
-            inviteSent: false, // Reset invite status when time is changed
+            inviteSent: false, 
         });
 
         revalidatePath('/admin');
 
-        return { message: "Appointment updated successfully." };
+        return { message: "Appointment updated successfully. You may now send a new invite." };
     } catch (error) {
         console.error("Error updating appointment:", error);
         return { message: "Failed to update appointment.", error: true };
