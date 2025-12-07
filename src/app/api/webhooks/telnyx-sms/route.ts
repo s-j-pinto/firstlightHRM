@@ -4,13 +4,6 @@ import { serverDb } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
 import telnyx from 'telnyx';
 
-// Disable the default body parser to access the raw body for signature verification
-export const config = {
-    api: {
-        bodyParser: false,
-    },
-};
-
 const apiKey = process.env.TELNYX_API_KEY;
 const publicKey = process.env.TELNYX_PUBLIC_KEY;
 let telnyxApi: ReturnType<typeof telnyx> | null = null;
