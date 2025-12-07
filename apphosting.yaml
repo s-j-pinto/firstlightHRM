@@ -46,8 +46,3 @@ env:
     value: ${TELNYX_PUBLIC_KEY}
   - variable: TELNYX_MESSAGING_PROFILE_ID
     value: ${TELNYX_MESSAGING_PROFILE_ID}
-  - variable: NODE_ENV
-    value: 'development'
-    availability:
-      - BUILD
-      - RUNTIME
