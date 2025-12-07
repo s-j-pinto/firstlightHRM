@@ -70,7 +70,3 @@ env:
     availability:
       - BUILD
       - RUNTIME
-  - variable: NODE_ENV
-    value: 'development'
-    availability:
-      - RUNTIME
