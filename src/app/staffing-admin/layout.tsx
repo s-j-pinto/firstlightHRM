@@ -13,11 +13,13 @@ function StaffingAdminAuthGuard({ children }: { children: React.ReactNode }) {
   const staffingAdminEmail = process.env.NEXT_PUBLIC_STAFFING_ADMIN_EMAIL || "admin-rc@firstlighthomecare.com";
 
   useEffect(() => {
+    // Corrected: Check if the logged-in user is the staffing admin.
     if (!user || user.email !== staffingAdminEmail) {
       router.replace(`/login-form?redirect=${pathname}`);
     }
   }, [user, staffingAdminEmail, pathname, router]);
 
+  // Only render children if the user is the staffing admin
   if (user && user.email === staffingAdminEmail) {
     return <>{children}</>;
   }

@@ -13,6 +13,7 @@ function AdminAuthGuard({ children }: { children: React.ReactNode }) {
   const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "care-rc@firstlighthomecare.com";
 
   useEffect(() => {
+    // Corrected: An admin user should be able to access this route.
     if (!user || user.email !== adminEmail) {
       router.replace(`/login-form?redirect=${pathname}`);
     }
