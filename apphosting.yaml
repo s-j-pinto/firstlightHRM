@@ -10,12 +10,24 @@ runConfig:
 env:
   - variable: GOOGLE_CLIENT_ID
     secret: GOOGLE_CLIENT_ID
+    availability:
+      - BUILD
+      - RUNTIME
   - variable: GOOGLE_CLIENT_SECRET
     secret: GOOGLE_CLIENT_SECRET
+    availability:
+      - BUILD
+      - RUNTIME
   - variable: GOOGLE_REFRESH_TOKEN
     secret: GOOGLE_REFRESH_TOKEN
+    availability:
+      - BUILD
+      - RUNTIME
   - variable: GEMINI_API_KEY
     secret: GEMINI_API_KEY
+    availability:
+      - BUILD
+      - RUNTIME
   - variable: ADMIN_EMAIL
     value: ${NEXT_PUBLIC_ADMIN_EMAIL}
     availability:
@@ -35,6 +47,9 @@ env:
       - RUNTIME
   - variable: CRON_SECRET
     secret: CRON_SECRET
+    availability:
+      - BUILD
+      - RUNTIME
   - variable: GOOGLE_ADS_WEBHOOK_SECRET
     secret: GOOGLE_ADS_WEBHOOK_SECRET
     availability:
@@ -42,10 +57,19 @@ env:
       - RUNTIME
   - variable: TELNYX_API_KEY
     secret: TELNYX_API_KEY
+    availability:
+      - BUILD
+      - RUNTIME
   - variable: TELNYX_PUBLIC_KEY
     value: ${TELNYX_PUBLIC_KEY}
+    availability:
+      - BUILD
+      - RUNTIME
   - variable: TELNYX_MESSAGING_PROFILE_ID
     value: ${TELNYX_MESSAGING_PROFILE_ID}
+    availability:
+      - BUILD
+      - RUNTIME
   - variable: NODE_ENV
     value: 'development'
     availability:
