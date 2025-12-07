@@ -130,7 +130,7 @@ export default function ClientDashboardPage() {
         <CardHeader>
           <CardTitle>Portal Features</CardTitle>
           <CardDescription>
-            Here's what you can do from your portal.
+            Here&apos;s what you can do from your portal.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

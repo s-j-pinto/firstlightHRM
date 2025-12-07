@@ -425,7 +425,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
               {/* Left Column */}
               <div className="space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <FormField control={form.control} name="clientName" render={({ field }) => ( <FormItem><FormLabel>Client's Name</FormLabel><FormControl><Input {...field} disabled={isCsaCreated || isClosed} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="clientName" render={({ field }) => ( <FormItem><FormLabel>Client&apos;s Name</FormLabel><FormControl><Input {...field} disabled={isCsaCreated || isClosed} /></FormControl><FormMessage /></FormItem> )} />
                      <FormField
                         control={form.control}
                         name="source"
@@ -504,8 +504,8 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                 </div>
                 <FormField control={form.control} name="rateOffered" render={({ field }) => ( <FormItem><FormLabel>Rate Offered</FormLabel><FormControl><Input type="number" {...field} value={field.value || ''} disabled={isClosed} /></FormControl><FormMessage /></FormItem> )} />
                 <div className="flex gap-4">
-                    <FormField control={form.control} name="clientPhone" render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Client's Phone Number</FormLabel><FormControl><Input {...field} disabled={isCsaCreated || isClosed} /></FormControl><FormMessage /></FormItem> )} />
-                    <FormField control={form.control} name="clientEmail" render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Client's Email</FormLabel><FormControl><Input {...field} disabled={isCsaCreated || isClosed} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="clientPhone" render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Client&apos;s Phone Number</FormLabel><FormControl><Input {...field} disabled={isCsaCreated || isClosed} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="clientEmail" render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Client&apos;s Email</FormLabel><FormControl><Input {...field} disabled={isCsaCreated || isClosed} /></FormControl><FormMessage /></FormItem> )} />
                 </div>
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField control={form.control} name="mainContact" render={({ field }) => ( <FormItem><FormLabel>Main Contact</FormLabel><FormControl><Input {...field} disabled={isCsaCreated || isClosed} /></FormControl><FormMessage /></FormItem> )} />
@@ -728,7 +728,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
             </div>
 
             <div className="flex justify-end items-center pt-4 gap-4">
-                <p className="text-sm text-destructive mr-auto">Please click 'Save Initial Contact' to save any changes on this page.</p>
+                <p className="text-sm text-destructive mr-auto">Please click &apos;Save Initial Contact&apos; to save any changes on this page.</p>
 
                 {contactId && !isClosed && (
                     <Dialog open={isClosureDialogOpen} onOpenChange={setIsClosureDialogOpen}>

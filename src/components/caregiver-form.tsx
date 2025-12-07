@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState } from "react";
@@ -244,7 +243,7 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
                 <FormField control={form.control} name="address" render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Input placeholder="123 Main St" {...field} /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="Anytown" {...field} /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="state" render={({ field }) => ( <FormItem><FormLabel>State</FormLabel><FormControl><Input placeholder="CA" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                <FormField control={form.control} name="driversLicenseNumber" render={({ field }) => ( <FormItem><FormLabel>Driver's License No.</FormLabel><FormControl><Input placeholder="Enter license number" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="driversLicenseNumber" render={({ field }) => ( <FormItem><FormLabel>Driver&apos;s License No.</FormLabel><FormControl><Input placeholder="Enter license number" {...field} /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="zip" render={({ field }) => ( <FormItem><FormLabel>Zip Code</FormLabel><FormControl><Input placeholder="12345" {...field} /></FormControl><FormMessage /></FormItem> )} />
               </div>
             )}
@@ -396,7 +395,7 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
                     )} />
                      <FormField control={form.control} name="validLicense" render={({ field }) => (
                         <FormItem className="space-y-3">
-                            <FormLabel>Do you have a valid driver's license or valid California State ID ?</FormLabel>
+                            <FormLabel>Do you have a valid driver&apos;s license or valid California State ID ?</FormLabel>
                             <FormControl>
                                 <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-4">
                                     <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="yes" /></FormControl><FormLabel className="font-normal">Yes</FormLabel></FormItem>

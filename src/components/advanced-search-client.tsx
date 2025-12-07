@@ -1,8 +1,7 @@
 
-
 "use client";
 
-import { useState, useMemo, useTransition, useEffect } from 'react';
+import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { collection } from 'firebase/firestore';
 import { firestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -258,7 +257,7 @@ export default function AdvancedSearchClient() {
     }, [profiles, interviews, employees]);
 
 
-    const onSubmit = (data: FormData) => {
+    const onSubmit = useCallback((data: FormData) => {
         startSearchTransition(() => {
             let results = [...candidates];
             
@@ -292,13 +291,13 @@ export default function AdvancedSearchClient() {
             setCurrentPage(1); // Reset to first page on new search
             setHasSearched(true);
         });
-    };
+    }, [candidates, dateRange]);
     
     useEffect(() => {
         if (candidates.length > 0 && !hasSearched) {
             onSubmit({ skills: [], hiringStatus: 'any', skillMatching: 'any' });
         }
-    }, [candidates, hasSearched]);
+    }, [candidates, hasSearched, onSubmit]);
     
     const handleClearFilters = () => {
         reset({ skills: [], hiringStatus: 'any', skillMatching: 'any' });
@@ -478,7 +477,7 @@ export default function AdvancedSearchClient() {
                                                 checked={field.value?.includes(skill.id)}
                                                 onCheckedChange={(checked) => {
                                                     return checked
-                                                    ? field.onChange([...field.value, skill.id])
+                                                    ? field.onChange([...(field.value || []), skill.id])
                                                     : field.onChange(
                                                         field.value?.filter(
                                                             (value) => value !== skill.id
@@ -602,9 +601,3 @@ export default function AdvancedSearchClient() {
         </div>
     );
 }
-
-    
-
-    
-
-    

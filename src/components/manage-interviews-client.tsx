@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useTransition, useEffect } from 'react';
+import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from 'zod';
@@ -166,7 +166,7 @@ export default function ManageInterviewsClient() {
     }
   });
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     setSelectedCaregiver(null);
     setExistingInterview(null);
     setExistingEmployee(null);
@@ -194,7 +194,73 @@ export default function ManageInterviewsClient() {
     setSearchTerm('');
     setSearchResults([]);
     router.replace(pathname);
-  }
+  }, [hiringForm, orientationForm, phoneScreenForm, router, pathname]);
+
+  const handleSelectCaregiver = useCallback(async (caregiver: CaregiverProfile) => {
+    handleCancel(); // Reset everything first
+    router.replace(pathname); // Clear URL params
+    
+    setSelectedCaregiver(caregiver);
+    setSearchResults([]);
+    setSearchTerm('');
+    
+    const interviewsRef = collection(db, 'interviews');
+    const q = query(interviewsRef, where("caregiverProfileId", "==", caregiver.id));
+    
+    try {
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+            const interviewDoc = querySnapshot.docs[0];
+            const interviewData = { ...interviewDoc.data(), id: interviewDoc.id } as Interview;
+            
+            const employeeRecord = allEmployees?.find(emp => emp.caregiverProfileId === caregiver.id);
+            if (employeeRecord) {
+                setExistingEmployee(employeeRecord);
+            }
+            
+            if(!employeeRecord && interviewData.phoneScreenPassed === 'No'){
+                 toast({
+                    title: "Phone Screen Previously Failed",
+                    description: "This candidate did not pass the phone screen. You may update the record if this was a mistake.",
+                    duration: 5000,
+                });
+            }
+            
+            setExistingInterview(interviewData);
+
+            const interviewDate = (interviewData.interviewDateTime as any)?.toDate();
+            
+            phoneScreenForm.reset({
+                interviewNotes: interviewData.interviewNotes || '',
+                candidateRating: interviewData.candidateRating || 'C',
+                phoneScreenPassed: interviewData.phoneScreenPassed as 'Yes' | 'No' || 'No',
+                interviewPathway: interviewData.interviewPathway,
+                interviewMethod: interviewData.interviewType as 'In-Person' | 'Google Meet' | undefined,
+                eventDate: interviewDate ? toDate(interviewDate) : undefined,
+                eventTime: interviewDate ? format(toDate(interviewDate), 'HH:mm') : '',
+            });
+
+            if(interviewData.orientationDateTime) {
+                const orientationDate = (interviewData.orientationDateTime as any).toDate();
+                 orientationForm.reset({
+                    orientationDate: orientationDate,
+                    orientationTime: format(orientationDate, 'HH:mm')
+                });
+            }
+
+            if(interviewData.aiGeneratedInsight) {
+                setAiInsight(interviewData.aiGeneratedInsight);
+            }
+        }
+    } catch (error) {
+        toast({
+            title: "Permission Error",
+            description: "Could not fetch existing interview data. Check security rules.",
+            variant: "destructive"
+        });
+    }
+  }, [allEmployees, db, handleCancel, orientationForm, phoneScreenForm, router, pathname, toast]);
 
   useEffect(() => {
     const searchFromUrl = searchParams.get('search');
@@ -213,7 +279,7 @@ export default function ManageInterviewsClient() {
         setSearchResults(results);
       }
     }
-  }, [searchParams, allCaregivers, selectedCaregiver]);
+  }, [searchParams, allCaregivers, selectedCaregiver, handleSelectCaregiver]);
 
   useEffect(() => {
     if (selectedCaregiver && existingInterview) {
@@ -280,72 +346,6 @@ export default function ManageInterviewsClient() {
   }
   const shouldShowCompletedSummary = getSummaryVisibility();
 
-
-  const handleSelectCaregiver = async (caregiver: CaregiverProfile) => {
-    handleCancel(); // Reset everything first
-    router.replace(pathname); // Clear URL params
-    
-    setSelectedCaregiver(caregiver);
-    setSearchResults([]);
-    setSearchTerm('');
-    
-    const interviewsRef = collection(db, 'interviews');
-    const q = query(interviewsRef, where("caregiverProfileId", "==", caregiver.id));
-    
-    try {
-        const querySnapshot = await getDocs(q);
-
-        if (!querySnapshot.empty) {
-            const interviewDoc = querySnapshot.docs[0];
-            const interviewData = { ...interviewDoc.data(), id: interviewDoc.id } as Interview;
-            
-            const employeeRecord = allEmployees?.find(emp => emp.caregiverProfileId === caregiver.id);
-            if (employeeRecord) {
-                setExistingEmployee(employeeRecord);
-            }
-            
-            if(!employeeRecord && interviewData.phoneScreenPassed === 'No'){
-                 toast({
-                    title: "Phone Screen Previously Failed",
-                    description: "This candidate did not pass the phone screen. You may update the record if this was a mistake.",
-                    duration: 5000,
-                });
-            }
-            
-            setExistingInterview(interviewData);
-
-            const interviewDate = (interviewData.interviewDateTime as any)?.toDate();
-            
-            phoneScreenForm.reset({
-                interviewNotes: interviewData.interviewNotes || '',
-                candidateRating: interviewData.candidateRating || 'C',
-                phoneScreenPassed: interviewData.phoneScreenPassed as 'Yes' | 'No' || 'No',
-                interviewPathway: interviewData.interviewPathway,
-                interviewMethod: interviewData.interviewType as 'In-Person' | 'Google Meet' | undefined,
-                eventDate: interviewDate ? toDate(interviewDate) : undefined,
-                eventTime: interviewDate ? format(toDate(interviewDate), 'HH:mm') : '',
-            });
-
-            if(interviewData.orientationDateTime) {
-                const orientationDate = (interviewData.orientationDateTime as any).toDate();
-                 orientationForm.reset({
-                    orientationDate: orientationDate,
-                    orientationTime: format(orientationDate, 'HH:mm')
-                });
-            }
-
-            if(interviewData.aiGeneratedInsight) {
-                setAiInsight(interviewData.aiGeneratedInsight);
-            }
-        }
-    } catch (error) {
-        toast({
-            title: "Permission Error",
-            description: "Could not fetch existing interview data. Check security rules.",
-            variant: "destructive"
-        });
-    }
-  };
 
   const handleGenerateInsights = () => {
     if (!selectedCaregiver) return;
@@ -693,7 +693,7 @@ export default function ManageInterviewsClient() {
                 </a>
             </Button>
             <p className="mt-3 text-xs">
-                After you authorize, Google will redirect you. Copy the 'code' from the new URL, then go to{' '}
+                After you authorize, Google will redirect you. Copy the &apos;code&apos; from the new URL, then go to{' '}
                 <Link href="/admin/settings" className="underline font-semibold">Admin Settings</Link> to paste it and generate a new refresh token.
             </p>
           </AlertDescription>
@@ -1226,23 +1226,3 @@ export default function ManageInterviewsClient() {
     </div>
   );
 }
-
-
-
-    
-
-    
-
-
-
-
-
-
-
-
-
-    
-
-    
-
-    

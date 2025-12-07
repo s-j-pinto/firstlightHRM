@@ -113,7 +113,7 @@ export default function ManageActiveCaregiversClient() {
                             <p><strong>Location:</strong> {`${caregiver.City || ''}, ${caregiver.State || ''} ${caregiver.Zip || ''}`.trim()}</p>
                             <p><strong>Mobile:</strong> {caregiver.Mobile || 'N/A'}</p>
                             <p><strong>Hire Date:</strong> {caregiver['Hire Date'] || 'N/A'}</p>
-                            <p><strong>Driver's License:</strong> {caregiver['Drivers Lic'] || 'N/A'}</p>
+                            <p><strong>Driver&apos;s License:</strong> {caregiver['Drivers Lic'] || 'N/A'}</p>
                             <p><strong>Caregiver License:</strong> {caregiver['Caregiver Lic'] || 'N/A'}</p>
                             <p><strong>TTid-PIN:</strong> {caregiver['TTiD-PIN'] || 'N/A'}</p>
                         </CardContent>

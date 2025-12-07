@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useMemo, useTransition, useRef, useEffect } from "react";
@@ -561,7 +560,7 @@ export default function CareLogClient() {
                                 <Info className="h-4 w-4"/>
                                 <AlertTitle className="text-xs">How it works</AlertTitle>
                                 <AlertDescription className="text-xs">
-                                  If you don't scan a log, the AI will try to find a date and time from your typed notes upon submission.
+                                  If you don&apos;t scan a log, the AI will try to find a date and time from your typed notes upon submission.
                                 </AlertDescription>
                               </Alert>
                            </div>

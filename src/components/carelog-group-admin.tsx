@@ -244,7 +244,7 @@ export function CareLogGroupAdmin() {
             ) : (
               <div className="text-center py-10 border-dashed border-2 rounded-lg">
                 <h3 className="text-lg font-medium text-gray-900">No CareLog Groups Found</h3>
-                <p className="mt-1 text-sm text-muted-foreground">Click "Create Group" to get started.</p>
+                <p className="mt-1 text-sm text-muted-foreground">Click &quot;Create Group&quot; to get started.</p>
               </div>
             )}
           </div>

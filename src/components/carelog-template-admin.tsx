@@ -120,7 +120,7 @@ export function CareLogTemplateAdmin() {
                         <DialogContent>
                             <DialogHeader>
                                 <DialogTitle>Are you sure?</DialogTitle>
-                                <DialogDescription>This will permanently delete the "{template.name}" template. This action cannot be undone.</DialogDescription>
+                                <DialogDescription>This will permanently delete the &quot;{template.name}&quot; template. This action cannot be undone.</DialogDescription>
                             </DialogHeader>
                              <DialogFooter>
                                 <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
@@ -137,7 +137,7 @@ export function CareLogTemplateAdmin() {
             ) : (
               <div className="text-center py-10 border-dashed border-2 rounded-lg">
                 <h3 className="text-lg font-medium text-gray-900">No Templates Found</h3>
-                <p className="mt-1 text-sm text-muted-foreground">Click "Create Template" to get started.</p>
+                <p className="mt-1 text-sm text-muted-foreground">Click &quot;Create Template&quot; to get started.</p>
               </div>
             )}
           </div>
@@ -199,5 +199,3 @@ export function CareLogTemplateAdmin() {
     </Card>
   );
 }
-
-    

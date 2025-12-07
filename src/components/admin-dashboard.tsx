@@ -179,7 +179,7 @@ export default function AdminDashboard() {
                 </a>
             </Button>
             <p className="mt-3 text-xs">
-                After you authorize, Google will redirect you. Copy the 'code' from the new URL, then go to{' '}
+                After you authorize, Google will redirect you. Copy the &apos;code&apos; from the new URL, then go to{' '}
                 <Link href="/admin/settings" className="underline font-semibold">Admin Settings</Link> to paste it and generate a new refresh token.
             </p>
           </AlertDescription>
@@ -226,7 +226,7 @@ export default function AdminDashboard() {
                     <div>
                       <h4 className="text-sm font-semibold flex items-center mb-2">
                         <Clock4 className="mr-2 h-4 w-4" />
-                        Candidate's Preferred Times:
+                        Candidate&apos;s Preferred Times:
                       </h4>
                       <div className="flex flex-wrap gap-2">
                         {appointment.preferredTimes.map((time, index) => (

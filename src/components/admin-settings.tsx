@@ -270,7 +270,7 @@ export default function AdminSettings() {
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Important: Configure Redirect URI</AlertTitle>
           <AlertDescription>
-             For Google OAuth to work, your app must be running on the expected redirect URI. You must also add this exact URI to the "Authorized redirect URIs" list in your Google Cloud project credentials.
+             For Google OAuth to work, your app must be running on the expected redirect URI. You must also add this exact URI to the &quot;Authorized redirect URIs&quot; list in your Google Cloud project credentials.
              By default, this is `http://localhost:9002/admin/settings`.
           </AlertDescription>
         </Alert>
@@ -279,7 +279,7 @@ export default function AdminSettings() {
           <Terminal className="h-4 w-4" />
           <AlertTitle>Google Credentials</AlertTitle>
           <AlertDescription>
-            To send calendar invites, your Google credentials must be set in a `.env.local` file in your project's root directory. This file must contain `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and the `GOOGLE_REFRESH_TOKEN` you generate here.
+            To send calendar invites, your Google credentials must be set in a `.env.local` file in your project&apos;s root directory. This file must contain `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and the `GOOGLE_REFRESH_TOKEN` you generate here.
           </AlertDescription>
         </Alert>
 

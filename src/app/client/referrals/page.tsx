@@ -151,18 +151,18 @@ export default function ReferralsPage() {
                  <Card>
                     <CardHeader>
                         <CardTitle>Invite a Friend</CardTitle>
-                        <CardDescription>Send an invitation directly to your friend's email.</CardDescription>
+                        <CardDescription>Send an invitation directly to your friend&apos;s email.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={form.handleSubmit(onInviteSubmit)} className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
-                                    <Label htmlFor="friendName">Friend's Name</Label>
+                                    <Label htmlFor="friendName">Friend&apos;s Name</Label>
                                     <Input id="friendName" {...form.register('friendName')} />
                                     {form.formState.errors.friendName && <p className="text-sm text-destructive">{form.formState.errors.friendName.message}</p>}
                                 </div>
                                 <div className="space-y-1">
-                                    <Label htmlFor="friendEmail">Friend's Email</Label>
+                                    <Label htmlFor="friendEmail">Friend&apos;s Email</Label>
                                     <Input id="friendEmail" type="email" {...form.register('friendEmail')} />
                                     {form.formState.errors.friendEmail && <p className="text-sm text-destructive">{form.formState.errors.friendEmail.message}</p>}
                                 </div>
@@ -196,7 +196,7 @@ export default function ReferralsPage() {
                                 ))}
                             </ul>
                         ) : (
-                             <p className="text-sm text-muted-foreground text-center py-4">You haven't made any referrals yet.</p>
+                             <p className="text-sm text-muted-foreground text-center py-4">You haven&apos;t made any referrals yet.</p>
                         )}
                     </CardContent>
                 </Card>
