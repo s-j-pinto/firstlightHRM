@@ -13,9 +13,13 @@ function StaffingAdminAuthGuard({ children }: { children: React.ReactNode }) {
   const staffingAdminEmail = process.env.NEXT_PUBLIC_STAFFING_ADMIN_EMAIL || "admin-rc@firstlighthomecare.com";
 
   useEffect(() => {
-    // Corrected: Check if the logged-in user is the staffing admin.
-    if (!user || user.email !== staffingAdminEmail) {
-      router.replace(`/login-form?redirect=${pathname}`);
+    if (!user) {
+        router.replace(`/login-form?role=staffing&redirect=${pathname}`);
+        return;
+    }
+    // Only the Staffing admin should access this portal.
+    if (user.email !== staffingAdminEmail) {
+       router.replace('/admin-login'); // Redirect to a generic portal selection
     }
   }, [user, staffingAdminEmail, pathname, router]);
 

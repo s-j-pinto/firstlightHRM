@@ -14,8 +14,12 @@ function OwnerAuthGuard({ children }: { children: React.ReactNode }) {
   const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL || "lpinto@firstlighthomecare.com";
 
   useEffect(() => {
-    if (!user || user.email !== ownerEmail) {
-      router.replace(`/owner-login?redirect=${pathname}`);
+    if (!user) {
+        router.replace(`/owner-login?redirect=${pathname}`);
+        return;
+    }
+    if (user.email !== ownerEmail) {
+      router.replace('/admin-login'); // Redirect to a generic portal selection
     }
   }, [user, ownerEmail, pathname, router]);
 

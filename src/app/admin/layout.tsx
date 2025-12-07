@@ -13,9 +13,13 @@ function AdminAuthGuard({ children }: { children: React.ReactNode }) {
   const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "care-rc@firstlighthomecare.com";
 
   useEffect(() => {
-    // Corrected: An admin user should be able to access this route.
-    if (!user || user.email !== adminEmail) {
-      router.replace(`/login-form?redirect=${pathname}`);
+    if (!user) {
+      router.replace(`/login-form?role=hr&redirect=${pathname}`);
+      return;
+    }
+    // Only the HR admin should access this portal.
+    if (user.email !== adminEmail) {
+      router.replace('/admin-login'); // Redirect to a generic portal selection
     }
   }, [user, adminEmail, pathname, router]);
 
@@ -24,7 +28,7 @@ function AdminAuthGuard({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  // While redirecting, show a loader
+  // While redirecting or for unauthorized users, show a loader
   return (
     <div className="flex h-screen w-full items-center justify-center">
       <Loader2 className="h-12 w-12 animate-spin text-accent" />
@@ -35,8 +39,6 @@ function AdminAuthGuard({ children }: { children: React.ReactNode }) {
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { isUserLoading } = useUser();
 
-  // State 1: While user status is being determined, show a full-page loader.
-  // This is the most critical part to prevent race conditions.
   if (isUserLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
@@ -45,7 +47,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  // State 2: Auth status is resolved. Pass control to the guard.
   return (
     <div className="flex min-h-screen w-full flex-col">
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
