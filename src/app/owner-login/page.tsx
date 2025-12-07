@@ -47,7 +47,7 @@ function OwnerLoginPageContent() {
       try {
         const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
         const user = userCredential.user;
-        const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL|| "lpinto@firstlighthomecare.com" || "care-rc@firstlighthomecare.com";
+        const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL || "lpinto@firstlighthomecare.com";
 
         if (user.email === ownerEmail) {
             router.push("/owner/dashboard");
