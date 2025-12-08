@@ -162,8 +162,8 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
     const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
 
     const formattedDate = formatInTimeZone(zonedStartTime, pacificTimeZone, 'eeee, MMMM do');
-    const formattedStartTime = formatInTimeZone(zonedStartTime, pacificTimeZone, 'h:mm a');
-    const formattedEndTime = formatInTimeZone(zonedEndTime, pacificTimeZone, 'h:mm a');
+    const formattedStartTime = formatInTimeZone(zonedStartTime, pacificTimeZone, 'h:mm a zzz');
+    const formattedEndTime = formatInTimeZone(zonedEndTime, pacificTimeZone, 'h:mm a zzz');
 
     let emailHtml = '';
     const inPersonDuration = (interviewType === 'Orientation') ? 1.5 : (pathway === 'combined' ? 3 : 1);
