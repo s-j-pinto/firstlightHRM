@@ -181,21 +181,14 @@ export async function sendHomeVisitInvite(payload: HomeVisitPayload) {
         const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
         const pacificTimeZone = 'America/Los_Angeles';
 
-        // 1. Get the date part and time part.
         const datePart = format(dateOfHomeVisit, 'yyyy-MM-dd');
-        const timePart = timeOfVisit; // e.g., "14:30"
-        
-        // 2. Combine them into a single string.
+        const timePart = timeOfVisit;
         const dateTimeString = `${datePart} ${timePart}`;
 
-        // 3. Format this combined string into a full ISO 8601 string *with* the correct timezone offset.
-        const startDateTimeIso = formatInTimeZone(dateTimeString, pacificTimeZone, "yyyy-MM-dd'T'HH:mm:ssXXX");
-
-        // 4. Calculate end time based on the correct start time.
-        const startDateTime = new Date(startDateTimeIso);
-        const endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000); // 1-hour duration
+        const zonedStartTime = toZonedTime(dateTimeString, pacificTimeZone);
+        const startDateTimeIso = zonedStartTime.toISOString();
+        const endDateTime = new Date(zonedStartTime.getTime() + 60 * 60 * 1000); // 1-hour duration
         const endDateTimeIso = endDateTime.toISOString();
-
 
         const signatureHtml = `
             <br><br><br>
