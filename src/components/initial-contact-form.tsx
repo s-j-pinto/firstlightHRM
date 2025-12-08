@@ -80,6 +80,7 @@ const closureReasons = [
     "Selected another Company",
     "Client is not in need of services anymore",
     "Google lead was incorrect",
+    "Google lead was a Caregiver Applicant",
     "App referral was incorrect",
     "Other",
 ];
