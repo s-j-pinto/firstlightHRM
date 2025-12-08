@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
@@ -116,11 +117,11 @@ const ratingOptions = [
 export default function ManageInterviewsClient() {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<CaregiverProfile[]>([]);
-  const [selectedCaregiver, setSelectedCaregiver = useState < CaregiverProfile | null > (null);
-  const [existingInterview, setExistingInterview = useState < Interview | null > (null);
-  const [existingEmployee, setExistingEmployee = useState < CaregiverEmployee | null > (null);
-  const [aiInsight, setAiInsight = useState < string | null > (null);
-  const [authUrl, setAuthUrl = useState < string | null > (null);
+  const [selectedCaregiver, setSelectedCaregiver] = useState<CaregiverProfile | null>(null);
+  const [existingInterview, setExistingInterview] = useState<Interview | null>(null);
+  const [existingEmployee, setExistingEmployee] = useState<CaregiverEmployee | null>(null);
+  const [aiInsight, setAiInsight] = useState<string | null>(null);
+  const [authUrl, setAuthUrl] = useState<string | null>(null);
   
   const [isAiPending, startAiTransition] = useTransition();
   const [isSearching, startSearchTransition] = useTransition();
@@ -1219,5 +1220,7 @@ export default function ManageInterviewsClient() {
     </div>
   );
 }
+
+    
 
     
