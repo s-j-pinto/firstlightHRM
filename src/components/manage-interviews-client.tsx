@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
@@ -55,46 +54,13 @@ const phoneScreenSchema = z.object({
   interviewNotes: z.string().min(1, "Interview notes are required."),
   candidateRating: z.string({ required_error: 'A rating is required.' }),
   phoneScreenPassed: z.enum(['Yes', 'No']),
-  
-  interviewPathway: z.enum(['separate', 'combined']).optional(),
+});
 
-  interviewMethod: z.enum(['In-Person', 'Google Meet']).optional(),
-  eventDate: z.date().optional(),
-  eventTime: z.string().optional(),
-  
-}).superRefine((data, ctx) => {
-    if (data.phoneScreenPassed === 'Yes') {
-        if (!data.interviewPathway) {
-             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "Please select an interview pathway.",
-                path: ["interviewPathway"],
-            });
-        }
-        if (data.interviewPathway) {
-             if (!data.interviewMethod) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message: "An interview method is required.",
-                    path: ["interviewMethod"],
-                });
-            }
-            if (!data.eventDate) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message: "An event date is required.",
-                    path: ["eventDate"],
-                });
-            }
-            if (!data.eventTime) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message: "An event time is required.",
-                    path: ["eventTime"],
-                });
-            }
-        }
-    }
+const scheduleEventSchema = z.object({
+    interviewPathway: z.enum(['separate', 'combined']),
+    interviewMethod: z.enum(['In-Person', 'Google Meet']),
+    eventDate: z.date(),
+    eventTime: z.string(),
 });
 
 const orientationSchema = z.object({
@@ -103,6 +69,7 @@ const orientationSchema = z.object({
 });
 
 type PhoneScreenFormData = z.infer<typeof phoneScreenSchema>;
+type ScheduleEventFormData = z.infer<typeof scheduleEventSchema>;
 type OrientationFormData = z.infer<typeof orientationSchema>;
 type HiringFormData = z.infer<typeof caregiverEmployeeSchema>;
 
@@ -127,6 +94,7 @@ export default function ManageInterviewsClient() {
   const [isSearching, startSearchTransition] = useTransition();
   const [isSubmitting, startSubmitTransition] = useTransition();
   const [isOrientationSubmitting, startOrientationSubmitTransition] = useTransition();
+  const [isScheduleSubmitting, startScheduleSubmitTransition] = useTransition();
 
 
   const { toast } = useToast();
@@ -148,6 +116,10 @@ export default function ManageInterviewsClient() {
       candidateRating: 'C',
       phoneScreenPassed: 'No',
     },
+  });
+
+  const scheduleEventForm = useForm<ScheduleEventFormData>({
+    resolver: zodResolver(scheduleEventSchema),
   });
   
   const orientationForm = useForm<OrientationFormData>({
@@ -176,11 +148,8 @@ export default function ManageInterviewsClient() {
       interviewNotes: '',
       candidateRating: 'C',
       phoneScreenPassed: 'No',
-      interviewPathway: undefined,
-      interviewMethod: undefined,
-      eventDate: undefined,
-      eventTime: '',
     });
+    scheduleEventForm.reset();
     orientationForm.reset();
     hiringForm.reset({
         caregiverProfileId: '',
@@ -195,7 +164,7 @@ export default function ManageInterviewsClient() {
     setSearchTerm('');
     setSearchResults([]);
     router.replace(pathname);
-  }, [hiringForm, orientationForm, phoneScreenForm, router, pathname]);
+  }, [hiringForm, orientationForm, phoneScreenForm, scheduleEventForm, router, pathname]);
 
   const handleSelectCaregiver = useCallback(async (caregiver: CaregiverProfile) => {
     handleCancel(); // Reset everything first
@@ -230,15 +199,18 @@ export default function ManageInterviewsClient() {
             
             setExistingInterview(interviewData);
 
-            const interviewDate = (interviewData.interviewDateTime as any)?.toDate();
+            const interviewDate = interviewData.interviewDateTime ? (interviewData.interviewDateTime as any)?.toDate() : undefined;
             
             phoneScreenForm.reset({
                 interviewNotes: interviewData.interviewNotes || '',
                 candidateRating: interviewData.candidateRating || 'C',
                 phoneScreenPassed: interviewData.phoneScreenPassed as 'Yes' | 'No' || 'No',
-                interviewPathway: interviewData.interviewPathway,
+            });
+
+            scheduleEventForm.reset({
+                interviewPathway: interviewData.interviewPathway || undefined,
                 interviewMethod: interviewData.interviewType as 'In-Person' | 'Google Meet' | undefined,
-                eventDate: interviewDate ? toDate(interviewDate) : undefined,
+                eventDate: interviewDate,
                 eventTime: interviewDate ? format(toDate(interviewDate), 'HH:mm') : '',
             });
 
@@ -261,7 +233,7 @@ export default function ManageInterviewsClient() {
             variant: "destructive"
         });
     }
-  }, [allEmployees, db, handleCancel, orientationForm, phoneScreenForm, router, pathname, toast]);
+  }, [allEmployees, db, handleCancel, orientationForm, phoneScreenForm, scheduleEventForm, router, pathname, toast]);
 
   useEffect(() => {
     const searchFromUrl = searchParams.get('search');
@@ -284,11 +256,10 @@ export default function ManageInterviewsClient() {
 
   useEffect(() => {
     if (selectedCaregiver && existingInterview) {
-        const interviewDate = (existingInterview.interviewDateTime as any)?.toDate();
+        const interviewDate = existingInterview.interviewDateTime ? (existingInterview.interviewDateTime as any)?.toDate() : undefined;
         
         let orientationDate: Date | null = null;
         if (existingInterview.orientationDateTime) {
-            // Check if it's a Firestore Timestamp or a JS Date
             if (typeof (existingInterview.orientationDateTime as any).toDate === 'function') {
                 orientationDate = (existingInterview.orientationDateTime as any).toDate();
             } else if (existingInterview.orientationDateTime instanceof Date) {
@@ -321,16 +292,15 @@ export default function ManageInterviewsClient() {
     });
   };
 
-  const phoneScreenPassedValue = phoneScreenForm.watch('phoneScreenPassed');
-  const interviewPathway = phoneScreenForm.watch('interviewPathway');
+  const interviewPathway = scheduleEventForm.watch('interviewPathway');
   
   useEffect(() => {
     if (interviewPathway === 'combined') {
-      phoneScreenForm.setValue('interviewMethod', 'In-Person');
-    } else if (phoneScreenForm.getValues('interviewMethod') === 'In-Person' && interviewPathway === 'separate') {
-      phoneScreenForm.setValue('interviewMethod', undefined);
+      scheduleEventForm.setValue('interviewMethod', 'In-Person');
+    } else if (scheduleEventForm.getValues('interviewMethod') === 'In-Person' && interviewPathway === 'separate') {
+      scheduleEventForm.setValue('interviewMethod', undefined);
     }
-  }, [interviewPathway, phoneScreenForm]);
+  }, [interviewPathway, scheduleEventForm]);
 
 
   const getHiringFormVisibility = () => {
@@ -400,90 +370,85 @@ export default function ManageInterviewsClient() {
 
     startSubmitTransition(async () => {
       let interviewId = existingInterview?.id;
-  
-      if (!interviewId) {
-        try {
+      let interviewDocRef;
+      
+      const interviewPayload = {
+        caregiverProfileId: selectedCaregiver.id,
+        caregiverUid: selectedCaregiver.uid,
+        interviewType: "Phone",
+        phoneScreenPassed: data.phoneScreenPassed,
+        interviewNotes: data.interviewNotes,
+        candidateRating: data.candidateRating,
+        aiGeneratedInsight: aiInsight || '',
+        createdAt: Timestamp.now(),
+        lastUpdatedAt: Timestamp.now(),
+      };
+      
+      try {
+        if (interviewId) {
+          interviewDocRef = doc(db, 'interviews', interviewId);
+          await updateDoc(interviewDocRef, interviewPayload);
+        } else {
           const interviewsCollection = collection(db, 'interviews');
-          const docRef = await addDoc(interviewsCollection, {
-            caregiverProfileId: selectedCaregiver.id,
-            caregiverUid: selectedCaregiver.uid,
-            interviewType: "Phone",
-            phoneScreenPassed: "N/A",
-            interviewNotes: data.interviewNotes,
-            candidateRating: data.candidateRating,
-            aiGeneratedInsight: aiInsight || '',
-            createdAt: Timestamp.now(),
-          });
+          const docRef = await addDoc(interviewsCollection, interviewPayload);
           interviewId = docRef.id;
-          setExistingInterview({ id: docRef.id, ...data } as Interview);
-        } catch (serverError) {
+          interviewDocRef = docRef;
+        }
+
+        // Update local state to reflect the saved data
+        setExistingInterview({ ...interviewPayload, id: interviewId } as Interview);
+        toast({ title: 'Success', description: 'Phone interview results saved.' });
+
+        if (data.phoneScreenPassed === 'No') {
+          handleCancel(); // Reset UI if failed
+        }
+      } catch(serverError) {
           const permissionError = new FirestorePermissionError({
-            path: collection(db, 'interviews').path,
-            operation: "create",
-            requestResourceData: data,
+            path: interviewDocRef ? interviewDocRef.path : collection(db, 'interviews').path,
+            operation: interviewId ? 'update' : 'create',
+            requestResourceData: interviewPayload,
           });
           errorEmitter.emit("permission-error", permissionError);
-          return; // Stop execution on error
-        }
-      }
-  
-      // Handle the case where the screen is passed and an event needs scheduling
-      if (data.phoneScreenPassed === 'Yes' && data.eventDate && data.eventTime && data.interviewMethod && data.interviewPathway) {
-        const [hours, minutes] = data.eventTime.split(':').map(Number);
-        const eventDateTime = new Date(data.eventDate.setHours(hours, minutes));
-  
-        const result = await saveInterviewAndSchedule({
-          caregiverProfile: selectedCaregiver,
-          eventDateTime: eventDateTime,
-          interviewId: interviewId!,
-          aiInsight: aiInsight || '',
-          interviewType: data.interviewMethod,
-          interviewNotes: data.interviewNotes,
-          candidateRating: data.candidateRating,
-          pathway: data.interviewPathway,
-          googleEventId: existingInterview?.googleEventId
-        });
-  
-        if (result.authUrl) {
-          setAuthUrl(result.authUrl);
-        } else {
-          setAuthUrl(null);
-        }
-  
-        toast({
-          title: result.error ? 'Error' : 'Success',
-          description: result.message,
-          variant: result.error ? 'destructive' : 'default',
-        });
-        
-        if (!result.error) {
-           handleCancel();
-        }
-      } else { 
-        // Handle the case where the screen is just being saved (likely a "Fail" status)
-        try {
-          const interviewDocRef = doc(db, 'interviews', interviewId!);
-          await updateDoc(interviewDocRef, {
-            interviewNotes: data.interviewNotes,
-            candidateRating: data.candidateRating,
-            phoneScreenPassed: data.phoneScreenPassed,
-            aiGeneratedInsight: aiInsight || '',
-            interviewDateTime: existingInterview?.interviewDateTime || Timestamp.now(),
-            interviewType: 'Phone',
-          });
-          toast({ title: 'Success', description: 'Phone interview results saved.' });
-          handleCancel();
-        } catch (serverError) {
-          const permissionError = new FirestorePermissionError({
-            path: doc(db, 'interviews', interviewId!).path,
-            operation: 'update',
-            requestResourceData: data,
-          });
-          errorEmitter.emit('permission-error', permissionError);
-        }
       }
     });
   };
+
+  const onScheduleEventSubmit = async (data: ScheduleEventFormData) => {
+    if (!selectedCaregiver || !existingInterview) return;
+
+    startScheduleSubmitTransition(async () => {
+       const [hours, minutes] = data.eventTime.split(':').map(Number);
+       const eventDateTime = new Date(data.eventDate.setHours(hours, minutes));
+ 
+       const result = await saveInterviewAndSchedule({
+         caregiverProfile: selectedCaregiver,
+         eventDateTime: eventDateTime,
+         interviewId: existingInterview!.id,
+         aiInsight: aiInsight || existingInterview.aiGeneratedInsight || '',
+         interviewType: data.interviewMethod,
+         interviewNotes: phoneScreenForm.getValues('interviewNotes'),
+         candidateRating: phoneScreenForm.getValues('candidateRating'),
+         pathway: data.interviewPathway,
+         googleEventId: existingInterview.googleEventId,
+       });
+ 
+       if (result.authUrl) {
+         setAuthUrl(result.authUrl);
+       } else {
+         setAuthUrl(null);
+       }
+ 
+       toast({
+         title: result.error ? 'Error' : 'Success',
+         description: result.message,
+         variant: result.error ? 'destructive' : 'default',
+       });
+       
+       if (!result.error) {
+          handleCancel();
+       }
+    });
+  }
 
     const handleUpdateFinalInterviewStatus = async (status: 'Passed' | 'Failed') => {
         if (!existingInterview) return;
@@ -612,12 +577,15 @@ export default function ManageInterviewsClient() {
   
   const isEventEditable = 
     isPhoneScreenCompleted &&
+    existingInterview.phoneScreenPassed === 'Yes' &&
     !existingEmployee &&
     (
         // Allow editing separate pathway if orientation is not scheduled
         (existingInterview?.interviewPathway === 'separate' && !existingInterview?.orientationScheduled) ||
         // Allow editing combined pathway
-        (existingInterview?.interviewPathway === 'combined')
+        (existingInterview?.interviewPathway === 'combined') ||
+        // Allow editing if pathway is not yet set
+        !existingInterview?.interviewPathway
     );
 
   const isFinalInterviewPending = isPhoneScreenCompleted && existingInterview?.interviewPathway === 'separate' && existingInterview?.finalInterviewStatus === 'Pending';
@@ -703,7 +671,7 @@ export default function ManageInterviewsClient() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                {isPhoneScreenCompleted && existingInterview?.phoneScreenPassed !== 'N/A' ? (
+                {isPhoneScreenCompleted && existingInterview?.phoneScreenPassed !== 'N/A' && existingInterview.phoneScreenPassed !== undefined ? (
                     <Card className="bg-muted/30">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-lg"><Phone/> Phone Screen Summary</CardTitle>
@@ -844,17 +812,17 @@ export default function ManageInterviewsClient() {
         </Card>
       )}
 
-    {phoneScreenPassedValue === 'Yes' && isEventEditable && (
+    {isEventEditable && (
         <Card className="bg-muted/50">
             <CardHeader>
                 <CardTitle>Next Step: Schedule Event</CardTitle>
                 <CardDescription>Select the hiring pathway and schedule the next event.</CardDescription>
             </CardHeader>
             <CardContent>
-                <Form {...phoneScreenForm}>
-                    <form onSubmit={phoneScreenForm.handleSubmit(onPhoneScreenSubmit)} className="space-y-6">
+                <Form {...scheduleEventForm}>
+                    <form onSubmit={scheduleEventForm.handleSubmit(onScheduleEventSubmit)} className="space-y-6">
                          <FormField
-                            control={phoneScreenForm.control}
+                            control={scheduleEventForm.control}
                             name="interviewPathway"
                             render={({ field }) => (
                                 <FormItem className="space-y-3">
@@ -874,7 +842,7 @@ export default function ManageInterviewsClient() {
                             <>
                                 {interviewPathway === 'separate' ? (
                                     <FormField
-                                        control={phoneScreenForm.control}
+                                        control={scheduleEventForm.control}
                                         name="interviewMethod"
                                         render={({ field }) => (
                                             <FormItem className="space-y-3">
@@ -897,7 +865,7 @@ export default function ManageInterviewsClient() {
                                     />
                                 ) : (
                                         <FormField
-                                        control={phoneScreenForm.control}
+                                        control={scheduleEventForm.control}
                                         name="interviewMethod"
                                         render={({ field }) => (
                                                 <FormItem className="space-y-3">
@@ -916,7 +884,7 @@ export default function ManageInterviewsClient() {
                                 
                                 <div className="flex flex-col sm:flex-row gap-4 items-start">
                                     <FormField
-                                        control={phoneScreenForm.control}
+                                        control={scheduleEventForm.control}
                                         name="eventDate"
                                         render={({ field }) => (
                                             <FormItem className="flex flex-col flex-1">
@@ -941,7 +909,7 @@ export default function ManageInterviewsClient() {
                                         )}
                                     />
                                     <FormField
-                                        control={phoneScreenForm.control}
+                                        control={scheduleEventForm.control}
                                         name="eventTime"
                                         render={({ field }) => (
                                             <FormItem className="flex flex-col flex-1">
@@ -959,8 +927,8 @@ export default function ManageInterviewsClient() {
                             </>
                         )}
                         <div className="flex justify-end">
-                            <Button type="submit" disabled={isSubmitting}>
-                                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
+                            <Button type="submit" disabled={isScheduleSubmitting}>
+                                {isScheduleSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
                                 Schedule Event
                             </Button>
                         </div>
@@ -1220,7 +1188,5 @@ export default function ManageInterviewsClient() {
     </div>
   );
 }
-
-    
 
     
