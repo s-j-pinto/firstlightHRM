@@ -3,43 +3,58 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     
-    // Default Deny: Disallow all reads and writes by default.
-    // This is a critical security best practice.
+    // --- Helper Functions ---
+    // These functions centralize checks for different admin roles based on their email.
+    // Note: This pattern requires that admin emails are known or can be fetched.
+    // For this app, we will assume they are known or will be managed via custom claims in a future step if needed.
+    // The emails here should match the ones used in your application's environment variables.
+    function isOwner() {
+      return request.auth.token.email == 'lpinto@firstlighthomecare.com';
+    }
+    function isHrAdmin() {
+      return request.auth.token.email == 'care-rc@firstlighthomecare.com';
+    }
+    function isStaffingAdmin() {
+      return request.auth.token.email == 'admin-rc@firstlighthomecare.com';
+    }
+    function isAnyAdmin() {
+      return request.auth != null && (isOwner() || isHrAdmin() || isStaffingAdmin());
+    }
+
+    // Default Deny: Disallow all reads and writes by default for security.
     match /{allPaths=**} {
       allow read, write: if false;
     }
 
-    // Allow public read access to specific public assets like logos.
-    // Only authenticated users (admins) can modify these files.
+    // --- Public Assets ---
+    // Allow public read access to specific public assets like logos and waivers.
+    // Only authenticated admins can modify these files.
     match /FirstlightLogo_transparent.png {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isAnyAdmin();
     }
-
     match /FirstLight_Logo_VRT_CMYK_ICO.ico {
        allow read: if true;
-       allow write: if request.auth != null;
+       allow write: if isAnyAdmin();
     }
-
-    // Allow public read access to waiver PDFs, as they may be linked in emails.
     match /waivers/{allPaths=**} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isAnyAdmin();
     }
 
-    // Secure the client agreements.
-    // Agreements are stored at a path like 'client-agreements/{clientName}_{signupId}.pdf'.
-    // We use custom metadata on the file to grant access.
+    // --- Client Agreements ---
+    // Agreements are stored at 'client-agreements/{fileName}.pdf'.
     match /client-agreements/{fileName} {
-      // Allow read access only if the requesting user's UID is in the file's 'ownerUid' metadata,
-      // OR if the user is an admin (any authenticated user in this app's context).
+      // Allow READ access if:
+      // 1. The user is any type of admin.
+      // 2. The user's UID (request.auth.uid) matches the `ownerUid` metadata on the file.
       allow read: if request.auth != null && (
-                    request.auth.uid == resource.metadata.ownerUid || 
-                    get(/databases/$(database)/documents/Users/$(request.auth.uid)).data.role == 'admin'
+                    isAnyAdmin() || request.auth.uid == resource.metadata.ownerUid
                   );
       
-      // Allow writes (uploads) only by authenticated admin users.
-      allow write: if request.auth != null;
+      // Allow WRITE access (create, update, delete) only for admins.
+      // This secures the upload process.
+      allow write: if isAnyAdmin();
     }
   }
 }

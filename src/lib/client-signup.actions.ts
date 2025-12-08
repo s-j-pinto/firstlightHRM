@@ -387,7 +387,10 @@ export async function finalizeAndSubmit(signupId: string, formData: any) {
         });
 
         // Sync data back to initial_contacts before generating PDF
-        const initialContactId = (await signupRef.get()).data()?.initialContactId;
+        const signupDoc = await signupRef.get();
+        const initialContactId = signupDoc.data()?.initialContactId;
+        const clientAuthUid = `new_client_${signupId}`;
+
         if (initialContactId) {
             const contactRef = firestore.collection('initial_contacts').doc(initialContactId);
             const dataToSync: { [key: string]: any } = {
@@ -423,6 +426,9 @@ export async function finalizeAndSubmit(signupId: string, formData: any) {
         await file.save(Buffer.from(pdfBytes), {
             metadata: {
                 contentType: 'application/pdf',
+                metadata: {
+                    ownerUid: clientAuthUid // Add the client's UID as custom metadata
+                }
             },
         });
         
