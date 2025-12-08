@@ -93,8 +93,8 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
         }
 
         let createdEvent;
-        if (googleEventId) {
-            // Update existing event
+        // If we have an event ID AND we are NOT scheduling a new Orientation, update the event.
+        if (googleEventId && interviewType !== 'Orientation') {
             createdEvent = await calendar.events.update({
                 calendarId: 'primary',
                 eventId: googleEventId,
@@ -102,7 +102,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
                 sendUpdates: 'all',
             });
         } else {
-            // Insert new event
+            // Otherwise (no event ID or it's an Orientation), insert a new event.
             createdEvent = await calendar.events.insert({ 
                 calendarId: 'primary', 
                 requestBody: eventRequestBody, 
