@@ -116,11 +116,11 @@ const ratingOptions = [
 export default function ManageInterviewsClient() {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<CaregiverProfile[]>([]);
-  const [selectedCaregiver, setSelectedCaregiver] = useState<CaregiverProfile | null>(null);
-  const [existingInterview, setExistingInterview] = useState<Interview | null>(null);
-  const [existingEmployee, setExistingEmployee] = useState<CaregiverEmployee | null>(null);
-  const [aiInsight, setAiInsight] = useState<string | null>(null);
-  const [authUrl, setAuthUrl] = useState<string | null>(null);
+  const [selectedCaregiver, setSelectedCaregiver = useState < CaregiverProfile | null > (null);
+  const [existingInterview, setExistingInterview = useState < Interview | null > (null);
+  const [existingEmployee, setExistingEmployee = useState < CaregiverEmployee | null > (null);
+  const [aiInsight, setAiInsight = useState < string | null > (null);
+  const [authUrl, setAuthUrl = useState < string | null > (null);
   
   const [isAiPending, startAiTransition] = useTransition();
   const [isSearching, startSearchTransition] = useTransition();
@@ -394,99 +394,92 @@ export default function ManageInterviewsClient() {
     });
   };
   
-  const onPhoneScreenSubmit = (data: PhoneScreenFormData) => {
+  const onPhoneScreenSubmit = async (data: PhoneScreenFormData) => {
     if (!selectedCaregiver || !db) return;
-  
+
     startSubmitTransition(async () => {
       let interviewId = existingInterview?.id;
-      
+  
       if (!interviewId) {
-        const tempInterviewData = {
-          caregiverProfileId: selectedCaregiver.id,
-          caregiverUid: selectedCaregiver.uid,
-          interviewType: "Phone",
-          phoneScreenPassed: "N/A",
-          interviewNotes: data.interviewNotes,
-          candidateRating: data.candidateRating,
-          aiGeneratedInsight: aiInsight || '',
-          createdAt: Timestamp.now(),
-        };
-        const interviewsCollection = collection(db, 'interviews');
-        await addDoc(interviewsCollection, tempInterviewData)
-          .then(docRef => {
-            interviewId = docRef.id;
-            setExistingInterview({ id: docRef.id, ...tempInterviewData} as Interview);
-          })
-          .catch(serverError => {
-            const permissionError = new FirestorePermissionError({
-              path: interviewsCollection.path,
-              operation: "create",
-              requestResourceData: tempInterviewData,
-            });
-            errorEmitter.emit("permission-error", permissionError);
-            // We do not rethrow, as the emitter handles it. The function will just exit.
-            return; // Stop execution
-          });
-          
-        if (!interviewId) return; // Exit if creation failed
-      }
-  
-      if (data.phoneScreenPassed === 'Yes' && data.eventDate && data.eventTime && data.interviewMethod && data.interviewPathway) {
-          const [hours, minutes] = data.eventTime.split(':').map(Number);
-          const eventDateTime = new Date(data.eventDate.setHours(hours, minutes));
-  
-          const result = await saveInterviewAndSchedule({
-            caregiverProfile: selectedCaregiver,
-            eventDateTime: eventDateTime,
-            interviewId: interviewId,
-            aiInsight: aiInsight || '',
-            interviewType: data.interviewMethod,
+        try {
+          const interviewsCollection = collection(db, 'interviews');
+          const docRef = await addDoc(interviewsCollection, {
+            caregiverProfileId: selectedCaregiver.id,
+            caregiverUid: selectedCaregiver.uid,
+            interviewType: "Phone",
+            phoneScreenPassed: "N/A",
             interviewNotes: data.interviewNotes,
             candidateRating: data.candidateRating,
-            pathway: data.interviewPathway,
-            googleEventId: existingInterview?.googleEventId
+            aiGeneratedInsight: aiInsight || '',
+            createdAt: Timestamp.now(),
           });
-  
-          if (result.authUrl) {
-            setAuthUrl(result.authUrl);
-          } else {
-            setAuthUrl(null);
-          }
-  
-          toast({
-            title: result.error ? 'Error' : 'Success',
-            description: result.message,
-            variant: result.error ? 'destructive' : 'default',
+          interviewId = docRef.id;
+          setExistingInterview({ id: docRef.id, ...data } as Interview);
+        } catch (serverError) {
+          const permissionError = new FirestorePermissionError({
+            path: collection(db, 'interviews').path,
+            operation: "create",
+            requestResourceData: data,
           });
-          
-          if (!result.error) {
-             handleCancel();
-          }
-
+          errorEmitter.emit("permission-error", permissionError);
+          return; // Stop execution on error
+        }
+      }
+  
+      // Handle the case where the screen is passed and an event needs scheduling
+      if (data.phoneScreenPassed === 'Yes' && data.eventDate && data.eventTime && data.interviewMethod && data.interviewPathway) {
+        const [hours, minutes] = data.eventTime.split(':').map(Number);
+        const eventDateTime = new Date(data.eventDate.setHours(hours, minutes));
+  
+        const result = await saveInterviewAndSchedule({
+          caregiverProfile: selectedCaregiver,
+          eventDateTime: eventDateTime,
+          interviewId: interviewId!,
+          aiInsight: aiInsight || '',
+          interviewType: data.interviewMethod,
+          interviewNotes: data.interviewNotes,
+          candidateRating: data.candidateRating,
+          pathway: data.interviewPathway,
+          googleEventId: existingInterview?.googleEventId
+        });
+  
+        if (result.authUrl) {
+          setAuthUrl(result.authUrl);
+        } else {
+          setAuthUrl(null);
+        }
+  
+        toast({
+          title: result.error ? 'Error' : 'Success',
+          description: result.message,
+          variant: result.error ? 'destructive' : 'default',
+        });
+        
+        if (!result.error) {
+           handleCancel();
+        }
       } else { 
-          const interviewDocData: any = {
-            caregiverProfileId: selectedCaregiver.id,
-            interviewType: 'Phone',
+        // Handle the case where the screen is just being saved (likely a "Fail" status)
+        try {
+          const interviewDocRef = doc(db, 'interviews', interviewId!);
+          await updateDoc(interviewDocRef, {
             interviewNotes: data.interviewNotes,
             candidateRating: data.candidateRating,
             phoneScreenPassed: data.phoneScreenPassed,
             aiGeneratedInsight: aiInsight || '',
-            interviewDateTime: existingInterview?.id ? existingInterview.interviewDateTime : Timestamp.now(),
-          };
-          const interviewDocRef = doc(db, 'interviews', interviewId);
-          updateDoc(interviewDocRef, interviewDocData)
-            .then(() => {
-                toast({ title: 'Success', description: 'Phone interview results updated.' });
-                handleCancel();
-            })
-            .catch(serverError => {
-                const permissionError = new FirestorePermissionError({
-                    path: interviewDocRef.path,
-                    operation: 'update',
-                    requestResourceData: interviewDocData,
-                });
-                errorEmitter.emit('permission-error', permissionError);
-            });
+            interviewDateTime: existingInterview?.interviewDateTime || Timestamp.now(),
+            interviewType: 'Phone',
+          });
+          toast({ title: 'Success', description: 'Phone interview results saved.' });
+          handleCancel();
+        } catch (serverError) {
+          const permissionError = new FirestorePermissionError({
+            path: doc(db, 'interviews', interviewId!).path,
+            operation: 'update',
+            requestResourceData: data,
+          });
+          errorEmitter.emit('permission-error', permissionError);
+        }
       }
     });
   };
@@ -1226,3 +1219,5 @@ export default function ManageInterviewsClient() {
     </div>
   );
 }
+
+    
