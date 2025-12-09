@@ -1,4 +1,5 @@
 
+
 {
   "entities": {
     "InitialContact": {
@@ -272,6 +273,7 @@
           "enum": ["Passed", "Failed", "Pending"],
           "description": "The status of the final interview, if applicable."
         },
+        "finalInterviewNotes": { "type": "string", "description": "Notes from the final in-person or video interview." },
         "orientationScheduled": {
           "type": "boolean",
           "description": "Indicates if an orientation has been scheduled."

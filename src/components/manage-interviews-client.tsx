@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
@@ -54,6 +55,7 @@ const phoneScreenSchema = z.object({
   interviewNotes: z.string().min(1, "Interview notes are required."),
   candidateRating: z.string({ required_error: 'A rating is required.' }),
   phoneScreenPassed: z.enum(['Yes', 'No']),
+  finalInterviewNotes: z.string().optional(),
 });
 
 const scheduleEventSchema = z.object({
@@ -115,6 +117,7 @@ export default function ManageInterviewsClient() {
       interviewNotes: '',
       candidateRating: 'C',
       phoneScreenPassed: 'No',
+      finalInterviewNotes: '',
     },
   });
 
@@ -148,6 +151,7 @@ export default function ManageInterviewsClient() {
       interviewNotes: '',
       candidateRating: 'C',
       phoneScreenPassed: 'No',
+      finalInterviewNotes: '',
     });
     scheduleEventForm.reset();
     orientationForm.reset();
@@ -205,6 +209,7 @@ export default function ManageInterviewsClient() {
                 interviewNotes: interviewData.interviewNotes || '',
                 candidateRating: interviewData.candidateRating || 'C',
                 phoneScreenPassed: interviewData.phoneScreenPassed as 'Yes' | 'No' || 'No',
+                finalInterviewNotes: interviewData.finalInterviewNotes || '',
             });
 
             scheduleEventForm.reset({
@@ -455,11 +460,15 @@ export default function ManageInterviewsClient() {
 
         startSubmitTransition(async () => {
             const interviewDocRef = doc(db, 'interviews', existingInterview.id);
-            const updateData = { finalInterviewStatus: status };
+            const { finalInterviewNotes } = phoneScreenForm.getValues();
+            const updateData = { 
+                finalInterviewStatus: status,
+                finalInterviewNotes: finalInterviewNotes || '',
+             };
             
             updateDoc(interviewDocRef, updateData)
               .then(() => {
-                setExistingInterview(prev => prev ? { ...prev, finalInterviewStatus: status } : null);
+                setExistingInterview(prev => prev ? { ...prev, ...updateData } : null);
                 toast({ title: "Status Updated", description: `Final interview marked as ${status}.` });
                 if(status === 'Failed') {
                     handleCancel();
@@ -944,9 +953,28 @@ export default function ManageInterviewsClient() {
                 <CardTitle>Final Interview Status</CardTitle>
                 <CardDescription>Update the status of the final interview for {selectedCaregiver?.fullName}.</CardDescription>
             </CardHeader>
-            <CardContent className="flex justify-center gap-4">
-                <Button onClick={() => handleUpdateFinalInterviewStatus('Passed')} disabled={isSubmitting} variant="default">Pass</Button>
-                <Button onClick={() => handleUpdateFinalInterviewStatus('Failed')} disabled={isSubmitting} variant="destructive">Fail</Button>
+            <CardContent>
+                <Form {...phoneScreenForm}>
+                    <form className="space-y-4" onSubmit={e => e.preventDefault()}>
+                        <FormField
+                            control={phoneScreenForm.control}
+                            name="finalInterviewNotes"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Final Interview Notes</FormLabel>
+                                    <FormControl>
+                                        <Textarea placeholder="Enter notes from the in-person/video interview..." {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <div className="flex justify-center gap-4 pt-2">
+                            <Button onClick={() => handleUpdateFinalInterviewStatus('Passed')} disabled={isSubmitting} variant="default">Pass</Button>
+                            <Button onClick={() => handleUpdateFinalInterviewStatus('Failed')} disabled={isSubmitting} variant="destructive">Fail</Button>
+                        </div>
+                    </form>
+                </Form>
             </CardContent>
         </Card>
     )}
@@ -1188,5 +1216,3 @@ export default function ManageInterviewsClient() {
     </div>
   );
 }
-
-    

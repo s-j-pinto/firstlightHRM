@@ -1,4 +1,5 @@
 
+
 import { z } from "zod";
 
 export const generalInfoSchema = z.object({
@@ -104,6 +105,7 @@ export const interviewSchema = z.object({
   googleEventId: z.string().optional(),
   createdAt: z.date().optional(),
   finalInterviewStatus: z.enum(['Passed', 'Failed', 'Pending']).optional(),
+  finalInterviewNotes: z.string().optional(),
   orientationScheduled: z.boolean().optional(),
   orientationDateTime: z.date().optional(),
 });
@@ -577,5 +579,3 @@ export const smsMessageSchema = z.object({
     timestamp: z.any(),
 });
 export type SmsMessage = z.infer<typeof smsMessageSchema> & { id: string };
-
-    
