@@ -12,7 +12,8 @@ import { format, formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-t
 
 interface SaveInterviewPayload {
   caregiverProfile: CaregiverProfile;
-  eventDateTime: Date;
+  eventDate: Date;
+  eventTime: string;
   interviewId: string;
   aiInsight: string | null;
   interviewType: 'In-Person' | 'Google Meet' | 'Orientation';
@@ -26,7 +27,8 @@ interface SaveInterviewPayload {
 export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
   const { 
     caregiverProfile, 
-    eventDateTime, // This is the date part from the form
+    eventDate,
+    eventTime,
     interviewId, 
     aiInsight, 
     interviewType,
@@ -37,10 +39,6 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
     googleEventId,
   } = payload;
   
-  // NOTE: The 'eventDateTime' from the payload is actually just the date part.
-  // The time is passed separately in another (un-typed) part of the payload from the form.
-  // We need to handle this explicitly. The form data is what is inside the `scheduleEventForm` in the client.
-  const eventTime = (payload as any).eventTime; // e.g. "14:00"
 
   try {
     const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -58,7 +56,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
 
     // Correctly construct the start time by treating the incoming date and time strings
     // as belonging to the Pacific timezone from the very beginning.
-    const datePart = format(eventDateTime, 'yyyy-MM-dd');
+    const datePart = format(eventDate, 'yyyy-MM-dd');
     const dateTimeString = `${datePart}T${eventTime}`; // e.g., "2024-12-08T14:00"
     const startTime = fromZonedTime(dateTimeString, pacificTimeZone);
     
@@ -307,5 +305,6 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
 
 
     
+
 
 

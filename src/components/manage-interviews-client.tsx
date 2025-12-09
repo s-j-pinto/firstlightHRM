@@ -61,8 +61,8 @@ const phoneScreenSchema = z.object({
 const scheduleEventSchema = z.object({
     interviewPathway: z.enum(['separate', 'combined']),
     interviewMethod: z.enum(['In-Person', 'Google Meet']),
-    eventDate: z.date(),
-    eventTime: z.string(),
+    eventDate: z.date({ required_error: "An event date is required."}),
+    eventTime: z.string().min(1, { message: 'An event time is required.'}),
 });
 
 const orientationSchema = z.object({
@@ -422,12 +422,10 @@ export default function ManageInterviewsClient() {
     if (!selectedCaregiver || !existingInterview) return;
 
     startScheduleSubmitTransition(async () => {
-       const [hours, minutes] = data.eventTime.split(':').map(Number);
-       const eventDateTime = new Date(data.eventDate.setHours(hours, minutes));
- 
        const result = await saveInterviewAndSchedule({
          caregiverProfile: selectedCaregiver,
-         eventDateTime: eventDateTime,
+         eventDate: data.eventDate,
+         eventTime: data.eventTime,
          interviewId: existingInterview!.id,
          aiInsight: aiInsight || existingInterview.aiGeneratedInsight || '',
          interviewType: data.interviewMethod,
@@ -489,12 +487,10 @@ export default function ManageInterviewsClient() {
         if (!selectedCaregiver || !existingInterview) return;
 
         startOrientationSubmitTransition(async () => {
-             const [hours, minutes] = data.orientationTime.split(':').map(Number);
-             const eventDateTime = new Date(data.orientationDate.setHours(hours, minutes));
-
             const result = await saveInterviewAndSchedule({
                 caregiverProfile: selectedCaregiver,
-                eventDateTime: eventDateTime,
+                eventDate: data.orientationDate,
+                eventTime: data.orientationTime,
                 interviewId: existingInterview.id,
                 aiInsight: aiInsight || '',
                 interviewType: 'Orientation',
@@ -518,7 +514,7 @@ export default function ManageInterviewsClient() {
             
             if (!result.error) {
                 // Manually update local state to trigger hiring form visibility
-                 setExistingInterview(prev => prev ? { ...prev, orientationScheduled: true, orientationDateTime: eventDateTime } : null);
+                 setExistingInterview(prev => prev ? { ...prev, orientationScheduled: true, orientationDateTime: new Date(data.orientationDate.setHours(parseInt(data.orientationTime.split(':')[0]), parseInt(data.orientationTime.split(':')[1]))) } : null);
             }
         });
     }
