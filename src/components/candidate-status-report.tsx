@@ -144,20 +144,20 @@ export default function CandidateStatusReport() {
     return (
         <Card>
             <CardHeader>
-                <div className="flex justify-between items-start gap-4">
+                <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4">
                     <div>
                         <CardTitle>Candidate Status Report</CardTitle>
                         <CardDescription>
                             Track candidates through the application, interview, and hiring process.
                         </CardDescription>
                     </div>
-                     <Card className="p-3 text-xs bg-muted/50 w-full max-w-xs">
+                     <Card className="p-3 text-xs bg-muted/50 w-full max-w-xs shrink-0">
                         <h4 className="font-semibold mb-2 text-center">Rating Legend</h4>
                         <ul className="space-y-1">
                         {ratingOptions.map(option => (
                             <li key={option.value} className="flex justify-between">
                                 <span className="font-bold">{option.value}:</span>
-                                <span>{option.label}</span>
+                                <span className="text-right">{option.label}</span>
                             </li>
                         ))}
                         </ul>
