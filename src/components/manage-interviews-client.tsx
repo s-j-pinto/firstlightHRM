@@ -51,6 +51,7 @@ import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Dialog, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogContent, DialogDescription } from './ui/dialog';
+import { Label } from './ui/label';
 
 
 const phoneScreenSchema = z.object({
@@ -78,11 +79,11 @@ type OrientationFormData = z.infer<typeof orientationSchema>;
 type HiringFormData = z.infer<typeof caregiverEmployeeSchema>;
 
 const ratingOptions = [
-    { value: 'A', label: 'A = Excellent candidate; ready for hire' },
-    { value: 'B', label: 'B = Good candidate; minor training needed' },
-    { value: 'C', label: 'C = Average; may require supervision' },
-    { value: 'D', label: 'D = Below average; limited suitability' },
-    { value: 'F', label: 'F = Not recommended for hire' },
+    { value: 'A', label: 'Excellent candidate; ready for hire' },
+    { value: 'B', label: 'Good candidate; minor training needed' },
+    { value: 'C', label: 'Average; may require supervision' },
+    { value: 'D', label: 'Below average; limited suitability' },
+    { value: 'F', label: 'Not recommended for hire' },
 ];
 
 const rejectionReasons = [
@@ -90,6 +91,7 @@ const rejectionReasons = [
     "Caregiver did not accept Pay Rate. (Too Low)",
     "References did not checkout or not provided.",
     "Not a good fit for FirstLight RC office (attitude, soft skills etc)",
+    "CG Ghosts appointment",
 ];
 
 export default function ManageInterviewsClient() {
@@ -1294,18 +1296,18 @@ function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: strin
   return (
     <div className="space-y-4 pt-4">
       <div className="space-y-2">
-        <FormLabel>Reason for Rejection</FormLabel>
+        <Label>Reason for Rejection</Label>
         <RadioGroup onValueChange={setReason} value={reason}>
           {rejectionReasons.map((r, i) => (
             <FormItem key={i} className="flex items-center space-x-3 space-y-0">
-              <FormControl><RadioGroupItem value={r} /></FormControl>
-              <FormLabel className="font-normal">{r}</FormLabel>
+              <FormControl><RadioGroupItem value={r} id={`reason-${i}`} /></FormControl>
+              <Label htmlFor={`reason-${i}`} className="font-normal">{r}</Label>
             </FormItem>
           ))}
         </RadioGroup>
       </div>
       <div className="space-y-2">
-        <FormLabel>Rejection Notes</FormLabel>
+        <Label>Rejection Notes</Label>
         <Textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
