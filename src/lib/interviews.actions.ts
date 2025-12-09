@@ -8,7 +8,7 @@ import { google } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
 import type { CaregiverProfile, Interview } from './types';
 import { Timestamp } from 'firebase-admin/firestore';
-import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
+import { format, formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
 
 interface SaveInterviewPayload {
   caregiverProfile: CaregiverProfile;
@@ -26,7 +26,7 @@ interface SaveInterviewPayload {
 export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
   const { 
     caregiverProfile, 
-    eventDateTime, 
+    eventDateTime, // This is the date part from the form
     interviewId, 
     aiInsight, 
     interviewType,
@@ -37,6 +37,11 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
     googleEventId,
   } = payload;
   
+  // NOTE: The 'eventDateTime' from the payload is actually just the date part.
+  // The time is passed separately in another (un-typed) part of the payload from the form.
+  // We need to handle this explicitly. The form data is what is inside the `scheduleEventForm` in the client.
+  const eventTime = (payload as any).eventTime; // e.g. "14:00"
+
   try {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
@@ -48,6 +53,15 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
     let conferenceLink: string | undefined = undefined;
     let newGoogleEventId: string | undefined = undefined;
 
+    // --- Timezone and Date Construction ---
+    const pacificTimeZone = 'America/Los_Angeles';
+
+    // Correctly construct the start time by treating the incoming date and time strings
+    // as belonging to the Pacific timezone from the very beginning.
+    const datePart = format(eventDateTime, 'yyyy-MM-dd');
+    const dateTimeString = `${datePart}T${eventTime}`; // e.g., "2024-12-08T14:00"
+    const startTime = fromZonedTime(dateTimeString, pacificTimeZone);
+    
     // --- Determine Event Duration and Title ---
     let durationHours: number;
     let eventTitle: string;
@@ -63,7 +77,6 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
         eventTitle = `Final Interview: ${caregiverProfile.fullName}`;
     }
     
-    const startTime = eventDateTime;
     const endTime = new Date(startTime.getTime() + durationHours * 60 * 60 * 1000);
 
     // --- Calendar Integration ---
@@ -77,8 +90,8 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
         
         const eventRequestBody: any = {
             summary: eventTitle,
-            start: { dateTime: startTime.toISOString(), timeZone: 'America/Los_Angeles' },
-            end: { dateTime: endTime.toISOString(), timeZone: 'America/Los_Angeles' },
+            start: { dateTime: startTime.toISOString(), timeZone: pacificTimeZone },
+            end: { dateTime: endTime.toISOString(), timeZone: pacificTimeZone },
             attendees: [{ email: 'care-rc@firstlighthomecare.com' }, { email: caregiverProfile.email }],
             reminders: { useDefault: false, overrides: [{ method: 'email', minutes: 24 * 60 }, { method: 'popup', minutes: 120 }] },
         };
@@ -93,7 +106,8 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
         }
 
         let createdEvent;
-        // If we have an event ID AND we are NOT scheduling a new Orientation, update the event.
+        
+        // If we have an event ID AND we are NOT scheduling an Orientation or switching pathways, update the event.
         if (googleEventId && interviewType !== 'Orientation') {
             createdEvent = await calendar.events.update({
                 calendarId: 'primary',
@@ -102,7 +116,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
                 sendUpdates: 'all',
             });
         } else {
-            // Otherwise (no event ID or it's an Orientation), insert a new event.
+            // Otherwise (no event ID, or it's an Orientation, or a pathway switch), insert a new event.
             createdEvent = await calendar.events.insert({ 
                 calendarId: 'primary', 
                 requestBody: eventRequestBody, 
@@ -140,15 +154,15 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
 
     if (interviewType === 'Orientation') {
         updateData.orientationScheduled = true;
-        updateData.orientationDateTime = Timestamp.fromDate(eventDateTime);
+        updateData.orientationDateTime = Timestamp.fromDate(startTime);
     } else {
-        updateData.interviewDateTime = Timestamp.fromDate(eventDateTime);
+        updateData.interviewDateTime = Timestamp.fromDate(startTime);
         updateData.interviewType = interviewType;
         updateData.googleMeetLink = conferenceLink || null;
         updateData.finalInterviewStatus = finalInterviewStatus || (pathway === 'combined' ? 'Passed' : 'Pending');
         updateData.orientationScheduled = pathway === 'combined';
         if (pathway === 'combined') {
-            updateData.orientationDateTime = Timestamp.fromDate(eventDateTime);
+            updateData.orientationDateTime = Timestamp.fromDate(startTime);
         }
     }
 
@@ -156,14 +170,11 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
     await interviewRef.update(updateData);
 
     // --- Confirmation Email ---
-    const pacificTimeZone = 'America/Los_Angeles';
-    const zonedStartTime = toZonedTime(startTime, pacificTimeZone);
-    const zonedEndTime = toZonedTime(endTime, pacificTimeZone);
     const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
 
-    const formattedDate = formatInTimeZone(zonedStartTime, pacificTimeZone, 'eeee, MMMM do');
-    const formattedStartTime = formatInTimeZone(zonedStartTime, pacificTimeZone, 'h:mm a zzz');
-    const formattedEndTime = formatInTimeZone(zonedEndTime, pacificTimeZone, 'h:mm a zzz');
+    const formattedDate = formatInTimeZone(startTime, pacificTimeZone, 'eeee, MMMM do');
+    const formattedStartTime = formatInTimeZone(startTime, pacificTimeZone, 'h:mm a zzz');
+    const formattedEndTime = formatInTimeZone(endTime, pacificTimeZone, 'h:mm a zzz');
 
     let emailHtml = '';
     const inPersonDuration = (interviewType === 'Orientation') ? 1.5 : (pathway === 'combined' ? 3 : 1);
@@ -296,4 +307,5 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
 
 
     
+
 
