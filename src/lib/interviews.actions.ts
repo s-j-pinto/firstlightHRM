@@ -41,6 +41,10 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
     previousPathway,
   } = payload;
   
+  //added new code for timezone
+  function getPacificOffset() {
+    return formatInTimeZone(new Date(), "America/Los_Angeles", "XXX");  // "-08:00" or "-07:00"
+  }
 
   try {
     const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -55,7 +59,9 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
 
     // --- Timezone and Date Construction ---
     const pacificTimeZone = 'America/Los_Angeles';
-    const dateTimeString = `${eventDate}T${eventTime}`; // e.g., "2024-12-08T14:00"
+    
+    //const dateTimeString = `${eventDate}T${eventTime}`; // e.g., "2024-12-08T14:00"
+    const dateTimeString = `${eventDate}T${eventTime}${getPacificOffset()}`;
     const startTime = fromZonedTime(dateTimeString, pacificTimeZone);
     
     // --- Determine Event Duration and Title ---
@@ -175,7 +181,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
 
     const detailedInPersonEmail = `
         <p>${caregiverProfile.fullName},</p>
-        <p>This is to confirm your in-person ${inPersonDuration} hour ${interviewType === 'Orientation' ? 'orientation' : 'interview'} for a HCA/Caregiver position on ${formattedDate} @ ${formattedStartTime} to ${formattedEndTime}.</p>
+        <p>This is to confirm your in-person ${inPersonDuration} hour ${interviewType === 'Orientation' ? 'orientation' : 'interview'} for a HCA/Caregiver position. Pls refer to calendar invite. on ${formattedDate} @ ${formattedStartTime} to ${formattedEndTime}.</p>
         <p>Please call or text the office if you have questions, or need to cancel or reschedule your appointment.</p>
         <br>
         <p><strong>Office address:</strong><br>
