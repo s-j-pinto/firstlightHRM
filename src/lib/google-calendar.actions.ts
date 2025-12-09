@@ -183,12 +183,12 @@ export async function sendHomeVisitInvite(payload: HomeVisitPayload) {
         const pacificTimeZone = 'America/Los_Angeles';
 
         const datePart = format(dateOfHomeVisit, 'yyyy-MM-dd');
-        const timePart = timeOfVisit;
-        const dateTimeString = `${datePart} ${timePart}`;
-
-        const zonedStartTime = toZonedTime(dateTimeString, pacificTimeZone);
-        const startDateTimeIso = zonedStartTime.toISOString();
+        const dateTimeString = `${datePart}T${timeOfVisit}`;
+        
+        const zonedStartTime = fromZonedTime(dateTimeString, pacificTimeZone);
         const endDateTime = new Date(zonedStartTime.getTime() + 60 * 60 * 1000); // 1-hour duration
+        
+        const startDateTimeIso = zonedStartTime.toISOString();
         const endDateTimeIso = endDateTime.toISOString();
 
         const signatureHtml = `
