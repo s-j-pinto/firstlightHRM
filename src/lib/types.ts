@@ -104,10 +104,13 @@ export const interviewSchema = z.object({
   googleMeetLink: z.string().optional(),
   googleEventId: z.string().optional(),
   createdAt: z.date().optional(),
-  finalInterviewStatus: z.enum(['Passed', 'Failed', 'Pending']).optional(),
+  finalInterviewStatus: z.enum(['Passed', 'Failed', 'Pending', 'Rejected after Orientation']).optional(),
   finalInterviewNotes: z.string().optional(),
   orientationScheduled: z.boolean().optional(),
   orientationDateTime: z.date().optional(),
+  rejectionReason: z.string().optional(),
+  rejectionNotes: z.string().optional(),
+  rejectionDate: z.date().optional(),
 });
 
 export type Interview = z.infer<typeof interviewSchema> & { id: string };
@@ -579,3 +582,4 @@ export const smsMessageSchema = z.object({
     timestamp: z.any(),
 });
 export type SmsMessage = z.infer<typeof smsMessageSchema> & { id: string };
+

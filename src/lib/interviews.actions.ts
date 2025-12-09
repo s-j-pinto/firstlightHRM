@@ -12,16 +12,17 @@ import { format, formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-t
 
 interface SaveInterviewPayload {
   caregiverProfile: CaregiverProfile;
-  eventDate: Date;
-  eventTime: string;
+  eventDate: string; // Keep as string yyyy-MM-dd
+  eventTime: string; // Keep as string HH:mm
   interviewId: string;
   aiInsight: string | null;
   interviewType: 'In-Person' | 'Google Meet' | 'Orientation';
   interviewNotes: string;
   candidateRating: string;
   pathway: 'separate' | 'combined';
-  finalInterviewStatus?: 'Passed' | 'Failed' | 'Pending';
+  finalInterviewStatus?: 'Passed' | 'Failed' | 'Pending' | 'Rejected after Orientation';
   googleEventId?: string | null; // Add this to handle updates
+  previousPathway?: 'separate' | 'combined' | null;
 }
 
 export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
@@ -37,6 +38,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
     pathway,
     finalInterviewStatus,
     googleEventId,
+    previousPathway,
   } = payload;
   
 
@@ -53,11 +55,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
 
     // --- Timezone and Date Construction ---
     const pacificTimeZone = 'America/Los_Angeles';
-
-    // Correctly construct the start time by treating the incoming date and time strings
-    // as belonging to the Pacific timezone from the very beginning.
-    const datePart = format(eventDate, 'yyyy-MM-dd');
-    const dateTimeString = `${datePart}T${eventTime}`; // e.g., "2024-12-08T14:00"
+    const dateTimeString = `${eventDate}T${eventTime}`; // e.g., "2024-12-08T14:00"
     const startTime = fromZonedTime(dateTimeString, pacificTimeZone);
     
     // --- Determine Event Duration and Title ---
@@ -105,8 +103,8 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
 
         let createdEvent;
         
-        // If we have an event ID AND we are NOT scheduling an Orientation or switching pathways, update the event.
-        if (googleEventId && interviewType !== 'Orientation') {
+        const pathwayChanged = previousPathway && previousPathway !== pathway;
+        if (googleEventId && interviewType !== 'Orientation' && !pathwayChanged) {
             createdEvent = await calendar.events.update({
                 calendarId: 'primary',
                 eventId: googleEventId,
@@ -114,7 +112,6 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
                 sendUpdates: 'all',
             });
         } else {
-            // Otherwise (no event ID, or it's an Orientation, or a pathway switch), insert a new event.
             createdEvent = await calendar.events.insert({ 
                 calendarId: 'primary', 
                 requestBody: eventRequestBody, 
@@ -128,7 +125,6 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
 
       } catch (calendarError: any) {
           console.error('Error sending calendar invite:', calendarError);
-          // Don't crash, just log and set an error message to return
           calendarErrorMessage = `Failed to create/update calendar event: ${calendarError.message}`;
       }
     } else {
@@ -269,7 +265,6 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
     } else if (interviewType === 'In-Person' || interviewType === 'Orientation') {
         emailHtml = detailedInPersonEmail;
     } else {
-        // Fallback or error case if a new unhandled interviewType is introduced
         emailHtml = `<p>Your appointment with FirstLight Home Care on ${formattedDate} at ${formattedStartTime} is confirmed.</p>`;
     }
 
@@ -286,7 +281,6 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
     
     revalidatePath('/admin/manage-interviews');
     
-    // --- Final Response ---
     if (calendarErrorMessage) {
         return { message: `Interview details saved and email sent, but calendar invite failed: ${calendarErrorMessage}`, error: true, authUrl: calendarAuthUrl };
     }
@@ -299,12 +293,36 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
   }
 }
 
+export async function rejectCandidateAfterOrientation(payload: { interviewId: string, reason: string, notes: string }) {
+    const { interviewId, reason, notes } = payload;
+    if (!interviewId || !reason) {
+        return { error: true, message: "Interview ID and a reason for rejection are required." };
+    }
+    
+    try {
+        const interviewRef = serverDb.collection('interviews').doc(interviewId);
+        await interviewRef.update({
+            finalInterviewStatus: 'Rejected after Orientation',
+            rejectionReason: reason,
+            rejectionNotes: notes,
+            rejectionDate: Timestamp.now(),
+        });
+
+        revalidatePath('/admin/manage-interviews');
+        return { success: true, message: 'Candidate has been marked as rejected.' };
+
+    } catch (error: any) {
+        console.error("Error rejecting candidate:", error);
+        return { error: true, message: `An error occurred: ${error.message}` };
+    }
+}
     
 
     
 
 
     
+
 
 
 

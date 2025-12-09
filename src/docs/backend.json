@@ -270,19 +270,15 @@
         "aiGeneratedInsight": { "type": "string" },
         "finalInterviewStatus": {
           "type": "string",
-          "enum": ["Passed", "Failed", "Pending"],
+          "enum": ["Passed", "Failed", "Pending", "Rejected after Orientation"],
           "description": "The status of the final interview, if applicable."
         },
         "finalInterviewNotes": { "type": "string", "description": "Notes from the final in-person or video interview." },
-        "orientationScheduled": {
-          "type": "boolean",
-          "description": "Indicates if an orientation has been scheduled."
-        },
-        "orientationDateTime": {
-            "type": "string",
-            "format": "date-time",
-            "description": "The date and time of the scheduled orientation."
-        }
+        "orientationScheduled": { "type": "boolean", "description": "Indicates if an orientation has been scheduled." },
+        "orientationDateTime": { "type": "string", "format": "date-time", "description": "The date and time of the scheduled orientation." },
+        "rejectionReason": { "type": "string", "description": "The reason a candidate was rejected after passing interviews." },
+        "rejectionNotes": { "type": "string", "description": "Custom notes detailing the rejection reason." },
+        "rejectionDate": { "type": "string", "format": "date-time", "description": "The date the candidate was rejected." }
       },
       "required": [
         "caregiverProfileId",

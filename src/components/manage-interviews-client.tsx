@@ -11,7 +11,7 @@ import { collection, query, where, getDocs, addDoc, doc, updateDoc, Timestamp } 
 import { firestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import type { CaregiverProfile, Interview, CaregiverEmployee } from '@/lib/types';
 import { caregiverEmployeeSchema } from '@/lib/types';
-import { saveInterviewAndSchedule } from '@/lib/interviews.actions';
+import { saveInterviewAndSchedule, rejectCandidateAfterOrientation } from '@/lib/interviews.actions';
 import { getAiInterviewInsights } from '@/lib/ai.actions';
 
 
@@ -44,12 +44,13 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Search, Calendar as CalendarIcon, Sparkles, UserCheck, AlertCircle, ExternalLink, Briefcase, Video, GraduationCap, Phone, Star, MessageSquare, CheckCircle, XCircle } from 'lucide-react';
+import { Loader2, Search, Calendar as CalendarIcon, Sparkles, UserCheck, AlertCircle, ExternalLink, Briefcase, Video, GraduationCap, Phone, Star, MessageSquare, CheckCircle, XCircle, UserX } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import { formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { Dialog, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogContent, DialogDescription } from './ui/dialog';
 
 
 const phoneScreenSchema = z.object({
@@ -84,6 +85,13 @@ const ratingOptions = [
     { value: 'F', label: 'F = Not recommended for hire' },
 ];
 
+const rejectionReasons = [
+    "Insufficient documents brought for Final Interview/Orientation.",
+    "Caregiver did not accept Pay Rate. (Too Low)",
+    "References did not checkout or not provided.",
+    "Not a good fit for FirstLight RC office (attitude, soft skills etc)",
+];
+
 export default function ManageInterviewsClient() {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<CaregiverProfile[]>([]);
@@ -92,12 +100,14 @@ export default function ManageInterviewsClient() {
   const [existingEmployee, setExistingEmployee] = useState<CaregiverEmployee | null>(null);
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [authUrl, setAuthUrl] = useState<string | null>(null);
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   
   const [isAiPending, startAiTransition] = useTransition();
   const [isSearching, startSearchTransition] = useTransition();
   const [isSubmitting, startSubmitTransition] = useTransition();
   const [isOrientationSubmitting, startOrientationSubmitTransition] = useTransition();
   const [isScheduleSubmitting, startScheduleSubmitTransition] = useTransition();
+  const [isRejecting, startRejectingTransition] = useTransition();
 
 
   const { toast } = useToast();
@@ -311,6 +321,7 @@ export default function ManageInterviewsClient() {
 
   const getHiringFormVisibility = () => {
     if (existingEmployee) return false;
+    if (existingInterview?.finalInterviewStatus === 'Rejected after Orientation') return false;
     if (existingInterview?.orientationScheduled) return true;
     return false;
   };
@@ -425,9 +436,9 @@ export default function ManageInterviewsClient() {
     startScheduleSubmitTransition(async () => {
        const result = await saveInterviewAndSchedule({
          caregiverProfile: selectedCaregiver,
-         eventDate: data.eventDate,
+         eventDate: format(data.eventDate, 'yyyy-MM-dd'),
          eventTime: data.eventTime,
-         interviewId: existingInterview!.id,
+         interviewId: existingInterview.id,
          aiInsight: aiInsight || existingInterview.aiGeneratedInsight || '',
          interviewType: data.interviewMethod,
          interviewNotes: phoneScreenForm.getValues('interviewNotes'),
@@ -491,7 +502,7 @@ export default function ManageInterviewsClient() {
         startOrientationSubmitTransition(async () => {
             const result = await saveInterviewAndSchedule({
                 caregiverProfile: selectedCaregiver,
-                eventDate: data.orientationDate,
+                eventDate: format(data.orientationDate, 'yyyy-MM-dd'),
                 eventTime: data.orientationTime,
                 interviewId: existingInterview.id,
                 aiInsight: aiInsight || '',
@@ -522,56 +533,74 @@ export default function ManageInterviewsClient() {
         });
     }
 
-  const onHiringSubmit = (data: HiringFormData) => {
-    if (!selectedCaregiver || !existingInterview || !db) return;
+    const onHiringSubmit = (data: HiringFormData) => {
+        if (!selectedCaregiver || !existingInterview || !db) return;
 
-    startSubmitTransition(async () => {
-      const employeeData: { [key: string]: any } = {
-        caregiverProfileId: selectedCaregiver.id,
-        interviewId: existingInterview.id,
-        hiringManager: data.hiringManager,
-        hiringComments: data.hiringComments,
-        hireDate: Timestamp.fromDate(data.hireDate),
-        teletrackPin: data.teletrackPin,
-        createdAt: existingEmployee?.id ? undefined : Timestamp.now(),
-      };
+        startSubmitTransition(async () => {
+          const employeeData: { [key: string]: any } = {
+            caregiverProfileId: selectedCaregiver.id,
+            interviewId: existingInterview.id,
+            hiringManager: data.hiringManager,
+            hiringComments: data.hiringComments,
+            hireDate: Timestamp.fromDate(data.hireDate),
+            teletrackPin: data.teletrackPin,
+            createdAt: existingEmployee?.id ? undefined : Timestamp.now(),
+          };
 
-      if (data.inPersonInterviewDate) {
-        employeeData.inPersonInterviewDate = Timestamp.fromDate(data.inPersonInterviewDate);
-      }
+          if (data.inPersonInterviewDate) {
+            employeeData.inPersonInterviewDate = Timestamp.fromDate(data.inPersonInterviewDate);
+          }
 
-      if (existingEmployee?.id) {
-        const employeeDocRef = doc(db, 'caregiver_employees', existingEmployee.id);
-        updateDoc(employeeDocRef, employeeData)
-          .then(() => {
-            toast({ title: 'Success', description: 'Employee record has been updated.' });
-          })
-          .catch(serverError => {
-            const permissionError = new FirestorePermissionError({
-              path: employeeDocRef.path,
-              operation: "update",
-              requestResourceData: employeeData,
+          if (existingEmployee?.id) {
+            const employeeDocRef = doc(db, 'caregiver_employees', existingEmployee.id);
+            updateDoc(employeeDocRef, employeeData)
+              .then(() => {
+                toast({ title: 'Success', description: 'Employee record has been updated.' });
+              })
+              .catch(serverError => {
+                const permissionError = new FirestorePermissionError({
+                  path: employeeDocRef.path,
+                  operation: "update",
+                  requestResourceData: employeeData,
+                });
+                errorEmitter.emit("permission-error", permissionError);
+              });
+          } else {
+            const employeesCollection = collection(db, 'caregiver_employees');
+            addDoc(employeesCollection, employeeData)
+              .then(docRef => {
+                setExistingEmployee({ id: docRef.id, ...employeeData } as CaregiverEmployee);
+                toast({ title: 'Success', description: 'Caregiver has been successfully marked as hired.' });
+              })
+              .catch(serverError => {
+                const permissionError = new FirestorePermissionError({
+                  path: employeesCollection.path,
+                  operation: "create",
+                  requestResourceData: employeeData,
+                });
+                errorEmitter.emit("permission-error", permissionError);
+              });
+          }
+        });
+    };
+    
+    const handleRejection = (reason: string, notes: string) => {
+        if (!existingInterview?.id) return;
+        startRejectingTransition(async () => {
+            const result = await rejectCandidateAfterOrientation({
+                interviewId: existingInterview.id,
+                reason,
+                notes,
             });
-            errorEmitter.emit("permission-error", permissionError);
-          });
-      } else {
-        const employeesCollection = collection(db, 'caregiver_employees');
-        addDoc(employeesCollection, employeeData)
-          .then(docRef => {
-            setExistingEmployee({ id: docRef.id, ...employeeData } as CaregiverEmployee);
-            toast({ title: 'Success', description: 'Caregiver has been successfully marked as hired.' });
-          })
-          .catch(serverError => {
-            const permissionError = new FirestorePermissionError({
-              path: employeesCollection.path,
-              operation: "create",
-              requestResourceData: employeeData,
-            });
-            errorEmitter.emit("permission-error", permissionError);
-          });
-      }
-    });
-  };
+            if (result.error) {
+                toast({ title: 'Error', description: result.message, variant: 'destructive' });
+            } else {
+                toast({ title: 'Success', description: result.message });
+                setIsRejectDialogOpen(false);
+                handleCancel();
+            }
+        });
+    };
 
   const handleLaunchMeet = () => {
     if (existingInterview?.googleMeetLink) {
@@ -588,11 +617,8 @@ export default function ManageInterviewsClient() {
     existingInterview.phoneScreenPassed === 'Yes' &&
     !existingEmployee &&
     (
-        // Allow editing separate pathway if orientation is not scheduled
         (existingInterview?.interviewPathway === 'separate' && !existingInterview?.orientationScheduled) ||
-        // Allow editing combined pathway
         (existingInterview?.interviewPathway === 'combined') ||
-        // Allow editing if pathway is not yet set
         !existingInterview?.interviewPathway
     );
 
@@ -1231,7 +1257,10 @@ export default function ManageInterviewsClient() {
                                     Launch Google Meet
                                 </Button>
                             )}
-                            <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
+                             <Button type="button" variant="destructive" onClick={() => setIsRejectDialogOpen(true)}>
+                                <UserX className="mr-2 h-4 w-4" />
+                                Reject Candidate
+                            </Button>
                             <Button type="submit" disabled={isSubmitting}>
                                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
                                 {existingEmployee ? 'Update Record' : 'Complete Hiring'}
@@ -1243,6 +1272,53 @@ export default function ManageInterviewsClient() {
         </Card>
       )}
 
+      <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Candidate: {selectedCaregiver?.fullName}</DialogTitle>
+            <DialogDescription>
+              Select a reason for rejection and add any final notes. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <RejectCandidateForm onSubmit={handleRejection} isPending={isRejecting} />
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: string, notes: string) => void; isPending: boolean; }) {
+  const [reason, setReason] = useState("");
+  const [notes, setNotes] = useState("");
+
+  return (
+    <div className="space-y-4 pt-4">
+      <div className="space-y-2">
+        <FormLabel>Reason for Rejection</FormLabel>
+        <RadioGroup onValueChange={setReason} value={reason}>
+          {rejectionReasons.map((r, i) => (
+            <FormItem key={i} className="flex items-center space-x-3 space-y-0">
+              <FormControl><RadioGroupItem value={r} /></FormControl>
+              <FormLabel className="font-normal">{r}</FormLabel>
+            </FormItem>
+          ))}
+        </RadioGroup>
+      </div>
+      <div className="space-y-2">
+        <FormLabel>Rejection Notes</FormLabel>
+        <Textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="Add any specific details here..."
+        />
+      </div>
+      <DialogFooter>
+        <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+        <Button type="button" variant="destructive" disabled={isPending || !reason} onClick={() => onSubmit(reason, notes)}>
+          {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Confirm Rejection
+        </Button>
+      </DialogFooter>
     </div>
   );
 }
