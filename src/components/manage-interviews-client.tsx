@@ -45,7 +45,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Search, Calendar as CalendarIcon, Sparkles, UserCheck, AlertCircle, ExternalLink, Briefcase, Video, GraduationCap, Phone, Star, MessageSquare, CheckCircle, XCircle } from 'lucide-react';
-import { format, toDate, addDays } from 'date-fns';
+import { format, addDays } from 'date-fns';
+import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
@@ -216,7 +217,7 @@ export default function ManageInterviewsClient() {
                 interviewPathway: interviewData.interviewPathway || undefined,
                 interviewMethod: interviewData.interviewType as 'In-Person' | 'Google Meet' | undefined,
                 eventDate: interviewDate,
-                eventTime: interviewDate ? format(toDate(interviewDate), 'HH:mm') : '',
+                eventTime: interviewDate ? format(interviewDate, 'HH:mm') : '',
             });
 
             if(interviewData.orientationDateTime) {
@@ -433,6 +434,7 @@ export default function ManageInterviewsClient() {
          candidateRating: phoneScreenForm.getValues('candidateRating'),
          pathway: data.interviewPathway,
          googleEventId: existingInterview.googleEventId,
+         previousPathway: existingInterview.interviewPathway,
        });
  
        if (result.authUrl) {
@@ -498,6 +500,7 @@ export default function ManageInterviewsClient() {
                 candidateRating: existingInterview.candidateRating || 'C',
                 pathway: 'separate', // Orientation is always a separate event logically
                 googleEventId: existingInterview.googleEventId,
+                previousPathway: existingInterview.interviewPathway,
             });
 
              if (result.authUrl) {
@@ -701,6 +704,13 @@ export default function ManageInterviewsClient() {
                                 <div>
                                     <h4 className="font-semibold flex items-center gap-2"><MessageSquare/> Notes</h4>
                                     <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap border p-3 rounded-md bg-background/50">{existingInterview.interviewNotes}</p>
+                                </div>
+                            )}
+
+                             {existingInterview?.finalInterviewNotes && (
+                                <div>
+                                    <h4 className="font-semibold flex items-center gap-2"><Briefcase/> Final Interview Notes</h4>
+                                    <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap border p-3 rounded-md bg-background/50">{existingInterview.finalInterviewNotes}</p>
                                 </div>
                             )}
 
@@ -1072,7 +1082,7 @@ export default function ManageInterviewsClient() {
                         <AlertDescription>
                             Status: <span className="font-semibold text-green-600">Passed</span>
                             <br />
-                            Date: {format((existingInterview.interviewDateTime as any).toDate(), 'PPpp')}
+                            Date: {format(new Date(existingInterview.interviewDateTime as any), 'PPpp')}
                         </AlertDescription>
                     </Alert>
                 )}
