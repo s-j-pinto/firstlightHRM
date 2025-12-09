@@ -46,7 +46,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Search, Calendar as CalendarIcon, Sparkles, UserCheck, AlertCircle, ExternalLink, Briefcase, Video, GraduationCap, Phone, Star, MessageSquare, CheckCircle, XCircle } from 'lucide-react';
 import { format, addDays } from 'date-fns';
-import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
+import { formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
@@ -517,7 +517,7 @@ export default function ManageInterviewsClient() {
             
             if (!result.error) {
                 // Manually update local state to trigger hiring form visibility
-                 setExistingInterview(prev => prev ? { ...prev, orientationScheduled: true, orientationDateTime: new Date(data.orientationDate.setHours(parseInt(data.orientationTime.split(':')[0]), parseInt(data.orientationTime.split(':')[1]))) } : null);
+                 setExistingInterview(prev => prev ? { ...prev, orientationScheduled: true, orientationDateTime: fromZonedTime(`${format(data.orientationDate, 'yyyy-MM-dd')}T${data.orientationTime}`, 'America/Los_Angeles') } : null);
             }
         });
     }
@@ -1082,7 +1082,7 @@ export default function ManageInterviewsClient() {
                         <AlertDescription>
                             Status: <span className="font-semibold text-green-600">Passed</span>
                             <br />
-                            Date: {format(new Date(existingInterview.interviewDateTime as any), 'PPpp')}
+                            Date: {format((existingInterview.interviewDateTime as any).toDate(), 'PPpp')}
                         </AlertDescription>
                     </Alert>
                 )}
