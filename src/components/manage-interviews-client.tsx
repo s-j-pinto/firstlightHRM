@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
@@ -216,7 +215,7 @@ export default function ManageInterviewsClient() {
             
             setExistingInterview(interviewData);
 
-            const interviewDate = interviewData.interviewDateTime ? (interviewData.interviewDateTime as any)?.toDate() : undefined;
+            const interviewDate = interviewData.interviewDateTime ? (interviewData.interviewDateTime as any).toDate() : undefined;
             
             phoneScreenForm.reset({
                 interviewNotes: interviewData.interviewNotes || '',
@@ -438,7 +437,7 @@ export default function ManageInterviewsClient() {
     startScheduleSubmitTransition(async () => {
        const result = await saveInterviewAndSchedule({
          caregiverProfile: selectedCaregiver,
-         eventDate: data.eventDate,
+         eventDate: format(data.eventDate, 'yyyy-MM-dd'),
          eventTime: data.eventTime,
          interviewId: existingInterview.id,
          aiInsight: aiInsight || existingInterview.aiGeneratedInsight || '',
@@ -505,7 +504,7 @@ export default function ManageInterviewsClient() {
         startOrientationSubmitTransition(async () => {
             const result = await saveInterviewAndSchedule({
                 caregiverProfile: selectedCaregiver,
-                eventDate: data.orientationDate,
+                eventDate: format(data.orientationDate, 'yyyy-MM-dd'),
                 eventTime: data.orientationTime,
                 interviewId: existingInterview.id,
                 aiInsight: aiInsight || '',
@@ -1300,10 +1299,10 @@ function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: strin
         <Label>Reason for Rejection</Label>
         <RadioGroup onValueChange={setReason} value={reason}>
           {rejectionReasons.map((r, i) => (
-            <FormItem key={i} className="flex items-center space-x-3 space-y-0">
-              <FormControl><RadioGroupItem value={r} id={`reason-${i}`} /></FormControl>
+            <div key={i} className="flex items-center space-x-3 space-y-0">
+              <RadioGroupItem value={r} id={`reason-${i}`} />
               <Label htmlFor={`reason-${i}`} className="font-normal">{r}</Label>
-            </FormItem>
+            </div>
           ))}
         </RadioGroup>
       </div>
@@ -1325,3 +1324,5 @@ function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: strin
     </div>
   );
 }
+
+    
