@@ -45,7 +45,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Search, Calendar as CalendarIcon, Sparkles, UserCheck, AlertCircle, ExternalLink, Briefcase, Video, GraduationCap, Phone, Star, MessageSquare, CheckCircle, XCircle } from 'lucide-react';
-import { format, toDate } from 'date-fns';
+import { format, toDate, addDays } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
@@ -500,7 +500,7 @@ export default function ManageInterviewsClient() {
                 interviewType: 'Orientation',
                 interviewNotes: existingInterview.interviewNotes || '',
                 candidateRating: existingInterview.candidateRating || 'C',
-                pathway: 'separate',
+                pathway: 'separate', // Orientation is always a separate event logically
                 googleEventId: existingInterview.googleEventId,
             });
 
@@ -910,7 +910,19 @@ export default function ManageInterviewsClient() {
                                                     </FormControl>
                                                     </PopoverTrigger>
                                                     <PopoverContent className="w-auto p-0" align="start">
-                                                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                                        <Calendar
+                                                            mode="single"
+                                                            selected={field.value}
+                                                            onSelect={field.onChange}
+                                                            initialFocus
+                                                            footer={
+                                                                <div className="flex gap-2 p-2 border-t">
+                                                                    <Button size="sm" variant="ghost" type="button" onClick={() => field.onChange(new Date())}>Today</Button>
+                                                                    <Button size="sm" variant="ghost" type="button" onClick={() => field.onChange(addDays(new Date(), 1))}>Tomorrow</Button>
+                                                                    <Button size="sm" variant="ghost" type="button" onClick={() => field.onChange(addDays(new Date(), 7))}>Next Week</Button>
+                                                                </div>
+                                                            }
+                                                        />
                                                     </PopoverContent>
                                                 </Popover>
                                                 <FormMessage />
@@ -1005,7 +1017,19 @@ export default function ManageInterviewsClient() {
                                             </FormControl>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-auto p-0" align="start">
-                                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                                <Calendar
+                                                    mode="single"
+                                                    selected={field.value}
+                                                    onSelect={field.onChange}
+                                                    initialFocus
+                                                    footer={
+                                                        <div className="flex gap-2 p-2 border-t">
+                                                            <Button size="sm" variant="ghost" type="button" onClick={() => field.onChange(new Date())}>Today</Button>
+                                                            <Button size="sm" variant="ghost" type="button" onClick={() => field.onChange(addDays(new Date(), 1))}>Tomorrow</Button>
+                                                            <Button size="sm" variant="ghost" type="button" onClick={() => field.onChange(addDays(new Date(), 7))}>Next Week</Button>
+                                                        </div>
+                                                    }
+                                                />
                                             </PopoverContent>
                                         </Popover>
                                         <FormMessage />
