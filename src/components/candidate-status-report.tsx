@@ -38,11 +38,11 @@ interface EnrichedCandidate extends CaregiverProfile {
 }
 
 const ratingOptions = [
-    { value: 'A', label: 'Excellent' },
-    { value: 'B', label: 'Good' },
-    { value: 'C', label: 'Average' },
-    { value: 'D', label: 'Below Average' },
-    { value: 'F', label: 'Not Recommended' },
+    { value: 'A', label: 'Excellent candidate; ready for hire' },
+    { value: 'B', label: 'Good candidate; minor training needed' },
+    { value: 'C', label: 'Average; may require supervision' },
+    { value: 'D', label: 'Below average; limited suitability' },
+    { value: 'F', label: 'Not recommended for hire' },
 ];
 
 const getStatus = (
