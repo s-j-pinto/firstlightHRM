@@ -37,6 +37,14 @@ interface EnrichedCandidate extends CaregiverProfile {
   employee?: CaregiverEmployee;
 }
 
+const ratingOptions = [
+    { value: 'A', label: 'Excellent' },
+    { value: 'B', label: 'Good' },
+    { value: 'C', label: 'Average' },
+    { value: 'D', label: 'Below Average' },
+    { value: 'F', label: 'Not Recommended' },
+];
+
 const getStatus = (
     profileId: string, 
     interviewsMap: Map<string, Interview>, 
@@ -136,10 +144,25 @@ export default function CandidateStatusReport() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Candidate Status Report</CardTitle>
-                <CardDescription>
-                    Track candidates through the application, interview, and hiring process.
-                </CardDescription>
+                <div className="flex justify-between items-start gap-4">
+                    <div>
+                        <CardTitle>Candidate Status Report</CardTitle>
+                        <CardDescription>
+                            Track candidates through the application, interview, and hiring process.
+                        </CardDescription>
+                    </div>
+                     <Card className="p-3 text-xs bg-muted/50 w-full max-w-xs">
+                        <h4 className="font-semibold mb-2 text-center">Rating Legend</h4>
+                        <ul className="space-y-1">
+                        {ratingOptions.map(option => (
+                            <li key={option.value} className="flex justify-between">
+                                <span className="font-bold">{option.value}:</span>
+                                <span>{option.label}</span>
+                            </li>
+                        ))}
+                        </ul>
+                    </Card>
+                </div>
                 <div className="relative pt-4">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input 
