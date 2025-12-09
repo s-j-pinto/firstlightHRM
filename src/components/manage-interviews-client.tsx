@@ -46,7 +46,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Search, Calendar as CalendarIcon, Sparkles, UserCheck, AlertCircle, ExternalLink, Briefcase, Video, GraduationCap, Phone, Star, MessageSquare, CheckCircle, XCircle, UserX } from 'lucide-react';
 import { format, addDays } from 'date-fns';
-import { formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
+import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
@@ -438,7 +438,7 @@ export default function ManageInterviewsClient() {
     startScheduleSubmitTransition(async () => {
        const result = await saveInterviewAndSchedule({
          caregiverProfile: selectedCaregiver,
-         eventDate: format(data.eventDate, 'yyyy-MM-dd'),
+         eventDate: data.eventDate,
          eventTime: data.eventTime,
          interviewId: existingInterview.id,
          aiInsight: aiInsight || existingInterview.aiGeneratedInsight || '',
@@ -446,6 +446,7 @@ export default function ManageInterviewsClient() {
          interviewNotes: phoneScreenForm.getValues('interviewNotes'),
          candidateRating: phoneScreenForm.getValues('candidateRating'),
          pathway: data.interviewPathway,
+         finalInterviewStatus: existingInterview.finalInterviewStatus,
          googleEventId: existingInterview.googleEventId,
          previousPathway: existingInterview.interviewPathway,
        });
@@ -504,7 +505,7 @@ export default function ManageInterviewsClient() {
         startOrientationSubmitTransition(async () => {
             const result = await saveInterviewAndSchedule({
                 caregiverProfile: selectedCaregiver,
-                eventDate: format(data.orientationDate, 'yyyy-MM-dd'),
+                eventDate: data.orientationDate,
                 eventTime: data.orientationTime,
                 interviewId: existingInterview.id,
                 aiInsight: aiInsight || '',
