@@ -60,6 +60,7 @@ type CandidateStatus =
   | 'Final Interview Failed'
   | 'Final Interview Passed'
   | 'Orientation Scheduled'
+  | 'Rejected after Orientation'
   | 'Hired';
 
 interface EnrichedCandidate extends CaregiverProfile {
@@ -67,7 +68,7 @@ interface EnrichedCandidate extends CaregiverProfile {
 }
 
 const hiringStatuses: CandidateStatus[] = [
-  'Applied', 'Hired', 'Orientation Scheduled', 'Final Interview Passed', 'Final Interview Pending', 'Final Interview Failed', 'Phone Screen Failed'
+  'Applied', 'Hired', 'Orientation Scheduled', 'Final Interview Passed', 'Final Interview Pending', 'Final Interview Failed', 'Phone Screen Failed', 'Rejected after Orientation'
 ];
 
 type FormData = {
@@ -242,6 +243,7 @@ export default function AdvancedSearchClient() {
             const interview = interviewsMap.get(profileId);
             if (interview) {
                 if (interview.phoneScreenPassed === 'No') return 'Phone Screen Failed';
+                if (interview.finalInterviewStatus === 'Rejected after Orientation') return 'Rejected after Orientation';
                 if (interview.orientationScheduled) return 'Orientation Scheduled';
                 if (interview.finalInterviewStatus === 'Passed') return 'Final Interview Passed';
                 if (interview.finalInterviewStatus === 'Failed') return 'Final Interview Failed';
@@ -360,7 +362,7 @@ export default function AdvancedSearchClient() {
     const isLoading = profilesLoading || interviewsLoading || employeesLoading;
     
     const isActionable = (status: CandidateStatus) => {
-        return !['Hired', 'Final Interview Failed', 'Phone Screen Failed'].includes(status);
+        return !['Hired', 'Final Interview Failed', 'Phone Screen Failed', 'Rejected after Orientation'].includes(status);
     }
 
     const handleManageInterviewClick = (candidateName: string) => {
