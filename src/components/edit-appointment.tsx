@@ -49,6 +49,7 @@ const cancellationReasons = [
     { id: "withdraw", label: "CG called to withdraw application" },
     { id: "overbooked", label: "Overbooked" },
     { id: "pay_too_low", label: "Pay too low" },
+    { id: "ghosted", label: "CG Ghosts appointment" },
 ];
 
 export function EditAppointment({ 
