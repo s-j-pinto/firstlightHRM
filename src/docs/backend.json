@@ -270,7 +270,7 @@
         "aiGeneratedInsight": { "type": "string" },
         "finalInterviewStatus": {
           "type": "string",
-          "enum": ["Passed", "Failed", "Pending", "Rejected after Orientation"],
+          "enum": ["Passed", "Failed", "Pending", "Rejected at Orientation", "No Show"],
           "description": "The status of the final interview, if applicable."
         },
         "finalInterviewNotes": { "type": "string", "description": "Notes from the final in-person or video interview." },

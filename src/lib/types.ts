@@ -104,7 +104,7 @@ export const interviewSchema = z.object({
   googleMeetLink: z.string().optional(),
   googleEventId: z.string().optional(),
   createdAt: z.date().optional(),
-  finalInterviewStatus: z.enum(['Passed', 'Failed', 'Pending', 'Rejected after Orientation']).optional(),
+  finalInterviewStatus: z.enum(['Passed', 'Failed', 'Pending', 'Rejected at Orientation', 'No Show']).optional(),
   finalInterviewNotes: z.string().optional(),
   orientationScheduled: z.boolean().optional(),
   orientationDateTime: z.date().optional(),

@@ -1,10 +1,12 @@
 
+
 "use server";
 
 import { revalidatePath } from "next/cache";
 import { serverDb } from "@/firebase/server-init";
 import { toZonedTime, format } from "date-fns-tz";
 import type { CaregiverProfile } from "./types";
+import { Timestamp } from "firebase-admin/firestore";
 
 export async function createAppointmentAndSendAdminEmail({caregiverId, preferredTimes}: {caregiverId: string, preferredTimes: Date[]}) {
     const firestore = serverDb;
@@ -140,14 +142,39 @@ export async function cancelAppointment(appointmentId: string, reason: string) {
     try {
         const firestore = serverDb;
         const appointmentRef = firestore.collection('appointments').doc(appointmentId);
+        const appointmentDoc = await appointmentRef.get();
 
-        await appointmentRef.update({
-            appointmentStatus: "cancelled",
-            cancelReason: reason,
-            cancelDateTime: new Date(),
+        if (!appointmentDoc.exists) {
+            return { message: "Appointment not found.", error: true };
+        }
+
+        const caregiverId = appointmentDoc.data()?.caregiverId;
+
+        // Start a transaction to ensure atomicity
+        await firestore.runTransaction(async (transaction) => {
+            transaction.update(appointmentRef, {
+                appointmentStatus: "cancelled",
+                cancelReason: reason,
+                cancelDateTime: new Date(),
+            });
+
+            if (reason === "CG Ghosts appointment" && caregiverId) {
+                const interviewsQuery = firestore.collection('interviews').where('caregiverProfileId', '==', caregiverId).limit(1);
+                const interviewSnapshot = await transaction.get(interviewsQuery);
+
+                if (!interviewSnapshot.empty) {
+                    const interviewDocRef = interviewSnapshot.docs[0].ref;
+                    transaction.update(interviewDocRef, {
+                        finalInterviewStatus: "No Show",
+                        phoneScreenPassed: "No", // Also mark phone screen as failed
+                        lastUpdatedAt: Timestamp.now(),
+                    });
+                }
+            }
         });
 
         revalidatePath('/admin');
+        revalidatePath('/admin/reports'); // Revalidate reports page as well
         
         return { message: "Appointment cancelled successfully." };
     } catch (error) {

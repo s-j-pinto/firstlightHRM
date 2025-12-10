@@ -1,5 +1,6 @@
 
 
+
 "use client";
 
 import { useMemo, useState } from 'react';
@@ -24,12 +25,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 
 type CandidateStatus = 
   | 'Applied' 
-  | 'Phone Screen Failed' 
+  | 'Phone Screen Failed'
+  | 'No Show'
   | 'Final Interview Pending'
   | 'Final Interview Failed'
   | 'Final Interview Passed'
   | 'Orientation Scheduled'
-  | 'Rejected after Orientation'
+  | 'Rejected at Orientation'
   | 'Hired';
 
 interface EnrichedCandidate extends CaregiverProfile {
@@ -60,7 +62,8 @@ const getStatus = (
     const interview = interviewsMap.get(profileId);
     if (interview) {
         if (interview.phoneScreenPassed === 'No') return { status: 'Phone Screen Failed', interview };
-        if (interview.finalInterviewStatus === 'Rejected after Orientation') return { status: 'Rejected after Orientation', interview };
+        if (interview.finalInterviewStatus === 'Rejected at Orientation') return { status: 'Rejected at Orientation', interview };
+        if (interview.finalInterviewStatus === 'No Show') return { status: 'No Show', interview };
         if (interview.orientationScheduled) return { status: 'Orientation Scheduled', interview };
         if (interview.finalInterviewStatus === 'Passed') return { status: 'Final Interview Passed', interview };
         if (interview.finalInterviewStatus === 'Failed') return { status: 'Final Interview Failed', interview };
@@ -127,7 +130,7 @@ export default function CandidateStatusReport() {
             status === 'Orientation Scheduled' ? 'bg-cyan-500' :
             status === 'Final Interview Passed' ? 'bg-blue-500' :
             status === 'Final Interview Pending' ? 'bg-yellow-500' :
-            status === 'Phone Screen Failed' || status === 'Final Interview Failed' || status === 'Rejected after Orientation' ? 'bg-red-500' :
+            status === 'Phone Screen Failed' || status === 'Final Interview Failed' || status === 'Rejected at Orientation' || status === 'No Show' ? 'bg-red-500' :
             'bg-gray-500';
 
         return <Badge className={cn("text-white", colorClass)}>{status}</Badge>;
@@ -210,7 +213,7 @@ export default function CandidateStatusReport() {
                                     </TableCell>
                                     <TableCell>
                                         {candidate.status === 'Applied' && 'Needs Phone Screen'}
-                                        {(candidate.status === 'Phone Screen Failed' || candidate.status === 'Final Interview Failed' || candidate.status === 'Rejected after Orientation') && 'Process Ended'}
+                                        {(candidate.status === 'Phone Screen Failed' || candidate.status === 'Final Interview Failed' || candidate.status === 'Rejected at Orientation' || candidate.status === 'No Show') && 'Process Ended'}
                                         {candidate.status === 'Final Interview Pending' && candidate.interview?.interviewDateTime && (
                                             `Final Interview: ${format((candidate.interview.interviewDateTime as any).toDate(), 'PPp')}`
                                         )}
