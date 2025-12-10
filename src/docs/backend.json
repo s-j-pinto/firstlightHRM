@@ -268,6 +268,7 @@
         "candidateRating": { "type": "string" },
         "phoneScreenPassed": { "type": "string", "enum": ["Yes", "No", "N/A"] },
         "aiGeneratedInsight": { "type": "string" },
+        "googleEventId": { "type": "string", "description": "The unique ID for the Google Calendar event." },
         "finalInterviewStatus": {
           "type": "string",
           "enum": ["Passed", "Failed", "Pending", "Rejected at Orientation", "No Show"],

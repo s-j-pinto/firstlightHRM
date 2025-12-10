@@ -6,6 +6,8 @@ import { serverDb } from "@/firebase/server-init";
 import { toZonedTime, format } from "date-fns-tz";
 import type { CaregiverProfile } from "./types";
 import { Timestamp } from "firebase-admin/firestore";
+import { google } from "googleapis";
+import { OAuth2Client } from "google-auth-library";
 
 export async function createAppointmentAndSendAdminEmail({caregiverId, preferredTimes}: {caregiverId: string, preferredTimes: Date[]}) {
     const firestore = serverDb;
@@ -137,6 +139,34 @@ export async function updateAppointment(appointmentId: string, newStartTime: Dat
     }
 }
 
+async function cancelGoogleCalendarEvent(googleEventId: string) {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
+
+    if (!clientId || !clientSecret || !refreshToken) {
+        console.warn("Google credentials not configured. Cannot cancel calendar event.");
+        return;
+    }
+
+    const oAuth2Client = new OAuth2Client(clientId, clientSecret);
+    oAuth2Client.setCredentials({ refresh_token: refreshToken });
+
+    try {
+        await oAuth2Client.getAccessToken();
+        const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
+        await calendar.events.delete({
+            calendarId: 'primary',
+            eventId: googleEventId,
+            sendUpdates: 'all',
+        });
+        console.log(`Successfully cancelled Google Calendar event: ${googleEventId}`);
+    } catch (error: any) {
+        console.error(`Failed to cancel Google Calendar event ${googleEventId}:`, error);
+        // We don't throw an error here to prevent the whole cancellation from failing if Google API fails
+    }
+}
+
 export async function cancelAppointment(appointmentId: string, reason: string) {
     try {
         const firestore = serverDb;
@@ -149,40 +179,40 @@ export async function cancelAppointment(appointmentId: string, reason: string) {
 
         const caregiverId = appointmentDoc.data()?.caregiverId;
 
-        // Start a transaction to ensure atomicity
         await firestore.runTransaction(async (transaction) => {
-            // If the reason is "ghosted", we need to read the interview doc first.
-            if (reason === "CG Ghosts appointment" && caregiverId) {
-                const interviewsQuery = firestore.collection('interviews').where('caregiverProfileId', '==', caregiverId).limit(1);
-                const interviewSnapshot = await transaction.get(interviewsQuery);
+            const interviewsQuery = firestore.collection('interviews').where('caregiverProfileId', '==', caregiverId).limit(1);
+            const interviewSnapshot = await transaction.get(interviewsQuery);
+            let googleEventId: string | null = null;
+            let interviewDocRef: FirebaseFirestore.DocumentReference | null = null;
+            
+            if (!interviewSnapshot.empty) {
+                const interviewDoc = interviewSnapshot.docs[0];
+                interviewDocRef = interviewDoc.ref;
+                googleEventId = interviewDoc.data().googleEventId || null;
+            }
+            
+            transaction.update(appointmentRef, {
+                appointmentStatus: "cancelled",
+                cancelReason: reason,
+                cancelDateTime: new Date(),
+            });
 
-                // Now perform all writes
-                transaction.update(appointmentRef, {
-                    appointmentStatus: "cancelled",
-                    cancelReason: reason,
-                    cancelDateTime: new Date(),
+            if (reason === "CG Ghosts appointment" && interviewDocRef) {
+                transaction.update(interviewDocRef, {
+                    finalInterviewStatus: "No Show",
+                    phoneScreenPassed: "No",
+                    lastUpdatedAt: Timestamp.now(),
                 });
-
-                if (!interviewSnapshot.empty) {
-                    const interviewDocRef = interviewSnapshot.docs[0].ref;
-                    transaction.update(interviewDocRef, {
-                        finalInterviewStatus: "No Show",
-                        phoneScreenPassed: "No", // Also mark phone screen as failed
-                        lastUpdatedAt: Timestamp.now(),
-                    });
-                }
-            } else {
-                // If not a "ghost", just do the single write operation.
-                transaction.update(appointmentRef, {
-                    appointmentStatus: "cancelled",
-                    cancelReason: reason,
-                    cancelDateTime: new Date(),
-                });
+            }
+            
+            // Now, outside the transaction but before committing, handle the external API call
+            if (googleEventId) {
+                await cancelGoogleCalendarEvent(googleEventId);
             }
         });
 
         revalidatePath('/admin');
-        revalidatePath('/admin/reports'); // Revalidate reports page as well
+        revalidatePath('/admin/reports');
         
         return { message: "Appointment cancelled successfully." };
     } catch (error: any) {
