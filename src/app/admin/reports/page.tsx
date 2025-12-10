@@ -4,6 +4,8 @@
 import { useState } from 'react';
 import CancelledInterviewsReport from "@/components/cancelled-interviews-report";
 import CandidateStatusReport from "@/components/candidate-status-report";
+import NoShowRateReport from '@/components/no-show-rate-report';
+import GhostingTrendsReport from '@/components/ghosting-trends-report';
 import {
   Select,
   SelectContent,
@@ -34,6 +36,8 @@ export default function ReportsPage() {
                         <SelectContent>
                             <SelectItem value="candidate_status">Candidate Interview Status</SelectItem>
                             <SelectItem value="cancelled_interviews">Cancelled Phone Screen Appointments</SelectItem>
+                            <SelectItem value="no_show_rate">"No Show" Candidate Rate</SelectItem>
+                            <SelectItem value="ghosting_trends">Ghosting Trends by Month</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -44,9 +48,9 @@ export default function ReportsPage() {
       <div className="mt-6">
         {selectedReport === 'candidate_status' && <CandidateStatusReport />}
         {selectedReport === 'cancelled_interviews' && <CancelledInterviewsReport />}
+        {selectedReport === 'no_show_rate' && <NoShowRateReport />}
+        {selectedReport === 'ghosting_trends' && <GhostingTrendsReport />}
       </div>
     </div>
   );
 }
-
-    
