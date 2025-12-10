@@ -1,5 +1,4 @@
 
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -152,15 +151,17 @@ export async function cancelAppointment(appointmentId: string, reason: string) {
 
         // Start a transaction to ensure atomicity
         await firestore.runTransaction(async (transaction) => {
-            transaction.update(appointmentRef, {
-                appointmentStatus: "cancelled",
-                cancelReason: reason,
-                cancelDateTime: new Date(),
-            });
-
+            // If the reason is "ghosted", we need to read the interview doc first.
             if (reason === "CG Ghosts appointment" && caregiverId) {
                 const interviewsQuery = firestore.collection('interviews').where('caregiverProfileId', '==', caregiverId).limit(1);
                 const interviewSnapshot = await transaction.get(interviewsQuery);
+
+                // Now perform all writes
+                transaction.update(appointmentRef, {
+                    appointmentStatus: "cancelled",
+                    cancelReason: reason,
+                    cancelDateTime: new Date(),
+                });
 
                 if (!interviewSnapshot.empty) {
                     const interviewDocRef = interviewSnapshot.docs[0].ref;
@@ -170,6 +171,13 @@ export async function cancelAppointment(appointmentId: string, reason: string) {
                         lastUpdatedAt: Timestamp.now(),
                     });
                 }
+            } else {
+                // If not a "ghost", just do the single write operation.
+                transaction.update(appointmentRef, {
+                    appointmentStatus: "cancelled",
+                    cancelReason: reason,
+                    cancelDateTime: new Date(),
+                });
             }
         });
 
@@ -177,8 +185,8 @@ export async function cancelAppointment(appointmentId: string, reason: string) {
         revalidatePath('/admin/reports'); // Revalidate reports page as well
         
         return { message: "Appointment cancelled successfully." };
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error cancelling appointment:", error);
-        return { message: "Failed to cancel appointment.", error: true };
+        return { message: `Failed to cancel appointment. ${error.message}`, error: true };
     }
 }
