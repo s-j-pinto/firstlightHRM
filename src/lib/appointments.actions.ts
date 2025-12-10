@@ -1,4 +1,5 @@
 
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -183,12 +184,19 @@ export async function cancelAppointment(appointmentId: string, reason: string) {
             const interviewsQuery = firestore.collection('interviews').where('caregiverProfileId', '==', caregiverId).limit(1);
             const interviewSnapshot = await transaction.get(interviewsQuery);
             let googleEventId: string | null = null;
-            let interviewDocRef: FirebaseFirestore.DocumentReference | null = null;
             
             if (!interviewSnapshot.empty) {
                 const interviewDoc = interviewSnapshot.docs[0];
-                interviewDocRef = interviewDoc.ref;
+                const interviewDocRef = interviewDoc.ref;
                 googleEventId = interviewDoc.data().googleEventId || null;
+
+                if (reason === "CG Ghosts appointment") {
+                    transaction.update(interviewDocRef, {
+                        finalInterviewStatus: "No Show",
+                        phoneScreenPassed: "No",
+                        lastUpdatedAt: Timestamp.now(),
+                    });
+                }
             }
             
             transaction.update(appointmentRef, {
@@ -196,16 +204,7 @@ export async function cancelAppointment(appointmentId: string, reason: string) {
                 cancelReason: reason,
                 cancelDateTime: new Date(),
             });
-
-            if (reason === "CG Ghosts appointment" && interviewDocRef) {
-                transaction.update(interviewDocRef, {
-                    finalInterviewStatus: "No Show",
-                    phoneScreenPassed: "No",
-                    lastUpdatedAt: Timestamp.now(),
-                });
-            }
             
-            // Now, outside the transaction but before committing, handle the external API call
             if (googleEventId) {
                 await cancelGoogleCalendarEvent(googleEventId);
             }

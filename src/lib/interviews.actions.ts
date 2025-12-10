@@ -20,7 +20,7 @@ interface SaveInterviewPayload {
   interviewNotes: string;
   candidateRating: string;
   pathway: 'separate' | 'combined';
-  finalInterviewStatus?: 'Passed' | 'Failed' | 'Pending' | 'Rejected after Orientation';
+  finalInterviewStatus?: 'Passed' | 'Failed' | 'Pending' | 'Rejected at Orientation';
   googleEventId?: string | null; // Add this to handle updates
   previousPathway?: 'separate' | 'combined' | null;
 }
@@ -304,7 +304,7 @@ export async function rejectCandidateAfterOrientation(payload: { interviewId: st
     try {
         const interviewRef = serverDb.collection('interviews').doc(interviewId);
         await interviewRef.update({
-            finalInterviewStatus: 'Rejected after Orientation',
+            finalInterviewStatus: 'Rejected at Orientation',
             rejectionReason: reason,
             rejectionNotes: notes,
             rejectionDate: Timestamp.now(),
@@ -324,6 +324,7 @@ export async function rejectCandidateAfterOrientation(payload: { interviewId: st
 
 
     
+
 
 
 
