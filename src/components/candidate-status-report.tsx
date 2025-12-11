@@ -1,6 +1,5 @@
 
 
-
 "use client";
 
 import { useMemo, useState } from 'react';
@@ -32,7 +31,9 @@ type CandidateStatus =
   | 'Final Interview Passed'
   | 'Orientation Scheduled'
   | 'Rejected at Orientation'
-  | 'Hired';
+  | 'Process Terminated'
+  | 'Hired'
+  | string; // Allow for custom rejection reasons
 
 interface EnrichedCandidate extends CaregiverProfile {
   status: CandidateStatus;
@@ -61,9 +62,11 @@ const getStatus = (
 
     const interview = interviewsMap.get(profileId);
     if (interview) {
+        if (interview.rejectionReason) return { status: interview.rejectionReason, interview };
         if (interview.phoneScreenPassed === 'No') return { status: 'Phone Screen Failed', interview };
         if (interview.finalInterviewStatus === 'Rejected at Orientation') return { status: 'Rejected at Orientation', interview };
         if (interview.finalInterviewStatus === 'No Show') return { status: 'No Show', interview };
+        if (interview.finalInterviewStatus === 'Process Terminated') return { status: 'Process Terminated', interview };
         if (interview.orientationScheduled) return { status: 'Orientation Scheduled', interview };
         if (interview.finalInterviewStatus === 'Passed') return { status: 'Final Interview Passed', interview };
         if (interview.finalInterviewStatus === 'Failed') return { status: 'Final Interview Failed', interview };
@@ -125,15 +128,20 @@ export default function CandidateStatusReport() {
     }
 
     const StatusBadge = ({ status }: { status: CandidateStatus }) => {
+        const defaultRejectedStatuses = [
+            'Phone Screen Failed', 'Final Interview Failed', 'Rejected at Orientation', 'No Show', 'Process Terminated',
+            'Insufficient docs provided.','Pay rate too low','Invalid References provided.','Not a good fit (attitude, soft skills etc)','CG ghosted appointment', 'Candidate withdrew application'
+        ];
+
         const colorClass = 
             status === 'Hired' ? 'bg-green-500' :
             status === 'Orientation Scheduled' ? 'bg-cyan-500' :
             status === 'Final Interview Passed' ? 'bg-blue-500' :
             status === 'Final Interview Pending' ? 'bg-yellow-500' :
-            status === 'Phone Screen Failed' || status === 'Final Interview Failed' || status === 'Rejected at Orientation' || status === 'No Show' ? 'bg-red-500' :
+            defaultRejectedStatuses.includes(status) ? 'bg-red-500' :
             'bg-gray-500';
 
-        return <Badge className={cn("text-white", colorClass)}>{status}</Badge>;
+        return <Badge className={cn("text-white whitespace-normal text-center", colorClass)}>{status}</Badge>;
     };
 
     return (

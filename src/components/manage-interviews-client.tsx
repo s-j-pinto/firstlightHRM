@@ -639,10 +639,19 @@ export default function ManageInterviewsClient() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-        <CardTitle>Search for a Caregiver</CardTitle>
-        <CardDescription>
-            Search by full name or phone number to begin the interview process.
-        </CardDescription>
+        <div className="flex justify-between items-start">
+            <div>
+                <CardTitle>Search for a Caregiver</CardTitle>
+                <CardDescription>
+                    Search by full name or phone number to begin the interview process.
+                </CardDescription>
+            </div>
+             {selectedCaregiver && (
+                <Button variant="outline" size="sm" onClick={handleCancel}>
+                    Clear Selection & Start Over
+                </Button>
+            )}
+        </div>
         </CardHeader>
         <CardContent>
         <div className="flex gap-2">
@@ -770,9 +779,6 @@ export default function ManageInterviewsClient() {
                                     </AlertDescription>
                                 </Alert>
                             )}
-                            <div className="flex justify-end pt-4">
-                               <Button variant="outline" onClick={handleCancel}>Close</Button>
-                            </div>
                         </CardContent>
                     </Card>
                 ) : (
@@ -1360,5 +1366,6 @@ function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: strin
 }
 
     
+
 
 

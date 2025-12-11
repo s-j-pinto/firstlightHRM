@@ -46,7 +46,7 @@ interface EditAppointmentProps {
 }
 
 const cancellationReasons = [
-    { id: "ghosted", label: "CG ghosted appointment (No Show)" },
+    { id: "no_show", label: "CG ghosted appointment" },
     { id: "withdraw", label: "Candidate withdrew application" },
     { id: "pay_too_low", label: "Pay rate too low" },
     { id: "rescheduled", label: "Rescheduled by admin" },

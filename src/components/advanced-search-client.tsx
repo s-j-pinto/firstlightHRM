@@ -63,7 +63,8 @@ type CandidateStatus =
   | 'Orientation Scheduled'
   | 'Rejected at Orientation'
   | 'Process Terminated'
-  | 'Hired';
+  | 'Hired'
+  | string; // Allow for custom rejection reasons
 
 interface EnrichedCandidate extends CaregiverProfile {
   status: CandidateStatus;
@@ -244,6 +245,7 @@ export default function AdvancedSearchClient() {
             if (employeesMap.has(profileId)) return 'Hired';
             const interview = interviewsMap.get(profileId);
             if (interview) {
+                 if (interview.rejectionReason) return interview.rejectionReason;
                 if (interview.finalInterviewStatus === 'Process Terminated') return 'Process Terminated';
                 if (interview.finalInterviewStatus === 'Rejected at Orientation') return 'Rejected at Orientation';
                 if (interview.finalInterviewStatus === 'No Show') return 'No Show';
@@ -366,7 +368,20 @@ export default function AdvancedSearchClient() {
     const isLoading = profilesLoading || interviewsLoading || employeesLoading;
     
     const isActionable = (status: CandidateStatus) => {
-        const terminalStatuses: CandidateStatus[] = ['Hired', 'Final Interview Failed', 'Phone Screen Failed', 'Rejected at Orientation', 'Process Terminated', 'No Show'];
+        const terminalStatuses: CandidateStatus[] = [
+            'Hired',
+            'Final Interview Failed',
+            'Phone Screen Failed',
+            'Rejected at Orientation',
+            'Process Terminated',
+            'No Show',
+            'Insufficient docs provided.',
+            'Pay rate too low',
+            'Invalid References provided.',
+            'Not a good fit (attitude, soft skills etc)',
+            'CG ghosted appointment',
+            'Candidate withdrew application'
+        ];
         return !terminalStatuses.includes(status);
     }
 
