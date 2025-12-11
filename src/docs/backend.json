@@ -271,7 +271,7 @@
         "googleEventId": { "type": "string", "description": "The unique ID for the Google Calendar event." },
         "finalInterviewStatus": {
           "type": "string",
-          "enum": ["Passed", "Failed", "Pending", "Rejected at Orientation", "No Show"],
+          "enum": ["Passed", "Failed", "Pending", "Rejected at Orientation", "No Show", "Process Terminated"],
           "description": "The status of the final interview, if applicable."
         },
         "finalInterviewNotes": { "type": "string", "description": "Notes from the final in-person or video interview." },

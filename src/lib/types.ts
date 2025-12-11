@@ -103,7 +103,7 @@ export const interviewSchema = z.object({
   googleMeetLink: z.string().optional(),
   googleEventId: z.string().optional(),
   createdAt: z.date().optional(),
-  finalInterviewStatus: z.enum(['Passed', 'Failed', 'Pending', 'Rejected at Orientation', 'No Show']).optional(),
+  finalInterviewStatus: z.enum(['Passed', 'Failed', 'Pending', 'Rejected at Orientation', 'No Show', 'Process Terminated']).optional(),
   finalInterviewNotes: z.string().optional(),
   orientationScheduled: z.boolean().optional(),
   orientationDateTime: z.date().optional(),
@@ -581,4 +581,3 @@ export const smsMessageSchema = z.object({
     timestamp: z.any(),
 });
 export type SmsMessage = z.infer<typeof smsMessageSchema> & { id: string };
-

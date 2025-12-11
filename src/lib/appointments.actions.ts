@@ -1,5 +1,4 @@
 
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -163,8 +162,13 @@ async function cancelGoogleCalendarEvent(googleEventId: string) {
         });
         console.log(`Successfully cancelled Google Calendar event: ${googleEventId}`);
     } catch (error: any) {
-        console.error(`Failed to cancel Google Calendar event ${googleEventId}:`, error);
-        // We don't throw an error here to prevent the whole cancellation from failing if Google API fails
+        // Gracefully handle "Not Found" errors if the event was already deleted.
+        if (error.code === 404 || error.message.includes('Not Found')) {
+            console.log(`Google Calendar event ${googleEventId} was already deleted or not found. Continuing cancellation.`);
+        } else {
+            console.error(`Failed to cancel Google Calendar event ${googleEventId}:`, error);
+        }
+        // We don't re-throw here to allow the internal cancellation to proceed.
     }
 }
 
@@ -178,37 +182,70 @@ export async function cancelAppointment(appointmentId: string, reason: string) {
             return { message: "Appointment not found.", error: true };
         }
 
-        const caregiverId = appointmentDoc.data()?.caregiverId;
+        const appointmentData = appointmentDoc.data()!;
+        const caregiverId = appointmentData.caregiverId;
 
+        // Candidate-driven rejection reasons that should terminate the process
+        const terminalReasons = [
+            "CG Ghosts appointment (No Show)",
+            "CG called to withdraw application",
+            "Pay too low (stated by CG)",
+        ];
+
+        const isTerminal = terminalReasons.includes(reason);
+        let googleEventId: string | null = null;
+        
         await firestore.runTransaction(async (transaction) => {
+            // READ FIRST: Get the interview document
             const interviewsQuery = firestore.collection('interviews').where('caregiverProfileId', '==', caregiverId).limit(1);
             const interviewSnapshot = await transaction.get(interviewsQuery);
-            let googleEventId: string | null = null;
-            
-            if (!interviewSnapshot.empty) {
-                const interviewDoc = interviewSnapshot.docs[0];
-                const interviewDocRef = interviewDoc.ref;
-                googleEventId = interviewDoc.data().googleEventId || null;
+            let interviewDocRef: FirebaseFirestore.DocumentReference | null = null;
+            let interviewExists = !interviewSnapshot.empty;
 
-                if (reason === "CG Ghosts appointment") {
-                    transaction.update(interviewDocRef, {
-                        finalInterviewStatus: "No Show",
-                        phoneScreenPassed: "No",
-                        lastUpdatedAt: Timestamp.now(),
-                    });
-                }
+            if (interviewExists) {
+                interviewDocRef = interviewSnapshot.docs[0].ref;
+                googleEventId = interviewSnapshot.docs[0].data().googleEventId || null;
+            } else if (isTerminal) {
+                // Create a ref for a new interview document if it's a terminal action and no interview exists yet
+                interviewDocRef = firestore.collection('interviews').doc();
             }
             
+            // WRITE SECOND: Update the appointment
             transaction.update(appointmentRef, {
                 appointmentStatus: "cancelled",
                 cancelReason: reason,
                 cancelDateTime: new Date(),
             });
             
-            if (googleEventId) {
-                await cancelGoogleCalendarEvent(googleEventId);
+            // WRITE THIRD: Update or create the interview document if needed
+            if (isTerminal && interviewDocRef) {
+                const status = reason === "CG Ghosts appointment (No Show)" ? "No Show" : "Process Terminated";
+                const updateData = {
+                    finalInterviewStatus: status,
+                    rejectionReason: reason,
+                    phoneScreenPassed: "No", // A rejection at this stage is equivalent to failing the screen
+                    lastUpdatedAt: Timestamp.now(),
+                };
+
+                if (interviewExists) {
+                    transaction.update(interviewDocRef, updateData);
+                } else {
+                    // Create the new interview doc with the terminal status
+                    transaction.set(interviewDocRef, {
+                        caregiverProfileId: caregiverId,
+                        interviewType: "Phone",
+                        interviewDateTime: appointmentData.startTime, // Use the appointment time as the reference
+                        createdAt: Timestamp.now(),
+                        ...updateData,
+                    });
+                }
             }
         });
+        
+        // Post-transaction actions
+        if (googleEventId) {
+            await cancelGoogleCalendarEvent(googleEventId);
+        }
 
         revalidatePath('/admin');
         revalidatePath('/admin/reports');

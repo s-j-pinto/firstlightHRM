@@ -46,10 +46,12 @@ interface EditAppointmentProps {
 }
 
 const cancellationReasons = [
+    { id: "ghosted", label: "CG Ghosts appointment (No Show)" },
     { id: "withdraw", label: "CG called to withdraw application" },
-    { id: "overbooked", label: "Overbooked" },
-    { id: "pay_too_low", label: "Pay too low" },
-    { id: "ghosted", label: "CG Ghosts appointment" },
+    { id: "pay_too_low", label: "Pay too low (stated by CG)" },
+    { id: "rescheduled", label: "Rescheduled by admin" },
+    { id: "overbooked", label: "Overbooked (admin error)" },
+    { id: "other", label: "Other (admin reason)" },
 ];
 
 export function EditAppointment({ 
