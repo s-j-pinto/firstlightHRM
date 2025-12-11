@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
@@ -51,6 +52,7 @@ import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Dialog, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogContent, DialogDescription } from './ui/dialog';
 import { Label } from './ui/label';
+import { Checkbox } from './ui/checkbox';
 
 
 const phoneScreenSchema = z.object({
@@ -70,6 +72,7 @@ const scheduleEventSchema = z.object({
 const orientationSchema = z.object({
     orientationDate: z.date({ required_error: 'An orientation date is required.' }),
     orientationTime: z.string().min(1, { message: 'An orientation time is required.' }),
+    includeReferenceForm: z.boolean().default(false).optional(),
 });
 
 type PhoneScreenFormData = z.infer<typeof phoneScreenSchema>;
@@ -139,6 +142,9 @@ export default function ManageInterviewsClient() {
   
   const orientationForm = useForm<OrientationFormData>({
     resolver: zodResolver(orientationSchema),
+    defaultValues: {
+      includeReferenceForm: false,
+    }
   });
 
   const hiringForm = useForm<HiringFormData>({
@@ -273,7 +279,7 @@ export default function ManageInterviewsClient() {
 
   useEffect(() => {
     if (selectedCaregiver && existingInterview) {
-        const interviewDate = existingInterview.interviewDateTime ? (existingInterview.interviewDateTime as any)?.toDate() : undefined;
+        const interviewDate = existingInterview.interviewDateTime ? (existingInterview.interviewDateTime as any).toDate() : undefined;
         
         let orientationDate: Date | null = null;
         if (existingInterview.orientationDateTime) {
@@ -322,7 +328,7 @@ export default function ManageInterviewsClient() {
 
   const getHiringFormVisibility = () => {
     if (existingEmployee) return false;
-    if (existingInterview?.finalInterviewStatus === 'Rejected after Orientation') return false;
+    if (existingInterview?.finalInterviewStatus === 'Rejected at Orientation') return false;
     if (existingInterview?.orientationScheduled) return true;
     return false;
   };
@@ -514,6 +520,7 @@ export default function ManageInterviewsClient() {
                 pathway: 'separate', // Orientation is always a separate event logically
                 googleEventId: existingInterview.googleEventId,
                 previousPathway: existingInterview.interviewPathway,
+                includeReferenceForm: data.includeReferenceForm,
             });
 
              if (result.authUrl) {
@@ -1084,6 +1091,25 @@ export default function ManageInterviewsClient() {
                                 )}
                             />
                         </div>
+                        <FormField
+                            control={orientationForm.control}
+                            name="includeReferenceForm"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
+                                    <FormControl>
+                                        <Checkbox
+                                            checked={field.value}
+                                            onCheckedChange={field.onChange}
+                                        />
+                                    </FormControl>
+                                    <div className="space-y-1 leading-none">
+                                        <FormLabel>
+                                            Include Reference Form in confirmation email
+                                        </FormLabel>
+                                    </div>
+                                </FormItem>
+                            )}
+                        />
                          <div className="flex justify-end">
                             <Button type="submit" disabled={isOrientationSubmitting}>
                                 {isOrientationSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GraduationCap className="mr-2 h-4 w-4" />}

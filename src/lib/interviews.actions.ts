@@ -23,6 +23,7 @@ interface SaveInterviewPayload {
   finalInterviewStatus?: 'Passed' | 'Failed' | 'Pending' | 'Rejected at Orientation';
   googleEventId?: string | null; // Add this to handle updates
   previousPathway?: 'separate' | 'combined' | null;
+  includeReferenceForm?: boolean;
 }
 
 export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
@@ -39,6 +40,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
     finalInterviewStatus,
     googleEventId,
     previousPathway,
+    includeReferenceForm,
   } = payload;
   
 
@@ -174,11 +176,23 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
 
     let emailHtml = '';
     const inPersonDuration = (interviewType === 'Orientation') ? 1.5 : (pathway === 'combined' ? 3 : 1);
-    //on ${formattedDate} @ ${formattedStartTime} to ${formattedEndTime}.
+
+    let referenceFormHtml = '';
+    if (includeReferenceForm) {
+      const referenceFormUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/hiring-reference%2FReferenceVerification.pdf?alt=media&token=c1c21387-45c1-4391-9aa9-3fd043b83de7";
+      referenceFormHtml = `
+        <hr>
+        <p><strong>REFERENCE FORM:</strong><br>
+        Here is a <a href="${referenceFormUrl}">reference form</a> to be completed and returned to me as soon as possible. Please complete at least 2 forms. Rate yourself and please make sure to sign and date the form. Upon receipt I will begin your employment verifications.
+        </p>
+      `;
+    }
+
     const detailedInPersonEmail = `
         <p>${caregiverProfile.fullName},</p>
         <p>This is to confirm your in-person ${inPersonDuration} hour ${interviewType === 'Orientation' ? 'orientation' : 'interview'} for a HCA/Caregiver position. Pls accept the calendar invite from FirstLightHomeCare Office Administrator.</p>
         <p>Please call or text the office if you have questions, or need to cancel or reschedule your appointment.</p>
+        ${referenceFormHtml}
         <br>
         <p><strong>Office address:</strong><br>
         FirstLight Home Care<br>
@@ -324,6 +338,7 @@ export async function rejectCandidateAfterOrientation(payload: { interviewId: st
 
 
     
+
 
 
 
