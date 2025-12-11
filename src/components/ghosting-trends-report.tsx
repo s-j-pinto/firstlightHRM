@@ -26,20 +26,26 @@ import {
 import type { Interview } from '@/lib/types';
 
 export default function GhostingTrendsReport() {
-  const noShowQuery = useMemoFirebase(() => 
-    query(collection(firestore, 'interviews'), where('finalInterviewStatus', '==', 'No Show')),
+  // Query all interviews since we need to check two different fields
+  const interviewsQuery = useMemoFirebase(() => 
+    query(collection(firestore, 'interviews')),
     []
   );
-  const { data: noShowInterviews, isLoading } = useCollection<Interview>(noShowQuery);
+  const { data: allInterviews, isLoading } = useCollection<Interview>(interviewsQuery);
 
   const chartData = useMemo(() => {
-    if (!noShowInterviews) return [];
+    if (!allInterviews) return [];
 
+    const ghostedInterviews = allInterviews.filter(interview =>
+      interview.finalInterviewStatus === 'No Show' ||
+      interview.rejectionReason === 'CG ghosted appointment'
+    );
+    
     const monthlyCounts: { [key: string]: number } = {};
 
-    noShowInterviews.forEach(interview => {
-      // The appointment cancellation date is what determines when they were marked as a no-show
-      const date = (interview.cancelDateTime as any)?.toDate();
+    ghostedInterviews.forEach(interview => {
+      // Use rejectionDate for manual rejections, otherwise use cancelDateTime
+      const date = (interview.rejectionDate || interview.cancelDateTime as any)?.toDate();
       if (date) {
         const month = format(date, 'MMM yyyy');
         if (!monthlyCounts[month]) {
@@ -56,7 +62,7 @@ export default function GhostingTrendsReport() {
         const dateB = new Date(b.name);
         return dateA.getTime() - dateB.getTime();
       });
-  }, [noShowInterviews]);
+  }, [allInterviews]);
 
   if (isLoading) {
     return (
