@@ -633,6 +633,8 @@ export default function ManageInterviewsClient() {
 
   const isFinalInterviewPending = isPhoneScreenCompleted && existingInterview?.interviewPathway === 'separate' && existingInterview?.finalInterviewStatus === 'Pending';
 
+  const isProcessActive = selectedCaregiver && !existingEmployee && existingInterview?.finalInterviewStatus !== 'Rejected at Orientation' && existingInterview?.finalInterviewStatus !== 'Process Terminated' && existingInterview?.finalInterviewStatus !== 'No Show';
+
   return (
     <div className="space-y-6">
       <Card>
@@ -708,10 +710,20 @@ export default function ManageInterviewsClient() {
       {selectedCaregiver && (
         <Card>
             <CardHeader>
-                <CardTitle>Interview Process: {selectedCaregiver.fullName}</CardTitle>
-                <CardDescription>
-                    {isPhoneScreenCompleted ? "This phone screen has been completed. Review or update the details below." : "Record the results of the phone interview."}
-                </CardDescription>
+                <div className="flex justify-between items-start">
+                    <div>
+                        <CardTitle>Interview Process: {selectedCaregiver.fullName}</CardTitle>
+                        <CardDescription>
+                            {isPhoneScreenCompleted ? "This phone screen has been completed. Review or update the details below." : "Record the results of the phone interview."}
+                        </CardDescription>
+                    </div>
+                    {isProcessActive && (
+                        <Button type="button" variant="destructive" onClick={() => setIsRejectDialogOpen(true)}>
+                            <UserX className="mr-2 h-4 w-4" />
+                            Reject Candidate
+                        </Button>
+                    )}
+                </div>
             </CardHeader>
             <CardContent>
                 {isPhoneScreenCompleted && existingInterview?.phoneScreenPassed !== 'N/A' && existingInterview.phoneScreenPassed !== undefined ? (
@@ -1285,10 +1297,6 @@ export default function ManageInterviewsClient() {
                                     Launch Google Meet
                                 </Button>
                             )}
-                             <Button type="button" variant="destructive" onClick={() => setIsRejectDialogOpen(true)}>
-                                <UserX className="mr-2 h-4 w-4" />
-                                Reject Candidate
-                            </Button>
                             <Button type="submit" disabled={isSubmitting}>
                                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
                                 {existingEmployee ? 'Update Record' : 'Complete Hiring'}
@@ -1352,3 +1360,4 @@ function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: strin
 }
 
     
+
