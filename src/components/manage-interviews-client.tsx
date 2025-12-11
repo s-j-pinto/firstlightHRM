@@ -89,11 +89,11 @@ const ratingOptions = [
 ];
 
 const rejectionReasons = [
-    "Insufficient documents brought for Final Interview/Orientation.",
-    "Caregiver did not accept Pay Rate. (Too Low)",
-    "References did not checkout or not provided.",
-    "Not a good fit for FirstLight RC office (attitude, soft skills etc)",
-    "CG Ghosts appointment",
+    "Insufficient docs provided.",
+    "Pay rate too low",
+    "Invalid References provided.",
+    "Not a good fit (attitude, soft skills etc)",
+    "CG ghosted appointment",
 ];
 
 export default function ManageInterviewsClient() {
@@ -1360,4 +1360,5 @@ function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: strin
 }
 
     
+
 
