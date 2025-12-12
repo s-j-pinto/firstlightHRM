@@ -1,5 +1,4 @@
 
-
 "use server";
 
 import { revalidatePath } from 'next/cache';
@@ -79,6 +78,10 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
     
     const endTime = new Date(startTime.getTime() + durationHours * 60 * 60 * 1000);
 
+    const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
+    const logoHtml = `<img src="${logoUrl}" alt="FirstLight Home Care Logo" style="width: 200px; height: auto; margin-bottom: 20px;" /><br><br>`;
+
+
     // --- Calendar Integration ---
     if (clientId && clientSecret && refreshToken) {
       const oAuth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
@@ -98,11 +101,11 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
         
         if (interviewType === 'Google Meet') {
           eventRequestBody.location = 'Google Meet';
-          eventRequestBody.description = `This is a confirmation for your video interview. Please join using the Google Meet link.`;
+          eventRequestBody.description = `${logoHtml}This is a confirmation for your video interview with FirstLight Homecare. Please join using the Google Meet link.`;
           eventRequestBody.conferenceData = { createRequest: { requestId: `interview-${interviewId}`, conferenceSolutionKey: { type: 'hangoutsMeet' } } };
         } else {
           eventRequestBody.location = '9650 Business Center Drive, Suite #132, Bldg #17, Rancho Cucamonga, CA 92730, PH: 909-321-4466';
-          eventRequestBody.description = `Dear ${caregiverProfile.fullName},\nPlease bring the following documents to in-person Interview:\n- Driver's License,\n- Car insurance and registration,\n- Social Security card or US passport (to prove your work eligibility, If you are green card holder, bring Green card.)\n- Current negative TB-Test Copy,\n- HCA letter or number,\n- Live scan or Clearance letter if you have it,\n If you have not registered, please register on this link: https://guardian.dss.ca.gov/Applicant/ \n- CPR-First Aide proof card, Any other certification that you have.`;
+          eventRequestBody.description = `${logoHtml}Dear ${caregiverProfile.fullName},\nPlease bring the following documents to in-person Interview with FirstLight Homecare:\n- Driver's License,\n- Car insurance and registration,\n- Social Security card or US passport (to prove your work eligibility, If you are green card holder, bring Green card.)\n- Current negative TB-Test Copy,\n- HCA letter or number,\n- Live scan or Clearance letter if you have it,\n If you have not registered, please register on this link: https://guardian.dss.ca.gov/Applicant/ \n- CPR-First Aide proof card, Any other certification that you have.`;
         }
 
         let createdEvent;
@@ -168,7 +171,6 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
     await interviewRef.update(updateData);
 
     // --- Confirmation Email ---
-    const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
 
     const formattedDate = formatInTimeZone(startTime, pacificTimeZone, 'eeee, MMMM do');
     const formattedStartTime = formatInTimeZone(startTime, pacificTimeZone, 'h:mm a zzz');
@@ -277,11 +279,11 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
     `;
 
     if (interviewType === 'Google Meet') {
-        emailHtml = `<p>${caregiverProfile.fullName},</p><p>This is to confirm your video interview session on ${formattedDate} at ${formattedStartTime}.</p><p><strong>Meeting Link:</strong><br><a href="${conferenceLink || '#'}">${conferenceLink || 'Meeting link will be in calendar invite.'}</a></p><p>Thank you,</p><p>FirstLight Home Care</p>`;
+        emailHtml = `${logoHtml}<p>${caregiverProfile.fullName},</p><p>This is to confirm your video interview session on ${formattedDate} at ${formattedStartTime}.</p><p><strong>Meeting Link:</strong><br><a href="${conferenceLink || '#'}">${conferenceLink || 'Meeting link will be in calendar invite.'}</a></p><p>Thank you,</p><p>FirstLight Home Care</p>`;
     } else if (interviewType === 'In-Person' || interviewType === 'Orientation') {
         emailHtml = detailedInPersonEmail;
     } else {
-        emailHtml = `<p>Your appointment with FirstLight Home Care on ${formattedDate} at ${formattedStartTime} is confirmed.</p>`;
+        emailHtml = `${logoHtml}<p>Your appointment with FirstLight Home Care on ${formattedDate} at ${formattedStartTime} is confirmed.</p>`;
     }
 
 
@@ -338,6 +340,7 @@ export async function rejectCandidateAfterOrientation(payload: { interviewId: st
 
 
     
+
 
 
 
