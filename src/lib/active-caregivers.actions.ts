@@ -28,7 +28,7 @@ function parseTo24HourFormat(timeStr: string): string | null {
 }
 
 
-export async function processActiveCaregiverUpload(caregivers: { name: string; schedule: Record<string, string> }[]) {
+export async function processActiveCaregiverAvailabilityUpload(caregivers: { name: string; schedule: Record<string, string> }[]) {
   const firestore = serverDb;
   const now = Timestamp.now();
   
@@ -146,5 +146,123 @@ export async function processActiveCaregiverUpload(caregivers: { name: string; s
   } catch (error: any) {
       console.error('[Action Error] Critical error during availability upload:', error);
       return { message: `An error occurred during the upload: ${error.message}`, error: true };
+  }
+}
+
+function createCaregiverCompositeKey(name: string, mobile: string, address: string): string {
+    const normalizedName = (name || '').trim().toLowerCase();
+    const normalizedMobile = (mobile || '').replace(/\D/g, ''); // Remove non-digits
+    const normalizedAddress = (address || '').trim().toLowerCase();
+    return `${normalizedName}|${normalizedMobile}|${normalizedAddress}`;
+}
+
+
+export async function processActiveCaregiverProfiles(data: Record<string, any>[]) {
+  console.log(`[Action Start] processActiveCaregiverProfiles received ${data.length} rows.`);
+  const firestore = serverDb;
+  const caregiversCollection = firestore.collection('caregivers_active');
+  const now = Timestamp.now();
+
+  try {
+    // 1. Fetch all existing caregivers to compare against
+    const existingCaregiversSnap = await caregiversCollection.get();
+    const existingCaregiversMap = new Map<string, { id: string, data: any }>();
+    
+    existingCaregiversSnap.forEach(doc => {
+      const docData = doc.data();
+      const key = createCaregiverCompositeKey(docData['Name'], docData['Mobile'], docData['Address']);
+      if (key !== '||') {
+        existingCaregiversMap.set(key, { id: doc.id, data: docData });
+      }
+    });
+    console.log(`[Action] Found ${existingCaregiversMap.size} existing caregivers.`);
+
+    let batch: WriteBatch = firestore.batch();
+    let operations = 0;
+    let createdCount = 0;
+    let updatedCount = 0;
+    
+    // 2. Iterate through uploaded CSV data
+    for (const row of data) {
+      const caregiverName = row['Name'];
+      const mobile = row['Mobile'];
+      const address = row['Address'];
+      const compositeKey = createCaregiverCompositeKey(caregiverName, mobile, address);
+
+      if (compositeKey === '||') {
+        console.warn('[Action] Skipping row due to missing "Name", "Mobile", or "Address":', row);
+        continue;
+      }
+      
+      const caregiverData = {
+        'Name': caregiverName,
+        'dob': row['dob'] || '',
+        'Address': address || '',
+        'Apt': row['Apt'] || '',
+        'City': row['City'] || '',
+        'State': row['State'] || '',
+        'Zip': row['Zip'] || '',
+        'Mobile': mobile,
+        'Hire Date': row['Hire Date'] || '',
+        'Email': row['Email'] || '',
+        'Drivers Lic': row['Drivers Lic'] || '',
+        'Caregiver Lic': row['Caregiver Lic'] || '',
+        'TTiD-PIN': row['TTiD-PIN'] || '',
+        'status': 'Active',
+        'lastUpdatedAt': now,
+      };
+
+      const existingCaregiver = existingCaregiversMap.get(compositeKey);
+
+      if (existingCaregiver) {
+        // Update existing record
+        const docRef = caregiversCollection.doc(existingCaregiver.id);
+        batch.update(docRef, caregiverData);
+        updatedCount++;
+        // Remove from map so we know it's been processed
+        existingCaregiversMap.delete(compositeKey);
+      } else {
+        // Create new record
+        const docRef = caregiversCollection.doc(); // Let Firestore generate ID
+        batch.set(docRef, { ...caregiverData, createdAt: now });
+        createdCount++;
+      }
+
+      operations++;
+      if (operations >= 499) {
+        await batch.commit();
+        batch = firestore.batch();
+        operations = 0;
+      }
+    }
+
+    // 3. Deactivate caregivers not present in the new upload
+    for (const [key, { id }] of existingCaregiversMap.entries()) {
+      console.log(`[Action] Deactivating caregiver not in CSV: ${key}`);
+      const docRef = caregiversCollection.doc(id);
+      batch.update(docRef, { status: 'Inactive', lastUpdatedAt: now });
+      operations++;
+       if (operations >= 499) {
+        await batch.commit();
+        batch = firestore.batch();
+        operations = 0;
+      }
+    }
+    const deactivatedCount = existingCaregiversMap.size;
+
+    // 4. Commit any remaining operations in the batch
+    if (operations > 0) {
+      await batch.commit();
+    }
+
+    const message = `Upload complete. Created: ${createdCount}, Updated: ${updatedCount}, Deactivated: ${deactivatedCount}.`;
+    console.log(`[Action Success] ${message}`);
+    revalidatePath('/admin/manage-active-caregivers');
+    revalidatePath('/staffing-admin/manage-active-caregivers');
+    return { message };
+
+  } catch (error: any) {
+    console.error('[Action Error] Critical error during caregiver profile upload process:', error);
+    return { message: `An error occurred during the upload: ${error.message}`, error: true };
   }
 }

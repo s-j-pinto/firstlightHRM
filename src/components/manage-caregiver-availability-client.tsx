@@ -3,7 +3,7 @@
 
 import { useState, useTransition, ChangeEvent } from 'react';
 import Papa from 'papaparse';
-import { processActiveCaregiverUpload } from '@/lib/active-caregivers.actions';
+import { processActiveCaregiverAvailabilityUpload } from '@/lib/active-caregivers.actions';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -169,7 +169,7 @@ export default function ManageCaregiverAvailabilityClient() {
           
           console.log("Parsed Caregiver Data:", JSON.stringify(caregivers, null, 2));
 
-          const uploadResult = await processActiveCaregiverUpload(caregivers);
+          const uploadResult = await processActiveCaregiverAvailabilityUpload(caregivers);
 
           toast({
               title: uploadResult.error ? 'Upload Failed' : 'Upload Successful',

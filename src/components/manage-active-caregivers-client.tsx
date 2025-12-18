@@ -3,7 +3,7 @@
 
 import { useState, useTransition, ChangeEvent } from 'react';
 import Papa from 'papaparse';
-import { processActiveCaregiverUpload } from '@/lib/active-caregivers.actions';
+import { processActiveCaregiverProfiles } from '@/lib/active-caregivers.actions';
 import { useCollection, useMemoFirebase, firestore } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import type { ActiveCaregiver } from '@/lib/types';
@@ -51,7 +51,7 @@ export default function ManageActiveCaregiversClient() {
             return;
           }
 
-          const uploadResult = await processActiveCaregiverUpload(results.data as any[]);
+          const uploadResult = await processActiveCaregiverProfiles(results.data as any[]);
           
           if (uploadResult.error) {
             toast({ title: 'Upload Failed', description: uploadResult.message, variant: 'destructive' });
