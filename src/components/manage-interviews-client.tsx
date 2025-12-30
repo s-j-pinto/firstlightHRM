@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
@@ -69,6 +70,7 @@ const scheduleEventSchema = z.object({
     interviewMethod: z.enum(['In-Person', 'Google Meet']),
     eventDate: z.date({ required_error: "An event date is required."}),
     eventTime: z.string().min(1, { message: 'An event time is required.'}),
+    includeReferenceForm: z.boolean().default(false).optional(),
 });
 
 const orientationSchema = z.object({
@@ -150,6 +152,9 @@ export default function ManageInterviewsClient() {
 
   const scheduleEventForm = useForm<ScheduleEventFormData>({
     resolver: zodResolver(scheduleEventSchema),
+    defaultValues: {
+      includeReferenceForm: false,
+    },
   });
   
   const orientationForm = useForm<OrientationFormData>({
@@ -185,8 +190,8 @@ export default function ManageInterviewsClient() {
         candidateRating: 'C',
         finalInterviewNotes: '',
     });
-    scheduleEventForm.reset();
-    orientationForm.reset();
+    scheduleEventForm.reset({ includeReferenceForm: false });
+    orientationForm.reset({ includeReferenceForm: false });
     hiringForm.reset({
         caregiverProfileId: '',
         interviewId: '',
@@ -252,6 +257,7 @@ export default function ManageInterviewsClient() {
                 interviewMethod: interviewData.interviewType as 'In-Person' | 'Google Meet' | undefined,
                 eventDate: interviewDate,
                 eventTime: interviewDate ? format(interviewDate, 'HH:mm') : '',
+                includeReferenceForm: false,
             });
 
             if(interviewData.orientationDateTime) {
@@ -502,6 +508,7 @@ export default function ManageInterviewsClient() {
          finalInterviewStatus: existingInterview.finalInterviewStatus,
          googleEventId: existingInterview.googleEventId,
          previousPathway: existingInterview.interviewPathway,
+         includeReferenceForm: data.includeReferenceForm,
        });
  
        if (result.authUrl) {
@@ -968,6 +975,27 @@ export default function ManageInterviewsClient() {
                                                 )}
                                             />
                                         </div>
+                                         {interviewPathway === 'combined' && (
+                                            <FormField
+                                                control={scheduleEventForm.control}
+                                                name="includeReferenceForm"
+                                                render={({ field }) => (
+                                                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
+                                                        <FormControl>
+                                                            <Checkbox
+                                                                checked={field.value}
+                                                                onCheckedChange={field.onChange}
+                                                            />
+                                                        </FormControl>
+                                                        <div className="space-y-1 leading-none">
+                                                            <FormLabel>
+                                                                Include Reference Form in confirmation email
+                                                            </FormLabel>
+                                                        </div>
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        )}
                                     </>
                                 )}
                                 <div className="flex justify-end">
@@ -1403,5 +1431,7 @@ function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: strin
     </div>
   );
 }
+
+    
 
     
