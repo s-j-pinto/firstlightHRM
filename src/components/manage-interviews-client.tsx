@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
@@ -99,6 +98,7 @@ const rejectionReasons = [
     "Not a good fit (attitude, soft skills etc)",
     "CG ghosted appointment",
     "Candidate withdrew application",
+    "Took another Job",
 ];
 
 export default function ManageInterviewsClient() {
@@ -812,28 +812,6 @@ export default function ManageInterviewsClient() {
                                           </FormItem>
                                       )}
                                   />
-
-                                  <div className="flex justify-center">
-                                  <Button type="button" onClick={handleGenerateInsights} disabled={isAiPending}>
-                                      {isAiPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                                      Generate AI Insights
-                                  </Button>
-                                  </div>
-
-                                  {isAiPending && (
-                                  <p className="text-sm text-center text-muted-foreground">The AI is analyzing the profile, please wait...</p>
-                                  )}
-
-                                  {aiInsight && (
-                                  <Alert>
-                                      <Sparkles className="h-4 w-4" />
-                                      <AlertTitle>AI-Generated Insight</AlertTitle>
-                                      <AlertDescription className="space-y-4 mt-2 whitespace-pre-wrap">
-                                      <p className='text-sm text-foreground'>{aiInsight}</p>
-                                      </AlertDescription>
-                                  </Alert>
-                                  )}
-
                                   <FormField
                                       control={phoneScreenForm.control}
                                       name="phoneScreenPassed"
@@ -857,7 +835,7 @@ export default function ManageInterviewsClient() {
                                           ) : (
                                               <UserCheck className="mr-2 h-4 w-4" />
                                           )}
-                                          Save and Continue
+                                          Save Phone Screen
                                       </Button>
                                   </div>
                               </form>
@@ -1015,6 +993,27 @@ export default function ManageInterviewsClient() {
                         <CardContent>
                             <Form {...assessmentForm}>
                                 <form onSubmit={assessmentForm.handleSubmit(onAssessmentSubmit)} className="space-y-6">
+                                     <div className="flex justify-center">
+                                      <Button type="button" onClick={handleGenerateInsights} disabled={isAiPending || isPhoneScreenCompleted}>
+                                          {isAiPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                                          Generate AI Insights
+                                      </Button>
+                                    </div>
+
+                                    {isAiPending && (
+                                    <p className="text-sm text-center text-muted-foreground">The AI is analyzing the profile, please wait...</p>
+                                    )}
+
+                                    {aiInsight && (
+                                    <Alert>
+                                        <Sparkles className="h-4 w-4" />
+                                        <AlertTitle>AI-Generated Insight</AlertTitle>
+                                        <AlertDescription className="space-y-4 mt-2 whitespace-pre-wrap">
+                                        <p className='text-sm text-foreground'>{aiInsight}</p>
+                                        </AlertDescription>
+                                    </Alert>
+                                    )}
+
                                     <FormField
                                         control={assessmentForm.control}
                                         name="candidateRating"
@@ -1406,8 +1405,3 @@ function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: strin
 }
 
     
-
-
-
-
-
