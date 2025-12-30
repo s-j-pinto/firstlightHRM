@@ -362,8 +362,7 @@ export default function ManageInterviewsClient() {
   const handleGenerateInsights = () => {
     if (!selectedCaregiver) return;
     const { interviewNotes } = phoneScreenForm.getValues();
-    const { candidateRating } = assessmentForm.getValues();
-
+    
     if (!interviewNotes) {
       toast({
         title: "Missing Information",
@@ -389,7 +388,7 @@ export default function ManageInterviewsClient() {
             hasCar: selectedCaregiver.hasCar,
             validLicense: selectedCaregiver.validLicense,
             interviewNotes,
-            candidateRating,
+            candidateRating: assessmentForm.getValues('candidateRating'),
         };
 
         const result = await getAiInterviewInsights(payload);
@@ -767,7 +766,7 @@ export default function ManageInterviewsClient() {
 
       {selectedCaregiver && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-            <div>
+            <div className="space-y-6">
               <Card>
                   <CardHeader>
                       <div className="flex justify-between items-start">
@@ -1407,6 +1406,7 @@ function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: strin
 }
 
     
+
 
 
 
