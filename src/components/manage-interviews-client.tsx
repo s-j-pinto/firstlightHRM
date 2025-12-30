@@ -359,6 +359,7 @@ export default function ManageInterviewsClient() {
   
   const getSummaryVisibility = () => {
     if (existingEmployee) return true;
+    if (existingInterview?.rejectionReason) return true;
     if (existingInterview?.orientationScheduled) return true;
     return false;
   }
@@ -927,22 +928,22 @@ export default function ManageInterviewsClient() {
                                                 )}
                                             />
                                         ) : (
-                                                <FormField
-                                                control={scheduleEventForm.control}
-                                                name="interviewMethod"
-                                                render={({ field }) => (
-                                                        <FormItem className="space-y-3">
-                                                        <FormLabel>Final Interview Method</FormLabel>
-                                                            <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4" disabled={true}>
-                                                                <FormItem className="flex items-center space-x-3 space-y-0">
-                                                                    <FormControl><RadioGroupItem value="In-Person" /></FormControl>
-                                                                    <FormLabel className="font-normal flex items-center gap-2"><Briefcase /> In-Person</FormLabel>
-                                                                </FormItem>
-                                                            </RadioGroup>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                                />
+                                            <FormField
+                                            control={scheduleEventForm.control}
+                                            name="interviewMethod"
+                                            render={({ field }) => (
+                                                <FormItem className="space-y-3">
+                                                    <FormLabel>Final Interview Method</FormLabel>
+                                                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4" disabled={true}>
+                                                        <FormItem className="flex items-center space-x-3 space-y-0">
+                                                            <FormControl><RadioGroupItem value="In-Person" /></FormControl>
+                                                            <FormLabel className="font-normal flex items-center gap-2"><Briefcase /> In-Person</FormLabel>
+                                                        </FormItem>
+                                                    </RadioGroup>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                            />
                                         )}
                                         
                                         <div className="flex flex-col sm:flex-row gap-4 items-start">
@@ -1033,12 +1034,12 @@ export default function ManageInterviewsClient() {
               )}
             </div>
             
-            <div className="space-y-6">
+             <div className="space-y-6">
                 {selectedCaregiver && (
                     <Card>
                         <CardHeader>
                             <CardTitle>Overall Candidate Assessment</CardTitle>
-                            <CardDescription>This rating can be updated at any point in the process.</CardDescription>
+                            <CardDescription>This rating and notes can be updated at any point in the process.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <Form {...assessmentForm}>
@@ -1086,7 +1087,7 @@ export default function ManageInterviewsClient() {
                                     />
                                     
                                      {areNotesEditable && (
-                                         <FormField
+                                        <FormField
                                             control={assessmentForm.control}
                                             name="finalInterviewNotes"
                                             render={({ field }) => (
@@ -1232,6 +1233,17 @@ export default function ManageInterviewsClient() {
                             <CardDescription>Summary of the completed process for {selectedCaregiver?.fullName}.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
+                            {existingInterview?.rejectionReason && (
+                                <Alert variant="destructive">
+                                    <UserX className="h-4 w-4" />
+                                    <AlertTitle>Candidate Rejected</AlertTitle>
+                                    <AlertDescription>
+                                        Reason: <span className="font-semibold">{existingInterview.rejectionReason}</span>
+                                        <br />
+                                        Date: {existingInterview.rejectionDate ? format((existingInterview.rejectionDate as any).toDate(), 'PP') : 'N/A'}
+                                    </AlertDescription>
+                                </Alert>
+                            )}
                             {existingInterview?.interviewDateTime && (
                                 <Alert>
                                     <Briefcase className="h-4 w-4" />
@@ -1463,8 +1475,4 @@ function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: strin
     </div>
   );
 }
-
-    
-
-    
 

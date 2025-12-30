@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
@@ -370,17 +371,18 @@ export default function AdvancedSearchClient() {
     const isActionable = (status: CandidateStatus) => {
         const terminalStatuses: CandidateStatus[] = [
             'Hired',
-            'Final Interview Failed',
             'Phone Screen Failed',
+            'Final Interview Failed',
             'Rejected at Orientation',
             'Process Terminated',
             'No Show',
-            'Insufficient docs provided.',
-            'Pay rate too low',
-            'Invalid References provided.',
-            'Not a good fit (attitude, soft skills etc)',
-            'CG ghosted appointment',
-            'Candidate withdrew application'
+            "Insufficient docs provided.",
+            "Pay rate too low",
+            "Invalid References provided.",
+            "Not a good fit (attitude, soft skills etc)",
+            "CG ghosted appointment",
+            "Candidate withdrew application",
+            "Took another Job",
         ];
         return !terminalStatuses.includes(status);
     }
