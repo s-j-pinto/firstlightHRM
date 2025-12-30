@@ -798,7 +798,7 @@ export default function ManageInterviewsClient() {
 
       {selectedCaregiver && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-            <div className="space-y-6">
+             <div className="space-y-6">
               <Card>
                   <CardHeader>
                       <div className="flex justify-between items-start">
@@ -1034,7 +1034,7 @@ export default function ManageInterviewsClient() {
               )}
             </div>
             
-             <div className="space-y-6">
+            <div className="space-y-6">
                 {selectedCaregiver && (
                     <Card>
                         <CardHeader>
@@ -1475,4 +1475,3 @@ function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: strin
     </div>
   );
 }
-
