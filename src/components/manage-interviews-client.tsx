@@ -710,6 +710,9 @@ export default function ManageInterviewsClient() {
   const isFinalInterviewPending = isPhoneScreenCompleted && existingInterview?.interviewPathway === 'separate' && existingInterview?.finalInterviewStatus === 'Pending';
 
   const isProcessActive = selectedCaregiver && !existingEmployee && existingInterview?.finalInterviewStatus !== 'Rejected at Orientation' && existingInterview?.finalInterviewStatus !== 'Process Terminated' && existingInterview?.finalInterviewStatus !== 'No Show' && !existingInterview?.rejectionReason;
+  
+  const areNotesEditable = isProcessActive && isPhoneScreenCompleted && existingInterview.phoneScreenPassed === 'Yes';
+
 
   return (
     <div className="space-y-6">
@@ -1082,7 +1085,7 @@ export default function ManageInterviewsClient() {
                                         )}
                                     />
                                     
-                                     {isFinalInterviewPending && (
+                                     {areNotesEditable && (
                                          <FormField
                                             control={assessmentForm.control}
                                             name="finalInterviewNotes"
@@ -1464,3 +1467,4 @@ function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: strin
     
 
     
+
