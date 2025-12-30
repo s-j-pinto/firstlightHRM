@@ -44,7 +44,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Search, Calendar as CalendarIcon, Sparkles, UserCheck, AlertCircle, ExternalLink, Briefcase, Video, GraduationCap, Phone, Star, MessageSquare, CheckCircle, XCircle, UserX, Save } from 'lucide-react';
+import { Loader2, Search, Calendar as CalendarIcon, Sparkles, UserCheck, AlertCircle, ExternalLink, Briefcase, Video, GraduationCap, Phone, Star, MessageSquare, CheckCircle, XCircle, UserX, Save, FileClock } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { cn } from '@/lib/utils';
@@ -352,7 +352,7 @@ export default function ManageInterviewsClient() {
   const getHiringFormVisibility = () => {
     if (existingEmployee) return false;
     if (existingInterview?.finalInterviewStatus === 'Rejected at Orientation') return false;
-    if (existingInterview?.orientationScheduled) return true;
+    if (existingInterview?.orientationScheduled && existingInterview.finalInterviewStatus !== 'Pending reference checks') return true;
     return false;
   };
   const shouldShowHiringForm = getHiringFormVisibility();
@@ -671,6 +671,27 @@ export default function ManageInterviewsClient() {
         window.open(existingInterview.googleMeetLink, '_blank', 'width=800,height=600,resizable=yes,scrollbars=yes');
     }
   }
+  
+  const handleApproveReferences = () => {
+    if (!existingInterview?.id) return;
+
+    startSubmitTransition(async () => {
+        const interviewDocRef = doc(db, 'interviews', existingInterview.id);
+        const updateData = { finalInterviewStatus: 'Passed' }; // Move status forward
+        try {
+            await updateDoc(interviewDocRef, updateData);
+            setExistingInterview(prev => prev ? { ...prev, ...updateData } : null);
+            toast({ title: "Success", description: "Reference checks approved. You can now proceed to hire." });
+        } catch (serverError) {
+             const permissionError = new FirestorePermissionError({
+                path: interviewDocRef.path,
+                operation: "update",
+                requestResourceData: updateData,
+            });
+            errorEmitter.emit("permission-error", permissionError);
+        }
+    });
+};
 
 
   const isLoading = caregiversLoading || employeesLoading;
@@ -975,27 +996,25 @@ export default function ManageInterviewsClient() {
                                                 )}
                                             />
                                         </div>
-                                         {interviewPathway === 'combined' && (
-                                            <FormField
-                                                control={scheduleEventForm.control}
-                                                name="includeReferenceForm"
-                                                render={({ field }) => (
-                                                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
-                                                        <FormControl>
-                                                            <Checkbox
-                                                                checked={field.value}
-                                                                onCheckedChange={field.onChange}
-                                                            />
-                                                        </FormControl>
-                                                        <div className="space-y-1 leading-none">
-                                                            <FormLabel>
-                                                                Include Reference Form in confirmation email
-                                                            </FormLabel>
-                                                        </div>
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        )}
+                                         <FormField
+                                            control={scheduleEventForm.control}
+                                            name="includeReferenceForm"
+                                            render={({ field }) => (
+                                                <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
+                                                    <FormControl>
+                                                        <Checkbox
+                                                            checked={field.value}
+                                                            onCheckedChange={field.onChange}
+                                                        />
+                                                    </FormControl>
+                                                    <div className="space-y-1 leading-none">
+                                                        <FormLabel>
+                                                            Include Reference Form in confirmation email
+                                                        </FormLabel>
+                                                    </div>
+                                                </FormItem>
+                                            )}
+                                        />
                                     </>
                                 )}
                                 <div className="flex justify-end">
@@ -1204,7 +1223,7 @@ export default function ManageInterviewsClient() {
                 )}
 
                 {selectedCaregiver && shouldShowCompletedSummary && (
-                    <Card>
+                     <Card>
                         <CardHeader>
                             <CardTitle>Completed Steps</CardTitle>
                             <CardDescription>Summary of the completed process for {selectedCaregiver?.fullName}.</CardDescription>
@@ -1218,6 +1237,16 @@ export default function ManageInterviewsClient() {
                                         Status: <span className="font-semibold text-green-600">Passed</span>
                                         <br />
                                         Date: {format((existingInterview.interviewDateTime as any).toDate(), 'PPpp')}
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+                            {existingInterview?.finalInterviewStatus === 'Pending reference checks' && (
+                                <Alert variant="default" className="bg-yellow-100 border-yellow-300">
+                                    <FileClock className="h-4 w-4 text-yellow-800"/>
+                                    <AlertTitle className="text-yellow-800">Pending Reference Checks</AlertTitle>
+                                    <AlertDescription className="text-yellow-700">
+                                        The candidate has been sent the reference check forms.
+                                        <Button onClick={handleApproveReferences} size="sm" className="mt-2" disabled={isSubmitting}>Approve References & Proceed</Button>
                                     </AlertDescription>
                                 </Alert>
                             )}

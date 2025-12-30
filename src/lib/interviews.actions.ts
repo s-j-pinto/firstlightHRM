@@ -20,7 +20,7 @@ interface SaveInterviewPayload {
   interviewNotes: string;
   candidateRating: string;
   pathway: 'separate' | 'combined';
-  finalInterviewStatus?: 'Passed' | 'Failed' | 'Pending' | 'Rejected at Orientation';
+  finalInterviewStatus?: 'Passed' | 'Failed' | 'Pending' | 'Pending reference checks' |'Rejected at Orientation';
   googleEventId?: string | null; // Add this to handle updates
   previousPathway?: 'separate' | 'combined' | null;
   includeReferenceForm?: boolean;
@@ -166,6 +166,10 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
         if (pathway === 'combined') {
             updateData.orientationDateTime = Timestamp.fromDate(startTime);
         }
+    }
+    
+    if (includeReferenceForm) {
+      updateData.finalInterviewStatus = 'Pending reference checks';
     }
 
 
