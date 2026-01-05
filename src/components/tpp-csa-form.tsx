@@ -581,6 +581,59 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
                 <div className="text-sm space-y-4">
                     <p>Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated. This Client Service Agreement (this "Agreement") is entered into between the client, or his or her authorized representative, (the “Client”) and FirstLight Home Care of <strong>Rancho Cucamonga</strong> (“FirstLight Home Care”).</p>
                 </div>
+                
+                <div className="space-y-6">
+                    <h3 className="text-lg font-semibold text-center">I. CLIENT INFORMATION</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <FormField control={form.control} name="clientName" render={({ field }) => ( <FormItem><FormLabel>Client Name</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                         <FormField
+                            control={form.control}
+                            name="officeTodaysDate"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-col">
+                                    <FormLabel>Date</FormLabel>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <FormControl>
+                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={isClientMode || isPublished}>
+                                                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                </Button>
+                                            </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isClientMode || isPublished} />
+                                        </PopoverContent>
+                                    </Popover>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+                     <FormField control={form.control} name="clientAddress" render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                        <FormField control={form.control} name="clientCity" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="clientState" render={({ field }) => ( <FormItem><FormLabel>State</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="clientPostalCode" render={({ field }) => ( <FormItem><FormLabel>Zip Code</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                    </div>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <FormField control={form.control} name="clientPhone" render={({ field }) => ( <FormItem><FormLabel>Phone</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="clientDOB" render={({ field }) => ( <FormItem><FormLabel>DOB</FormLabel><FormControl><Input {...field} type="date" value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <FormField control={form.control} name="emergencyContactName" render={({ field }) => ( <FormItem><FormLabel>Emergency Contact Name</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="emergencyContactRelationship" render={({ field }) => ( <FormItem><FormLabel>Relationship</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                    </div>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <FormField control={form.control} name="emergencyContactHomePhone" render={({ field }) => ( <FormItem><FormLabel>Contact Home Phone</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="emergencyContactWorkPhone" render={({ field }) => ( <FormItem><FormLabel>Contact Work Phone</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                    </div>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <FormField control={form.control} name="secondEmergencyContactName" render={({ field }) => ( <FormItem><FormLabel>2nd Emergency Contact</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="secondEmergencyContactRelationship" render={({ field }) => ( <FormItem><FormLabel>Relationship</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                    </div>
+                     <FormField control={form.control} name="secondEmergencyContactPhone" render={({ field }) => ( <FormItem><FormLabel>Phone</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                </div>
 
 
                  <div className="flex justify-end gap-4 pt-6 no-print">
