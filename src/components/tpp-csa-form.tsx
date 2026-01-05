@@ -579,7 +579,7 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
                 <h2 className="text-2xl font-bold text-center underline">THIRD PARTY PAYOR CLIENT SERVICE AGREEMENT</h2>
                 
                 <div className="text-sm space-y-4">
-                    <p>Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated. This Client Service Agreement (this "Agreement") is entered into between the client, or his or her authorized representative, (the “Client”) and FirstLight Home Care of <strong>Rancho Cucamonga</strong> (“FirstLight Home Care”).</p>
+                    <p>Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated. This Client Service Agreement (this "Agreement") is entered into between the client, or his or her authorized representative, (the “Client”) and <strong>FirstLight Home Care of Rancho Cucamonga</strong> (“FirstLight Home Care”).</p>
                 </div>
                 
                 <div className="space-y-6">
@@ -635,6 +635,7 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
                      <FormField control={form.control} name="secondEmergencyContactPhone" render={({ field }) => ( <FormItem><FormLabel>Phone</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
                 </div>
 
+                <p className="text-sm text-muted-foreground"><strong>FirstLight Home Care</strong> will provide non-medical in-home services (the “Services”) specified in the Payor’s authorization and/or Client plan of care as made available by Payor to FirstLight Home Care pursuant to the “Payor Agreement” (as defined below). It is anticipated that Payor will provide Client-specific information to FirstLight Home Care as part of the Payor’s authorization and/or Client plan of care as FirstLight Home Care needs to render the Services and be reimbursed for such Services by the Payor. However Client will cooperate with FirstLight Home Care to the extent FirstLight Home Care requires additional information from Client related to Client in order to provide the Services.</p>
 
                  <div className="flex justify-end gap-4 pt-6 no-print">
                     {mode === 'owner' && (
