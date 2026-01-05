@@ -578,10 +578,10 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
 
                 <h2 className="text-2xl font-bold text-center underline">THIRD PARTY PAYOR CLIENT SERVICE AGREEMENT</h2>
                 
-                {/* We will replace this content in the next steps */}
-                <p className="text-sm text-muted-foreground text-center py-16 border-dashed border-2 rounded-lg">
-                    Content for the Third Party Payor CSA will be added here based on your provided text.
-                </p>
+                <div className="text-sm space-y-4">
+                    <p>Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated. This Client Service Agreement (this "Agreement") is entered into between the client, or his or her authorized representative, (the “Client”) and FirstLight Home Care of <strong>Rancho Cucamonga</strong> (“FirstLight Home Care”).</p>
+                </div>
+
 
                  <div className="flex justify-end gap-4 pt-6 no-print">
                     {mode === 'owner' && (
