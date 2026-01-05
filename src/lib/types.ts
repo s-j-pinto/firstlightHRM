@@ -241,6 +241,9 @@ const clientSignupDraftSchema = z.object({
 });
 
 export const clientSignupFormSchema = clientSignupDraftSchema.extend({
+  // TPP CSA Specific
+  payor: z.string().optional(),
+
   // Office Use Only
   officeTodaysDate: z.date().optional(),
   officeReferralDate: z.date().optional(),
@@ -323,7 +326,7 @@ export const clientSignupFormSchema = clientSignupDraftSchema.extend({
   personalCare_assistWithOther: z.string().optional(),
   servicePlanClientInitials: z.string().optional(),
 
-  // Payment Agreement
+  // Agreement
   agreementClientName: z.string().optional(),
   agreementClientSignature: z.string().optional(),
   agreementSignatureDate: z.date().optional(),

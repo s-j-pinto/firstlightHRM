@@ -125,7 +125,7 @@ const SignaturePadModal = ({
 };
 
 
-export default function TppCsaForm({ signupId, mode = 'owner' | 'client-signing' | 'print' }: TppCsaFormProps) {
+export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps) {
   const [isSaving, startSavingTransition] = useTransition();
   const [isSending, startSendingTransition] = useTransition();
   const [isFinalizing, startFinalizingTransition] = useTransition();
@@ -681,6 +681,21 @@ export default function TppCsaForm({ signupId, mode = 'owner' | 'client-signing'
                     </div>
                 </div>
 
+                <div className="space-y-6">
+                    <h3 className="text-lg font-semibold text-center">II. PAYMENTS FOR THE SERVICES</h3>
+                    <div className="space-y-4 rounded-md border p-4">
+                        <div className="flex flex-wrap items-baseline gap-2">
+                           <FormField control={form.control} name="payor" render={({ field }) => (
+                                <FormItem className="inline-flex items-baseline">
+                                    <FormControl><Input {...field} placeholder="Payor Name" className="w-48 h-8" value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <p className="text-sm">(“Payor”) will reimburse FirstLight Home Care agreement between FirstLight Home Care and Payor (“Payor Agreement”). FirstLight Home Care will submit claims to Payor in accordance with the provisions of the Payor Agreement and applicable requirements under state or federal law. To the extent Client owes FirstLight Home Care for any cost sharing or other financial obligation for the Services, such amounts shall be determined by Payor in accordance with the Payor Agreement and applicable provisions of state and federal law. Client agrees to notify FirstLight Home Care if Client becomes ineligible to receive the Services under this Agreement. Additional service (payable by Client out of pocket and not covered by Payor) (the “Private Pay Services”) can be arranged upon Client request; provided, however, that FirstLight Home Care’s ability to render Private Pay Services depends on the Payor Agreement and applicable provisions of state and federal law. A separate FirstLight Home Care Private Pay Client Service Agreement must be executed prior to initiation of Private Pay Services.</p>
+                        </div>
+                    </div>
+                </div>
+
 
                  <div className="flex justify-end gap-4 pt-6 no-print">
                     {mode === 'owner' && (
@@ -751,5 +766,3 @@ export default function TppCsaForm({ signupId, mode = 'owner' | 'client-signing'
     </Card>
   );
 }
-
-    
