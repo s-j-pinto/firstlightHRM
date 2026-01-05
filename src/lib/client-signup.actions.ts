@@ -1,4 +1,5 @@
 
+
 "use server";
 
 import { revalidatePath } from 'next/cache';
@@ -16,7 +17,7 @@ const clientSignupSchema = z.object({
   status: z.enum(["Incomplete", "Pending Client Signatures"]),
 });
 
-export async function createCsaFromContact(initialContactId: string) {
+export async function createCsaFromContact(initialContactId: string, type: 'private' | 'tpp' = 'private') {
     if (!initialContactId) {
         return { error: "Initial Contact ID is required." };
     }
@@ -25,19 +26,18 @@ export async function createCsaFromContact(initialContactId: string) {
     const now = Timestamp.now();
 
     try {
-        // 1. Check if a signup document already exists for this contact
         const existingSignupQuery = await firestore.collection('client_signups')
             .where('initialContactId', '==', initialContactId)
-            .limit(1)
             .get();
 
         if (!existingSignupQuery.empty) {
-            const existingSignupId = existingSignupQuery.docs[0].id;
-            console.log(`CSA already exists for contact ${initialContactId} with ID: ${existingSignupId}`);
-            return { signupId: existingSignupId };
+            const existingDoc = existingSignupQuery.docs.find(doc => doc.data().formType === type || (!doc.data().formType && type === 'private'));
+            if(existingDoc) {
+                console.log(`${type.toUpperCase()} CSA already exists for contact ${initialContactId} with ID: ${existingDoc.id}`);
+                return { signupId: existingDoc.id };
+            }
         }
 
-        // 2. Fetch the initial contact data
         const contactRef = firestore.collection('initial_contacts').doc(initialContactId);
         const contactDoc = await contactRef.get();
         if (!contactDoc.exists) {
@@ -45,17 +45,15 @@ export async function createCsaFromContact(initialContactId: string) {
         }
         const contactData = contactDoc.data()!;
 
-        // 3. Prepare the pre-populated form data for the new signup document
         const formDataForSignup = {
             clientName: contactData.clientName || '',
             clientAddress: contactData.clientAddress || '',
             clientCity: contactData.city || '',
-            clientState: contactData.state || 'CA', // Defaulting state
+            clientState: contactData.state || 'CA',
             clientPostalCode: contactData.zip || '',
             clientPhone: contactData.clientPhone || '',
             clientEmail: contactData.clientEmail || '',
             clientDOB: contactData.dateOfBirth ? formatDateForInput(contactData.dateOfBirth) : '',
-            // Companion Care Fields
             companionCare_mealPreparation: contactData.companionCare_mealPreparation || false,
             companionCare_cleanKitchen: contactData.companionCare_cleanKitchen || false,
             companionCare_assistWithLaundry: contactData.companionCare_assistWithLaundry || false,
@@ -75,22 +73,21 @@ export async function createCsaFromContact(initialContactId: string) {
             companionCare_assistWithDressingAndGrooming: contactData.companionCare_assistWithDressingAndGrooming || false,
             companionCare_assistWithShavingAndOralCare: contactData.companionCare_assistWithShavingAndOralCare || false,
             companionCare_other: contactData.companionCare_other || '',
-            // Personal Care Fields are not in initial contact, so they won't be pre-populated
         };
 
-        // 4. Create the new client_signup document
         const signupRef = firestore.collection('client_signups').doc();
         await signupRef.set({
             initialContactId: initialContactId,
             formData: formDataForSignup,
             clientEmail: contactData.clientEmail,
             clientPhone: contactData.clientPhone,
-            status: 'Incomplete', // Start as incomplete until sent
+            status: 'Incomplete',
+            formType: type,
             createdAt: now,
             lastUpdatedAt: now,
         });
 
-        console.log(`Created new CSA document ${signupRef.id} from contact ${initialContactId}`);
+        console.log(`Created new ${type.toUpperCase()} CSA document ${signupRef.id} from contact ${initialContactId}`);
         return { signupId: signupRef.id };
 
     } catch (error: any) {
@@ -191,6 +188,8 @@ export async function saveClientSignupForm(payload: z.infer<typeof clientSignupS
 
         revalidatePath(`/admin/new-client-signup`, 'page');
         revalidatePath(`/owner/new-client-signup`, 'page');
+        revalidatePath(`/admin/tpp-csa`, 'page');
+        revalidatePath(`/owner/tpp-csa`, 'page');
         if (initialContactId) {
             revalidatePath(`/admin/initial-contact?contactId=${initialContactId}`);
             revalidatePath(`/owner/initial-contact?contactId=${initialContactId}`);

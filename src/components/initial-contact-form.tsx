@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useTransition, useEffect, useMemo, useRef } from "react";
@@ -307,7 +308,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
     });
   };
 
-  const handleOpenCsa = async () => {
+  const handleOpenCsa = async (type: 'private' | 'tpp') => {
     if (!contactId) {
         toast({
             title: "Save Required",
@@ -321,7 +322,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
     let finalSignupId = signupDocId;
 
     if (!finalSignupId) {
-        const result = await createCsaFromContact(contactId);
+        const result = await createCsaFromContact(contactId, type);
         if (result.error || !result.signupId) {
             toast({ title: "Error", description: result.error || "Could not create the Client Service Agreement document." });
             return;
@@ -331,9 +332,10 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
     }
     
     if (finalSignupId) {
-        const url = pathname.includes('/admin')
-            ? `/admin/new-client-signup?signupId=${finalSignupId}`
-            : `/owner/new-client-signup?signupId=${finalSignupId}`;
+        const isAdmin = pathname.includes('/admin');
+        const url = type === 'tpp'
+            ? (isAdmin ? `/admin/tpp-csa?signupId=${finalSignupId}` : `/owner/tpp-csa?signupId=${finalSignupId}`)
+            : (isAdmin ? `/admin/new-client-signup?signupId=${finalSignupId}` : `/owner/new-client-signup?signupId=${finalSignupId}`);
         router.push(url);
     } else {
         toast({ title: "Error", description: "Cannot open Client Service Agreement without a saved Initial Contact." });
@@ -795,7 +797,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                     <Button
                         type="button"
                         variant="outline"
-                        onClick={handleOpenCsa}
+                        onClick={() => handleOpenCsa('private')}
                         disabled={isSubmitting || isClosed}
                     >
                         <FileText className="mr-2" />
@@ -807,7 +809,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                      <Button
                         type="button"
                         variant="outline"
-                        onClick={() => {}}
+                        onClick={() => handleOpenCsa('tpp')}
                         disabled={isSubmitting || isClosed}
                     >
                         <FileText className="mr-2" />
