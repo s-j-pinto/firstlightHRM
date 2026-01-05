@@ -734,7 +734,12 @@ provisions of state and federal law. A separate FirstLight Home Care Private Pay
                     <h3 className="text-lg font-semibold text-center underline">TERMS AND CONDITIONS</h3>
                     <ol className="space-y-4 text-sm text-muted-foreground list-decimal list-inside">
                         <li>
-                            <span className="font-bold">BUSINESS OPERATIONS:</span> FirstLight Home Care is independently owned and operated as a franchisee of FirstLight Home Care Franchising, LLC. FirstLight Home Care meets all requirements of the State of California to provide non-medical in-home personal care, companion and homemaker services. Additional information about FirstLight Home Care that is required to be disclosed under the state law can be found in Section 15 of this Agreement.
+                            <span className="font-bold">BUSINESS OPERATIONS:</span> FirstLight Home Care is independently owned and operated as a franchisee of FirstLight Home Care
+                            Franchising, LLC. FirstLight Home Care meets all requirements of the State of <strong>California</strong> to provide non-medical in-home personal care, companion and homemaker services. Additional information about FirstLight Home Care that is required to be disclosed under the state law can be found in Section 15 of this Agreement.
+                        </li>
+                        <li>
+                            <span className="font-bold">FIRSTLIGHT CONTACT INFORMATION:</span> If you have any question, problems, needs or concerns, please contact the FirstLight
+                            Home Care of Rancho Cucamonga contact Lolita Pinto at 9093214466 or by mail sent to the address above.
                         </li>
                     </ol>
                 </div>
