@@ -559,6 +559,7 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
     { title: "COMPLAINTS:", text: "To file a complaint, you may contact the manager listed above or the appropriate State reporting agency. In cases of allegations of abuse or neglect by an employee of FirstLight Home Care a complete investigation will be completed as soon as possible, and FirstLight Home Care will complete a written report within 14 days of the initial complaint unless state law requires earlier reporting in which case that requirements shall apply. The written report shall include the date, time, and description of alleged abuse, neglect, or financial exploitation; description of any injury or abuse of the Client; any actions taken by FirstLight Home Care; a description of actions taken to prevent  future abuse or other crime, or when death (other than by disease or actual causes) has occurred." },
     { title: "ABUSE REPORTING:", text: "Reports of abuse, neglect or financial exploitation may be made by Client at any time to local law enforcement. FirstLight Home Care will report any suspected or known dependent adult or elder abuse and otherwise comply with all mandatory reporting laws including, but not to, to making reports to law enforcement if an allegation of physical abuse, sexual abuse or other crime, or when death (other than by disease or actual causes) has occurred." },
     { title: "INFORMATION REQUESTS:", text: "FirstLight Home Care will adhere to a written policy addressing the confidentiality and permitted uses and disclosure of Client records as well as applicable provisions of state and federal law and its Payor Agreement. Response to an inquiry or information request is normally done during business hours however, inquiries or information requests made during evenings, weekends, or holidays will be addressed on the next business day." },
+    { title: "EMERGENCY TREATMENT:", text: "FirstLight Home Care caregivers and employees are not licensed, qualified or authorized to provide medical care or attention of any kind. If a medical emergency arises while a FirstLight Home Care employee is present, the employee is instructed to call for emergency assistance. The Client holds harmless FirstLight Home Care and its employees, agents, representatives, and affiliates for any medical attention provided resulting from instructions given by emergency services operators." },
   ];
 
   if (isLoading) {
@@ -697,7 +698,8 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
                                     <FormMessage />
                                 </FormItem>
                             )} />
-                            <p className="text-sm">(“Payor”) will reimburse FirstLight Home Care agreement between FirstLight Home Care and Payor (“Payor Agreement”). FirstLight Home Care will submit claims to Payor in
+                            <p className="text-sm">(“Payor”) will reimburse FirstLight Home Care
+agreement between FirstLight Home Care and Payor (“Payor Agreement”). FirstLight Home Care will submit claims to Payor in
 accordance with the provisions of the Payor Agreement and applicable requirements under state or federal law. To the extent
 Client owes FirstLight Home Care for any cost sharing or other financial obligation for the Services, such amounts shall be 
 determined by Payor in accordance with the Payor Agreement and applicable provisions of state and federal law. Client agrees to notify 
@@ -817,5 +819,3 @@ provisions of state and federal law. A separate FirstLight Home Care Private Pay
     </Card>
   );
 }
-
-    
