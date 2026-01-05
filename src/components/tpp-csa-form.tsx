@@ -730,6 +730,16 @@ provisions of state and federal law. A separate FirstLight Home Care Private Pay
                     </div>
                 </div>
 
+                <div className="space-y-6 break-before-page">
+                    <h3 className="text-lg font-semibold text-center underline">TERMS AND CONDITIONS</h3>
+                    <ol className="space-y-4 text-sm text-muted-foreground list-decimal list-inside">
+                        <li>
+                            <span className="font-bold">BUSINESS OPERATIONS:</span> FirstLight Home Care is independently owned and operated as a franchisee of FirstLight Home Care Franchising, LLC. FirstLight Home Care meets all requirements of the State of California to provide non-medical in-home personal care, companion and homemaker services. Additional information about FirstLight Home Care that is required to be disclosed under the state law can be found in Section 15 of this Agreement.
+                        </li>
+                    </ol>
+                </div>
+
+
                  <div className="flex justify-end gap-4 pt-6 no-print">
                     {mode === 'owner' && (
                         <>
