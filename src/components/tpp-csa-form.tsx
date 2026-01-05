@@ -125,7 +125,7 @@ const SignaturePadModal = ({
 };
 
 
-export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps) {
+export default function TppCsaForm({ signupId, mode = 'owner' | 'client-signing' | 'print' }: TppCsaFormProps) {
   const [isSaving, startSavingTransition] = useTransition();
   const [isSending, startSendingTransition] = useTransition();
   const [isFinalizing, startFinalizingTransition] = useTransition();
@@ -635,7 +635,52 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
                      <FormField control={form.control} name="secondEmergencyContactPhone" render={({ field }) => ( <FormItem><FormLabel>Phone</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
                 </div>
 
-                <p className="text-sm text-muted-foreground"><strong>FirstLight Home Care</strong> will provide non-medical in-home services (the “Services”) specified in the Payor’s authorization and/or Client plan of care as made available by Payor to FirstLight Home Care pursuant to the “Payor Agreement” (as defined below). It is anticipated that Payor will provide Client-specific information to FirstLight Home Care as part of the Payor’s authorization and/or Client plan of care as FirstLight Home Care needs to render the Services and be reimbursed for such Services by the Payor. However Client will cooperate with FirstLight Home Care to the extent FirstLight Home Care requires additional information from Client related to Client in order to provide the Services.</p>
+                <p className="text-sm text-muted-foreground"><strong>FirstLight Home Care</strong> will provide non-medical in-hime services (the “services”) specified in the Payor’s authorization and/or Client plan of care as made available by Payor to FirstLight Home Care pursuant to the “Payor Agreement”  (as defined below). It is anticipated that Payor will provide Client-specific information to FirstLightHome Care as part of the Payor’s authorization and/or Client plan of care as FirstLight Home Care needs to render the Services and be reimbursed for such Services by the Payor. However Client will cooperate with FirstLight Home Care to the extent FirstLight Home Care requires additional information from Client related to Client in order to provide the Services.</p>
+
+                <div className="space-y-6">
+                     <div className="flex gap-8 justify-center">
+                        <FormField control={form.control} name="homemakerCompanion" render={({ field }) => (
+                            <FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isClientMode || isPublished} /></FormControl><FormLabel className="font-normal">Homemaker/Companion</FormLabel></FormItem>
+                        )} />
+                        <FormField control={form.control} name="personalCare" render={({ field }) => (
+                            <FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isClientMode || isPublished} /></FormControl><FormLabel className="font-normal">Personal Care</FormLabel></FormItem>
+                        )} />
+                    </div>
+                </div>
+
+                <div className="space-y-6">
+                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
+                         <div className="flex flex-col space-y-2 pt-2 self-end">
+                            <FormLabel>Scheduled Frequency:</FormLabel>
+                        </div>
+                        <FormField control={form.control} name="daysPerWeek" render={({ field }) => ( <FormItem><FormLabel>Days/Wk</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="hoursPerDay" render={({ field }) => ( <FormItem><FormLabel>Hrs/Day</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField
+                            control={form.control}
+                            name="contractStartDate"
+                            render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                                <FormLabel>Services Start Date</FormLabel>
+                                <Popover>
+                                <PopoverTrigger asChild>
+                                    <FormControl>
+                                    <Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isClientMode || isPublished}>
+                                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                    </Button>
+                                    </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isClientMode || isPublished} />
+                                </PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                    </div>
+                </div>
+
 
                  <div className="flex justify-end gap-4 pt-6 no-print">
                     {mode === 'owner' && (
@@ -706,3 +751,5 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
     </Card>
   );
 }
+
+    
