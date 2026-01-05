@@ -691,11 +691,44 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
                                     <FormMessage />
                                 </FormItem>
                             )} />
-                            <p className="text-sm">(“Payor”) will reimburse FirstLight Home Care agreement between FirstLight Home Care and Payor (“Payor Agreement”). FirstLight Home Care will submit claims to Payor in accordance with the provisions of the Payor Agreement and applicable requirements under state or federal law. To the extent Client owes FirstLight Home Care for any cost sharing or other financial obligation for the Services, such amounts shall be determined by Payor in accordance with the Payor Agreement and applicable provisions of state and federal law. Client agrees to notify FirstLight Home Care if Client becomes ineligible to receive the Services under this Agreement. Additional service (payable by Client out of pocket and not covered by Payor) (the “Private Pay Services”) can be arranged upon Client request; provided, however, that FirstLight Home Care’s ability to render Private Pay Services depends on the Payor Agreement and applicable provisions of state and federal law. A separate FirstLight Home Care Private Pay Client Service Agreement must be executed prior to initiation of Private Pay Services.</p>
+                            <p className="text-sm">(“Payor”) will reimburse FirstLight Home Care agreement between FirstLight Home Care and Payor (“Payor Agreement”). FirstLight Home Care will submit claims to Payor in
+accordance with the provisions of the Payor Agreement and applicable requirements under state or federal law. To the extent
+Client owes FirstLight Home Care for any cost sharing or other financial obligation for the Services, such amounts shall be 
+determined by Payor in accordance with the Payor Agreement and applicable provisions of state and federal law. Client agrees to notify 
+FirstLight Home Care if Client becomes ineligible to receive the Services under this Agreement. Additional service (payable 
+by Client out of pocket and not covered by Payor) (the “Private Pay Services”) can be arranged upon Client request; provided,
+however, that FirstLight Home Care’s ability to render Private Pay Services depends on the Payor Agreement and applicable
+provisions of state and federal law. A separate FirstLight Home Care Private Pay Client Service Agreement must be executed prior to initiation of Private Pay Services.</p>
                         </div>
                     </div>
                 </div>
-
+                
+                 <div className="space-y-6 break-before-page">
+                    <h3 className="text-lg font-semibold text-center">III. ACKNOWLEDGEMENT & AGREEMENT</h3>
+                     <p className="text-sm text-muted-foreground">
+                        The Client, or his or her authorized representative, consents to receive the Services and acknowledges he or she or they have read, accept, and consent to this Agreement, including the "Terms and Conditions" and all other attached documents, all of which are incorporated into this Agreement.
+                    </p>
+                    <div className="space-y-8">
+                        {/* Client Signature Section */}
+                        <div className={cn("grid grid-cols-1 md:grid-cols-3 gap-6 items-end p-4 rounded-md", isClientMode && "border border-orange-400")}>
+                            <SignatureField fieldName="clientSignature" title="Signed (Client)" />
+                            <FormField control={form.control} name="clientPrintedName" render={({ field }) => ( <FormItem><FormLabel>Printed Name (Client)</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="clientSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPublished}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                        </div>
+                        {/* Representative Signature Section */}
+                        <div className={cn("grid grid-cols-1 md:grid-cols-3 gap-6 items-end p-4 rounded-md", isClientMode && "border border-orange-400")}>
+                            <SignatureField fieldName="clientRepresentativeSignature" title="Signed (Responsible Party)" />
+                            <FormField control={form.control} name="clientRepresentativePrintedName" render={({ field }) => ( <FormItem><FormLabel>Printed Name (Client Representative)</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="clientRepresentativeSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPublished}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                        </div>
+                        {/* FirstLight Signature Section */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                            <SignatureField fieldName="firstLightRepresentativeSignature" title="(FirstLight Home Care of Representative Signature)" />
+                            <FormField control={form.control} name="firstLightRepresentativeTitle" render={({ field }) => ( <FormItem><FormLabel>(FirstLight Home Care of Rancho Cucamonga Representative Title)</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="firstLightRepresentativeSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isClientMode || isPublished}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isClientMode || isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                        </div>
+                    </div>
+                </div>
 
                  <div className="flex justify-end gap-4 pt-6 no-print">
                     {mode === 'owner' && (
