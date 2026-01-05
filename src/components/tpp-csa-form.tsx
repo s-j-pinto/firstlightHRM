@@ -556,8 +556,9 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
   const terms = [
     { title: "BUSINESS OPERATIONS:", text: "FirstLight Home Care is independently owned and operated as a franchisee of FirstLight Home Care Franchising, LLC. FirstLight Home Care meets all requirements of the State of California to provide non-medical in-home personal care, companion and homemaker services. Additional information about FirstLight Home Care that is required to be disclosed under the state law can be found in Section 15 of this Agreement." },
     { title: "FIRSTLIGHT CONTACT INFORMATION:", text: "If you have any question, problems, needs or concerns, please contact the FirstLight Home Care of Rancho Cucamonga contact Lolita Pinto at 9093214466 or by mail sent to the address above." },
-    { title: "COMPLAINTS:", text: "To file a complaint, you may contact the manager listed above or the appropriate State reporting agency. In cases of allegations of abuse or neglect by an employee of FirstLight Home Care a complete investigation will be completed as soon as possible, and FirstLight Home Care will complete a written report within 14 days of the initial complaint unless state law requires earlier reporting in which case that requirements shall apply. The written report shall include the date, time, and description of alleged abuse, neglect, or financial exploitation; description of any injury or abuse of the Client; any actions taken by FirstLight Home Care; a description of actions taken to prevent future abuse or other crime, or when death (other than by disease or actual causes) has occurred." },
+    { title: "COMPLAINTS:", text: "To file a complaint, you may contact the manager listed above or the appropriate State reporting agency. In cases of allegations of abuse or neglect by an employee of FirstLight Home Care a complete investigation will be completed as soon as possible, and FirstLight Home Care will complete a written report within 14 days of the initial complaint unless state law requires earlier reporting in which case that requirements shall apply. The written report shall include the date, time, and description of alleged abuse, neglect, or financial exploitation; description of any injury or abuse of the Client; any actions taken by FirstLight Home Care; a description of actions taken to prevent  future abuse or other crime, or when death (other than by disease or actual causes) has occurred." },
     { title: "ABUSE REPORTING:", text: "Reports of abuse, neglect or financial exploitation may be made by Client at any time to local law enforcement. FirstLight Home Care will report any suspected or known dependent adult or elder abuse and otherwise comply with all mandatory reporting laws including, but not to, to making reports to law enforcement if an allegation of physical abuse, sexual abuse or other crime, or when death (other than by disease or actual causes) has occurred." },
+    { title: "INFORMATION REQUESTS:", text: "FirstLight Home Care will adhere to a written policy addressing the confidentiality and permitted uses and disclosure of Client records as well as applicable provisions of state and federal law and its Payor Agreement. Response to an inquiry or information request is normally done during business hours however, inquiries or information requests made during evenings, weekends, or holidays will be addressed on the next business day." },
   ];
 
   if (isLoading) {
@@ -740,7 +741,7 @@ provisions of state and federal law. A separate FirstLight Home Care Private Pay
                     <ol className="space-y-4 text-sm text-muted-foreground list-decimal list-inside">
                         {terms.map((term, index) => (
                             <li key={index}>
-                                <span className="font-bold">{term.title}</span> {term.text}
+                                <strong>{term.title}</strong> {term.text}
                             </li>
                         ))}
                     </ol>
@@ -816,3 +817,5 @@ provisions of state and federal law. A separate FirstLight Home Care Private Pay
     </Card>
   );
 }
+
+    
