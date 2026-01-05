@@ -459,7 +459,7 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
     startPreviewingTransition(async () => {
       const formData = form.getValues();
       try {
-        const result = await previewClientIntakePdf(formData);
+        const result = await previewClientIntakePdf(formData, 'tpp');
         
         if (result.pdfData) {
           const byteCharacters = atob(result.pdfData);

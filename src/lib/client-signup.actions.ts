@@ -481,9 +481,9 @@ export async function finalizeAndSubmit(signupId: string, formData: any) {
     }
 }
 
-export async function previewClientIntakePdf(formData: any) {
+export async function previewClientIntakePdf(formData: any, formType: 'private' | 'tpp' = 'private') {
     try {
-        const pdfBytes = await generateClientIntakePdf(formData);
+        const pdfBytes = await generateClientIntakePdf(formData, formType);
         const pdfBase64 = Buffer.from(pdfBytes).toString('base64');
         return { pdfData: pdfBase64 };
     } catch (error: any) {
