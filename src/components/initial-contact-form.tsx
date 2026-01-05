@@ -799,9 +799,22 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                         disabled={isSubmitting || isClosed}
                     >
                         <FileText className="mr-2" />
-                        {isCsaCreated ? 'Open Client Service Agreement' : 'Create Client Service Agreement'}
+                        {isCsaCreated ? 'Open Private Pay CSA' : 'Create Private Pay CSA'}
                     </Button>
                 )}
+
+                {contactId && (
+                     <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {}}
+                        disabled={isSubmitting || isClosed}
+                    >
+                        <FileText className="mr-2" />
+                        Create Third Party Payor CSA
+                    </Button>
+                )}
+
                 <Button type="submit" disabled={isSubmitting || isClosed}>
                     {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                     Save Initial Contact
