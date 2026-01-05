@@ -215,14 +215,11 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
             <li>Driver’s License or State ID</li>
             <li>Car insurance and registration</li>
             <li>Social Security card or US passport (to prove your work eligibility, if you are green card holder, bring Green card,)</li>
+            <li>Current negative TB-Test Copy</li>
             <li>HCA letter, number, or Credit Card so during your interview, we can apply and pay $35 fee to guardian.</li>
-            <li>Covid Vaccine and Booster card or exemption letter</li>
-            <li>Current TB-Test or Chest X-Ray documentation</li>
-            <li>Employment history with dates and contact numbers.</li>
-            <li>DMV Driver’s Record Request Report. You can get a Driver’s Record Request online: <a href="https://www.dmv.ca.gov/portal">https://www.dmv.ca.gov/portal</a> $2 online or $5 at DMV office.</li>
-            <li>Physical Test (HHA only)</li>
-            <li>Optional: CPR-First Aid proof card (The Heart Association or American Red Cross have classes)</li>
-            <li>Optional: any other health related certifications you may have.</li>
+            <li>Live scan or Clearance letter if you have it,</li>
+            <li>If you have not registered, please register on this link: https://guardian.dss.ca.gov/Applicant/ </li>
+            <li>CPR-First Aide proof card, Any other certification that you have.</li>
         </ul>
         <p><strong>NEW OR RENEWAL OF HCA AND LIVE SCAN PRINTS</strong></p>
         <ol>
@@ -332,6 +329,8 @@ export async function rejectCandidateAfterOrientation(payload: { interviewId: st
             rejectionDate: Timestamp.now(),
         });
         
+        const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
+
         // Construct and send the rejection email
         const rejectionEmailHtml = `
             <p>${caregiverName},</p>
@@ -348,6 +347,8 @@ export async function rejectCandidateAfterOrientation(payload: { interviewId: st
             <a href="http://ranchocucamonga.firstlighthomecare.com">ranchocucamonga.firstlighthomecare.com</a></p>
             <p><a href="https://www.facebook.com/FirstLightHomeCareofRanchoCucamonga">https://www.facebook.com/FirstLightHomeCareofRanchoCucamonga</a></p>
             <br>
+            <img src="${logoUrl}" alt="FirstLight Home Care Logo" style="width: 200px; height: auto;"/>
+            <br><br>
             <p><small><strong>CONFIDENTIALITY NOTICE</strong><br>
             This email, including any attachments or files transmitted with it, is intended to be confidential and solely for the use of the individual or entity to whom it is addressed. If you received it in error, or if you are not the intended recipient(s), please notify the sender by reply e-mail and delete/destroy the original message and any attachments, and any copies. Any unauthorized review, use, disclosure or distribution of this e-mail or information is prohibited and may be a violation of applicable laws.</small></p>
         `;
@@ -386,4 +387,5 @@ export async function rejectCandidateAfterOrientation(payload: { interviewId: st
 
 
     
+
 
