@@ -1,4 +1,5 @@
 
+
 import { z } from "zod";
 
 export const generalInfoSchema = z.object({
@@ -103,7 +104,7 @@ export const interviewSchema = z.object({
   googleMeetLink: z.string().optional(),
   googleEventId: z.string().optional(),
   createdAt: z.date().optional(),
-  finalInterviewStatus: z.enum(['Passed', 'Failed', 'Pending', 'Rejected at Orientation', 'No Show', 'Process Terminated']).optional(),
+  finalInterviewStatus: z.enum(['Passed', 'Failed', 'Pending', 'Pending reference checks', 'Rejected at Orientation', 'No Show', 'Process Terminated']).optional(),
   finalInterviewNotes: z.string().optional(),
   orientationScheduled: z.boolean().optional(),
   orientationDateTime: z.date().optional(),
@@ -284,6 +285,7 @@ export const clientSignupFormSchema = clientSignupDraftSchema.extend({
   receivedClientRights: z.boolean().optional(),
   receivedTransportationWaiver: z.boolean().optional(),
   receivedPaymentAgreement: z.boolean().optional(),
+  receivedAdditionalDisclosures: z.boolean().optional(),
 
   // Signatures
   clientSignature: z.string().optional(),
@@ -350,8 +352,10 @@ export const finalizationSchema = clientSignupFormSchema.extend({
   clientInitials: z.string().min(1, "Client initials for the hiring clause are required."),
 
   receivedPrivacyPractices: z.literal(true, { errorMap: () => ({ message: "Must be acknowledged" }) }),
-  receivedClientRights: z.literal(true, { errorMap: () => ({ message: "Must be acknowledged" }) }),
-  receivedPaymentAgreement: z.literal(true, { errorMap: () => ({ message: "Must be acknowledged" }) }),
+  // receivedClientRights is not required on TPP form.
+  // receivedPaymentAgreement is not required on TPP form.
+  // receivedTransportationWaiver is optional on TPP form.
+  // receivedAdditionalDisclosures is optional on TPP form.
 
   firstLightRepresentativeSignature: z.string().min(1, "FirstLight representative signature is required."),
   firstLightRepresentativeTitle: z.string().min(1, "FirstLight representative title is required."),

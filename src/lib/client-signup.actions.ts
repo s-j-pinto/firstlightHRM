@@ -215,6 +215,7 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
             return { message: "Signup document not found.", error: true };
         }
         const formData = signupDoc.data()?.formData;
+        const formType = signupDoc.data()?.formType;
         console.log("[DEBUG] sendSignatureEmail: formData received:", formData);
 
         const redirectPath = `/client-sign/${signupId}`;
@@ -229,9 +230,16 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
         if (formData?.receivedPrivacyPractices) {
             attachmentsHtml += `<p><strong>Download:</strong> <a href="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FFLHC_Privacy_Policy_NoticeRancho.pdf?alt=media&token=2bffc77a-fdfc-46af-85d2-04dd2ccab29f">Notice of Privacy Practices</a></p>`;
         }
-        if (formData?.receivedClientRights) {
+        if (formType !== 'tpp' && formData?.receivedClientRights) { // Only for regular CSA
             attachmentsHtml += `<p><strong>Download:</strong> <a href="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FClient%20Rights%20and%20Responsibilities%20revised%203-11-24.pdf?alt=media&token=9a22bfc7-215f-4724-b569-2eb0050ba999">Client Rights and Responsibilities</a></p>`;
         }
+        if (formData?.receivedTransportationWaiver) {
+            attachmentsHtml += `<p><strong>Download:</strong> <a href="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FTransportationWaiver.pdf?alt=media&token=21f92e35-51f7-410a-861c-3b6f272a24c7">Transportation Waiver</a></p>`;
+        }
+        if (formType === 'tpp' && formData?.receivedAdditionalDisclosures) {
+            attachmentsHtml += `<p><strong>Download:</strong> <a href="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FAdditionalStateDisclosures.pdf?alt=media&token=59e0750a-8a49-43d9-9524-81d3a436573c">Additional State Law Disclosures</a></p>`;
+        }
+
 
         const emailHtml = `
             <body style="font-family: sans-serif; line-height: 1.6;">
@@ -385,8 +393,10 @@ export async function finalizeAndSubmit(signupId: string, formData: any) {
             lastUpdatedAt: now,
         });
 
-        // Sync data back to initial_contacts before generating PDF
         const signupDoc = await signupRef.get();
+        const formType = signupDoc.data()?.formType || 'private';
+
+        // Sync data back to initial_contacts before generating PDF
         const initialContactId = signupDoc.data()?.initialContactId;
         const clientAuthUid = `new_client_${signupId}`;
 
@@ -415,7 +425,7 @@ export async function finalizeAndSubmit(signupId: string, formData: any) {
         const clientName = validation.data.clientName || 'Client';
 
         // 1. Generate PDF with the latest data
-        const pdfBytes = await generateClientIntakePdf(validation.data);
+        const pdfBytes = await generateClientIntakePdf(validation.data, formType);
         
         // 2. Upload to Firebase Storage
         const bucket = getStorage().bucket("gs://firstlighthomecare-hrm.firebasestorage.app");
@@ -451,8 +461,14 @@ export async function finalizeAndSubmit(signupId: string, formData: any) {
             if (validation.data?.receivedPrivacyPractices) {
                 attachmentsHtml += `<p><strong>Download:</strong> <a href="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FFLHC_Privacy_Policy_NoticeRancho.pdf?alt=media&token=2bffc77a-fdfc-46af-85d2-04dd2ccab29f">Notice of Privacy Practices</a></p>`;
             }
-            if (validation.data?.receivedClientRights) {
+             if (formType !== 'tpp' && validation.data?.receivedClientRights) {
                 attachmentsHtml += `<p><strong>Download:</strong> <a href="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FClient%20Rights%20and%20Responsibilities%20revised%203-11-24.pdf?alt=media&token=9a22bfc7-215f-4724-b569-2eb0050ba999">Client Rights and Responsibilities</a></p>`;
+            }
+            if (validation.data?.receivedTransportationWaiver) {
+                attachmentsHtml += `<p><strong>Download:</strong> <a href="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FTransportationWaiver.pdf?alt=media&token=21f92e35-51f7-410a-861c-3b6f272a24c7">Transportation Waiver</a></p>`;
+            }
+             if (formType === 'tpp' && validation.data?.receivedAdditionalDisclosures) {
+                attachmentsHtml += `<p><strong>Download:</strong> <a href="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FAdditionalStateDisclosures.pdf?alt=media&token=59e0750a-8a49-43d9-9524-81d3a436573c">Additional State Law Disclosures</a></p>`;
             }
 
             const emailHtml = `

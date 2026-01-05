@@ -178,6 +178,7 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
       receivedClientRights: false,
       receivedTransportationWaiver: false,
       receivedPaymentAgreement: false,
+      receivedAdditionalDisclosures: false,
       clientSignature: "",
       clientPrintedName: "",
       clientSignatureDate: undefined,
@@ -567,7 +568,7 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
     { title: "10. HIRING:", text: "The investment FirstLight Home Care makes in recruiting, training, developing, and maintaining employees as quality caregiver is a substantial cost of maintaining its business model and excellent service to clients. Client agrees, therefore, that except upon notice and the payment of a development fee as describes further below in this paragraph Client will not hire or otherwise utilize directly in any way, nor hire or engage or contract through any other company or agency for, the services of any employee of FirstLight Home Care for the restricted period of: i) one year from the last day worked by the employee for FirstLight Home Care; or ii) one year after the client stops utilizing FirstLight Home Care services, whichever ends sooner. If Client wishes to hire or otherwise engage the services of an employee before the expiration of the applicable one year restricted period above, Client must first provide written notice of such intent and payment in full of development fee of $15,000.00 to FirstLight Home Care. Hiring or otherwise utilizing directly or engaging or contracting for the services of an employee in contravention of this paragraph is a material breach of this agreement. In the event of such breach Client agrees to be liable for an award of money damages to FirstLight Home Care and for any and all other remedies available." },
     { title: "11. OTHER CONSIDERATIONS:", text: "The Client agrees that any claims made under the FirstLight Home Care fidelity bond must be made in writing by the Client within ten (10) days of the occurrence or such longer period of time if required under applicable provisions of state law." },
     { title: "12. TERM; TERMINATION:", text: "The term of this Agreement will be from the Contract Start Date until this Agreement is terminated under this section. Either party may terminate this Agreement at any time by providing seven (7) days' prior written notice to the other party stating the reason for termination. In instances of safety risk/hazard to a Client or a FirstLight Home Care of Rancho Cucamonga In-Home Worker or provision of the Services is otherwise prohibited by law, termination will be immediate with a stated reason for termination provided to the other party at the time of notification. Notwithstanding the foregoing, FirstLight Home Care will comply with all the obligations under state law and the terms of its agreement with Payor as pertains to termination of this Agreement and nothing in this section 12 shall permit FirstLight Home Care to violate its commitment to Payors under the Payor Agreement." },
-    { title: "13. AMENDMENT; ENTIRE AGREEMENT:", text: "The Client agrees to notify FirstLight Home Care of any requested changes in the duties of a FirstLight Home Care employee from those agreed to on the Client's plan of care or authorization from Payor. This Agreement may be amended only upon the mutual written consent of the parties. This Agreement represents the entire agreement of Client and FirstLight Home Care with respect to such subject matter. FirstLight Home Care acknowledges that Client's financial responsibility is governed by the Payor Agreement." },
+    { title: "13. AMENDMENT; ENTIRE AGREEMENT:", text: "The Client agrees to notify FirstLight Home Care of any requested changes in the duties of a FirstLight Home Care of Rancho Cucamonga employee from those agreed to on the Client's plan of care or authorization from Payor. This Agreement may be amended only upon the mutual written consent of the parties. This Agreement represents the entire agreement of Client and FirstLight Home Care with respect to such subject matter. FirstLight Home Care acknowledges that Client's financial responsibility is governed by the Payor Agreement." },
     { title: "14. SEVERABILITY:", text: "The invalidity or partial invalidity of any portion of this Agreement will not invalidate the remainder thereof, and said remainder will remain in full force and effect. Moreover, if one or more of the provisions contained in this Agreement will, for any reason, be held to be excessively broad as to scope, activity, subject or otherwise, so as to be unenforceable at law, such provision or provisions will be construed by the appropriate judicial body by limiting or reducing it or them, so as to be enforceable to the maximum extent compatible with then applicable law." },
     { title: "15. INFORMATION AND DOCUMENTS RECEIVED:", text: "The Client acknowledges receipt of a copy of this Agreement, these Terms and Conditions and the following documents provided by FirstLight Home Care of Rancho Cucamonga and agrees to be bound by and comply with all of the same:" },
 ];
@@ -751,11 +752,27 @@ provisions of state and federal law. A separate FirstLight Home Care Private Pay
                 <div className="space-y-6 break-before-page">
                     <h3 className="text-lg font-semibold text-center underline">TERMS AND CONDITIONS</h3>
                     <ol className="space-y-4 text-sm text-muted-foreground list-decimal list-inside">
-                        {terms.map((term, index) => (
-                            <li key={index}>
-                                <strong>{term.title}</strong> {term.text}
-                            </li>
-                        ))}
+                        {terms.map((term, index) => {
+                             // This is a special condition to render the new checkboxes and initials field inside the last term.
+                             const isLastTerm = index === terms.length - 1;
+                             return (
+                                <li key={index}>
+                                    <strong>{term.title}</strong> {term.text}
+                                    {isLastTerm && (
+                                         <div className="space-y-4 mt-4 ml-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <FormField control={form.control} name="receivedPrivacyPractices" render={({ field }) => (<FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isClientMode || isPublished} /></FormControl><FormLabel className="font-normal">Notice of Privacy Practices</FormLabel><FormMessage /></FormItem>)} />
+                                                <FormField control={form.control} name="receivedTransportationWaiver" render={({ field }) => (<FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isClientMode || isPublished} /></FormControl><FormLabel className="font-normal">Transportation Waiver</FormLabel><FormMessage /></FormItem>)} />
+                                                <FormField control={form.control} name="receivedAdditionalDisclosures" render={({ field }) => (<FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isClientMode || isPublished} /></FormControl><FormLabel className="font-normal">Additional State Law Disclosures</FormLabel><FormMessage /></FormItem>)} />
+                                            </div>
+                                            <div className={cn("w-full md:w-1/3 mt-2 p-4 rounded-md", isClientMode && "border border-orange-400")}>
+                                                <FormField control={form.control} name="clientInitials" render={({ field }) => ( <FormItem><FormLabel>Client Initials</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                                            </div>
+                                        </div>
+                                    )}
+                                </li>
+                            )
+                        })}
                     </ol>
                 </div>
 
