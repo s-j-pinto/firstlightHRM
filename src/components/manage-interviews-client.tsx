@@ -650,12 +650,14 @@ export default function ManageInterviewsClient() {
     };
     
     const handleRejection = (reason: string, notes: string) => {
-        if (!existingInterview?.id) return;
+        if (!existingInterview?.id || !selectedCaregiver) return;
         startRejectingTransition(async () => {
             const result = await rejectCandidateAfterOrientation({
                 interviewId: existingInterview.id,
                 reason,
                 notes,
+                caregiverName: selectedCaregiver.fullName,
+                caregiverEmail: selectedCaregiver.email,
             });
             if (result.error) {
                 toast({ title: 'Error', description: result.message, variant: 'destructive' });

@@ -316,23 +316,53 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
   }
 }
 
-export async function rejectCandidateAfterOrientation(payload: { interviewId: string, reason: string, notes: string }) {
-    const { interviewId, reason, notes } = payload;
-    if (!interviewId || !reason) {
-        return { error: true, message: "Interview ID and a reason for rejection are required." };
+export async function rejectCandidateAfterOrientation(payload: { interviewId: string, reason: string, notes: string, caregiverName: string, caregiverEmail: string }) {
+    const { interviewId, reason, notes, caregiverName, caregiverEmail } = payload;
+    if (!interviewId || !reason || !caregiverName || !caregiverEmail) {
+        return { error: true, message: "Interview ID, reason, and caregiver details are required." };
     }
     
     try {
-        const interviewRef = serverDb.collection('interviews').doc(interviewId);
+        const firestore = serverDb;
+        const interviewRef = firestore.collection('interviews').doc(interviewId);
         await interviewRef.update({
             finalInterviewStatus: 'Rejected at Orientation',
             rejectionReason: reason,
             rejectionNotes: notes,
             rejectionDate: Timestamp.now(),
         });
+        
+        // Construct and send the rejection email
+        const rejectionEmailHtml = `
+            <p>${caregiverName},</p>
+            <p>After careful consideration, we’ve decided not to move forward with your application at this time. This decision was made based on how each candidate aligned with the key qualifications and needs of the role.</p>
+            <p>Best wishes on your employment search.</p>
+            <p>--<br>
+            Jacqui Wilson<br>
+            Care Coordinator<br>
+            Office (909)-321-4466<br>
+            Fax (909)-694-2474</p>
+            <p>CALIFORNIA HCO LICENSE # 364700059</p>
+            <p>9650 Business Center Drive, Suite #132 | Rancho Cucamonga, CA 91730</p>
+            <p><a href="mailto:care-rc@firstlighthomecare.com">care-rc@firstlighthomecare.com</a><br>
+            <a href="http://ranchocucamonga.firstlighthomecare.com">ranchocucamonga.firstlighthomecare.com</a></p>
+            <p><a href="https://www.facebook.com/FirstLightHomeCareofRanchoCucamonga">https://www.facebook.com/FirstLightHomeCareofRanchoCucamonga</a></p>
+            <br>
+            <p><small><strong>CONFIDENTIALITY NOTICE</strong><br>
+            This email, including any attachments or files transmitted with it, is intended to be confidential and solely for the use of the individual or entity to whom it is addressed. If you received it in error, or if you are not the intended recipient(s), please notify the sender by reply e-mail and delete/destroy the original message and any attachments, and any copies. Any unauthorized review, use, disclosure or distribution of this e-mail or information is prohibited and may be a violation of applicable laws.</small></p>
+        `;
+
+        await firestore.collection("mail").add({
+            to: [caregiverEmail],
+            cc: ['care-rc@firstlighthomecare.com'],
+            message: {
+                subject: `Update on Your Application with FirstLight Home Care`,
+                html: `<body style="font-family: sans-serif;">${rejectionEmailHtml}</body>`,
+            }
+        });
 
         revalidatePath('/admin/manage-interviews');
-        return { success: true, message: 'Candidate has been marked as rejected.' };
+        return { success: true, message: 'Candidate has been marked as rejected and an email has been sent.' };
 
     } catch (error: any) {
         console.error("Error rejecting candidate:", error);
@@ -356,3 +386,4 @@ export async function rejectCandidateAfterOrientation(payload: { interviewId: st
 
 
     
+
