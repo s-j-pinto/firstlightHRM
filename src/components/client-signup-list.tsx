@@ -135,6 +135,7 @@ export default function ClientSignupList() {
       return {
         id: contact.id,
         signupId: signup?.id,
+        formType: signup?.formType,
         clientName: contact.clientName || 'N/A',
         clientPhone: contact.clientPhone || 'N/A',
         clientAddress: contact.clientAddress || '',
@@ -177,7 +178,15 @@ export default function ClientSignupList() {
   }, [contacts, signups, statusFilter, dateFilter, showClosed, templatesMap]);
 
   const baseEditPath = pathname.includes('/admin') ? '/admin/initial-contact' : '/owner/initial-contact';
-  const csaBasePath = pathname.includes('/admin') ? '/admin/new-client-signup' : '/owner/new-client-signup';
+  
+  const getCsaPath = (signupId: string, formType?: string) => {
+    const isAdmin = pathname.includes('/admin');
+    if (formType === 'tpp') {
+        return isAdmin ? `/admin/tpp-csa?signupId=${signupId}` : `/owner/tpp-csa?signupId=${signupId}`;
+    }
+    return isAdmin ? `/admin/new-client-signup?signupId=${signupId}` : `/owner/new-client-signup?signupId=${signupId}`;
+  };
+
   const isLoading = contactsLoading || signupsLoading || templatesLoading;
 
   const StatusBadge = ({ status }: { status: string }) => {
@@ -282,8 +291,10 @@ export default function ClientSignupList() {
                       Open Intake <ChevronRight className="h-4 w-4 ml-1" />
                     </Link>
                     {item.signupId && (
-                      <Link href={`${csaBasePath}?signupId=${item.signupId}`} className="flex items-center justify-end text-accent hover:underline">
-                        <FileText className="h-4 w-4 mr-1" /> Open CSA <ChevronRight className="h-4 w-4 ml-1" />
+                      <Link href={getCsaPath(item.signupId, item.formType)} className="flex items-center justify-end text-accent hover:underline">
+                        <FileText className="h-4 w-4 mr-1" /> 
+                        {item.formType === 'tpp' ? 'Open TPP CSA' : 'Open Private Pay CSA'}
+                        <ChevronRight className="h-4 w-4 ml-1" />
                       </Link>
                     )}
                   </TableCell>

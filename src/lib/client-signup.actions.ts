@@ -132,12 +132,14 @@ export async function saveClientSignupForm(payload: z.infer<typeof clientSignupS
         // Get the initialContactId *before* saving, as we need it for the sync.
         const existingSignupDoc = await signupDocRef.get();
         const initialContactId = existingSignupDoc.exists ? existingSignupDoc.data()?.initialContactId : null;
+        const formType = existingSignupDoc.exists ? existingSignupDoc.data()?.formType : 'private';
 
         const saveData = {
             formData: formData,
             clientEmail: formData.clientEmail,
             clientPhone: formData.clientPhone,
             status: status,
+            formType: formType,
             lastUpdatedAt: now,
         };
 
@@ -288,7 +290,7 @@ const clientSignaturePayloadSchema = z.object({
   repPrintedName: z.string().optional(),
   repDate: z.date().optional(),
   initials: z.string().min(1, { message: "Initials are required for the hiring clause." }),
-  servicePlanClientInitials: z.string().min(1, { message: "Initials are required for the service plan." }),
+  servicePlanClientInitials: z.string().optional(),
   agreementRelationship: z.string().optional(),
   agreementDate: z.date().optional(),
   transportationWaiverClientSignature: z.string().optional(),
