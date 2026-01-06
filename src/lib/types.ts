@@ -43,8 +43,8 @@ export const certificationsSchema = z.object({
   otherLanguages: z.string().optional(),
   negativeTbTest: z.boolean().default(false),
   cprFirstAid: z.boolean().default(false),
-  canWorkWithCovid: z.boolean().default(false),
-  covidVaccine: z.boolean().default(false),
+  canWorkWithCovid: z.boolean().optional().default(false),
+  covidVaccine: z.boolean().optional().default(false),
   cnaLicense: z.string().optional(),
   otherCertifications: z.string().optional(),
 });
@@ -456,47 +456,44 @@ export const tppFinalizationSchema = tppBaseFinalizationSchema.superRefine((data
 // Schema for client signature submission (Private Pay)
 export const clientSignaturePayloadSchema = z.object({
   signupId: z.string(),
-  signature: z.string().optional(),
-  repSignature: z.string().optional(),
-  agreementSignature: z.string().min(1, "Client signature in the payment agreement section is required."),
-  printedName: z.string().optional(),
-  date: z.date().optional(),
-  repPrintedName: z.string().optional(),
-  repDate: z.date().optional(),
+  clientSignature: z.string().optional(),
+  clientRepresentativeSignature: z.string().optional(),
+  agreementClientSignature: z.string().min(1, "Client signature in the payment agreement section is required."),
+  clientPrintedName: z.string().optional(),
+  clientSignatureDate: z.date().optional(),
+  clientRepresentativePrintedName: z.string().optional(),
+  clientRepresentativeSignatureDate: z.date().optional(),
   initials: z.string().min(1, { message: "Initials are required for the hiring clause." }),
   servicePlanClientInitials: z.string().min(1, { message: "Initials are required for the service plan section."}),
   agreementRelationship: z.string().optional(),
-  agreementDate: z.date().optional(),
+  agreementSignatureDate: z.date().optional(),
   transportationWaiverClientSignature: z.string().optional(),
   transportationWaiverClientPrintedName: z.string().optional(),
   transportationWaiverWitnessSignature: z.string().optional(),
   transportationWaiverDate: z.date().optional(),
 }).superRefine((data, ctx) => {
-    if (!data.signature && !data.repSignature) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Either client or representative signature is required.", path: ["signature"] });
+    if (!data.clientSignature && !data.clientRepresentativeSignature) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Either client or representative signature is required.", path: ["clientSignature"] });
     }
 });
 
 // New, specific schema for TPP client signature submission
 export const tppClientSignaturePayloadSchema = z.object({
   signupId: z.string(),
-  signature: z.string().optional(),
-  repSignature: z.string().optional(),
-  printedName: z.string().optional(),
-  date: z.date().optional(),
-  repPrintedName: z.string().optional(),
-  repDate: z.date().optional(),
+  clientSignature: z.string().optional(),
+  clientRepresentativeSignature: z.string().optional(),
+  clientPrintedName: z.string().optional(),
+  clientSignatureDate: z.date().optional(),
+  clientRepresentativePrintedName: z.string().optional(),
+  clientRepresentativeSignatureDate: z.date().optional(),
   initials: z.string().min(1, { message: "Initials are required for the hiring clause." }),
   transportationWaiverClientSignature: z.string().optional(),
   transportationWaiverClientPrintedName: z.string().optional(),
   transportationWaiverWitnessSignature: z.string().optional(),
   transportationWaiverDate: z.date().optional(),
-  agreementClientSignature: z.string().optional(),
-  agreementSignatureDate: z.date().optional(),
-  agreementRelationship: z.string().optional(),
 }).superRefine((data, ctx) => {
-    if (!data.signature && !data.repSignature && !data.agreementClientSignature) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "A client or representative signature is required.", path: ["signature"] });
+    if (!data.clientSignature && !data.clientRepresentativeSignature) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "A client or representative signature is required.", path: ["clientSignature"] });
     }
 });
 
@@ -696,4 +693,5 @@ export type SmsMessage = z.infer<typeof smsMessageSchema> & { id: string };
     
 
     
+
 

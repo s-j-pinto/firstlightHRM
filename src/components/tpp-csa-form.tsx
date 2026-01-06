@@ -14,7 +14,7 @@ import SignatureCanvas from 'react-signature-canvas';
 import Image from "next/image";
 
 
-import { clientSignupFormSchema, tppFinalizationSchema, tppClientSignaturePayloadSchema, type ClientSignupFormData } from "@/lib/types";
+import { clientSignupFormSchema, tppFinalizationSchema, type ClientSignupFormData } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -415,16 +415,13 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
         
         const payload = {
             signupId,
-            signature: form.getValues('clientSignature'),
-            repSignature: form.getValues('clientRepresentativeSignature'),
-            printedName: form.getValues('clientPrintedName'),
-            date: form.getValues('clientSignatureDate'),
-            repPrintedName: form.getValues('clientRepresentativePrintedName'),
-            repDate: form.getValues('clientRepresentativeSignatureDate'),
+            clientSignature: form.getValues('clientSignature'),
+            clientRepresentativeSignature: form.getValues('clientRepresentativeSignature'),
+            clientPrintedName: form.getValues('clientPrintedName'),
+            clientSignatureDate: form.getValues('clientSignatureDate') || new Date(),
+            clientRepresentativePrintedName: form.getValues('clientRepresentativePrintedName'),
+            clientRepresentativeSignatureDate: form.getValues('clientRepresentativeSignatureDate'),
             initials: form.getValues('clientInitials'),
-            agreementClientSignature: form.getValues('agreementClientSignature'),
-            agreementSignatureDate: form.getValues('agreementSignatureDate'),
-            agreementRelationship: form.getValues('agreementRelationship'),
             transportationWaiverClientSignature: form.getValues('transportationWaiverClientSignature'),
             transportationWaiverClientPrintedName: form.getValues('transportationWaiverClientPrintedName'),
             transportationWaiverWitnessSignature: form.getValues('transportationWaiverWitnessSignature'),
