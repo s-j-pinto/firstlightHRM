@@ -344,35 +344,25 @@ export const clientSignupFormSchema = clientSignupDraftSchema.extend({
 });
 export type ClientSignupFormData = z.infer<typeof clientSignupFormSchema>;
 
-// Stricter schema for finalization
+// Stricter schema for private pay finalization
 export const finalizationSchema = clientSignupFormSchema.extend({
   hourlyRate: z.coerce.number().min(1, "Hourly rate is required."),
   minimumHoursPerShift: z.coerce.number().min(1, "Minimum hours per shift is required."),
   rateCardDate: z.date({ required_error: "Rate card date is required." }),
   clientInitials: z.string().min(1, "Client initials for the hiring clause are required."),
-
   receivedPrivacyPractices: z.literal(true, { errorMap: () => ({ message: "Must be acknowledged" }) }),
-  // receivedClientRights is not required on TPP form.
-  // receivedPaymentAgreement is not required on TPP form.
-  // receivedTransportationWaiver is optional on TPP form.
-  // receivedAdditionalDisclosures is optional on TPP form.
-
+  receivedClientRights: z.literal(true, { errorMap: () => ({ message: "Must be acknowledged" }) }),
+  receivedPaymentAgreement: z.literal(true, { errorMap: () => ({ message: "Must be acknowledged" }) }),
   firstLightRepresentativeSignature: z.string().min(1, "FirstLight representative signature is required."),
   firstLightRepresentativeTitle: z.string().min(1, "FirstLight representative title is required."),
   firstLightRepresentativeSignatureDate: z.date({ required_error: "Date is required." }),
-  
   servicePlanClientInitials: z.string().min(1, "Client initials for the service plan are required."),
-  
   agreementClientName: z.string().min(1, "Client name for payment agreement is required."),
   agreementRepSignature: z.string().min(1, "FirstLight representative signature for payment agreement is required."),
   agreementRepDate: z.date({ required_error: "Date for payment agreement is required." }),
 }).superRefine((data, ctx) => {
     if (data.clientSignature?.trim() === '' && data.clientRepresentativeSignature?.trim() === '') {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Either client or representative signature is required in the Acknowledgement section.",
-            path: ["clientSignature"], 
-        });
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Either client or representative signature is required in the Acknowledgement section.", path: ["clientSignature"] });
     }
     if (data.clientSignature && (!data.clientPrintedName || !data.clientSignatureDate)) {
         if (!data.clientPrintedName) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Printed name is required.", path: ["clientPrintedName"] });
@@ -388,6 +378,28 @@ export const finalizationSchema = clientSignupFormSchema.extend({
    if (data.agreementClientSignature && !data.agreementSignatureDate) {
      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date is required.", path: ["agreementSignatureDate"] });
    }
+   if(data.receivedTransportationWaiver) {
+    if (!data.transportationWaiverClientSignature) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Client signature is required for the waiver.", path: ["transportationWaiverClientSignature"] });
+    if (!data.transportationWaiverClientPrintedName) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Printed name is required for the waiver.", path: ["transportationWaiverClientPrintedName"] });
+    if (!data.transportationWaiverWitnessSignature) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Witness signature is required for the waiver.", path: ["transportationWaiverWitnessSignature"] });
+    if (!data.transportationWaiverDate) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date is required for the waiver.", path: ["transportationWaiverDate"] });
+   }
+});
+
+// Stricter schema for TPP finalization
+export const tppFinalizationSchema = clientSignupFormSchema.extend({
+  payor: z.string().min(1, "Payor name is required."),
+  clientInitials: z.string().min(1, "Client initials for the hiring clause are required."),
+  receivedPrivacyPractices: z.literal(true, { errorMap: () => ({ message: "Must acknowledge receipt of Privacy Practices." }) }),
+  firstLightRepresentativeSignature: z.string().min(1, "FirstLight representative signature is required."),
+  firstLightRepresentativeTitle: z.string().min(1, "FirstLight representative title is required."),
+  firstLightRepresentativeSignatureDate: z.date({ required_error: "Date for FirstLight representative is required." }),
+}).superRefine((data, ctx) => {
+    // Signature block validation
+    if (data.clientSignature?.trim() === '' && data.clientRepresentativeSignature?.trim() === '') {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Either client or representative signature is required in the Acknowledgement section.", path: ["clientSignature"] });
+    }
+    // Conditional validation for waiver
    if(data.receivedTransportationWaiver) {
     if (!data.transportationWaiverClientSignature) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Client signature is required for the waiver.", path: ["transportationWaiverClientSignature"] });
     if (!data.transportationWaiverClientPrintedName) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Printed name is required for the waiver.", path: ["transportationWaiverClientPrintedName"] });
