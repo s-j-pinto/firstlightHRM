@@ -403,7 +403,7 @@ export async function finalizeAndSubmit(signupId: string, formData: any) {
 
         if (initialContactId) {
             const contactRef = firestore.collection('initial_contacts').doc(initialContactId);
-            const dataToSync: { [key: string]: any } = {
+             const dataToSync: { [key: string]: any } = {
                 clientName: validation.data.clientName || '',
                 clientAddress: validation.data.clientAddress || '',
                 city: validation.data.clientCity || '',
@@ -429,7 +429,7 @@ export async function finalizeAndSubmit(signupId: string, formData: any) {
         const pdfBytes = await generateClientIntakePdf(validation.data, formType);
         
         // 2. Upload to Firebase Storage
-        const bucket = getStorage().bucket("gs://firstlighthomecare-hrm.firebasestorage.app");
+        const bucket = getStorage().bucket("firstlighthomecare-hrm.appspot.com");
         const fileName = `client-agreements/${clientName.replace(/ /g, '_')}_${signupId}.pdf`;
         const file = bucket.file(fileName);
         
@@ -472,18 +472,38 @@ export async function finalizeAndSubmit(signupId: string, formData: any) {
                 attachmentsHtml += `<p><strong>Download:</strong> <a href="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FAdditionalStateDisclosures.pdf?alt=media&token=59e0750a-8a49-43d9-9524-81d3a436573c">Additional State Law Disclosures</a></p>`;
             }
 
+            const signatureBlock = `
+                <br><br>--<br>
+                <p><strong>FirstLight Care Team</strong><br>
+                Office (909)-321-4466<br>
+                Fax (909)-694-2474</p>
+                <p>CALIFORNIA HCO LICENSE # 364700059</p>
+                <p>9650 Business Center Drive, Suite #132 | Rancho Cucamonga, CA 91730</p>
+                <p><a href="mailto:Lpinto@firstlighthomecare.com">Lpinto@firstlighthomecare.com</a><br>
+                <a href="http://ranchocucamonga.firstlighthomecare.com">ranchocucamonga.firstlighthomecare.com</a></p>
+                <p><a href="https://www.facebook.com/FirstLightHomeCareofRanchoCucamonga">https://www.facebook.com/FirstLightHomeCareofRanchoCucamonga</a></p>
+                <br>
+                <img src="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc" alt="FirstLight Home Care Logo" style="width: 200px; height: auto;"/>
+                <br><br>
+                <p style="font-size: 10px; color: #888;">
+                    <strong>CONFIDENTIALITY NOTICE</strong><br>
+                    This email, including any attachments or files transmitted with it, is intended to be confidential and solely for the use of the individual or entity to whom it is addressed. If you received it in error, or if you are not the intended recipient(s), please notify the sender by reply e-mail and delete/destroy the original message and any attachments, and any copies. Any unauthorized review, use, disclosure or distribution of this e-mail or information is prohibited and may be a violation of applicable laws.
+                </p>
+            `;
+
             const emailHtml = `
                 <p>The Client Service Agreement for ${clientName} has been finalized. A PDF copy is available for download at the link below.</p>
                 <p><a href="${signedUrl}">Download Completed Agreement</a></p>
                 <p>Document ID: ${signupId}</p>
                 ${attachmentsHtml ? `<div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;"><h2 style="font-size: 16px; color: #555;">Reference Documents</h2>${attachmentsHtml}</div>` : ''}
+                ${signatureBlock}
             `;
             
             const email = {
                 to: emailRecipients,
                 message: {
                     subject: `Your FirstLight Home Care Service Agreement for ${clientName} is Complete`,
-                    html: emailHtml,
+                    html: `<body style="font-family: sans-serif; font-size: 14px; color: #333;">${emailHtml}</body>`,
                 }
             };
             await firestore.collection("mail").add(email);
