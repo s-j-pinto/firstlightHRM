@@ -7,6 +7,7 @@ import { doc } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import ClientSignupForm from '@/components/client-signup-form';
+import TppCsaForm from '@/components/tpp-csa-form';
 
 
 export default function ClientSigningPage() {
@@ -38,7 +39,7 @@ export default function ClientSigningPage() {
         );
     }
 
-    if (signupData.status === 'SIGNED AND PUBLISHED' || signupData.status === 'CLIENT_SIGNATURES_COMPLETED') {
+    if (signupData.status === 'Signed and Published' || signupData.status === 'Client Signatures Completed') {
         router.replace('/new-client/dashboard'); // Redirect to dashboard if already done.
         return (
              <div className="flex items-center justify-center min-h-screen">
@@ -46,6 +47,8 @@ export default function ClientSigningPage() {
             </div>
         );
     }
+    
+    const isTppForm = signupData.formType === 'tpp';
 
     return (
         <div className="space-y-6">
@@ -55,7 +58,11 @@ export default function ClientSigningPage() {
                     Please review the information below and complete the required signature fields.
                 </p>
             </div>
-            <ClientSignupForm signupId={signupId} mode="client-signing" />
+            {isTppForm ? (
+                <TppCsaForm signupId={signupId} mode="client-signing" />
+            ) : (
+                <ClientSignupForm signupId={signupId} mode="client-signing" />
+            )}
         </div>
     );
 }
