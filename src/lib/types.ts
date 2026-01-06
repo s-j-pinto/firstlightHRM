@@ -1,5 +1,4 @@
 
-
 import { z } from "zod";
 
 export const generalInfoSchema = z.object({
@@ -386,20 +385,51 @@ export const finalizationSchema = clientSignupFormSchema.extend({
    }
 });
 
-// Stricter schema for TPP finalization
-export const tppFinalizationSchema = clientSignupFormSchema.extend({
+// Base schema for fields required on a TPP form for finalization
+const tppBaseFinalizationSchema = z.object({
+  clientName: z.string().min(1, { message: "Client Name is required." }),
+  clientEmail: z.string().email(),
   payor: z.string().min(1, "Payor name is required."),
   clientInitials: z.string().min(1, "Client initials for the hiring clause are required."),
   receivedPrivacyPractices: z.literal(true, { errorMap: () => ({ message: "Must acknowledge receipt of Privacy Practices." }) }),
   firstLightRepresentativeSignature: z.string().min(1, "FirstLight representative signature is required."),
   firstLightRepresentativeTitle: z.string().min(1, "FirstLight representative title is required."),
   firstLightRepresentativeSignatureDate: z.date({ required_error: "Date for FirstLight representative is required." }),
-}).superRefine((data, ctx) => {
-    // Signature block validation
-    if (data.clientSignature?.trim() === '' && data.clientRepresentativeSignature?.trim() === '') {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Either client or representative signature is required in the Acknowledgement section.", path: ["clientSignature"] });
+  receivedTransportationWaiver: z.boolean().optional(),
+  transportationWaiverClientSignature: z.string().optional(),
+  transportationWaiverClientPrintedName: z.string().optional(),
+  transportationWaiverWitnessSignature: z.string().optional(),
+  transportationWaiverDate: z.date().optional(),
+  clientSignature: z.string().optional(),
+  clientRepresentativeSignature: z.string().optional(),
+  clientPrintedName: z.string().optional(),
+  clientSignatureDate: z.date().optional(),
+  clientRepresentativePrintedName: z.string().optional(),
+  clientRepresentativeSignatureDate: z.date().optional(),
+});
+
+
+// Stricter schema specifically for TPP finalization
+export const tppFinalizationSchema = tppBaseFinalizationSchema.superRefine((data, ctx) => {
+    // At least one client-side signature must be present
+    if (!data.clientSignature && !data.clientRepresentativeSignature) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Either the client's or the representative's signature is required in the Acknowledgement section.",
+            path: ["clientSignature"],
+        });
     }
-    // Conditional validation for waiver
+    // If a signature is present, its corresponding name and date fields are required
+    if (data.clientSignature && (!data.clientPrintedName || !data.clientSignatureDate)) {
+        if (!data.clientPrintedName) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Printed name is required.", path: ["clientPrintedName"] });
+        if (!data.clientSignatureDate) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date is required.", path: ["clientSignatureDate"] });
+    }
+    if (data.clientRepresentativeSignature && (!data.clientRepresentativePrintedName || !data.clientRepresentativeSignatureDate)) {
+        if (!data.clientRepresentativePrintedName) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Representative printed name is required.", path: ["clientRepresentativePrintedName"] });
+        if (!data.clientRepresentativeSignatureDate) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date is required.", path: ["clientRepresentativeSignatureDate"] });
+    }
+
+   // If the transportation waiver is checked, all its fields are required
    if(data.receivedTransportationWaiver) {
     if (!data.transportationWaiverClientSignature) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Client signature is required for the waiver.", path: ["transportationWaiverClientSignature"] });
     if (!data.transportationWaiverClientPrintedName) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Printed name is required for the waiver.", path: ["transportationWaiverClientPrintedName"] });
@@ -600,3 +630,5 @@ export const smsMessageSchema = z.object({
     timestamp: z.any(),
 });
 export type SmsMessage = z.infer<typeof smsMessageSchema> & { id: string };
+
+    
