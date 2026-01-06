@@ -13,7 +13,7 @@ import SignatureCanvas from 'react-signature-canvas';
 import Image from "next/image";
 
 
-import { clientSignupFormSchema, tppFinalizationSchema, type ClientSignupFormData } from "@/lib/types";
+import { clientSignupFormSchema, tppFinalizationSchema, tppClientSignaturePayloadSchema, type ClientSignupFormData } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -22,7 +22,7 @@ import { Loader2, Send, Save, BookUser, Calendar as CalendarIcon, RefreshCw, Bri
 import { useToast } from "@/hooks/use-toast";
 import { sendSignatureEmail, finalizeAndSubmit, previewClientIntakePdf, createCsaFromContact, submitClientSignature, saveClientSignupForm } from "@/lib/client-signup.actions";
 import { cn } from "@/lib/utils";
-import { Popover, PopoverContent, PopoverTrigger } from "./popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "./ui/calendar";
 import { Checkbox } from "./ui/checkbox";
 import { HelpDialog } from "./HelpDialog";
@@ -422,31 +422,31 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
 
   const handleClientSubmit = () => {
     startSubmittingTransition(async () => {
-        if (!signupId) return;
-        
-        const payload = {
-            signupId,
-            signature: form.getValues('clientSignature'),
-            repSignature: form.getValues('clientRepresentativeSignature'),
-            printedName: form.getValues('clientPrintedName'),
-            date: form.getValues('clientSignatureDate') || new Date(),
-            repPrintedName: form.getValues('clientRepresentativePrintedName'),
-            repDate: form.getValues('clientRepresentativeSignatureDate'),
-            initials: form.getValues('clientInitials'),
-            transportationWaiverClientSignature: form.getValues('transportationWaiverClientSignature'),
-            transportationWaiverClientPrintedName: form.getValues('transportationWaiverClientPrintedName'),
-            transportationWaiverWitnessSignature: form.getValues('transportationWaiverWitnessSignature'),
-            transportationWaiverDate: form.getValues('transportationWaiverDate'),
-        };
+      if (!signupId) return;
 
-        const result = await submitClientSignature(payload);
+      const payload = {
+        signupId,
+        signature: form.getValues('clientSignature'),
+        repSignature: form.getValues('clientRepresentativeSignature'),
+        printedName: form.getValues('clientPrintedName'),
+        date: form.getValues('clientSignatureDate'),
+        repPrintedName: form.getValues('clientRepresentativePrintedName'),
+        repDate: form.getValues('clientRepresentativeSignatureDate'),
+        initials: form.getValues('clientInitials'),
+        transportationWaiverClientSignature: form.getValues('transportationWaiverClientSignature'),
+        transportationWaiverClientPrintedName: form.getValues('transportationWaiverClientPrintedName'),
+        transportationWaiverWitnessSignature: form.getValues('transportationWaiverWitnessSignature'),
+        transportationWaiverDate: form.getValues('transportationWaiverDate'),
+      };
 
-        if (result.error) {
-            toast({ title: "Submission Failed", description: result.message, variant: "destructive" });
-        } else {
-            toast({ title: "Submission Successful", description: result.message });
-            router.push('/new-client/dashboard');
-        }
+      const result = await submitClientSignature(payload);
+
+      if (result.error) {
+        toast({ title: "Submission Failed", description: result.message, variant: "destructive" });
+      } else {
+        toast({ title: "Submission Successful", description: result.message });
+        router.push('/new-client/dashboard');
+      }
     });
   };
 
@@ -522,7 +522,7 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
     { title: "BUSINESS OPERATIONS", text: "<strong>FirstLight Home Care</strong> is independently owned and operated as a franchisee of <strong>FirstLight Home Care</strong> Franchising, LLC. <strong>FirstLight Home Care</strong> meets all requirements of the State of California to provide non-medical in-home personal care, companion and homemaker services. Additional information about <strong>FirstLight Home Care</strong> that is required to be disclosed under the state law can be found in Section 15 of this Agreement." },
     { title: "FIRSTLIGHT CONTACT INFORMATION", text: "If you have any question, problems, needs or concerns, please contact the <strong>FirstLight Home Care</strong> contact Lolita Pinto at 9093214466 or by mail sent to the address above." },
     { title: "COMPLAINTS", text: "To file a complaint, you may contact the manager listed above or the appropriate State reporting agency. In cases of allegations of abuse or neglect by an employee of <strong>FirstLight Home Care</strong> a complete investigation will be completed as soon as possible, and <strong>FirstLight Home Care</strong> will complete a written report within 14 days of the initial complaint unless state law requires earlier reporting in which case that requirements shall apply. The written report shall include the date, time, and description of alleged abuse, neglect, or financial exploitation; description of any injury or abuse of the Client; any actions taken by <strong>FirstLight Home Care</strong>; a description of actions taken to prevent  future abuse or other crime, or when death (other than by disease or actual causes) has occurred." },
-    { title: "ABUSE REPORTING", text: "Reports of abuse, neglect or financial exploitation may be made by Client at any time to local law enforcement. <strong>FirstLight Home Care</strong> will report any suspected or known dependent adult or elder abuse and otherwise comply with all mandatory reporting laws including, but not limited to, to making reports to law enforcement if an allegation of physical abuse, sexual abuse or other crime, or when death (other than by disease or actual causes) has occurred." },
+    { title: "ABUSE REPORTING", text: "Reports of abuse, neglect or financial exploitation may be made by Client at any time to local law enforcement. <strong>FirstLight Home Care</strong> will report any suspected or known dependent adult or elder abuse and otherwise comply with all mandatory reporting laws including, but not to, to making reports to law enforcement if an allegation of physical abuse, sexual abuse or other crime, or when death (other than by disease or actual causes) has occurred." },
     { title: "INFORMATION REQUESTS", text: "<strong>FirstLight Home Care</strong> will adhere to a written policy addressing the confidentiality and permitted uses and disclosure of Client records as well as applicable provisions of state and federal law and its Payor Agreement. Response to an inquiry or information request is normally done during business hours however, inquiries or information requests made during evenings, weekends, or holidays will be addressed on the next business day." },
     { title: "EMERGENCY TREATMENT", text: "<strong>FirstLight Home Care</strong> caregivers and employees are not licensed, qualified or authorized to provide medical care or attention of any kind. If a medical emergency arises while a <strong>FirstLight Home Care</strong> employee is present, the employee is instructed to call for emergency assistance. The Client holds harmless <strong>FirstLight Home Care</strong> and its employees, agents, representatives, and affiliates for any medical attention provided resulting from instructions given by emergency services operators." },
     { title: "EMERGENCY CONTACT", text: "At the Client's instruction, or if it appears to a <strong>FirstLight Home Care</strong> employee that a life-threatening or medical emergency may have occurred while a <strong>FirstLight Home Care</strong> employee is present, <strong>FirstLight Home Care</strong> will immediately notify the appropriate emergency responders (9-1-1) and, as soon as reasonable feasible, the Client's Emergency Contact(s) indicated above." },
