@@ -491,13 +491,12 @@ export const tppClientSignaturePayloadSchema = z.object({
   transportationWaiverClientPrintedName: z.string().optional(),
   transportationWaiverWitnessSignature: z.string().optional(),
   transportationWaiverDate: z.date().optional(),
-  // Add missing agreement fields for TPP
   agreementClientSignature: z.string().optional(),
   agreementSignatureDate: z.date().optional(),
   agreementRelationship: z.string().optional(),
 }).superRefine((data, ctx) => {
-    if (!data.signature && !data.repSignature) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Either client or representative signature is required.", path: ["signature"] });
+    if (!data.signature && !data.repSignature && !data.agreementClientSignature) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "A client or representative signature is required.", path: ["signature"] });
     }
 });
 
@@ -697,3 +696,4 @@ export type SmsMessage = z.infer<typeof smsMessageSchema> & { id: string };
     
 
     
+
