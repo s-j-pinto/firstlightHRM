@@ -458,7 +458,7 @@ export const clientSignaturePayloadSchema = z.object({
   signupId: z.string(),
   clientSignature: z.string().optional(),
   clientRepresentativeSignature: z.string().optional(),
-  agreementClientSignature: z.string().min(1, "Client signature in the payment agreement section is required."),
+  agreementClientSignature: z.string().min(1, "Agreement Signature is required."),
   clientPrintedName: z.string().optional(),
   clientSignatureDate: z.date().optional(),
   clientRepresentativePrintedName: z.string().optional(),
@@ -693,5 +693,6 @@ export type SmsMessage = z.infer<typeof smsMessageSchema> & { id: string };
     
 
     
+
 
 
