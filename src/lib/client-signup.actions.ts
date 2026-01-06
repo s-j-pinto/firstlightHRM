@@ -65,13 +65,13 @@ export async function createCsaFromContact(initialContactId: string, type: 'priv
             companionCare_groceryShopping: contactData.companionCare_groceryShopping || false,
             companionCare_cleanBathrooms: contactData.companionCare_cleanBathrooms || false,
             companionCare_changeBedLinens: contactData.companionCare_changeBedLinens || false,
-            companionCare_runErrands: contactData.companionCare_runErrands || false,
-            companionCare_escortAndTransportation: contactData.companionCare_escortAndTransportation || false,
-            companionCare_provideRemindersAndAssistWithToileting: contactData.companionCare_provideRemindersAndAssistWithToileting || false,
-            companionCare_provideRespiteCare: contactData.companionCare_provideRespiteCare || false,
-            companionCare_stimulateMentalAwareness: contactData.companionCare_stimulateMentalAwareness || false,
-            companionCare_assistWithDressingAndGrooming: contactData.companionCare_assistWithDressingAndGrooming || false,
-            companionCare_assistWithShavingAndOralCare: contactData.companionCare_assistWithShavingAndOralCare || false,
+            companionCare_runErrands: contactData.runErrands || false,
+            companionCare_escortAndTransportation: contactData.escortAndTransportation || false,
+            companionCare_provideRemindersAndAssistWithToileting: contactData.provideRemindersAndAssistWithToileting || false,
+            companionCare_provideRespiteCare: contactData.provideRespiteCare || false,
+            companionCare_stimulateMentalAwareness: contactData.stimulateMentalAwareness || false,
+            companionCare_assistWithDressingAndGrooming: contactData.assistWithDressingAndGrooming || false,
+            companionCare_assistWithShavingAndOralCare: contactData.assistWithShavingAndOralCare || false,
             companionCare_other: contactData.companionCare_other || '',
         };
 
@@ -241,6 +241,23 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
         if (formType === 'tpp' && formData?.receivedAdditionalDisclosures) {
             attachmentsHtml += `<p><strong>Download:</strong> <a href="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FAdditionalStateDisclosures.pdf?alt=media&token=59e0750a-8a49-43d9-9524-81d3a436573c">Additional State Law Disclosures</a></p>`;
         }
+        
+        const signatureBlock = `
+            <br><br>--<br>
+            <p>(909)-321-4466 Fax (909)-694-2474</p>
+            <p>CALIFORNIA HCO LICENSE # 364700059</p>
+            <p>9650 Business Center Drive, Suite #132 | Rancho Cucamonga, CA 91730</p>
+            <p><a href="mailto:Lpinto@firstlighthomecare.com">Lpinto@firstlighthomecare.com</a><br>
+            <a href="http://ranchocucamonga.firstlighthomecare.com">ranchocucamonga.firstlighthomecare.com</a></p>
+            <p><a href="https://www.facebook.com/FirstLightHomeCareofRanchoCucamonga">https://www.facebook.com/FirstLightHomeCareofRanchoCucamonga</a></p>
+            <br>
+            <img src="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc" alt="FirstLight Home Care Logo" style="width: 200px; height: auto;"/>
+            <br><br>
+            <p style="font-size: 10px; color: #888;">
+                <strong>CONFIDENTIALITY NOTICE</strong><br>
+                This email, including any attachments or files transmitted with it, is intended to be confidential and solely for the use of the individual or entity to whom it is addressed. If you received it in error, or if you are not the intended recipient(s), please notify the sender by reply e-mail and delete/destroy the original message and any attachments, and any copies. Any unauthorized review, use, disclosure or distribution of this e-mail or information is prohibited and may be a violation of applicable laws.
+            </p>
+        `;
 
 
         const emailHtml = `
@@ -257,6 +274,7 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
                 ${attachmentsHtml ? `<div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;"><h2 style="font-size: 16px; color: #555;">Reference Documents</h2>${attachmentsHtml}</div>` : ''}
                 <p>If you have any questions, please don't hesitate to contact our office.</p>
                 <p>Thank you,<br/>The FirstLight Home Care Team</p>
+                ${signatureBlock}
             </div>
             </body>
         `;
@@ -528,3 +546,5 @@ export async function previewClientIntakePdf(formData: any, formType: 'private' 
         return { error: `Failed to generate PDF: ${error.message}` };
     }
 }
+
+    
