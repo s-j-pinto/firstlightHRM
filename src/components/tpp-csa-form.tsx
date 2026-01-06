@@ -752,27 +752,29 @@ provisions of state and federal law. A separate FirstLight Home Care Private Pay
                 <div className="space-y-6 break-before-page">
                     <h3 className="text-lg font-semibold text-center underline">TERMS AND CONDITIONS</h3>
                     <ol className="space-y-4 text-sm text-muted-foreground list-decimal list-inside">
-                        {terms.map((term, index) => {
-                             const isLastTerm = index === terms.length - 1;
-                             return (
-                                <li key={index} className="space-y-1">
-                                    <p><strong>{term.title}</strong> {term.text}</p>
-                                    {isLastTerm && (
-                                         <div className="space-y-4 mt-4 ml-4">
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <FormField control={form.control} name="receivedPrivacyPractices" render={({ field }) => (<FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isClientMode || isPublished} /></FormControl><FormLabel className="font-normal">Notice of Privacy Practices</FormLabel><FormMessage /></FormItem>)} />
-                                                <FormField control={form.control} name="receivedTransportationWaiver" render={({ field }) => (<FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isClientMode || isPublished} /></FormControl><FormLabel className="font-normal">Transportation Waiver</FormLabel><FormMessage /></FormItem>)} />
-                                                <FormField control={form.control} name="receivedAdditionalDisclosures" render={({ field }) => (<FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isClientMode || isPublished} /></FormControl><FormLabel className="font-normal">Additional State Law Disclosures</FormLabel><FormMessage /></FormItem>)} />
-                                            </div>
-                                            <div className={cn("w-full md:w-1/3 mt-2 p-4 rounded-md", isClientMode && "border border-orange-400")}>
-                                                <FormField control={form.control} name="clientInitials" render={({ field }) => ( <FormItem><FormLabel>Client Initials</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
-                                            </div>
-                                        </div>
-                                    )}
-                                </li>
-                            )
-                        })}
-                    </ol>
+                      {terms.map((term, index) => {
+                          const isLastTerm = index === terms.length - 1;
+                          return (
+                              <li key={index} className="space-y-1">
+                                  <span>
+                                      <span className="font-bold">{term.title}</span> {term.text}
+                                  </span>
+                                  {isLastTerm && (
+                                      <div className="space-y-4 mt-4 ml-4">
+                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                              <FormField control={form.control} name="receivedPrivacyPractices" render={({ field }) => (<FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isClientMode || isPublished} /></FormControl><FormLabel className="font-normal">Notice of Privacy Practices</FormLabel><FormMessage /></FormItem>)} />
+                                              <FormField control={form.control} name="receivedTransportationWaiver" render={({ field }) => (<FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isClientMode || isPublished} /></FormControl><FormLabel className="font-normal">Transportation Waiver</FormLabel><FormMessage /></FormItem>)} />
+                                              <FormField control={form.control} name="receivedAdditionalDisclosures" render={({ field }) => (<FormItem className="flex items-center space-x-2"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isClientMode || isPublished} /></FormControl><FormLabel className="font-normal">Additional State Law Disclosures</FormLabel><FormMessage /></FormItem>)} />
+                                          </div>
+                                          <div className={cn("w-full md:w-1/3 mt-2 p-4 rounded-md", isClientMode && "border border-orange-400")}>
+                                              <FormField control={form.control} name="clientInitials" render={({ field }) => ( <FormItem><FormLabel>Client Initials</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                                          </div>
+                                      </div>
+                                  )}
+                              </li>
+                          )
+                      })}
+                  </ol>
                 </div>
 
 
