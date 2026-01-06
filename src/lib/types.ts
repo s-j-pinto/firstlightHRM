@@ -1,4 +1,5 @@
 
+
 import { z } from "zod";
 
 export const generalInfoSchema = z.object({
@@ -389,6 +390,12 @@ export const finalizationSchema = clientSignupFormSchema.extend({
 const tppBaseFinalizationSchema = z.object({
   clientName: z.string().min(1, { message: "Client Name is required." }),
   clientEmail: z.string().email(),
+  clientAddress: z.string().min(1),
+  clientCity: z.string().min(1),
+  clientState: z.string().min(1),
+  clientPostalCode: z.string().min(1),
+  clientPhone: z.string().min(1),
+  clientDOB: z.string().min(1),
   payor: z.string().min(1, "Payor name is required."),
   clientInitials: z.string().min(1, "Client initials for the hiring clause are required."),
   receivedPrivacyPractices: z.literal(true, { errorMap: () => ({ message: "Must acknowledge receipt of Privacy Practices." }) }),
@@ -406,6 +413,7 @@ const tppBaseFinalizationSchema = z.object({
   clientSignatureDate: z.date().optional(),
   clientRepresentativePrintedName: z.string().optional(),
   clientRepresentativeSignatureDate: z.date().optional(),
+  receivedAdditionalDisclosures: z.boolean().optional(),
 });
 
 
@@ -436,6 +444,51 @@ export const tppFinalizationSchema = tppBaseFinalizationSchema.superRefine((data
     if (!data.transportationWaiverWitnessSignature) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Witness signature is required for the waiver.", path: ["transportationWaiverWitnessSignature"] });
     if (!data.transportationWaiverDate) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date is required for the waiver.", path: ["transportationWaiverDate"] });
    }
+});
+
+
+// Schema for client signature submission (Private Pay)
+export const clientSignaturePayloadSchema = z.object({
+  signupId: z.string(),
+  signature: z.string().optional(),
+  repSignature: z.string().optional(),
+  agreementSignature: z.string().min(1, "Client signature in the payment agreement section is required."),
+  printedName: z.string().optional(),
+  date: z.date().optional(),
+  repPrintedName: z.string().optional(),
+  repDate: z.date().optional(),
+  initials: z.string().min(1, { message: "Initials are required for the hiring clause." }),
+  servicePlanClientInitials: z.string().min(1, { message: "Initials are required for the service plan section."}),
+  agreementRelationship: z.string().optional(),
+  agreementDate: z.date().optional(),
+  transportationWaiverClientSignature: z.string().optional(),
+  transportationWaiverClientPrintedName: z.string().optional(),
+  transportationWaiverWitnessSignature: z.string().optional(),
+  transportationWaiverDate: z.date().optional(),
+}).superRefine((data, ctx) => {
+    if (!data.signature && !data.repSignature) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Either client or representative signature is required.", path: ["signature"] });
+    }
+});
+
+// New, specific schema for TPP client signature submission
+export const tppClientSignaturePayloadSchema = z.object({
+  signupId: z.string(),
+  signature: z.string().optional(),
+  repSignature: z.string().optional(),
+  printedName: z.string().optional(),
+  date: z.date().optional(),
+  repPrintedName: z.string().optional(),
+  repDate: z.date().optional(),
+  initials: z.string().min(1, { message: "Initials are required for the hiring clause." }),
+  transportationWaiverClientSignature: z.string().optional(),
+  transportationWaiverClientPrintedName: z.string().optional(),
+  transportationWaiverWitnessSignature: z.string().optional(),
+  transportationWaiverDate: z.date().optional(),
+}).superRefine((data, ctx) => {
+    if (!data.signature && !data.repSignature) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Either client or representative signature is required.", path: ["signature"] });
+    }
 });
 
 
@@ -630,5 +683,7 @@ export const smsMessageSchema = z.object({
     timestamp: z.any(),
 });
 export type SmsMessage = z.infer<typeof smsMessageSchema> & { id: string };
+
+    
 
     

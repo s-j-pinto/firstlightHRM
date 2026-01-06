@@ -8,7 +8,7 @@ import { getStorage } from 'firebase-admin/storage';
 import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { generateClientIntakePdf } from './pdf.actions';
-import { finalizationSchema, tppFinalizationSchema } from './types';
+import { finalizationSchema, tppFinalizationSchema, clientSignaturePayloadSchema, tppClientSignaturePayloadSchema } from './types';
 
 const clientSignupSchema = z.object({
   signupId: z.string().nullable(),
@@ -298,78 +298,57 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
     }
 }
 
-const clientSignaturePayloadSchema = z.object({
-  signupId: z.string(),
-  signature: z.string().optional(),
-  repSignature: z.string().optional(),
-  agreementSignature: z.string().min(1, "Client signature in the payment agreement section is required."),
-  printedName: z.string().optional(),
-  date: z.date().optional(),
-  repPrintedName: z.string().optional(),
-  repDate: z.date().optional(),
-  initials: z.string().min(1, { message: "Initials are required for the hiring clause." }),
-  servicePlanClientInitials: z.string().optional(),
-  agreementRelationship: z.string().optional(),
-  agreementDate: z.date().optional(),
-  transportationWaiverClientSignature: z.string().optional(),
-  transportationWaiverClientPrintedName: z.string().optional(),
-  transportationWaiverWitnessSignature: z.string().optional(),
-  transportationWaiverDate: z.date().optional(),
-}).superRefine((data, ctx) => {
-    if (!data.signature && !data.repSignature) {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Either the client's or the representative's signature is required in the Acknowledgement section.",
-            path: ["signature"], 
-        });
-    }
-});
-
-
 export async function submitClientSignature(payload: any) {
-    
-    const validationResult = clientSignaturePayloadSchema.safeParse(payload);
-
-    if (!validationResult.success) {
-        const firstError = validationResult.error.errors[0];
-        return { message: `${firstError.path.join('.')}: ${firstError.message}`, error: true };
-    }
-
-    const { signupId, ...signatureData } = validationResult.data;
-
     const firestore = serverDb;
-    const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL||'lpinto@firstlighthomecare.com';
+    const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL || 'lpinto@firstlighthomecare.com';
+
+    if (!payload.signupId) {
+        return { message: "Signup ID is missing.", error: true };
+    }
 
     try {
-        const signupRef = firestore.collection('client_signups').doc(signupId);
-        
+        const signupRef = firestore.collection('client_signups').doc(payload.signupId);
+        const signupDoc = await signupRef.get();
+        if (!signupDoc.exists) {
+            return { message: "Signup document not found.", error: true };
+        }
+        const formType = signupDoc.data()?.formType || 'private';
+
+        // Choose the correct schema based on the form type
+        const validationSchema = formType === 'tpp'
+            ? tppClientSignaturePayloadSchema
+            : clientSignaturePayloadSchema;
+
+        const validationResult = validationSchema.safeParse(payload);
+
+        if (!validationResult.success) {
+            const firstError = validationResult.error.errors[0];
+            return { message: `${firstError.path.join('.')}: ${firstError.message}`, error: true };
+        }
+
+        const { signupId, ...signatureData } = validationResult.data;
+
         const updatePayload: { [key: string]: any } = {
             status: 'Client Signatures Completed',
             lastUpdatedAt: Timestamp.now(),
         };
 
-        if (signatureData.signature) updatePayload['formData.clientSignature'] = signatureData.signature;
-        if (signatureData.printedName) updatePayload['formData.clientPrintedName'] = signatureData.printedName;
-        if (signatureData.date) updatePayload['formData.clientSignatureDate'] = Timestamp.fromDate(signatureData.date);
-        if (signatureData.repSignature) updatePayload['formData.clientRepresentativeSignature'] = signatureData.repSignature;
-        if (signatureData.repPrintedName) updatePayload['formData.clientRepresentativePrintedName'] = signatureData.repPrintedName;
-        if (signatureData.repDate) updatePayload['formData.clientRepresentativeSignatureDate'] = Timestamp.fromDate(signatureData.repDate);
-        if (signatureData.initials) updatePayload['formData.clientInitials'] = signatureData.initials;
-        if (signatureData.servicePlanClientInitials) updatePayload['formData.servicePlanClientInitials'] = signatureData.servicePlanClientInitials;
-        if (signatureData.agreementSignature) updatePayload['formData.agreementClientSignature'] = signatureData.agreementSignature;
-        if (signatureData.agreementRelationship) updatePayload['formData.agreementRelationship'] = signatureData.agreementRelationship;
-        if (signatureData.agreementDate) updatePayload['formData.agreementSignatureDate'] = Timestamp.fromDate(signatureData.agreementDate);
-        if (signatureData.transportationWaiverClientSignature) updatePayload['formData.transportationWaiverClientSignature'] = signatureData.transportationWaiverClientSignature;
-        if (signatureData.transportationWaiverClientPrintedName) updatePayload['formData.transportationWaiverClientPrintedName'] = signatureData.transportationWaiverClientPrintedName;
-        if (signatureData.transportationWaiverWitnessSignature) updatePayload['formData.transportationWaiverWitnessSignature'] = signatureData.transportationWaiverWitnessSignature;
-        if (signatureData.transportationWaiverDate) updatePayload['formData.transportationWaiverDate'] = Timestamp.fromDate(signatureData.transportationWaiverDate);
+        // Dynamically build the update payload from the validated data
+        for (const [key, value] of Object.entries(signatureData)) {
+            if (value !== undefined) {
+                if (value instanceof Date) {
+                    updatePayload[`formData.${key}`] = Timestamp.fromDate(value);
+                } else {
+                    updatePayload[`formData.${key}`] = value;
+                }
+            }
+        }
 
         await signupRef.update(updatePayload);
-        
+
         // Notify owner to review and finalize
-        const signupDoc = await signupRef.get();
         const clientName = signupDoc.data()?.formData?.clientName || 'the client';
-        
+
         if (ownerEmail) {
             const email = {
                 to: [ownerEmail],
@@ -383,7 +362,7 @@ export async function submitClientSignature(payload: any) {
 
         revalidatePath(`/client-sign/${signupId}`);
         revalidatePath('/owner/dashboard');
-        
+
         return { message: "Thank you! Your signature has been submitted. The office will now conduct a final review." };
 
     } catch (error: any) {
@@ -391,6 +370,7 @@ export async function submitClientSignature(payload: any) {
         return { message: `An error occurred: ${error.message}`, error: true };
     }
 }
+
 
 export async function finalizeAndSubmit(signupId: string, formData: any) {
     const firestore = serverDb;
