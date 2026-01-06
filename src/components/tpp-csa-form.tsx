@@ -22,7 +22,7 @@ import { Loader2, Send, Save, BookUser, Calendar as CalendarIcon, RefreshCw, Bri
 import { useToast } from "@/hooks/use-toast";
 import { sendSignatureEmail, finalizeAndSubmit, previewClientIntakePdf, createCsaFromContact, submitClientSignature, saveClientSignupForm } from "@/lib/client-signup.actions";
 import { cn } from "@/lib/utils";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 import { Calendar } from "./ui/calendar";
 import { Checkbox } from "./ui/checkbox";
 import { HelpDialog } from "./HelpDialog";
@@ -428,15 +428,11 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
             signupId,
             signature: form.getValues('clientSignature'),
             repSignature: form.getValues('clientRepresentativeSignature'),
-            agreementSignature: form.getValues('agreementClientSignature'),
             printedName: form.getValues('clientPrintedName'),
             date: form.getValues('clientSignatureDate') || new Date(),
             repPrintedName: form.getValues('clientRepresentativePrintedName'),
             repDate: form.getValues('clientRepresentativeSignatureDate'),
             initials: form.getValues('clientInitials'),
-            servicePlanClientInitials: form.getValues('servicePlanClientInitials'),
-            agreementRelationship: form.getValues('agreementRelationship'),
-            agreementDate: form.getValues('agreementSignatureDate'),
             transportationWaiverClientSignature: form.getValues('transportationWaiverClientSignature'),
             transportationWaiverClientPrintedName: form.getValues('transportationWaiverClientPrintedName'),
             transportationWaiverWitnessSignature: form.getValues('transportationWaiverWitnessSignature'),
