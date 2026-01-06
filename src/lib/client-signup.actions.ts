@@ -235,9 +235,6 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
         if (formType !== 'tpp' && formData?.receivedClientRights) { // Only for regular CSA
             attachmentsHtml += `<p><strong>Download:</strong> <a href="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FClient%20Rights%20and%20Responsibilities%20revised%203-11-24.pdf?alt=media&token=9a22bfc7-215f-4724-b569-2eb0050ba999">Client Rights and Responsibilities</a></p>`;
         }
-        if (formData?.receivedTransportationWaiver) {
-            attachmentsHtml += `<p><strong>Download:</strong> <a href="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FTransportationWaiver.pdf?alt=media&token=21f92e35-51f7-410a-861c-3b6f272a24c7">Transportation Waiver</a></p>`;
-        }
         if (formType === 'tpp' && formData?.receivedAdditionalDisclosures) {
             attachmentsHtml += `<p><strong>Download:</strong> <a href="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FAdditionalStateDisclosures.pdf?alt=media&token=59e0750a-8a49-43d9-9524-81d3a436573c">Additional State Law Disclosures</a></p>`;
         }
@@ -462,9 +459,6 @@ export async function finalizeAndSubmit(signupId: string, formData: any) {
             }
              if (formType !== 'tpp' && validation.data?.receivedClientRights) {
                 attachmentsHtml += `<p><strong>Download:</strong> <a href="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FClient%20Rights%20and%20Responsibilities%20revised%203-11-24.pdf?alt=media&token=9a22bfc7-215f-4724-b569-2eb0050ba999">Client Rights and Responsibilities</a></p>`;
-            }
-            if (validation.data?.receivedTransportationWaiver) {
-                attachmentsHtml += `<p><strong>Download:</strong> <a href="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FTransportationWaiver.pdf?alt=media&token=21f92e35-51f7-410a-861c-3b6f272a24c7">Transportation Waiver</a></p>`;
             }
              if (formType === 'tpp' && validation.data?.receivedAdditionalDisclosures) {
                 attachmentsHtml += `<p><strong>Download:</strong> <a href="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FAdditionalStateDisclosures.pdf?alt=media&token=59e0750a-8a49-43d9-9524-81d3a436573c">Additional State Law Disclosures</a></p>`;
