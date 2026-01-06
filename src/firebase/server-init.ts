@@ -31,7 +31,7 @@ const initializeServerApp = () => {
             const serviceAccount = require('../../service-account.json');
             const app = admin.initializeApp({
                 credential: admin.credential.cert(serviceAccount),
-                storageBucket: 'firstlighthomecare-hrm.appspot.com'
+                storageBucket: 'gs://firstlighthomecare-hrm.firebasestorage.app'
             });
             console.log("[Firebase Admin] SDK initialized successfully for local development.");
             return app;
