@@ -8,7 +8,7 @@ import { getStorage } from 'firebase-admin/storage';
 import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { generateClientIntakePdf } from './pdf.actions';
-import { finalizationSchema } from './types';
+import { finalizationSchema, tppFinalizationSchema } from './types';
 
 const clientSignupSchema = z.object({
   signupId: z.string().nullable(),
@@ -379,26 +379,25 @@ export async function finalizeAndSubmit(signupId: string, formData: any) {
     const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL || 'lpinto@firstlighthomecare.com';
     const now = Timestamp.now();
 
-    // Before doing anything, validate the final state of the data
-    const validation = finalizationSchema.safeParse(formData);
+    const signupRef = firestore.collection('client_signups').doc(signupId);
+    const signupDoc = await signupRef.get();
+    const formType = signupDoc.data()?.formType || 'private';
+
+    const validationSchema = formType === 'tpp' ? tppFinalizationSchema : finalizationSchema;
+
+    const validation = validationSchema.safeParse(formData);
     if (!validation.success) {
         console.error("Finalization validation failed:", validation.error.flatten().fieldErrors);
         return { error: true, message: `Validation failed: ${validation.error.errors[0].path.join('.')} - ${validation.error.errors[0].message}` };
     }
 
     try {
-        const signupRef = firestore.collection('client_signups').doc(signupId);
-        
         // First, save the final, validated state of the form data passed from the client
         await signupRef.update({
             formData: validation.data,
             lastUpdatedAt: now,
         });
 
-        const signupDoc = await signupRef.get();
-        const formType = signupDoc.data()?.formType || 'private';
-
-        // Sync data back to initial_contacts before generating PDF
         const initialContactId = signupDoc.data()?.initialContactId;
         const clientAuthUid = `new_client_${signupId}`;
 
@@ -430,7 +429,7 @@ export async function finalizeAndSubmit(signupId: string, formData: any) {
         const pdfBytes = await generateClientIntakePdf(validation.data, formType);
         
         // 2. Upload to Firebase Storage
-        const bucket = getStorage().bucket("gs://firstlighthomecare-hrm.firebasestorage.app");
+        const bucket = getStorage().bucket("gs://firstlighthomecare-hrm.appspot.com");
         const fileName = `client-agreements/${clientName.replace(/ /g, '_')}_${signupId}.pdf`;
         const file = bucket.file(fileName);
         
@@ -509,3 +508,4 @@ export async function previewClientIntakePdf(formData: any, formType: 'private' 
         return { error: `Failed to generate PDF: ${error.message}` };
     }
 }
+
