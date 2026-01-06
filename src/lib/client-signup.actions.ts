@@ -429,7 +429,7 @@ export async function finalizeAndSubmit(signupId: string, formData: any) {
         const pdfBytes = await generateClientIntakePdf(validation.data, formType);
         
         // 2. Upload to Firebase Storage
-        const bucket = getStorage().bucket(); // Use default bucket
+        const bucket = getStorage().bucket("firstlighthomecare-hrm.appspot.com");
         const fileName = `client-agreements/${clientName.replace(/ /g, '_')}_${signupId}.pdf`;
         const file = bucket.file(fileName);
         
