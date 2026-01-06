@@ -414,6 +414,12 @@ const tppBaseFinalizationSchema = z.object({
   clientRepresentativePrintedName: z.string().optional(),
   clientRepresentativeSignatureDate: z.date().optional(),
   receivedAdditionalDisclosures: z.boolean().optional(),
+  // Add agreement fields which were missing
+  agreementClientSignature: z.string().optional(),
+  agreementSignatureDate: z.date().optional(),
+  agreementRelationship: z.string().optional(),
+  agreementRepSignature: z.string().optional(),
+  agreementRepDate: z.date().optional(),
 });
 
 
@@ -485,6 +491,10 @@ export const tppClientSignaturePayloadSchema = z.object({
   transportationWaiverClientPrintedName: z.string().optional(),
   transportationWaiverWitnessSignature: z.string().optional(),
   transportationWaiverDate: z.date().optional(),
+  // Add missing agreement fields for TPP
+  agreementClientSignature: z.string().optional(),
+  agreementSignatureDate: z.date().optional(),
+  agreementRelationship: z.string().optional(),
 }).superRefine((data, ctx) => {
     if (!data.signature && !data.repSignature) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Either client or representative signature is required.", path: ["signature"] });
