@@ -1,6 +1,5 @@
 
-
-"use client";
+'use client';
 
 import * as React from "react";
 import { useState, useTransition, useEffect, useRef } from "react";
@@ -49,7 +48,7 @@ const PrintHeader = () => (
 const PrintFooter = () => (
     <div className="print-footer-content hidden print:block text-xs text-gray-500">
         <div className="flex justify-between w-full">
-            <span>Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated.</span>
+            <span>Each franchise of <strong>FirstLight Home Care</strong> Franchising, LLC is independently owned and operated.</span>
             <span>FIRST-0084-A (10/2018)</span>
         </div>
     </div>
@@ -524,53 +523,22 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
   
   const receivedTransportationWaiver = form.watch('receivedTransportationWaiver');
 
-  const companionCareCheckboxes = [
-    { id: 'companionCare_mealPreparation', label: 'Meal preparation and clean up' },
-    { id: 'companionCare_cleanKitchen', label: 'Clean kitchen - appliances, sinks, mop floors' },
-    { id: 'companionCare_assistWithLaundry', label: 'Assist with laundry and ironing' },
-    { id: 'companionCare_dustFurniture', label: 'Dust furniture - living room, bedrooms, dining room' },
-    { id: 'companionCare_assistWithEating', label: 'Assist with eating and proper nutrition' },
-    { id: 'companionCare_provideAlzheimersRedirection', label: "Provide Alzheimer's redirection - for safety" },
-    { id: 'companionCare_assistWithHomeManagement', label: 'Assist with home management - mail, plants, calendar' },
-    { id: 'companionCare_preparationForBathing', label: 'Preparation for bathing and hair care' },
-    { id: 'companionCare_groceryShopping', label: 'Grocery shopping' },
-    { id: 'companionCare_cleanBathrooms', label: 'Clean bathrooms - sink, tub, toilet' },
-    { id: 'companionCare_changeBedLinens', label: 'Change bed linens and make bed' },
-    { id: 'companionCare_runErrands', label: 'Run errands - pick up prescription' },
-    { id: 'companionCare_escortAndTransportation', label: 'Escort and transportation' },
-    { id: 'companionCare_provideRemindersAndAssistWithToileting', label: 'Provide reminders and assist with toileting' },
-    { id: 'companionCare_provideRespiteCare', label: 'Provide respite care' },
-    { id: 'companionCare_stimulateMentalAwareness', label: 'Stimulate mental awareness - read' },
-    { id: 'companionCare_assistWithDressingAndGrooming', label: 'Assist with dressing and grooming' },
-    { id: 'companionCare_assistWithShavingAndOralCare', label: 'Assist with shaving and oral care' },
-  ] as const;
-
-  const personalCareCheckboxes = [
-    { id: 'personalCare_provideAlzheimersCare', label: "Provide Alzheimer's care, cognitive impairment" },
-    { id: 'personalCare_provideMedicationReminders', label: 'Provide medication reminders' },
-    { id: 'personalCare_assistWithDressingGrooming', label: 'Assist with dressing, grooming' },
-    { id: 'personalCare_assistWithBathingHairCare', label: 'Assist with bathing, hair care' },
-    { id: 'personalCare_assistWithFeedingSpecialDiets', label: 'Assist with feeding, special diets' },
-    { id: 'personalCare_assistWithMobilityAmbulationTransfer', label: 'Assist with mobility, ambulation and transfer' },
-    { id: 'personalCare_assistWithIncontinenceCare', label: 'Assist with incontinence care' },
-  ] as const;
-
   const terms = [
     { title: "BUSINESS OPERATIONS", text: "<strong>FirstLight Home Care</strong> is independently owned and operated as a franchisee of <strong>FirstLight Home Care</strong> Franchising, LLC. <strong>FirstLight Home Care</strong> meets all requirements of the State of California to provide non-medical in-home personal care, companion and homemaker services. Additional information about <strong>FirstLight Home Care</strong> that is required to be disclosed under the state law can be found in Section 15 of this Agreement." },
-    { title: "FIRSTLIGHT CONTACT INFORMATION", text: "If you have any question, problems, needs or concerns, please contact the <strong>FirstLight Home Care</strong> of Rancho Cucamonga contact Lolita Pinto at 9093214466 or by mail sent to the address above." },
-    { title: "COMPLAINTS", text: "To file a complaint, you may contact the manager listed above or the appropriate State reporting agency. In cases of allegations of abuse or neglect by an employee of <strong>FirstLight Home Care</strong> a complete investigation will be completed as soon as possible, and <strong>FirstLight Home Care</strong> will complete a written report within 14 days of the initial complaint unless state law requires earlier reporting in which case that requirements shall apply. The written report shall include the date, time, and description of alleged abuse, neglect, or financial exploitation; description of any injury or abuse of the Client; any actions taken by <strong>FirstLight Home Care</strong>; a description of actions taken to prevent future abuse or other crime, or when death (other than by disease or actual causes) has occurred." },
+    { title: "FIRSTLIGHT CONTACT INFORMATION", text: "If you have any question, problems, needs or concerns, please contact the <strong>FirstLight Home Care of Rancho Cucamonga</strong> contact Lolita Pinto at 9093214466 or by mail sent to the address above." },
+    { title: "COMPLAINTS", text: "To file a complaint, you may contact the manager listed above or the appropriate State reporting agency. In cases of allegations of abuse or neglect by an employee of <strong>FirstLight Home Care</strong> a complete investigation will be completed as soon as possible, and <strong>FirstLight Home Care</strong> will complete a written report within 14 days of the initial complaint unless state law requires earlier reporting in which case that requirements shall apply. The written report shall include the date, time, and description of alleged abuse, neglect, or financial exploitation; description of any injury or abuse of the Client; any actions taken by <strong>FirstLight Home Care</strong>; a description of actions taken to prevent  future abuse or other crime, or when death (other than by disease or actual causes) has occurred." },
     { title: "ABUSE REPORTING", text: "Reports of abuse, neglect or financial exploitation may be made by Client at any time to local law enforcement. <strong>FirstLight Home Care</strong> will report any suspected or known dependent adult or elder abuse and otherwise comply with all mandatory reporting laws including, but not limited to, to making reports to law enforcement if an allegation of physical abuse, sexual abuse or other crime, or when death (other than by disease or actual causes) has occurred." },
     { title: "INFORMATION REQUESTS", text: "<strong>FirstLight Home Care</strong> will adhere to a written policy addressing the confidentiality and permitted uses and disclosure of Client records as well as applicable provisions of state and federal law and its Payor Agreement. Response to an inquiry or information request is normally done during business hours however, inquiries or information requests made during evenings, weekends, or holidays will be addressed on the next business day." },
     { title: "EMERGENCY TREATMENT", text: "<strong>FirstLight Home Care</strong> caregivers and employees are not licensed, qualified or authorized to provide medical care or attention of any kind. If a medical emergency arises while a <strong>FirstLight Home Care</strong> employee is present, the employee is instructed to call for emergency assistance. The Client holds harmless <strong>FirstLight Home Care</strong> and its employees, agents, representatives, and affiliates for any medical attention provided resulting from instructions given by emergency services operators." },
     { title: "EMERGENCY CONTACT", text: "At the Client's instruction, or if it appears to a <strong>FirstLight Home Care</strong> employee that a life-threatening or medical emergency may have occurred while a <strong>FirstLight Home Care</strong> employee is present, <strong>FirstLight Home Care</strong> will immediately notify the appropriate emergency responders (9-1-1) and, as soon as reasonable feasible, the Client's Emergency Contact(s) indicated above." },
-    { title: "USE OF PREMISES", text: "Client shall not do or suffer or permit anything to be done in or about the location where the Services are to be provided (the \"Premises\") which would in any way subject <strong>FirstLight Home Care</strong> of Rancho Cucamonga, its employees, agents, representatives, and affiliates to any liability or cause a cancellation of, or give rise to any defense by an insurer to any claim under, any policies for homeowners' or renters' insurance. Client shall not do or permit anything to be done in or about the Premises which will in any way conflict with any law, ordinance or governmental requirement now in force or which may hereafter be enacted. Client shall immediately furnish <strong>FirstLight Home Care</strong> of Rancho Cucamonga with any notices received from any insurance company or governmental agency or inspection bureau regarding any unsafe or unlawful conditions within the Premises. Client will indemnify, defend and hold harmless <strong>FirstLight Home Care</strong> of Rancho Cucamonga, any related entities, its affiliates, and each of their directors, officers, and employees (\"Indemnified Persons\") from and against any and all claims, actions, demands, liabilities, losses, damages, judgments, costs and expenses, including but not to, reasonable attorneys' fees, costs and interest, asserted against, imposed upon or incurred by Indemnified Persons that arise out of, or in connection with, the Client's failure to perform the obligations of this Section 8." },
-    { title: "USE OF VEHICLE", text: "<strong>FirstLight Home Care</strong> of Rancho Cucamonga will not operate a vehicle on the Client's behalf unless the Client executes the Transportation Waiver substantially in the form provided by <strong>FirstLight Home Care</strong> of Rancho Cucamonga as part of this Agreement." },
+    { title: "USE OF PREMISES", text: "Client shall not do or suffer or permit anything to be done in or about the location where the Services are to be provided (the \"Premises\") which would in any way subject <strong>FirstLight Home Care of Rancho Cucamonga</strong>, its employees, agents, representatives, and affiliates to any liability or cause a cancellation of, or give rise to any defense by an insurer to any claim under, any policies for homeowners' or renters' insurance. Client shall not do or permit anything to be done in or about the Premises which will in any way conflict with any law, ordinance or governmental requirement now in force or which may hereafter be enacted. Client shall immediately furnish <strong>FirstLight Home Care of Rancho Cucamonga</strong> with any notices received from any insurance company or governmental agency or inspection bureau regarding any unsafe or unlawful conditions within the Premises. Client will indemnify, defend and hold harmless <strong>FirstLight Home Care of Rancho Cucamonga</strong>, any related entities, its affiliates, and each of their directors, officers, and employees (\"Indemnified Persons\") from and against any and all claims, actions, demands, liabilities, losses, damages, judgments, costs and expenses, including but not to, reasonable attorneys' fees, costs and interest, asserted against, imposed upon or incurred by Indemnified Persons that arise out of, or in connection with, the Client's failure to perform the obligations of this Section 8." },
+    { title: "USE OF VEHICLE", text: "<strong>FirstLight Home Care of Rancho Cucamonga</strong> will not operate a vehicle on the Client's behalf unless the Client executes the Transportation Waiver substantially in the form provided by <strong>FirstLight Home Care of Rancho Cucamonga</strong> as part of this Agreement." },
     { title: "HIRING", text: `The investment <strong>FirstLight Home Care</strong> makes in recruiting, training, developing, and maintaining employees as quality caregiver is a substantial cost of maintaining its business model and excellent service to clients. Client agrees, therefore, that except upon notice and the payment of a development fee as describes further below in this paragraph Client will not hire or otherwise utilize directly in any way, nor hire or engage or contract through any other company or agency for, the services of any employee of <strong>FirstLight Home Care</strong> for the restricted period of: i) one year from the last day worked by the employee for <strong>FirstLight Home Care</strong>; or ii) one year after the client stops utilizing <strong>FirstLight Home Care</strong> services, whichever ends sooner. If Client wishes to hire or otherwise engage the services of an employee before the expiration of the applicable one year restricted period above, Client must first provide written notice of such intent and payment in full of development fee of $15,000.00 to <strong>FirstLight Home Care</strong>. Hiring or otherwise utilizing directly or engaging or contracting for the services of an employee in contravention of this paragraph is a material breach of this agreement. In the event of such breach Client agrees to be liable for an award of money damages to <strong>FirstLight Home Care</strong> and for any and all other remedies available.` },
     { title: "OTHER CONSIDERATIONS", text: "The Client agrees that any claims made under the <strong>FirstLight Home Care</strong> fidelity bond must be made in writing by the Client within ten (10) days of the occurrence or such longer period of time if required under applicable provisions of state law." },
-    { title: "TERM; TERMINATION", text: "The term of this Agreement will be from the Contract Start Date until this Agreement is terminated under this section. Either party may terminate this Agreement at any time by providing seven (7) days' prior written notice to the other party stating the reason for termination. In instances of safety risk/hazard to a Client or a <strong>FirstLight Home Care</strong> of Rancho Cucamonga In-Home Worker or provision of the Services is otherwise prohibited by law, termination will be immediate with a stated reason for termination provided to the other party at the time of notification. Notwithstanding the foregoing, <strong>FirstLight Home Care</strong> will comply with all the obligations under state law and the terms of its agreement with Payor as pertains to termination of this Agreement and nothing in this section 12 shall permit <strong>FirstLight Home Care</strong> to violate its commitment to Payors under the Payor Agreement." },
-    { title: "AMENDMENT; ENTIRE AGREEMENT", text: "The Client agrees to notify <strong>FirstLight Home Care</strong> of any requested changes in the duties of a <strong>FirstLight Home Care</strong> of Rancho Cucamonga employee from those agreed to on the Client's plan of care or authorization from Payor. This Agreement may be amended only upon the mutual written consent of the parties. This Agreement represents the entire agreement of Client and <strong>FirstLight Home Care</strong> with respect to such subject matter. <strong>FirstLight Home Care</strong> acknowledges that Client's financial responsibility is governed by the Payor Agreement." },
+    { title: "TERM; TERMINATION", text: "The term of this Agreement will be from the Contract Start Date until this Agreement is terminated under this section. Either party may terminate this Agreement at any time by providing seven (7) days' prior written notice to the other party stating the reason for termination. In instances of safety risk/hazard to a Client or a <strong>FirstLight Home Care of Rancho Cucamonga</strong> In-Home Worker or provision of the Services is otherwise prohibited by law, termination will be immediate with a stated reason for termination provided to the other party at the time of notification. Notwithstanding the foregoing, <strong>FirstLight Home Care</strong> will comply with all the obligations under state law and the terms of its agreement with Payor as pertains to termination of this Agreement and nothing in this section 12 shall permit <strong>FirstLight Home Care</strong> to violate its commitment to Payors under the Payor Agreement." },
+    { title: "AMENDMENT; ENTIRE AGREEMENT", text: "The Client agrees to notify <strong>FirstLight Home Care</strong> of any requested changes in the duties of a <strong>FirstLight Home Care of Rancho Cucamonga</strong> employee from those agreed to on the Client's plan of care or authorization from Payor. This Agreement may be amended only upon the mutual written consent of the parties. This Agreement represents the entire agreement of Client and <strong>FirstLight Home Care</strong> with respect to such subject matter. <strong>FirstLight Home Care</strong> acknowledges that Client's financial responsibility is governed by the Payor Agreement." },
     { title: "SEVERABILITY", text: "The invalidity or partial invalidity of any portion of this Agreement will not invalidate the remainder thereof, and said remainder will remain in full force and effect. Moreover, if one or more of the provisions contained in this Agreement will, for any reason, be held to be excessively broad as to scope, activity, subject or otherwise, so as to be unenforceable at law, such provision or provisions will be construed by the appropriate judicial body by limiting or reducing it or them, so as to be enforceable to the maximum extent compatible with then applicable law." },
-    { title: "INFORMATION AND DOCUMENTS RECEIVED", text: "The Client acknowledges receipt of a copy of this Agreement, these Terms and Conditions and the following documents provided by <strong>FirstLight Home Care</strong> of Rancho Cucamonga and agrees to be bound by and comply with all of the same:" },
+    { title: "INFORMATION AND DOCUMENTS RECEIVED", text: "The Client acknowledges receipt of a copy of this Agreement, these Terms and Conditions and the following documents provided by <strong>FirstLight Home Care of Rancho Cucamonga</strong> and agrees to be bound by and comply with all of the same:" },
 ];
 
   if (isLoading) {
@@ -709,9 +677,7 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
                                     <FormMessage />
                                 </FormItem>
                             )} />
-                            <p className="text-sm">(“Payor”) will reimburse <strong>FirstLight Home Care</strong> agreement between <strong>FirstLight Home Care</strong> and Payor (“Payor Agreement”). <strong>FirstLight Home Care</strong> will submit claims to Payor in
-accordance with the provisions of the Payor Agreement and applicable requirements under state or federal law. To the extent
-Client owes <strong>FirstLight Home Care</strong> for any cost sharing or other financial obligation for the Services, such amounts shall be 
+                            <p className="text-sm">(“Payor”) will reimburse <strong>FirstLight Home Care</strong> agreement between <strong>FirstLight Home Care</strong> and Payor (“Payor Agreement”). <strong>FirstLight Home Care</strong> will submit claims to Payor in accordance with the provisions of the Payor Agreement and applicable requirements under state or federal law. To the extent Client owes <strong>FirstLight Home Care</strong> for any cost sharing or other financial obligation for the Services, such amounts shall be 
 determined by Payor in accordance with the Payor Agreement and applicable provisions of state and federal law. Client agrees to notify 
 <strong>FirstLight Home Care</strong> if Client becomes ineligible to receive the Services under this Agreement. Additional service (payable 
 by Client out of pocket and not covered by Payor) (the “Private Pay Services”) can be arranged upon Client request; provided,
@@ -739,10 +705,10 @@ provisions of state and federal law. A separate <strong>FirstLight Home Care</st
                             <FormField control={form.control} name="clientRepresentativePrintedName" render={({ field }) => ( <FormItem><FormLabel>Printed Name (Client Representative)</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
                             <FormField control={form.control} name="clientRepresentativeSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPublished}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
                         </div>
-                        {/* <strong>FirstLight Home Care</strong> Signature Section */}
+                        {/* FirstLight Home Care Signature Section */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-                            <SignatureField fieldName="firstLightRepresentativeSignature" title="(<strong>FirstLight Home Care</strong> of Representative Signature)" />
-                            <FormField control={form.control} name="firstLightRepresentativeTitle" render={({ field }) => ( <FormItem><FormLabel>(<strong>FirstLight Home Care</strong> of Rancho Cucamonga Representative Title)</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                            <SignatureField fieldName="firstLightRepresentativeSignature" title="(FirstLight Home Care of Representative Signature)" />
+                            <FormField control={form.control} name="firstLightRepresentativeTitle" render={({ field }) => ( <FormItem><FormLabel>(FirstLight Home Care of Rancho Cucamonga Representative Title)</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
                             <FormField control={form.control} name="firstLightRepresentativeSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isClientMode || isPublished}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isClientMode || isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
                         </div>
                     </div>
@@ -758,8 +724,13 @@ provisions of state and federal law. A separate <strong>FirstLight Home Care</st
                                 <li key={index} className="space-y-1">
                                     <span>
                                         <span className="font-bold">{index + 1}. {term.title}</span>
-                                        <span dangerouslySetInnerHTML={{ __html: ' ' + term.text }} />
+                                        <span dangerouslySetInnerHTML={{ __html: ' ' + term.text.replace(/<strong>FirstLight Home Care of Rancho Cucamonga<\/strong>/g, '<strong>FirstLight Home Care</strong>') }} />
                                     </span>
+                                    {isHiringTerm && (
+                                        <div className={cn("w-full md:w-1/3 mt-2 ml-4 p-4 rounded-md", isClientMode && "border border-orange-400")}>
+                                            <FormField control={form.control} name="clientInitials" render={({ field }) => ( <FormItem><FormLabel>Client Initials</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                                        </div>
+                                    )}
                                     {isLastTerm && (
                                         <div className="space-y-4 mt-4 ml-4">
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -772,16 +743,34 @@ provisions of state and federal law. A separate <strong>FirstLight Home Care</st
                                             </div>
                                         </div>
                                     )}
-                                    {isHiringTerm && (
-                                        <div className={cn("w-full md:w-1/3 mt-2 ml-4 p-4 rounded-md", isClientMode && "border border-orange-400")}>
-                                            <FormField control={form.control} name="clientInitials" render={({ field }) => ( <FormItem><FormLabel>Client Initials</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
-                                        </div>
-                                    )}
                                 </li>
                             )
                         })}
                     </ol>
                 </div>
+                
+                {receivedTransportationWaiver && (
+                    <div className="space-y-6 break-before-page">
+                        <h3 className="text-lg font-semibold text-center">Transportation Waiver</h3>
+                        <p className="text-sm"><strong>FirstLight HomeCare</strong> offers transportation as a convenience to our clients, not as a standalone service.</p>
+                        <p className="text-sm">Upon signing of this waiver, I understand I am authorizing an employee of <strong>FirstLight HomeCare</strong> to furnish transportation for me as a passenger in either their automobile or my own.</p>
+                        <p className="text-sm">I will follow all applicable laws, including, but not limited to, the wearing of my seatbelt.</p>
+                        <p className="text-sm">When the <strong>FirstLight HomeCare</strong> employee drives my vehicle, I certify current insurance for both liability and physical damage.</p>
+                        <p className="text-sm">Further, I accept responsibility for any deductibles on my personal automobile insurance coverage incurred as a result of this service.</p>
+                        <p className="text-sm">I specifically accept these risks and waive any claim that I might otherwise have against <strong>FirstLight HomeCare</strong> with respect to bodily injury or property damage sustained by me in connection with said transportation, and hereby expressly release <strong>FirstLight HomeCare</strong> and their employees from any and all liability therewith.</p>
+                        
+                        <div className="space-y-8 pt-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
+                                <FormField control={form.control} name="transportationWaiverClientPrintedName" render={({ field }) => ( <FormItem><FormLabel>Printed Name</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                                <SignatureField fieldName="transportationWaiverClientSignature" title="Signed (Client or Responsible Party)" />
+                            </div>
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
+                                <SignatureField fieldName="transportationWaiverWitnessSignature" title="Witness (FirstLight Home Care Representative)" />
+                                <FormField control={form.control} name="transportationWaiverDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPublished}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                            </div>
+                        </div>
+                    </div>
+                )}
 
 
                  <div className="flex justify-end gap-4 pt-6 no-print">
