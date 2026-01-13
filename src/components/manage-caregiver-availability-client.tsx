@@ -61,22 +61,22 @@ function extractAvailability(cell: string | null | undefined): string {
 /**
  * Determine if the row is a caregiver name row.
  * Name rows look like: "Aguirre, Ana",,,,,,
- * Meaning: first column has value, columns 2–8 are empty.
+ * Meaning: first column has a value that isn't a day, and columns 2–8 are empty.
  */
-function isCaregiverNameRow(rowObj: Record<string, string>): boolean {
-  const keys = Object.keys(rowObj);
-  if (keys.length === 0) return false;
-
-  const name = rowObj[keys[0]];
-  if (!name || !name.trim()) return false;
-
-  // Check if columns 2–8 (indices 1-7) are empty or undefined
+function isCaregiverNameRow(rowObj: Record<string, string>, headerColumns: string[]): boolean {
+  if (!headerColumns || headerColumns.length === 0) return false;
+  
+  const firstColValue = rowObj[headerColumns[0]];
+  if (!firstColValue || !firstColValue.trim() || DAY_COLUMNS.includes(firstColValue.trim())) {
+      return false;
+  }
+  
+  // Check if columns 2–8 (indices 1-7) are empty
   for (let i = 1; i <= 7; i++) {
-    const col = keys[i];
-    if (!col) continue;
-
-    const val = rowObj[col];
-    if (val && val.trim()) return false;
+    const colName = headerColumns[i];
+    if (colName && rowObj[colName] && rowObj[colName].trim()) {
+      return false; // If any other column in the typical day-range has data, it's not a name row.
+    }
   }
 
   return true;
@@ -117,7 +117,7 @@ export default function ManageCaregiverAvailabilityClient() {
           let currentCaregiver: { name: string; schedule: Record<string, string> } | null = null;
 
           for (const row of rows) {
-              if (isCaregiverNameRow(row)) {
+              if (isCaregiverNameRow(row, headerColumns)) {
                   if (currentCaregiver) {
                       caregivers.push(currentCaregiver);
                   }
@@ -135,7 +135,9 @@ export default function ManageCaregiverAvailabilityClient() {
 
               if (currentCaregiver) {
                   DAY_COLUMNS.forEach((day, i) => {
-                      const colName = headerColumns[i + 1]; // col 0 is name, 1-7 are days
+                      // Corrected: Use index `i` which maps directly to DAY_COLUMNS.
+                      // Monday -> i=0 -> headerColumns[0]
+                      const colName = headerColumns[i]; 
                       if (!colName) return;
 
                       const cell = row[colName];
