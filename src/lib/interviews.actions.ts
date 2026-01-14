@@ -1,5 +1,4 @@
 
-
 "use server";
 
 import { revalidatePath } from 'next/cache';
@@ -177,7 +176,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
 
     // --- Confirmation Email ---
 
-    const formattedDate = formatInTimeZone(startTime, pacificTimeZone, 'eeee, MMMM do');
+    const formattedDate = formatInTimeZone(startTime, pacificTimeZone, 'eeee, MMMM do, yyyy');
     const formattedStartTime = formatInTimeZone(startTime, pacificTimeZone, 'h:mm a zzz');
     const formattedEndTime = formatInTimeZone(endTime, pacificTimeZone, 'h:mm a zzz');
 
@@ -197,7 +196,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
 
     const detailedInPersonEmail = `
         <p>${caregiverProfile.fullName},</p>
-        <p>This is to confirm your in-person ${inPersonDuration} hour ${interviewType === 'Orientation' ? 'orientation' : 'interview'} for a HCA/Caregiver position. Pls accept the calendar invite from FirstLightHomeCare Office Administrator.</p>
+        <p>This is to confirm your in-person ${inPersonDuration} hour ${interviewType === 'Orientation' ? 'orientation' : 'interview'} for a HCA/Caregiver position on ${formattedDate} at ${formattedStartTime}.</p>
         <p>Please call or text the office if you have questions, or need to cancel or reschedule your appointment.</p>
         ${referenceFormHtml}
         <br>
@@ -387,5 +386,6 @@ export async function rejectCandidateAfterOrientation(payload: { interviewId: st
 
 
     
+
 
 
