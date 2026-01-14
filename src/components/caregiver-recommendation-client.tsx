@@ -3,13 +3,13 @@
 
 import { useState, useEffect, useTransition, useMemo } from "react";
 import { Loader2, UserCheck, Sparkles, Star, CalendarDays } from "lucide-react";
-import { useDoc, firestore } from "@/firebase";
-import { doc, getDocs, collection } from "firebase/firestore";
+import { useDoc, firestore, useCollection } from "@/firebase";
+import { doc, getDocs, collection, getDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { getCaregiverRecommendations } from "@/lib/recommendations.actions";
 import type { InitialContact, LevelOfCareFormData, ActiveCaregiver } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "./ui/table";
 import { cn } from "@/lib/utils";
 
@@ -27,7 +27,7 @@ function parseEstimatedHours(text: string): { hoursPerDay: number | null; totalW
     return { hoursPerDay: parseInt(perDayMatch[1], 10), totalWeeklyHours: null };
   }
 
-  const perWeekMatch = text.match(/(\d+)\s*hours?\s*per\s*week/i);
+  const perWeekMatch = text.match(/(\d+)\s*hours?\s*(?:per\s*week|weekly)?/i);
   if (perWeekMatch) {
     return { hoursPerDay: null, totalWeeklyHours: parseInt(perWeekMatch[1], 10) };
   }
@@ -50,7 +50,7 @@ function generateProposedSchedule(estimatedHoursText: string, availability: any)
     return { "schedule": "Could not determine required hours from input." };
   }
   
-  if (!availability || Object.keys(availability).length === 0) {
+  if (!availability || Object.keys(availability).length === 0 || Object.values(availability).every(v => Array.isArray(v) && v.length === 0)) {
       return { "schedule": "Caregiver has no availability defined." };
   }
 
@@ -59,26 +59,29 @@ function generateProposedSchedule(estimatedHoursText: string, availability: any)
   for (const day of daysOfWeek) {
     const dayAvailability = availability[day];
     if (dayAvailability && dayAvailability.length > 0) {
-      const timeSlot = dayAvailability[0]; // Use the first available slot
-      const [startStr, endStr] = timeSlot.split(' - ');
+        // Take the first available slot for the day
+      const timeSlot = dayAvailability[0]; 
+      const [startStr, endStr] = timeSlot.split(' - ').map((s: string) => s.trim());
       const [startHour] = startStr.split(':').map(Number);
       
       let hoursToAssign = 0;
       if (hoursPerDay) {
         hoursToAssign = hoursPerDay;
       } else if (remainingWeeklyHours && remainingWeeklyHours > 0) {
-        hoursToAssign = Math.min(remainingWeeklyHours, 4); // Default to 4-hour shifts if not specified
+        // Default to 4-hour shifts if breaking down a weekly total
+        hoursToAssign = Math.min(remainingWeeklyHours, 4); 
       }
 
       if (hoursToAssign > 0) {
         const endHour = startHour + hoursToAssign;
-        const endAmPm = endHour >= 12 ? 'PM' : 'AM';
-        const startAmPm = startHour >= 12 ? 'PM' : 'AM';
         
-        const formattedStartHour = startHour % 12 === 0 ? 12 : startHour % 12;
-        const formattedEndHour = endHour % 12 === 0 ? 12 : endHour % 12;
+        const formatHour = (h: number) => {
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            const formatted = h % 12 === 0 ? 12 : h % 12;
+            return `${formatted}${ampm}`;
+        };
 
-        proposedSchedule[day] = `${formattedStartHour}${startAmPm} - ${formattedEndHour}${endAmPm}`;
+        proposedSchedule[day] = `${formatHour(startHour)} - ${formatHour(endHour)}`;
 
         if (remainingWeeklyHours) {
           remainingWeeklyHours -= hoursToAssign;
@@ -124,7 +127,10 @@ export function CaregiverRecommendationClient({ contactId }: CaregiverRecommenda
 
   useEffect(() => {
     async function fetchSubcollections() {
-      if (!caregiversData || caregiversData.length === 0) return;
+      if (!caregiversData || caregiversData.length === 0) {
+          setSubcollectionsLoading(false);
+          return;
+      };
       
       const avails: any = {};
       const prefs: any = {};
@@ -132,15 +138,19 @@ export function CaregiverRecommendationClient({ contactId }: CaregiverRecommenda
       for (const cg of caregiversData) {
           const availDocRef = doc(firestore, `caregivers_active/${cg.id}/availability/current_week`);
           const prefDocRef = doc(firestore, `caregivers_active/${cg.id}/preferences/current`);
+          
+          try {
+            const availDoc = await getDoc(availDocRef);
+            if (availDoc.exists()) {
+                avails[cg.id] = availDoc.data();
+            }
 
-          const availDoc = await getDoc(availDocRef);
-          if (availDoc.exists()) {
-              avails[cg.id] = availDoc.data();
-          }
-
-          const prefDoc = await getDoc(prefDocRef);
-          if (prefDoc.exists()) {
-              prefs[cg.id] = prefDoc.data();
+            const prefDoc = await getDoc(prefDocRef);
+            if (prefDoc.exists()) {
+                prefs[cg.id] = prefDoc.data();
+            }
+          } catch (error) {
+              console.error(`Failed to fetch subcollections for caregiver ${cg.id}:`, error);
           }
       }
 
@@ -186,8 +196,8 @@ export function CaregiverRecommendationClient({ contactId }: CaregiverRecommenda
         setProposedSchedule(null);
     } else {
         setSelectedCaregiver(recommendation);
-        const caregiverFullData = caregiversData.find(cg => cg.id === recommendation.id);
         const caregiverAvailability = availabilities[recommendation.id];
+
         if (contactData?.estimatedHours && caregiverAvailability) {
             const schedule = generateProposedSchedule(contactData.estimatedHours, caregiverAvailability);
             setProposedSchedule(schedule);
@@ -283,5 +293,3 @@ export function CaregiverRecommendationClient({ contactId }: CaregiverRecommenda
     </div>
   );
 }
-
-    
