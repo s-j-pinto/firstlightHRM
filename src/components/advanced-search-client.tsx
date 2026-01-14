@@ -45,11 +45,9 @@ const skillsAndAttributes = [
     { id: "hasHospiceExperience", label: "Hospice Exp.", icon: HeartPulse },
     { id: "hca", label: "HCA", icon: ShieldCheck },
     { id: "hha", label: "HHA", icon: ShieldCheck },
-    { id: "cna", label: "CNA", icon: ShieldCheck },
     { id: "liveScan", label: "Live Scan", icon: ScanSearch },
     { id: "negativeTbTest", label: "Negative TB Test", icon: ShieldCheck },
     { id: "cprFirstAid", label: "CPR/First Aid", icon: HeartPulse },
-    { id: "canWorkWithCovid", label: "Can Work With COVID", icon: Biohazard },
     { id: "covidVaccine", label: "COVID Vaccinated", icon: Biohazard },
 ] as const;
 
@@ -185,11 +183,9 @@ const ProfileDialog = ({ candidate }: { candidate: CaregiverProfile | null }) =>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                     <p className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">HCA:</span> <BooleanDisplay value={candidate.hca} /></p>
                     <p className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">HHA:</span> <BooleanDisplay value={candidate.hha} /></p>
-                    <p className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">CNA:</span> <BooleanDisplay value={candidate.cna} /></p>
                     <p className="flex items-center gap-2"><ScanSearch className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">Live Scan:</span> <BooleanDisplay value={candidate.liveScan} /></p>
                     <p className="flex items-center gap-2"><FileText className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">TB Test:</span> <BooleanDisplay value={candidate.negativeTbTest} /></p>
                     <p className="flex items-center gap-2"><Stethoscope className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">CPR/First Aid:</span> <BooleanDisplay value={candidate.cprFirstAid} /></p>
-                    <p className="flex items-center gap-2"><Biohazard className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">COVID Work:</span> <BooleanDisplay value={candidate.canWorkWithCovid} /></p>
                     <p className='flex items-center gap-2'><Biohazard className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">COVID Vaccine:</span> <BooleanDisplay value={candidate.covidVaccine} /></p>
                 </div>
                 {candidate.otherLanguages && <p className="flex items-center gap-2"><Languages className="h-4 w-4 mt-1 text-muted-foreground" /><span className="font-semibold">Other Languages:</span> {candidate.otherLanguages}</p>}

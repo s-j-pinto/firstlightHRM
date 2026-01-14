@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useTransition, useMemo } from "react";
@@ -279,11 +280,9 @@ export default function AdminDashboard() {
                             <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                                 <p className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">HCA:</span> <BooleanDisplay value={appointment.caregiver.hca} /></p>
                                 <p className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">HHA:</span> <BooleanDisplay value={appointment.caregiver.hha} /></p>
-                                <p className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">CNA:</span> <BooleanDisplay value={appointment.caregiver.cna} /></p>
                                 <p className="flex items-center gap-2"><ScanSearch className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">Live Scan:</span> <BooleanDisplay value={appointment.caregiver.liveScan} /></p>
                                 <p className="flex items-center gap-2"><FileText className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">TB Test:</span> <BooleanDisplay value={appointment.caregiver.negativeTbTest} /></p>
                                 <p className="flex items-center gap-2"><Stethoscope className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">CPR/First Aid:</span> <BooleanDisplay value={appointment.caregiver.cprFirstAid} /></p>
-                                <p className="flex items-center gap-2"><Biohazard className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">COVID Work:</span> <BooleanDisplay value={appointment.caregiver.canWorkWithCovid} /></p>
                                 <p className='flex items-center gap-2'><Biohazard className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">COVID Vaccine:</span> <BooleanDisplay value={appointment.caregiver.covidVaccine} /></p>
                             </div>
                             {appointment.caregiver.otherLanguages && <p className="flex items-center gap-2"><Languages className="h-4 w-4 mt-1 text-muted-foreground" /><span className="font-semibold">Other Languages:</span> {appointment.caregiver.otherLanguages}</p>}

@@ -15,7 +15,6 @@ const InterviewInsightsInputSchema = z.object({
   canUseHoyerLift: z.boolean().optional(),
   hasDementiaExperience: z.boolean().optional(),
   hasHospiceExperience: z.boolean().optional(),
-  cna: z.boolean().optional(),
   hha: z.boolean().optional(),
   hca: z.boolean().optional(),
   availability: z.any(),
@@ -65,7 +64,6 @@ Analyze the following information:
   - Dementia Experience: {{#if hasDementiaExperience}}Yes{{else}}No{{/if}}
   - Hospice Experience: {{#if hasHospiceExperience}}Yes{{else}}No{{/if}}
 - Certifications:
-  - CNA: {{#if cna}}Yes{{else}}No{{/if}}
   - HHA: {{#if hha}}Yes{{else}}No{{/if}}
   - HCA: {{#if hca}}Yes{{else}}No{{/if}}
 - Transportation: Has car: {{hasCar}}, Valid License: {{validLicense}}

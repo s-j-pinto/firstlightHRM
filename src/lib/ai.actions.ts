@@ -16,9 +16,9 @@ import type { ExtractCareLogInput, ExtractCareLogOutput } from '@/lib/types';
  * @param payload - The data for the candidate and interview.
  * @returns An object containing the AI-generated insight.
  */
-export async function getAiInterviewInsights(payload: InterviewInsightsInput) {
+export async function getAiInterviewInsights(payload: Omit<InterviewInsightsInput, 'cna'>) {
   try {
-    const result = await generateInterviewInsights(payload);
+    const result = await generateInterviewInsights({...payload, cna: false});
     return { aiGeneratedInsight: result.aiGeneratedInsight };
   } catch (e: any) {
     console.error("Error in getAiInterviewInsights Server Action:", e);

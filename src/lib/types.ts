@@ -19,7 +19,7 @@ export const generalInfoSchema = z.object({
 export const experienceSchema = z.object({
   yearsExperience: z.coerce.number().min(0, "Years of experience is required."),
   previousRoles: z.string().optional(),
-  summary: z.string().optional(),
+  summary: z.string().min(1, "Experience summary is required."),
   canChangeBrief: z.boolean().optional().default(false),
   canTransfer: z.boolean().optional().default(false),
   canPrepareMeals: z.boolean().optional().default(false),
@@ -38,12 +38,10 @@ export const experienceSchema = z.object({
 export const certificationsSchema = z.object({
   hca: z.boolean().default(false),
   hha: z.boolean().default(false),
-  cna: z.boolean().default(false),
   liveScan: z.boolean().default(false),
   otherLanguages: z.string().optional(),
   negativeTbTest: z.boolean().default(false),
   cprFirstAid: z.boolean().default(false),
-  canWorkWithCovid: z.boolean().optional().default(false),
   covidVaccine: z.boolean().optional().default(false),
   cnaLicense: z.string().optional(),
   otherCertifications: z.string().optional(),
@@ -491,6 +489,8 @@ export const tppClientSignaturePayloadSchema = z.object({
   transportationWaiverClientPrintedName: z.string().optional(),
   transportationWaiverWitnessSignature: z.string().optional(),
   transportationWaiverDate: z.date().optional(),
+  agreementClientSignature: z.string().optional(),
+  agreementSignatureDate: z.date().optional(),
 }).superRefine((data, ctx) => {
     if (!data.clientSignature && !data.clientRepresentativeSignature) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: "A client or representative signature is required.", path: ["clientSignature"] });
@@ -693,6 +693,7 @@ export type SmsMessage = z.infer<typeof smsMessageSchema> & { id: string };
     
 
     
+
 
 
 
