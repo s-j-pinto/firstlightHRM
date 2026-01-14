@@ -101,10 +101,10 @@ export function CaregiverRecommendationClient({ contactId }: CaregiverRecommenda
   const [proposedSchedule, setProposedSchedule] = useState<Record<string, string> | null>(null);
   const [isGenerating, startGeneratingTransition] = useTransition();
 
-  const contactDocRef = doc(firestore, 'initial_contacts', contactId);
+  const contactDocRef = useMemo(() => doc(firestore, 'initial_contacts', contactId), [contactId]);
   const { data: contactData, isLoading: contactLoading } = useDoc<InitialContact>(contactDocRef);
   
-  const locDocRef = doc(firestore, 'level_of_care_assessments', contactId);
+  const locDocRef = useMemo(() => doc(firestore, 'level_of_care_assessments', contactId), [contactId]);
   const { data: locData, isLoading: locLoading } = useDoc<LevelOfCareFormData>(locDocRef);
 
   const [caregiversData, setCaregiversData] = useState<ActiveCaregiver[]>([]);
