@@ -1,5 +1,4 @@
 
-
 import { z } from "zod";
 
 export const generalInfoSchema = z.object({
@@ -17,7 +16,7 @@ export const generalInfoSchema = z.object({
 });
 
 export const experienceSchema = z.object({
-  yearsExperience: z.coerce.number().min(0, "Years of experience is required."),
+  yearsExperience: z.coerce.number().min(0, "Years of experience is required and cannot be negative."),
   previousRoles: z.string().optional(),
   summary: z.string().min(1, "Experience summary is required."),
   canChangeBrief: z.boolean().optional().default(false),
@@ -70,7 +69,7 @@ export const caregiverFormSchema = generalInfoSchema
   .merge(availabilitySchema)
   .merge(transportationSchema);
 
-export type CaregiverProfile = z.infer<typeof caregiverFormSchema> & { id: string };
+export type CaregiverProfile = z.infer<typeof caregiverFormSchema> & { id: string, canWorkWithCovid?: boolean, cna?: boolean };
 
 export const appointmentSchema = z.object({
   caregiverId: z.string(),
@@ -559,7 +558,7 @@ export const initialContactSchema = z.object({
     status: z.string().optional(),
     clientDepositAmount: z.coerce.number().optional(),
 });
-export type InitialContact = z.infer<typeof initialContactSchema> & { id: string, smsFollowUpSent?: boolean, clientPhone?: string };
+export type InitialContact = z.infer<typeof initialContactSchema> & { id: string, smsFollowUpSent?: boolean, clientPhone?: string, pets?: string };
 
 export const campaignTemplateSchema = z.object({
     name: z.string(),
@@ -687,77 +686,28 @@ export const smsMessageSchema = z.object({
 });
 export type SmsMessage = z.infer<typeof smsMessageSchema> & { id: string };
 
-const ClientCareNeedsSchema = z.object({
+export const ClientCareNeedsSchema = z.object({
     // Companion Care fields
     companionCare_mealPreparation: z.boolean().optional(),
     companionCare_cleanKitchen: z.boolean().optional(),
     companionCare_assistWithLaundry: z.boolean().optional(),
-    companionCare_dustFurniture: z.boolean().optional(),
-    companionCare_assistWithEating: z.boolean().optional(),
     companionCare_provideAlzheimersRedirection: z.boolean().optional(),
-    companionCare_assistWithHomeManagement: z.boolean().optional(),
-    companionCare_preparationForBathing: z.boolean().optional(),
-    companionCare_groceryShopping: z.boolean().optional(),
-    companionCare_cleanBathrooms: z.boolean().optional(),
-    companionCare_changeBedLinens: z.boolean().optional(),
-    companionCare_runErrands: z.boolean().optional(),
     companionCare_escortAndTransportation: z.boolean().optional(),
-    companionCare_provideRemindersAndAssistWithToileting: z.boolean().optional(),
-    companionCare_provideRespiteCare: z.boolean().optional(),
-    companionCare_stimulateMentalAwareness: z.boolean().optional(),
-    companionCare_assistWithDressingAndGrooming: z.boolean().optional(),
-    companionCare_assistWithShavingAndOralCare: z.boolean().optional(),
-    companionCare_other: z.string().optional(),
+    pets: z.string().optional(),
+    
+    // Personal Care Needs
     personalCare_provideAlzheimersCare: z.boolean().optional(),
-    personalCare_provideMedicationReminders: z.boolean().optional(),
-    personalCare_assistWithDressingGrooming: z.boolean().optional(),
-    personalCare_assistWithBathingHairCare: z.boolean().optional(),
-    personalCare_assistWithFeedingSpecialDiets: z.boolean().optional(),
-    personalCare_assistWithMobilityAmbulationTransfer: z.boolean().optional(),
-    personalCare_assistWithIncontinenceCare: z.boolean().optional(),
-    personalCare_assistWithOther: z.string().optional(),
 
     // Level of Care fields
-    level_0_independent_in_emergency: z.boolean().optional(),
     level_1_independent_to_verbal_reminders: z.boolean().optional(),
     level_2_transfer_stand_by_assist: z.boolean().optional(),
-    level_2_some_bathing_assistance: z.boolean().optional(),
     level_2_mild_memory_impairment: z.boolean().optional(),
     level_3_transfer_one_person_assist: z.boolean().optional(),
-    level_3_incontinence_management: z.boolean().optional(),
-    level_3_needs_bathing_assistance: z.boolean().optional(),
     level_3_impaired_memory: z.boolean().optional(),
     level_4_transfer_two_person_or_mechanical_lift: z.boolean().optional(),
-    level_4_hands_on_assistance_with_adls: z.boolean().optional(),
-    level_4_behavior_management: z.boolean().optional(),
     level_4_severe_cognitive_and_memory_impairment: z.boolean().optional(),
-    languagePreference: z.string().optional(),
 });
 export type ClientCareNeeds = z.infer<typeof ClientCareNeedsSchema>;
-
-const AvailableCaregiverSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  availability: z.record(z.string(), z.array(z.string())),
-  preferences: z.record(z.string(), z.string()).optional(),
-});
-export type AvailableCaregiver = z.infer<typeof AvailableCaregiverSchema>;
-
-export const CaregiverRecommendationInputSchema = z.object({
-    clientCareNeeds: ClientCareNeedsSchema,
-    availableCaregivers: z.array(AvailableCaregiverSchema),
-});
-export type CaregiverRecommendationInput = z.infer<typeof CaregiverRecommendationInputSchema>;
-
-export const CaregiverRecommendationOutputSchema = z.object({
-    recommendations: z.array(z.object({
-        caregiverId: z.string(),
-        caregiverName: z.string(),
-        matchScore: z.number().min(0).max(100),
-        reasoning: z.string(),
-    })),
-});
-export type CaregiverRecommendationOutput = z.infer<typeof CaregiverRecommendationOutputSchema>;
     
 
     
