@@ -4,7 +4,7 @@
 import { useState, useEffect, useTransition } from "react";
 import { Loader2, UserCheck, Sparkles, Star } from "lucide-react";
 import { useCollection, useDoc, useMemoFirebase, firestore } from "@/firebase";
-import { collection, doc } from "firebase/firestore";
+import { collection, doc, getDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { getCaregiverRecommendations } from "@/lib/ai.actions";
 import type { InitialContact, LevelOfCareFormData, ActiveCaregiver } from "@/lib/types";
@@ -24,7 +24,7 @@ export function CaregiverRecommendationClient({ contactId }: CaregiverRecommenda
   const locRef = useMemoFirebase(() => doc(firestore, 'level_of_care_assessments', contactId), [contactId]);
   const { data: locData, isLoading: locLoading } = useDoc<LevelOfCareFormData>(locRef);
 
-  const caregiversRef = useMemoFirebase(() => collection(firestore, 'caregivers_active'), [firestore]);
+  const caregiversRef = useMemoFirebase(() => collection(firestore, 'caregivers_active'), []);
   const { data: caregiversData, isLoading: caregiversLoading } = useCollection<ActiveCaregiver>(caregiversRef);
 
   // We need to fetch subcollections separately. This is a simplified approach.
@@ -38,10 +38,10 @@ export function CaregiverRecommendationClient({ contactId }: CaregiverRecommenda
       if (!caregiversData) return;
       
       const availabilityPromises = caregiversData.map(cg => 
-        firestore.collection('caregivers_active').doc(cg.id).collection('availability').doc('current_week').get()
+        getDoc(doc(firestore, 'caregivers_active', cg.id, 'availability', 'current_week'))
       );
       const preferencePromises = caregiversData.map(cg => 
-        firestore.collection('caregivers_active').doc(cg.id).collection('preferences').doc('current').get()
+        getDoc(doc(firestore, 'caregivers_active', cg.id, 'preferences', 'current'))
       );
 
       const availabilityResults = await Promise.all(availabilityPromises);
@@ -49,12 +49,12 @@ export function CaregiverRecommendationClient({ contactId }: CaregiverRecommenda
 
       const avails: any = {};
       availabilityResults.forEach((doc, index) => {
-        if (doc.exists) avails[caregiversData[index].id] = doc.data();
+        if (doc.exists()) avails[caregiversData[index].id] = doc.data();
       });
 
       const prefs: any = {};
       preferenceResults.forEach((doc, index) => {
-        if (doc.exists) prefs[caregiversData[index].id] = doc.data();
+        if (doc.exists()) prefs[caregiversData[index].id] = doc.data();
       });
 
       setAvailabilities(avails);
@@ -65,7 +65,7 @@ export function CaregiverRecommendationClient({ contactId }: CaregiverRecommenda
     if (caregiversData) {
       fetchSubcollections();
     }
-  }, [caregiversData, firestore]);
+  }, [caregiversData]);
   
 
   const handleGenerate = () => {
