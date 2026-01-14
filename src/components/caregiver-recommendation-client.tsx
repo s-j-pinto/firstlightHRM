@@ -3,8 +3,8 @@
 
 import { useState, useEffect, useTransition, useMemo } from "react";
 import { Loader2, UserCheck, Sparkles, Star, CalendarDays } from "lucide-react";
-import { useDoc, firestore, useCollection } from "@/firebase";
-import { doc, getDocs, collection, getDoc } from "firebase/firestore";
+import { useDoc, firestore, useCollection, useMemoFirebase } from "@/firebase";
+import { doc, getDocs, collection, getDoc, query } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { getCaregiverRecommendations } from "@/lib/recommendations.actions";
 import type { InitialContact, LevelOfCareFormData, ActiveCaregiver } from "@/lib/types";
@@ -101,10 +101,10 @@ export function CaregiverRecommendationClient({ contactId }: CaregiverRecommenda
   const [proposedSchedule, setProposedSchedule] = useState<Record<string, string> | null>(null);
   const [isGenerating, startGeneratingTransition] = useTransition();
 
-  const contactDocRef = useMemo(() => doc(firestore, 'initial_contacts', contactId), [contactId]);
+  const contactDocRef = useMemoFirebase(() => doc(firestore, 'initial_contacts', contactId), [contactId]);
   const { data: contactData, isLoading: contactLoading } = useDoc<InitialContact>(contactDocRef);
   
-  const locDocRef = useMemo(() => doc(firestore, 'level_of_care_assessments', contactId), [contactId]);
+  const locDocRef = useMemoFirebase(() => doc(firestore, 'level_of_care_assessments', contactId), [contactId]);
   const { data: locData, isLoading: locLoading } = useDoc<LevelOfCareFormData>(locDocRef);
 
   const [caregiversData, setCaregiversData] = useState<ActiveCaregiver[]>([]);
@@ -116,7 +116,7 @@ export function CaregiverRecommendationClient({ contactId }: CaregiverRecommenda
 
   useEffect(() => {
     async function fetchCaregivers() {
-        const caregiversQuery = collection(firestore, 'caregivers_active');
+        const caregiversQuery = query(collection(firestore, 'caregivers_active'));
         const snapshot = await getDocs(caregiversQuery);
         const data = snapshot.docs.map(d => ({...d.data(), id: d.id})) as ActiveCaregiver[];
         setCaregiversData(data);
