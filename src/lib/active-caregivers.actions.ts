@@ -266,3 +266,69 @@ export async function processActiveCaregiverProfiles(data: Record<string, any>[]
     return { message: `An error occurred during the upload: ${error.message}`, error: true };
   }
 }
+
+
+export async function processActiveCaregiverPreferencesUpload(data: Record<string, any>[]) {
+    const firestore = serverDb;
+    const now = Timestamp.now();
+
+    if (!data || data.length === 0) {
+        return { message: "No preference data was processed from the CSV.", error: true };
+    }
+
+    try {
+        const allCaregiversSnap = await firestore.collection('caregivers_active').where('status', '==', 'Active').get();
+        const profileMap = new Map<string, string>(); // Map name to caregiver document ID
+
+        allCaregiversSnap.forEach(doc => {
+            const name = doc.data().Name;
+            if (name) {
+                profileMap.set(name.trim(), doc.id);
+            }
+        });
+
+        let batch = firestore.batch();
+        let operations = 0;
+        let updatedCount = 0;
+
+        for (const row of data) {
+            const caregiverName = row['Caregiver']?.trim();
+            if (!caregiverName) continue;
+
+            const caregiverId = profileMap.get(caregiverName);
+            if (!caregiverId) {
+                console.warn(`[Preferences] Could not find active caregiver profile for name: "${caregiverName}"`);
+                continue;
+            }
+
+            const { Caregiver, ...preferences } = row;
+            const preferencesData = {
+                ...preferences,
+                caregiverId: caregiverId,
+                lastUpdatedAt: now,
+            };
+
+            const preferencesDocRef = firestore.collection('caregivers_active').doc(caregiverId).collection('preferences').doc('current');
+            batch.set(preferencesDocRef, preferencesData, { merge: true });
+            operations++;
+            updatedCount++;
+
+            if (operations >= 499) {
+                await batch.commit();
+                batch = firestore.batch();
+                operations = 0;
+            }
+        }
+
+        if (operations > 0) {
+            await batch.commit();
+        }
+
+        revalidatePath('/staffing-admin/manage-active-caregivers');
+        return { message: `Preferences upload finished. Updated ${updatedCount} caregiver records.` };
+
+    } catch (error: any) {
+        console.error('[Action Error] Critical error during preferences upload:', error);
+        return { message: `An error occurred during the preferences upload: ${error.message}`, error: true };
+    }
+}

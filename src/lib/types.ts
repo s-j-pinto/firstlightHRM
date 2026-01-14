@@ -1,5 +1,4 @@
 
-
 import { z } from "zod";
 
 export const generalInfoSchema = z.object({
@@ -17,7 +16,7 @@ export const generalInfoSchema = z.object({
 });
 
 export const experienceSchema = z.object({
-  yearsExperience: z.coerce.number().min(0, "Years of experience is required."),
+  yearsExperience: z.coerce.number().min(0, "Years of experience is required and cannot be negative."),
   previousRoles: z.string().optional(),
   summary: z.string().min(1, "Experience summary is required."),
   canChangeBrief: z.boolean().optional().default(false),
@@ -42,9 +41,6 @@ export const certificationsSchema = z.object({
   otherLanguages: z.string().optional(),
   negativeTbTest: z.boolean().default(false),
   cprFirstAid: z.boolean().default(false),
-  covidVaccine: z.boolean().optional().default(false),
-  cnaLicense: z.string().optional(),
-  otherCertifications: z.string().optional(),
 });
 
 export const availabilitySchema = z.object({
@@ -73,7 +69,7 @@ export const caregiverFormSchema = generalInfoSchema
   .merge(availabilitySchema)
   .merge(transportationSchema);
 
-export type CaregiverProfile = z.infer<typeof caregiverFormSchema> & { id: string };
+export type CaregiverProfile = z.infer<typeof caregiverFormSchema> & { id: string, canWorkWithCovid?: boolean, cna?: boolean };
 
 export const appointmentSchema = z.object({
   caregiverId: z.string(),
@@ -562,7 +558,7 @@ export const initialContactSchema = z.object({
     status: z.string().optional(),
     clientDepositAmount: z.coerce.number().optional(),
 });
-export type InitialContact = z.infer<typeof initialContactSchema> & { id: string, smsFollowUpSent?: boolean, clientPhone?: string };
+export type InitialContact = z.infer<typeof initialContactSchema> & { id: string, smsFollowUpSent?: boolean, clientPhone?: string, pets?: string };
 
 export const campaignTemplateSchema = z.object({
     name: z.string(),
@@ -690,6 +686,28 @@ export const smsMessageSchema = z.object({
 });
 export type SmsMessage = z.infer<typeof smsMessageSchema> & { id: string };
 
+export const ClientCareNeedsSchema = z.object({
+    // Companion Care fields
+    companionCare_mealPreparation: z.boolean().optional(),
+    companionCare_cleanKitchen: z.boolean().optional(),
+    companionCare_assistWithLaundry: z.boolean().optional(),
+    companionCare_provideAlzheimersRedirection: z.boolean().optional(),
+    companionCare_escortAndTransportation: z.boolean().optional(),
+    pets: z.string().optional(),
+    
+    // Personal Care Needs
+    personalCare_provideAlzheimersCare: z.boolean().optional(),
+
+    // Level of Care fields
+    level_1_independent_to_verbal_reminders: z.boolean().optional(),
+    level_2_transfer_stand_by_assist: z.boolean().optional(),
+    level_2_mild_memory_impairment: z.boolean().optional(),
+    level_3_transfer_one_person_assist: z.boolean().optional(),
+    level_3_impaired_memory: z.boolean().optional(),
+    level_4_transfer_two_person_or_mechanical_lift: z.boolean().optional(),
+    level_4_severe_cognitive_and_memory_impairment: z.boolean().optional(),
+});
+export type ClientCareNeeds = z.infer<typeof ClientCareNeedsSchema>;
     
 
     
@@ -697,3 +715,6 @@ export type SmsMessage = z.infer<typeof smsMessageSchema> & { id: string };
 
 
 
+
+
+    

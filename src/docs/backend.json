@@ -198,14 +198,10 @@
         "hasHospiceExperience": { "type": "boolean" },
         "hca": { "type": "boolean" },
         "hha": { "type": "boolean" },
-        "cna": { "type": "boolean" },
         "liveScan": { "type": "boolean" },
         "otherLanguages": { "type": "string" },
         "negativeTbTest": { "type": "boolean" },
         "cprFirstAid": { "type": "boolean" },
-        "canWorkWithCovid": { "type": "boolean" },
-        "covidVaccine": { "type": "boolean" },
-        "cnaLicense": { "type": "string" },
         "otherCertifications": { "type": "string" },
         "availability": {
           "type": "object",
@@ -353,6 +349,20 @@
             "lastUpdatedAt": { "type": "string", "format": "date-time" }
         },
         "required": ["caregiverId", "caregiverName", "createdAt", "lastUpdatedAt"]
+    },
+    "CaregiverPreferences": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CaregiverPreferences",
+      "type": "object",
+      "description": "Stores preferences and additional skills for a caregiver.",
+      "properties": {
+        "caregiverId": { "type": "string" },
+        "worksWithPets": { "type": "string", "enum": ["Yes", "No"] },
+        "hasAllergies": { "type": "string", "enum": ["Yes", "No"] },
+        "smokingPreference": { "type": "string", "enum": ["Smoker", "Non-smoker"] },
+        "lastUpdatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["caregiverId", "lastUpdatedAt"]
     },
     "Client": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -555,6 +565,10 @@
     "/caregivers_active/{caregiverId}/availability/{weekId}": {
         "schema": { "$ref": "#/entities/CaregiverAvailability" },
         "description": "Stores a caregiver's availability for a specific week, aggregated from daily schedules."
+    },
+    "/caregivers_active/{caregiverId}/preferences/{docId}": {
+        "schema": { "$ref": "#/entities/CaregiverPreferences" },
+        "description": "Stores preferences and additional skills for a caregiver."
     },
     "/Clients/{clientId}": {
       "schema": { "$ref": "#/entities/Client" },
