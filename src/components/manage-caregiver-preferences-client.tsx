@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useTransition, ChangeEvent } from 'react';
@@ -33,12 +34,12 @@ export default function ManageCaregiverPreferencesClient() {
         header: true,
         skipEmptyLines: true,
         complete: async (results) => {
-          const requiredFields = ["Name"];
+          const requiredFields = ["Caregiver"];
           const headers = results.meta.fields;
           if (!headers || !requiredFields.every(field => headers.includes(field))) {
             toast({
               title: 'Invalid CSV Format',
-              description: `The CSV must contain at least a 'Name' column.`,
+              description: `The CSV must contain at least a 'Caregiver' column.`,
               variant: 'destructive',
             });
             return;

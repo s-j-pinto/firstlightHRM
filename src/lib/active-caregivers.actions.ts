@@ -292,7 +292,7 @@ export async function processActiveCaregiverPreferencesUpload(data: Record<strin
         let updatedCount = 0;
 
         for (const row of data) {
-            const caregiverName = row['Name']?.trim();
+            const caregiverName = row['Caregiver']?.trim();
             if (!caregiverName) continue;
 
             const caregiverId = profileMap.get(caregiverName);
@@ -301,7 +301,7 @@ export async function processActiveCaregiverPreferencesUpload(data: Record<strin
                 continue;
             }
 
-            const { Name, ...preferences } = row;
+            const { Caregiver, ...preferences } = row;
             const preferencesData = {
                 ...preferences,
                 caregiverId: caregiverId,
