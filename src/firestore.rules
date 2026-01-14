@@ -77,6 +77,11 @@ service cloud.firestore {
         allow read: if isAnyAdmin() || request.auth.uid == caregiverId;
         allow write: if isAnyAdmin();
       }
+      // Subcollection for preferences and skills
+      match /preferences/{docId} {
+        allow read: if isAnyAdmin() || request.auth.uid == caregiverId;
+        allow write: if isAnyAdmin();
+      }
     }
 
     // Client records (synced from external system).
