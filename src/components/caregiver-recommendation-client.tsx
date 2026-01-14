@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useTransition } from "react";
 import { Loader2, UserCheck, Sparkles, Star } from "lucide-react";
-import { useDoc, useMemoFirebase, firestore } from "@/firebase";
+import { useDoc, useCollection, useMemoFirebase, firestore } from "@/firebase";
 import { collection, doc, getDocs, query } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { getCaregiverRecommendations } from "@/lib/recommendations.actions";
