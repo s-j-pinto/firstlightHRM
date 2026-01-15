@@ -688,22 +688,17 @@ export const smsMessageSchema = z.object({
 export type SmsMessage = z.infer<typeof smsMessageSchema> & { id: string };
 
 export const ClientCareNeedsSchema = z.object({
-    // Key preferences from InitialContact
+    clientAddress: z.string().optional(),
+    clientCity: z.string().optional(),
     pets: z.string().optional(),
     estimatedHours: z.string().optional(),
     promptedCall: z.string().optional(),
-    
-    // Companion Care fields from InitialContact
     companionCare_mealPreparation: z.boolean().optional(),
     companionCare_cleanKitchen: z.boolean().optional(),
     companionCare_assistWithLaundry: z.boolean().optional(),
     companionCare_provideAlzheimersRedirection: z.boolean().optional(),
     companionCare_escortAndTransportation: z.boolean().optional(),
-    
-    // Personal Care Needs from InitialContact
     personalCare_provideAlzheimersCare: z.boolean().optional(),
-
-    // Level of Care fields from LevelOfCareAssessment
     level_1_independent_to_verbal_reminders: z.boolean().optional(),
     level_2_transfer_stand_by_assist: z.boolean().optional(),
     level_2_mild_memory_impairment: z.boolean().optional(),
@@ -714,10 +709,11 @@ export const ClientCareNeedsSchema = z.object({
 });
 export type ClientCareNeeds = z.infer<typeof ClientCareNeedsSchema>;
 
-// New schema for the lean caregiver object sent to the AI
 export const CaregiverForRecommendationSchema = z.object({
     id: z.string(),
     name: z.string(),
+    address: z.string().optional(),
+    city: z.string().optional(),
     supportedLevelOfCare: z.number(),
     dementiaExperience: z.boolean(),
     worksWithPets: z.boolean(),
@@ -735,4 +731,5 @@ export type CaregiverForRecommendation = z.infer<typeof CaregiverForRecommendati
 
 
     
+
 

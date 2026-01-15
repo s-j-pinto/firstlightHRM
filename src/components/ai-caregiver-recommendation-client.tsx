@@ -123,6 +123,8 @@ export function AiCaregiverRecommendationClient({ contactId }: AiCaregiverRecomm
       const combinedData = { ...sanitizedContact, ...sanitizedLoc };
 
       const clientCareNeeds = {
+        clientAddress: sanitizedContact.clientAddress,
+        clientCity: sanitizedContact.city,
         pets: combinedData.pets,
         estimatedHours: combinedData.estimatedHours,
         promptedCall: combinedData.promptedCall,
@@ -148,6 +150,8 @@ export function AiCaregiverRecommendationClient({ contactId }: AiCaregiverRecomm
             return {
                 id: cg.id,
                 name: cg.Name,
+                address: cg.Address,
+                city: cg.City,
                 supportedLevelOfCare: caregiverSupportsLevel(caregiverPrefs),
                 dementiaExperience: caregiverPrefs.dementiaExperience === 'Yes',
                 worksWithPets: caregiverPrefs.worksWithPets === 'Yes',
