@@ -1,4 +1,5 @@
 
+
 import { z } from "zod";
 
 export const generalInfoSchema = z.object({
@@ -712,6 +713,18 @@ export const ClientCareNeedsSchema = z.object({
     level_4_severe_cognitive_and_memory_impairment: z.boolean().optional(),
 });
 export type ClientCareNeeds = z.infer<typeof ClientCareNeedsSchema>;
+
+// New schema for the lean caregiver object sent to the AI
+export const CaregiverForRecommendationSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    supportedLevelOfCare: z.number(),
+    dementiaExperience: z.boolean(),
+    worksWithPets: z.boolean(),
+    hasDriversLicense: z.boolean(),
+    availability: z.any(),
+});
+export type CaregiverForRecommendation = z.infer<typeof CaregiverForRecommendationSchema>;
     
 
     
@@ -722,3 +735,4 @@ export type ClientCareNeeds = z.infer<typeof ClientCareNeedsSchema>;
 
 
     
+

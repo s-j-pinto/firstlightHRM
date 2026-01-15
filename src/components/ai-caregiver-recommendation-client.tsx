@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useTransition, useMemo } from "react";
@@ -7,7 +8,7 @@ import { useDoc, firestore, useMemoFirebase } from "@/firebase";
 import { doc, getDocs, collection, query, getDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { getAiCaregiverRecommendations } from "@/lib/ai.actions";
-import type { InitialContact, LevelOfCareFormData, ActiveCaregiver } from "@/lib/types";
+import type { InitialContact, LevelOfCareFormData, ActiveCaregiver, CaregiverForRecommendation } from "@/lib/types";
 import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
 
 interface AiCaregiverRecommendationClientProps {
@@ -105,13 +106,22 @@ export function AiCaregiverRecommendationClient({ contactId }: AiCaregiverRecomm
     }
   }, [caregiversData, caregiversLoading]);
 
+  // A caregiver's supported level of care would ideally be stored in their profile.
+  // Here we'll infer it based on skills.
+  const caregiverSupportsLevel = (caregiver: any): number => {
+    // This is a placeholder. A more advanced check could look at `canUseHoyerLift`, etc.
+    if(caregiver?.preferences?.canUseHoyerLift) return 4;
+    return 3;
+  };
+
   const handleGenerate = () => {
     if (!contactData || !caregiversData) return;
 
     startGeneratingTransition(async () => {
-      const combinedData = { ...contactData, ...locData };
+      const sanitizedContact = sanitizeForServerAction({ ...contactData });
+      const sanitizedLoc = sanitizeForServerAction({ ...locData });
+      const combinedData = { ...sanitizedContact, ...sanitizedLoc };
 
-      // Manually construct a plain object with only the fields needed for the AI prompt
       const clientCareNeeds = {
         pets: combinedData.pets,
         estimatedHours: combinedData.estimatedHours,
@@ -131,15 +141,22 @@ export function AiCaregiverRecommendationClient({ contactId }: AiCaregiverRecomm
         level_4_severe_cognitive_and_memory_impairment: combinedData.level_4_severe_cognitive_and_memory_impairment,
       };
 
-      const availableCaregivers = caregiversData
+      const availableCaregivers: CaregiverForRecommendation[] = caregiversData
         .filter(cg => cg.status === 'Active')
-        .map(cg => (sanitizeForServerAction({
-            ...cg,
-            availability: availabilities[cg.id] || {},
-            preferences: preferences[cg.id] || {},
-        })));
+        .map(cg => {
+            const caregiverPrefs = preferences[cg.id] || {};
+            return {
+                id: cg.id,
+                name: cg.Name,
+                supportedLevelOfCare: caregiverSupportsLevel(caregiverPrefs),
+                dementiaExperience: caregiverPrefs.dementiaExperience === 'Yes',
+                worksWithPets: caregiverPrefs.worksWithPets === 'Yes',
+                hasDriversLicense: !!cg['Drivers Lic'],
+                availability: availabilities[cg.id] || {},
+            };
+        });
         
-      const result = await getAiCaregiverRecommendations({ clientCareNeeds: clientCareNeeds, availableCaregivers });
+      const result = await getAiCaregiverRecommendations({ clientCareNeeds, availableCaregivers });
 
       if (result.recommendations) {
         setRecommendations(result.recommendations);

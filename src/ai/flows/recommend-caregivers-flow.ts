@@ -1,13 +1,15 @@
 
+
 'use server';
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { ClientCareNeedsSchema } from '@/lib/types';
+import { ClientCareNeedsSchema, CaregiverForRecommendationSchema } from '@/lib/types';
+import { googleAI } from '@genkit-ai/google-genai';
 
 const RecommendationPayloadSchema = z.object({
   clientCareNeeds: ClientCareNeedsSchema.describe('An object containing all known information about the client\'s care needs, preferences, and situation.'),
-  availableCaregivers: z.array(z.any()).describe('An array of all available caregivers, including their skills, experience, availability schedules, and preferences.'),
+  availableCaregivers: z.array(CaregiverForRecommendationSchema).describe('An array of all available caregivers, including their skills, experience, availability schedules, and preferences.'),
 });
 
 const RecommendationOutputSchema = z.object({
@@ -27,7 +29,7 @@ const recommendCaregiversPrompt = ai.definePrompt({
   name: 'recommendCaregiversPrompt',
   input: { schema: RecommendationPayloadSchema },
   output: { schema: RecommendationOutputSchema },
-  model: 'googleai/gemini-pro',
+  model: googleAI.model('gemini-pro'),
   prompt: `You are an expert scheduler for a home care agency. Your task is to recommend the best-fit caregivers for a client based on a comprehensive set of data.
 
 You must follow a strict two-step process: Hard Filters and Weighted Scoring.
@@ -41,8 +43,8 @@ You must follow a strict two-step process: Hard Filters and Weighted Scoring.
 
 **Step 1: Hard Filters (Exclusion Criteria)**
 First, you MUST exclude any caregiver who does not meet the following mandatory requirements. List any excluded caregivers and the specific reason for their exclusion in the 'exclusions' output field.
-- **Level of Care:** The caregiver's supported level of care MUST be equal to or greater than the client's required level. (A caregiver who can handle Level 3 can also handle Level 2, but not Level 4).
-- **Mandatory Skills:** If the client has a mandatory need (e.g., 'personalCare_provideAlzheimersCare' is true), the caregiver MUST have the corresponding skill (e.g., 'dementiaExperience' is 'Yes').
+- **Level of Care:** The caregiver's 'supportedLevelOfCare' MUST be equal to or greater than the client's required level. (A caregiver who can handle Level 3 can also handle Level 2, but not Level 4).
+- **Mandatory Skills:** If the client has a mandatory need (e.g., 'personalCare_provideAlzheimersCare' is true), the caregiver MUST have the corresponding skill (e.g., 'dementiaExperience' is true).
 
 **Step 2: Weighted Scoring & Ranking (For Remaining Caregivers)**
 For all caregivers who pass the hard filters, calculate a Match Score from 0 to 100. Assign points based on the following criteria and weights. For each recommended caregiver, you MUST provide explicit reasons for why points were awarded in the 'reasons' output field.
@@ -78,3 +80,4 @@ export const recommendCaregivers = ai.defineFlow(
 );
 
     
+
