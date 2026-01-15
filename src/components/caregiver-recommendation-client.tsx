@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useTransition, useMemo } from "react";
 import { Loader2, UserCheck, Sparkles, Star, CalendarDays } from "lucide-react";
-import { useDoc, firestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useDoc, firestore, useMemoFirebase } from "@/firebase";
 import { doc, getDocs, collection, getDoc, query } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { getCaregiverRecommendations } from "@/lib/recommendations.actions";
@@ -95,6 +95,30 @@ function generateProposedSchedule(estimatedHoursText: string, availability: any)
 
 // --- Component ---
 
+// Helper function to convert Firestore Timestamps to ISO strings recursively
+function sanitizeForServerAction(obj: any): any {
+    if (!obj) return obj;
+    if (Array.isArray(obj)) {
+        return obj.map(sanitizeForServerAction);
+    }
+    if (typeof obj === 'object' && obj !== null) {
+        // Check for Firestore Timestamp which has a toDate method
+        if (typeof obj.toDate === 'function') {
+            return obj.toDate().toISOString();
+        }
+        // Recurse through object properties
+        const newObj: { [key: string]: any } = {};
+        for (const key in obj) {
+            if (Object.prototype.hasOwnProperty.call(obj, key)) {
+                newObj[key] = sanitizeForServerAction(obj[key]);
+            }
+        }
+        return newObj;
+    }
+    return obj;
+}
+
+
 export function CaregiverRecommendationClient({ contactId }: CaregiverRecommendationClientProps) {
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [selectedCaregiver, setSelectedCaregiver] = useState<any | null>(null);
@@ -168,14 +192,14 @@ export function CaregiverRecommendationClient({ contactId }: CaregiverRecommenda
     if (!contactData || !caregiversData) return;
 
     startGeneratingTransition(async () => {
-      const clientCareNeeds = { ...contactData, ...locData };
+      const clientCareNeeds = sanitizeForServerAction({ ...contactData, ...locData });
       const availableCaregivers = caregiversData
         .filter(cg => cg.status === 'Active')
-        .map(cg => ({
+        .map(cg => (sanitizeForServerAction({
             ...cg,
             availability: availabilities[cg.id] || {},
             preferences: preferences[cg.id] || {},
-        }));
+        })));
         
       const result = await getCaregiverRecommendations({ clientCareNeeds, availableCaregivers });
 
