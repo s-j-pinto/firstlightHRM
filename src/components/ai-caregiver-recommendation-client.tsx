@@ -14,6 +14,29 @@ interface AiCaregiverRecommendationClientProps {
   contactId: string;
 }
 
+// Helper function to convert Firestore Timestamps to ISO strings
+function sanitizeForServerAction(obj: any): any {
+    if (!obj) return obj;
+    if (Array.isArray(obj)) {
+        return obj.map(sanitizeForServerAction);
+    }
+    if (typeof obj === 'object' && obj !== null) {
+        if (obj.toDate && typeof obj.toDate === 'function') {
+            // It's a Firestore Timestamp
+            return obj.toDate().toISOString();
+        }
+        const newObj: { [key: string]: any } = {};
+        for (const key in obj) {
+            if (Object.prototype.hasOwnProperty.call(obj, key)) {
+                newObj[key] = sanitizeForServerAction(obj[key]);
+            }
+        }
+        return newObj;
+    }
+    return obj;
+}
+
+
 export function AiCaregiverRecommendationClient({ contactId }: AiCaregiverRecommendationClientProps) {
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [isGenerating, startGeneratingTransition] = useTransition();
@@ -85,14 +108,14 @@ export function AiCaregiverRecommendationClient({ contactId }: AiCaregiverRecomm
     if (!contactData || !caregiversData) return;
 
     startGeneratingTransition(async () => {
-      const clientCareNeeds = { ...contactData, ...locData };
+      const clientCareNeeds = sanitizeForServerAction({ ...contactData, ...locData });
       const availableCaregivers = caregiversData
         .filter(cg => cg.status === 'Active')
-        .map(cg => ({
+        .map(cg => (sanitizeForServerAction({
             ...cg,
             availability: availabilities[cg.id] || {},
             preferences: preferences[cg.id] || {},
-        }));
+        })));
         
       const result = await getAiCaregiverRecommendations({ clientCareNeeds, availableCaregivers });
 
