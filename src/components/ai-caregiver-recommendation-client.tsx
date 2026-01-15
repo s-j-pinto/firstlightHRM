@@ -156,7 +156,7 @@ export function AiCaregiverRecommendationClient({ contactId }: AiCaregiverRecomm
                 dementiaExperience: caregiverPrefs.dementiaExperience === 'Yes',
                 worksWithPets: caregiverPrefs.worksWithPets === 'Yes',
                 hasDriversLicense: !!cg['Drivers Lic'],
-                availability: availabilities[cg.id] || {},
+                availability: sanitizeForServerAction(availabilities[cg.id] || {}),
             };
         });
         
