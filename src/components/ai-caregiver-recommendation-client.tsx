@@ -4,7 +4,7 @@
 import { useState, useEffect, useTransition, useMemo } from "react";
 import { Loader2, UserCheck, Sparkles, Star, CalendarDays } from "lucide-react";
 import { useDoc, firestore, useMemoFirebase } from "@/firebase";
-import { doc, getDocs, collection, query } from "firebase/firestore";
+import { doc, getDocs, collection, query, getDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { getAiCaregiverRecommendations } from "@/lib/ai.actions";
 import type { InitialContact, LevelOfCareFormData, ActiveCaregiver } from "@/lib/types";
@@ -152,5 +152,3 @@ export function AiCaregiverRecommendationClient({ contactId }: AiCaregiverRecomm
     </div>
   );
 }
-
-    
