@@ -1,0 +1,156 @@
+
+"use client";
+
+import { useState, useEffect, useTransition, useMemo } from "react";
+import { Loader2, UserCheck, Sparkles, Star, CalendarDays } from "lucide-react";
+import { useDoc, firestore, useMemoFirebase } from "@/firebase";
+import { doc, getDocs, collection, query } from "firebase/firestore";
+import { Button } from "@/components/ui/button";
+import { getAiCaregiverRecommendations } from "@/lib/ai.actions";
+import type { InitialContact, LevelOfCareFormData, ActiveCaregiver } from "@/lib/types";
+import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
+
+interface AiCaregiverRecommendationClientProps {
+  contactId: string;
+}
+
+export function AiCaregiverRecommendationClient({ contactId }: AiCaregiverRecommendationClientProps) {
+  const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [isGenerating, startGeneratingTransition] = useTransition();
+
+  const contactDocRef = useMemoFirebase(() => doc(firestore, 'initial_contacts', contactId), [contactId]);
+  const { data: contactData, isLoading: contactLoading } = useDoc<InitialContact>(contactDocRef);
+  
+  const locDocRef = useMemoFirebase(() => doc(firestore, 'level_of_care_assessments', contactId), [contactId]);
+  const { data: locData, isLoading: locLoading } = useDoc<LevelOfCareFormData>(locDocRef);
+
+  const [caregiversData, setCaregiversData] = useState<ActiveCaregiver[]>([]);
+  const [caregiversLoading, setCaregiversLoading] = useState(true);
+
+  const [availabilities, setAvailabilities] = useState<any>({});
+  const [preferences, setPreferences] = useState<any>({});
+  const [subcollectionsLoading, setSubcollectionsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchCaregivers() {
+        const caregiversQuery = query(collection(firestore, 'caregivers_active'));
+        const snapshot = await getDocs(caregiversQuery);
+        const data = snapshot.docs.map(d => ({...d.data(), id: d.id})) as ActiveCaregiver[];
+        setCaregiversData(data);
+        setCaregiversLoading(false);
+    }
+    fetchCaregivers();
+  }, []);
+
+  useEffect(() => {
+    async function fetchSubcollections() {
+      if (!caregiversData || caregiversData.length === 0) {
+          setSubcollectionsLoading(false);
+          return;
+      };
+      
+      const avails: any = {};
+      const prefs: any = {};
+
+      for (const cg of caregiversData) {
+          const availDocRef = doc(firestore, `caregivers_active/${cg.id}/availability/current_week`);
+          const prefDocRef = doc(firestore, `caregivers_active/${cg.id}/preferences/current`);
+          
+          try {
+            const availDoc = await getDoc(availDocRef);
+            if (availDoc.exists()) {
+                avails[cg.id] = availDoc.data();
+            }
+
+            const prefDoc = await getDoc(prefDocRef);
+            if (prefDoc.exists()) {
+                prefs[cg.id] = prefDoc.data();
+            }
+          } catch (error) {
+              console.error(`Failed to fetch subcollections for caregiver ${cg.id}:`, error);
+          }
+      }
+
+      setAvailabilities(avails);
+      setPreferences(prefs);
+      setSubcollectionsLoading(false);
+    }
+
+    if (!caregiversLoading) {
+      fetchSubcollections();
+    }
+  }, [caregiversData, caregiversLoading]);
+
+  const handleGenerate = () => {
+    if (!contactData || !caregiversData) return;
+
+    startGeneratingTransition(async () => {
+      const clientCareNeeds = { ...contactData, ...locData };
+      const availableCaregivers = caregiversData
+        .filter(cg => cg.status === 'Active')
+        .map(cg => ({
+            ...cg,
+            availability: availabilities[cg.id] || {},
+            preferences: preferences[cg.id] || {},
+        }));
+        
+      const result = await getAiCaregiverRecommendations({ clientCareNeeds, availableCaregivers });
+
+      if (result.recommendations) {
+        setRecommendations(result.recommendations);
+      } else {
+        console.error(result.error);
+      }
+    });
+  };
+
+  const isLoading = contactLoading || locLoading || caregiversLoading || subcollectionsLoading;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-center">
+        <Button onClick={handleGenerate} disabled={isGenerating || isLoading}>
+          {isGenerating ? (
+            <Loader2 className="mr-2 animate-spin" />
+          ) : (
+            <Sparkles className="mr-2" />
+          )}
+          {isLoading ? 'Loading Data...' : 'Generate AI Recommendations'}
+        </Button>
+      </div>
+
+      {recommendations.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-center">Top {recommendations.length} Recommended Caregivers (AI-Powered)</h3>
+          {recommendations.map((rec, index) => (
+             <Card key={rec.id}>
+              <CardHeader className="p-4">
+                <div className="flex justify-between items-center">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                        <UserCheck className="h-5 w-5" />
+                        {index + 1}. {rec.name}
+                    </CardTitle>
+                    <span className="flex items-center text-sm font-medium text-yellow-500">
+                    <Star className="h-4 w-4 mr-1 fill-current" />
+                    Match Score: {rec.score.toFixed(0)}%
+                    </span>
+                </div>
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                <ul className="list-disc pl-5 text-xs space-y-1">
+                    {rec.reasons.map((reason: string, i: number) => <li key={i}>{reason}</li>)}
+                </ul>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {!recommendations.length && !isGenerating && (
+        <p className="text-center text-muted-foreground">Click the button to generate AI-powered caregiver recommendations.</p>
+      )}
+    </div>
+  );
+}
+
+    

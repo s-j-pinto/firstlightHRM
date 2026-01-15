@@ -1,12 +1,10 @@
 
-
 'use server';
 
 import { generateInterviewInsights, InterviewInsightsInput } from '@/ai/flows/interview-insights';
 import { extractCareLogData as extractCareLogDataFlow } from '@/ai/flows/extract-carelog-flow';
 import type { ExtractCareLogInput, ExtractCareLogOutput, RecommendationPayload } from '@/lib/types';
 import { recommendCaregivers as recommendCaregiversFlow } from '@/ai/flows/recommend-caregivers-flow';
-
 
 /**
  * Server Action to generate AI insights for a caregiver interview.
@@ -45,8 +43,7 @@ export async function extractCareLogData(payload: ExtractCareLogInput): Promise<
   }
 }
 
-
-export async function getCaregiverRecommendations(payload: RecommendationPayload) {
+export async function getAiCaregiverRecommendations(payload: RecommendationPayload) {
   try {
     const result = await recommendCaregiversFlow(payload);
     return result;
