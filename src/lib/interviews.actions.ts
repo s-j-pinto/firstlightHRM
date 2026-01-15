@@ -60,7 +60,12 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
     
     const dateTimeString = `${eventDate}T${eventTime}`; // e.g., "2024-12-08T14:00"
     const startTime = fromZonedTime(dateTimeString, pacificTimeZone);
-    
+    //Troubleshooting
+    const logDate = formatInTimeZone(startTime, pacificTimeZone, 'eeee, MMMM do, yyyy');
+    const logStartTime = formatInTimeZone(startTime, pacificTimeZone, 'h:mm a zzz');
+    console.log('logDate:', logDate);
+    console.log('logStartTime:', logStartTime);
+
     // --- Determine Event Duration and Title ---
     let durationHours: number;
     let eventTitle: string;
