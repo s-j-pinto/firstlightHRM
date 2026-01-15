@@ -191,6 +191,31 @@
       }
     ]
   },
+  "aiRecommendations": {
+    "title": "AI Caregiver Recommendations Guide",
+    "content": [
+      {
+        "type": "paragraph",
+        "text": "This page displays AI-powered caregiver recommendations from Gemini, tailored to the specific needs of the client."
+      },
+      {
+        "type": "heading",
+        "text": "Understanding the Recommendations"
+      },
+      {
+        "type": "list",
+        "items": [
+          "<strong>Match Score:</strong> A percentage indicating how well the AI believes the caregiver fits the client's overall needs.",
+          "<strong>Key Matching Reasons:</strong> A bulleted list explaining *why* the caregiver is a good match, citing specific skills, experience, or availability.",
+          "<strong>Proposed Schedule:</strong> Click on a recommended caregiver to see a proposed weekly schedule based on the client's estimated hours and the caregiver's availability."
+        ]
+      },
+      {
+        "type": "paragraph",
+        "text": "If you don't see any recommendations, click the 'Generate Recommendations' button. The AI will analyze all active caregivers and provide the top matches."
+      }
+    ]
+  },
   "clientAssessments": {
     "title": "Client Assessments Guide",
     "content": [

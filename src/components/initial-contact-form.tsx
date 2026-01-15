@@ -8,6 +8,7 @@ import { z } from "zod";
 import { useRouter, usePathname } from "next/navigation";
 import { format, differenceInYears } from "date-fns";
 import { CalendarIcon, Loader2, Save, FileText, AlertCircle, ExternalLink, XCircle, Activity, Send, MessageSquare, Users, Sparkles, BrainCircuit } from "lucide-react";
+import Link from 'next/link';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -196,6 +197,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
 
   const isCsaCreated = !!signupDocId;
   const isClosed = existingData?.status === 'Closed';
+  const recommendationsPath = pathname.includes('/admin') ? '/admin/ai-recommendations' : '/owner/ai-recommendations';
 
   useEffect(() => {
     const findAssociatedDocs = async () => {
@@ -775,20 +777,12 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                     </Dialog>
                 )}
                 
-                {contactId && (
-                  <Dialog open={isAiRecsDialogOpen} onOpenChange={setIsAiRecsDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button type="button" variant="outline" disabled={isClosed}>
-                          <Sparkles className="mr-2" /> Gemini Recommended Caregivers
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-4xl">
-                        <DialogHeader>
-                            <DialogTitle>AI Caregiver Recommendations</DialogTitle>
-                        </DialogHeader>
-                        <AiCaregiverRecommendationClient contactId={contactId} />
-                    </DialogContent>
-                  </Dialog>
+                 {contactId && (
+                     <Button asChild type="button" variant="outline" disabled={isClosed}>
+                        <Link href={`${recommendationsPath}?contactId=${contactId}`}>
+                            <Sparkles className="mr-2" /> Gemini Recommended Caregivers
+                        </Link>
+                    </Button>
                 )}
                 
                 {contactId && (
@@ -955,7 +949,3 @@ function SmsChatInterface({ contactId }: { contactId: string | null }) {
         </div>
     )
 }
-
-    
-
-    
