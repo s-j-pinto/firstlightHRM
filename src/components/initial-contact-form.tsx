@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter, usePathname } from "next/navigation";
 import { format, differenceInYears } from "date-fns";
-import { CalendarIcon, Loader2, Save, FileText, AlertCircle, ExternalLink, XCircle, Activity, Send, MessageSquare, Users } from "lucide-react";
+import { CalendarIcon, Loader2, Save, FileText, AlertCircle, ExternalLink, XCircle, Activity, Send, MessageSquare, Users, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -777,7 +777,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                   <Dialog open={isRecsDialogOpen} onOpenChange={setIsRecsDialogOpen}>
                     <DialogTrigger asChild>
                       <Button type="button" variant="outline" disabled={isClosed}>
-                          <Users className="mr-2" /> Recommended Caregivers
+                          <Sparkles className="mr-2" /> Gemini Recommended Caregivers
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-4xl">
@@ -938,5 +938,7 @@ function SmsChatInterface({ contactId }: { contactId: string | null }) {
     )
 }
 
+
+    
 
     

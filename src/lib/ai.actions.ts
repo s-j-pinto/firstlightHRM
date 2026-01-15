@@ -1,9 +1,11 @@
 
+
 'use server';
 
 import { generateInterviewInsights, InterviewInsightsInput } from '@/ai/flows/interview-insights';
 import { extractCareLogData as extractCareLogDataFlow } from '@/ai/flows/extract-carelog-flow';
-import type { ExtractCareLogInput, ExtractCareLogOutput } from '@/lib/types';
+import type { ExtractCareLogInput, ExtractCareLogOutput, RecommendationPayload } from '@/lib/types';
+import { recommendCaregivers as recommendCaregiversFlow } from '@/ai/flows/recommend-caregivers-flow';
 
 
 /**
@@ -42,3 +44,16 @@ export async function extractCareLogData(payload: ExtractCareLogInput): Promise<
     return { error: `An error occurred while processing the image: ${e.message}` };
   }
 }
+
+
+export async function getCaregiverRecommendations(payload: RecommendationPayload) {
+  try {
+    const result = await recommendCaregiversFlow(payload);
+    return result;
+  } catch (e: any) {
+    console.error("Error in getCaregiverRecommendations Server Action:", e);
+    return { error: `An error occurred while generating recommendations: ${e.message}` };
+  }
+}
+
+    
