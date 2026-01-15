@@ -687,18 +687,22 @@ export const smsMessageSchema = z.object({
 export type SmsMessage = z.infer<typeof smsMessageSchema> & { id: string };
 
 export const ClientCareNeedsSchema = z.object({
-    // Companion Care fields
+    // Key preferences from InitialContact
+    pets: z.string().optional(),
+    estimatedHours: z.string().optional(),
+    promptedCall: z.string().optional(),
+    
+    // Companion Care fields from InitialContact
     companionCare_mealPreparation: z.boolean().optional(),
     companionCare_cleanKitchen: z.boolean().optional(),
     companionCare_assistWithLaundry: z.boolean().optional(),
     companionCare_provideAlzheimersRedirection: z.boolean().optional(),
     companionCare_escortAndTransportation: z.boolean().optional(),
-    pets: z.string().optional(),
     
-    // Personal Care Needs
+    // Personal Care Needs from InitialContact
     personalCare_provideAlzheimersCare: z.boolean().optional(),
 
-    // Level of Care fields
+    // Level of Care fields from LevelOfCareAssessment
     level_1_independent_to_verbal_reminders: z.boolean().optional(),
     level_2_transfer_stand_by_assist: z.boolean().optional(),
     level_2_mild_memory_impairment: z.boolean().optional(),

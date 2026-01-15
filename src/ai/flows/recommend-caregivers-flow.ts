@@ -3,9 +3,10 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import { ClientCareNeedsSchema } from '@/lib/types';
 
 const RecommendationPayloadSchema = z.object({
-  clientCareNeeds: z.any().describe('An object containing all known information about the client\'s care needs, preferences, and situation.'),
+  clientCareNeeds: ClientCareNeedsSchema.describe('An object containing all known information about the client\'s care needs, preferences, and situation.'),
   availableCaregivers: z.array(z.any()).describe('An array of all available caregivers, including their skills, experience, availability schedules, and preferences.'),
 });
 
@@ -26,7 +27,7 @@ const recommendCaregiversPrompt = ai.definePrompt({
   name: 'recommendCaregiversPrompt',
   input: { schema: RecommendationPayloadSchema },
   output: { schema: RecommendationOutputSchema },
-  model: 'googleai/gemini-2.0-flash-lite',
+  model: 'googleai/gemini-pro',
   prompt: `You are an expert scheduler for a home care agency. Your task is to recommend the best-fit caregivers for a client based on a comprehensive set of data.
 
 You must follow a strict two-step process: Hard Filters and Weighted Scoring.

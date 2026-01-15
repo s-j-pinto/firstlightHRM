@@ -14,17 +14,18 @@ interface AiCaregiverRecommendationClientProps {
   contactId: string;
 }
 
-// Helper function to convert Firestore Timestamps to ISO strings
+// Helper function to convert Firestore Timestamps to ISO strings recursively
 function sanitizeForServerAction(obj: any): any {
     if (!obj) return obj;
     if (Array.isArray(obj)) {
         return obj.map(sanitizeForServerAction);
     }
     if (typeof obj === 'object' && obj !== null) {
-        if (obj.toDate && typeof obj.toDate === 'function') {
-            // It's a Firestore Timestamp
+        // Check for Firestore Timestamp which has a toDate method
+        if (typeof obj.toDate === 'function') {
             return obj.toDate().toISOString();
         }
+        // Recurse through object properties
         const newObj: { [key: string]: any } = {};
         for (const key in obj) {
             if (Object.prototype.hasOwnProperty.call(obj, key)) {
@@ -108,7 +109,28 @@ export function AiCaregiverRecommendationClient({ contactId }: AiCaregiverRecomm
     if (!contactData || !caregiversData) return;
 
     startGeneratingTransition(async () => {
-      const clientCareNeeds = sanitizeForServerAction({ ...contactData, ...locData });
+      const combinedData = { ...contactData, ...locData };
+
+      // Manually construct a plain object with only the fields needed for the AI prompt
+      const clientCareNeeds = {
+        pets: combinedData.pets,
+        estimatedHours: combinedData.estimatedHours,
+        promptedCall: combinedData.promptedCall,
+        companionCare_mealPreparation: combinedData.companionCare_mealPreparation,
+        companionCare_cleanKitchen: combinedData.companionCare_cleanKitchen,
+        companionCare_assistWithLaundry: combinedData.companionCare_assistWithLaundry,
+        companionCare_provideAlzheimersRedirection: combinedData.companionCare_provideAlzheimersRedirection,
+        companionCare_escortAndTransportation: combinedData.companionCare_escortAndTransportation,
+        personalCare_provideAlzheimersCare: combinedData.personalCare_provideAlzheimersCare,
+        level_1_independent_to_verbal_reminders: combinedData.level_1_independent_to_verbal_reminders,
+        level_2_transfer_stand_by_assist: combinedData.level_2_transfer_stand_by_assist,
+        level_2_mild_memory_impairment: combinedData.level_2_mild_memory_impairment,
+        level_3_transfer_one_person_assist: combinedData.level_3_transfer_one_person_assist,
+        level_3_impaired_memory: combinedData.level_3_impaired_memory,
+        level_4_transfer_two_person_or_mechanical_lift: combinedData.level_4_transfer_two_person_or_mechanical_lift,
+        level_4_severe_cognitive_and_memory_impairment: combinedData.level_4_severe_cognitive_and_memory_impairment,
+      };
+
       const availableCaregivers = caregiversData
         .filter(cg => cg.status === 'Active')
         .map(cg => (sanitizeForServerAction({
@@ -117,7 +139,7 @@ export function AiCaregiverRecommendationClient({ contactId }: AiCaregiverRecomm
             preferences: preferences[cg.id] || {},
         })));
         
-      const result = await getAiCaregiverRecommendations({ clientCareNeeds, availableCaregivers });
+      const result = await getAiCaregiverRecommendations({ clientCareNeeds: clientCareNeeds, availableCaregivers });
 
       if (result.recommendations) {
         setRecommendations(result.recommendations);
