@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useTransition, useEffect, useMemo, useRef } from "react";
@@ -788,7 +787,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                     </DialogContent>
                   </Dialog>
                 )}
-
+                
                 {contactId && (
                   <Dialog open={isLocDialogOpen} onOpenChange={setIsLocDialogOpen}>
                     <DialogTrigger asChild>
@@ -937,8 +936,5 @@ function SmsChatInterface({ contactId }: { contactId: string | null }) {
         </div>
     )
 }
-
-
-    
 
     
