@@ -41,7 +41,7 @@ const recommendCaregiversPrompt = ai.definePrompt({
     availableCaregivers: z.array(CaregiverWithDistanceSchema)
   }) },
   output: { schema: RecommendationOutputSchema },
-  model: 'googleai/gemini-pro',
+  model: 'googleai/gemini-2.0-flash-lite',
   prompt: `You are an expert scheduler for a home care agency. Your task is to recommend the best-fit caregivers for a client based on a comprehensive set of data.
 
 You must follow a strict two-step process: Hard Filters and Weighted Scoring.
