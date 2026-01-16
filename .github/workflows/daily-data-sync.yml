@@ -1,0 +1,33 @@
+
+name: Daily Caregiver Data Sync
+
+on:
+  schedule:
+    # Runs at 3:00 AM UTC every day.
+    - cron: '0 3 * * *'
+  workflow_dispatch: # Allows manual triggering for testing
+
+jobs:
+  sync_data_from_gcs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync Active Caregiver Profiles
+        run: |
+          curl --request GET \
+          --url ${{ secrets.APP_URL }}/api/cron/sync-profiles \
+          --header 'Authorization: Bearer ${{ secrets.CRON_SECRET }}' \
+          --fail
+
+      - name: Sync Caregiver Availability
+        run: |
+          curl --request GET \
+          --url ${{ secrets.APP_URL }}/api/cron/sync-availability \
+          --header 'Authorization: Bearer ${{ secrets.CRON_SECRET }}' \
+          --fail
+
+      - name: Sync Caregiver Preferences
+        run: |
+          curl --request GET \
+          --url ${{ secrets.APP_URL }}/api/cron/sync-preferences \
+          --header 'Authorization: Bearer ${{ secrets.CRON_SECRET }}' \
+          --fail
