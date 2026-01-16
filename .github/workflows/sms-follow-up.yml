@@ -15,6 +15,6 @@ jobs:
       - name: Call SMS follow-up webhook
         run: |
           curl --request GET \
-          --url ${{ secrets.APP_URL }}/api/cron/sms-follow-up \
+          --url https://care-connect-360--firstlighthomecare-hrm.us-central1.hosted.app/api/cron/sms-follow-up \
           --header 'Authorization: Bearer ${{ secrets.CRON_SECRET }}' \
           --fail
