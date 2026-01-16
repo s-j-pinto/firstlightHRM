@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter, usePathname } from "next/navigation";
 import { format, differenceInYears } from "date-fns";
-import { CalendarIcon, Loader2, Save, FileText, AlertCircle, ExternalLink, XCircle, Activity, Send, MessageSquare, Users, Sparkles, BrainCircuit } from "lucide-react";
+import { CalendarIcon, Loader2, Save, FileText, AlertCircle, ExternalLink, XCircle, Activity, Send, MessageSquare, Users, Sparkles } from "lucide-react";
 import Link from 'next/link';
 
 import { Button } from "@/components/ui/button";
@@ -44,7 +44,6 @@ import { LevelOfCareForm } from "./level-of-care-form";
 import { SourceCombobox } from "./source-combobox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { SmsMessage } from "@/lib/types";
-import { CaregiverRecommendationClient } from "./caregiver-recommendation-client";
 import { AiCaregiverRecommendationClient } from "./ai-caregiver-recommendation-client";
 
 
@@ -180,7 +179,6 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
   const [signupDocId, setSignupDocId] = useState<string | null>(null);
   const [locAssessmentId, setLocAssessmentId] = useState<string | null>(null);
   const [isLocDialogOpen, setIsLocDialogOpen] = useState(false);
-  const [isRecsDialogOpen, setIsRecsDialogOpen] = useState(false);
   const [isAiRecsDialogOpen, setIsAiRecsDialogOpen] = useState(false);
   const [authUrl, setAuthUrl] = useState<string | null>(null);
   const [isClosureDialogOpen, setIsClosureDialogOpen] = useState(false);
@@ -777,28 +775,12 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                     </Dialog>
                 )}
                 
-                 {contactId && (
+                {contactId && (
                      <Button asChild type="button" variant="outline" disabled={isClosed}>
                         <Link href={`${recommendationsPath}?contactId=${contactId}`}>
                             <Sparkles className="mr-2" /> Gemini Recommended Caregivers
                         </Link>
                     </Button>
-                )}
-                
-                {contactId && (
-                  <Dialog open={isRecsDialogOpen} onOpenChange={setIsRecsDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button type="button" variant="outline" disabled={isClosed}>
-                          <BrainCircuit className="mr-2" /> Recommended Caregivers
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-4xl">
-                        <DialogHeader>
-                            <DialogTitle>Rules-Based Caregiver Recommendations</DialogTitle>
-                        </DialogHeader>
-                        <CaregiverRecommendationClient contactId={contactId} />
-                    </DialogContent>
-                  </Dialog>
                 )}
                 
                 {contactId && (
