@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getStorage } from 'firebase-admin/storage';
 import Papa from 'papaparse';
 import { processActiveCaregiverAvailabilityUpload } from '@/lib/active-caregivers.actions';
+import { serverApp } from '@/firebase/server-init';
 
 // --- Parsing logic adapted from the client component ---
 const DAY_COLUMNS = [

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getStorage } from 'firebase-admin/storage';
 import Papa from 'papaparse';
 import { processActiveCaregiverPreferencesUpload } from '@/lib/active-caregivers.actions';
+import { serverApp } from '@/firebase/server-init';
 
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
