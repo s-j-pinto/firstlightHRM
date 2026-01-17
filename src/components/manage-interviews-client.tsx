@@ -253,7 +253,7 @@ export default function ManageInterviewsClient() {
 
             scheduleEventForm.reset({
                 interviewPathway: interviewData.interviewPathway || undefined,
-                interviewMethod: interviewData.interviewType as 'In-Person' | 'Google Meet' | undefined,
+                interviewMethod: interviewData.interviewType as 'In-Person' | 'Google Meet' | 'Orientation' | undefined,
                 eventDate: interviewDate,
                 eventTime: interviewDate ? format(interviewDate, 'HH:mm') : '',
                 includeReferenceForm: false,
@@ -1487,5 +1487,3 @@ function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: strin
     </div>
   );
 }
-
-    
