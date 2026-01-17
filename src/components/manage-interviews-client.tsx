@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
@@ -829,6 +828,15 @@ export default function ManageInterviewsClient() {
                                       <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap border p-3 rounded-md bg-background/50">{existingInterview.interviewNotes}</p>
                                   </div>
                               )}
+                              {existingInterview.aiGeneratedInsight && (
+                                <Alert>
+                                    <Sparkles className="h-4 w-4" />
+                                    <AlertTitle>AI-Generated Insight</AlertTitle>
+                                    <AlertDescription className="space-y-4 mt-2 whitespace-pre-wrap">
+                                        <p className='text-sm text-foreground'>{existingInterview.aiGeneratedInsight}</p>
+                                    </AlertDescription>
+                                </Alert>
+                              )}
                           </div>
                       ) : (
                           <Form {...phoneScreenForm}>
@@ -846,6 +854,28 @@ export default function ManageInterviewsClient() {
                                           </FormItem>
                                       )}
                                   />
+                                  
+                                  <div className="flex justify-center">
+                                    <Button type="button" onClick={handleGenerateInsights} disabled={isAiPending}>
+                                        {isAiPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                                        Generate AI Insights
+                                    </Button>
+                                  </div>
+                                  
+                                  {isAiPending && (
+                                    <p className="text-sm text-center text-muted-foreground">The AI is analyzing the profile, please wait...</p>
+                                  )}
+
+                                  {aiInsight && (
+                                    <Alert>
+                                        <Sparkles className="h-4 w-4" />
+                                        <AlertTitle>AI-Generated Insight</AlertTitle>
+                                        <AlertDescription className="space-y-4 mt-2 whitespace-pre-wrap">
+                                            <p className='text-sm text-foreground'>{aiInsight}</p>
+                                        </AlertDescription>
+                                    </Alert>
+                                  )}
+
                                   <FormField
                                       control={phoneScreenForm.control}
                                       name="phoneScreenPassed"
@@ -1046,27 +1076,7 @@ export default function ManageInterviewsClient() {
                         <CardContent>
                             <Form {...assessmentForm}>
                                 <form onSubmit={assessmentForm.handleSubmit(onAssessmentSubmit)} className="space-y-6">
-                                     <div className="flex justify-center">
-                                      <Button type="button" onClick={handleGenerateInsights} disabled={isAiPending || isPhoneScreenCompleted}>
-                                          {isAiPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                                          Generate AI Insights
-                                      </Button>
-                                    </div>
-
-                                    {isAiPending && (
-                                    <p className="text-sm text-center text-muted-foreground">The AI is analyzing the profile, please wait...</p>
-                                    )}
-
-                                    {aiInsight && (
-                                    <Alert>
-                                        <Sparkles className="h-4 w-4" />
-                                        <AlertTitle>AI-Generated Insight</AlertTitle>
-                                        <AlertDescription className="space-y-4 mt-2 whitespace-pre-wrap">
-                                        <p className='text-sm text-foreground'>{aiInsight}</p>
-                                        </AlertDescription>
-                                    </Alert>
-                                    )}
-
+                                    
                                     <FormField
                                         control={assessmentForm.control}
                                         name="candidateRating"
@@ -1176,7 +1186,7 @@ export default function ManageInterviewsClient() {
                                                                         <Button size="sm" variant="ghost" type="button" onClick={() => field.onChange(addDays(new Date(), 7))}>Next Week</Button>
                                                                     </div>
                                                                 }
-                                                            />
+                                                            </Calendar>
                                                         </PopoverContent>
                                                     </Popover>
                                                     <FormMessage />
@@ -1477,3 +1487,5 @@ function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: strin
     </div>
   );
 }
+
+    
