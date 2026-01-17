@@ -1186,7 +1186,7 @@ export default function ManageInterviewsClient() {
                                                                         <Button size="sm" variant="ghost" type="button" onClick={() => field.onChange(addDays(new Date(), 7))}>Next Week</Button>
                                                                     </div>
                                                                 }
-                                                            </Calendar>
+                                                            />
                                                         </PopoverContent>
                                                     </Popover>
                                                     <FormMessage />
