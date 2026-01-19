@@ -9,11 +9,9 @@ import { doc, getDocs, collection, query, getDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { getAiCaregiverRecommendations } from "@/lib/ai.actions";
 import type { InitialContact, LevelOfCareFormData, ActiveCaregiver, CaregiverForRecommendation } from "@/lib/types";
-import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "./ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-interface AiCaregiverRecommendationClientProps {
-  contactId: string;
-}
 
 // Helper function to convert Firestore Timestamps to ISO strings recursively
 function sanitizeForServerAction(obj: any): any {
@@ -38,8 +36,46 @@ function sanitizeForServerAction(obj: any): any {
     return obj;
 }
 
+const AvailabilityCalendar = ({ data }: { data: any }) => {
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    if (!data) {
+        return <p className="text-muted-foreground mt-4 text-center">Select a caregiver and click "Check Availability" to see their schedule.</p>;
+    }
 
-export function AiCaregiverRecommendationClient({ contactId }: AiCaregiverRecommendationClientProps) {
+    const hasAvailability = days.some(day => data[day] && data[day].length > 0);
+
+    if (!hasAvailability) {
+        return <p className="text-muted-foreground mt-4 text-center">This caregiver has no availability specified for the current week.</p>;
+    }
+
+    return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
+            {days.map(day => {
+                const daySlots = data[day] as string[] | undefined;
+                return (
+                    <Card key={day}>
+                        <CardHeader className="p-4">
+                            <CardTitle className="text-base capitalize">{day}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-4 pt-0">
+                            {daySlots && daySlots.length > 0 ? (
+                                <ul className="space-y-1">
+                                    {daySlots.map((slot, index) => (
+                                        <li key={index} className="text-sm bg-muted/50 p-2 rounded-md text-center">{slot}</li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p className="text-sm text-muted-foreground text-center">-</p>
+                            )}
+                        </CardContent>
+                    </Card>
+                );
+            })}
+        </div>
+    );
+};
+
+export function AiCaregiverRecommendationClient({ contactId }: { contactId: string; }) {
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [isGenerating, startGeneratingTransition] = useTransition();
 
@@ -55,6 +91,10 @@ export function AiCaregiverRecommendationClient({ contactId }: AiCaregiverRecomm
   const [availabilities, setAvailabilities] = useState<any>({});
   const [preferences, setPreferences] = useState<any>({});
   const [subcollectionsLoading, setSubcollectionsLoading] = useState(true);
+  
+  const [selectedCaregiverIdForAvailability, setSelectedCaregiverIdForAvailability] = useState<string>('');
+  const [availabilityDisplay, setAvailabilityDisplay] = useState<any | null>(null);
+  const [isCheckingAvailability, startCheckingAvailabilityTransition] = useTransition();
 
   useEffect(() => {
     async function fetchCaregivers() {
@@ -147,6 +187,7 @@ export function AiCaregiverRecommendationClient({ contactId }: AiCaregiverRecomm
         .filter(cg => cg.status === 'Active')
         .map(cg => {
             const caregiverPrefs = preferences[cg.id] || {};
+            const availabilityData = availabilities[cg.id] || {};
             return {
                 id: cg.id,
                 name: cg.Name,
@@ -156,7 +197,7 @@ export function AiCaregiverRecommendationClient({ contactId }: AiCaregiverRecomm
                 dementiaExperience: caregiverPrefs.dementiaExperience === 'Yes',
                 worksWithPets: caregiverPrefs.worksWithPets === 'Yes',
                 hasDriversLicense: !!cg['Drivers Lic'],
-                availability: sanitizeForServerAction(availabilities[cg.id] || {}),
+                availability: sanitizeForServerAction(availabilityData),
             };
         });
         
@@ -167,6 +208,17 @@ export function AiCaregiverRecommendationClient({ contactId }: AiCaregiverRecomm
       } else {
         console.error(result.error);
       }
+    });
+  };
+  
+  const handleCheckAvailability = () => {
+    startCheckingAvailabilityTransition(() => {
+        if (!selectedCaregiverIdForAvailability) {
+            setAvailabilityDisplay(null);
+            return;
+        }
+        const availabilityData = availabilities[selectedCaregiverIdForAvailability];
+        setAvailabilityDisplay(availabilityData);
     });
   };
 
@@ -215,6 +267,38 @@ export function AiCaregiverRecommendationClient({ contactId }: AiCaregiverRecomm
       {!recommendations.length && !isGenerating && (
         <p className="text-center text-muted-foreground">Click the button to generate AI-powered caregiver recommendations.</p>
       )}
+
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle>Caregiver Availability Time Slots</CardTitle>
+          <CardDescription>Select a caregiver to check their weekly availability.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-4 items-center">
+            <Select onValueChange={setSelectedCaregiverIdForAvailability} value={selectedCaregiverIdForAvailability}>
+              <SelectTrigger className="w-full max-w-sm">
+                <SelectValue placeholder="Select a caregiver..." />
+              </SelectTrigger>
+              <SelectContent>
+                {caregiversData.filter(cg => cg.status === 'Active').sort((a, b) => a.Name.localeCompare(b.Name)).map(cg => (
+                  <SelectItem key={cg.id} value={cg.id}>{cg.Name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={handleCheckAvailability} disabled={!selectedCaregiverIdForAvailability || isCheckingAvailability}>
+              {isCheckingAvailability ? <Loader2 className="mr-2 animate-spin" /> : null}
+              Check Availability
+            </Button>
+          </div>
+          {isCheckingAvailability ? (
+            <div className="flex justify-center items-center h-40">
+                <Loader2 className="h-8 w-8 animate-spin text-accent" />
+            </div>
+          ) : (
+             <AvailabilityCalendar data={availabilityDisplay} />
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
