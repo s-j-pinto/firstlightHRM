@@ -2,18 +2,32 @@
 
 "use client";
 
-import { useState, useEffect, useTransition, useMemo } from "react";
-import { Loader2, UserCheck, Sparkles, Star, CalendarDays } from "lucide-react";
+import * as React from "react";
+import { useState, useEffect, useTransition } from "react";
+import { Loader2, UserCheck, Sparkles, Star, CalendarDays, Check, ChevronsUpDown } from "lucide-react";
 import { useDoc, firestore, useMemoFirebase } from "@/firebase";
 import { doc, getDocs, collection, query, getDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { getAiCaregiverRecommendations } from "@/lib/ai.actions";
 import type { InitialContact, LevelOfCareFormData, ActiveCaregiver, CaregiverForRecommendation } from "@/lib/types";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "./ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { format, parse } from 'date-fns';
 import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 
 // Helper function to convert Firestore Timestamps to ISO strings recursively
@@ -43,7 +57,7 @@ const AvailabilityCalendar = ({ data }: { data: any }) => {
     const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     
     if (!data) {
-        return <p className="text-muted-foreground mt-4 text-center">Select a caregiver and click "Check Availability" to see their schedule.</p>;
+        return <p className="text-muted-foreground mt-4 text-center">No availability data found for this caregiver.</p>;
     }
 
     const hasAvailability = days.some(day => data[day] && data[day].length > 0);
@@ -76,7 +90,7 @@ const AvailabilityCalendar = ({ data }: { data: any }) => {
     ];
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-7 gap-2 mt-6">
+        <div className="grid grid-cols-1 md:grid-cols-7 gap-2 mt-2">
             {days.map((day, index) => {
                 const daySlots = data[day] as string[] | undefined;
                 return (
@@ -94,7 +108,7 @@ const AvailabilityCalendar = ({ data }: { data: any }) => {
                                 ))}
                                 </div>
                             ) : (
-                                <div className="text-center text-xs text-muted-foreground h-full flex items-center">
+                                <div className="text-center text-xs text-muted-foreground h-full flex items-center justify-center">
                                     Not Available
                                 </div>
                             )}
@@ -109,6 +123,7 @@ const AvailabilityCalendar = ({ data }: { data: any }) => {
 export function AiCaregiverRecommendationClient({ contactId }: { contactId: string; }) {
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [isGenerating, startGeneratingTransition] = useTransition();
+  const { toast } = useToast();
 
   const contactDocRef = useMemoFirebase(() => doc(firestore, 'initial_contacts', contactId), [contactId]);
   const { data: contactData, isLoading: contactLoading } = useDoc<InitialContact>(contactDocRef);
@@ -123,9 +138,10 @@ export function AiCaregiverRecommendationClient({ contactId }: { contactId: stri
   const [preferences, setPreferences] = useState<any>({});
   const [subcollectionsLoading, setSubcollectionsLoading] = useState(true);
   
-  const [selectedCaregiverIdForAvailability, setSelectedCaregiverIdForAvailability] = useState<string>('');
-  const [availabilityDisplay, setAvailabilityDisplay] = useState<any | null>(null);
+  const [selectedCaregiverIds, setSelectedCaregiverIds] = useState<string[]>([]);
+  const [availabilityDisplays, setAvailabilityDisplays] = useState<Record<string, {name: string; data: any}>>({});
   const [isCheckingAvailability, startCheckingAvailabilityTransition] = useTransition();
+  const [popoverOpen, setPopoverOpen] = useState(false);
 
   useEffect(() => {
     async function fetchCaregivers() {
@@ -244,12 +260,19 @@ export function AiCaregiverRecommendationClient({ contactId }: { contactId: stri
   
   const handleCheckAvailability = () => {
     startCheckingAvailabilityTransition(() => {
-        if (!selectedCaregiverIdForAvailability) {
-            setAvailabilityDisplay(null);
+        if (selectedCaregiverIds.length === 0) {
+            setAvailabilityDisplays({});
             return;
         }
-        const availabilityData = availabilities[selectedCaregiverIdForAvailability];
-        setAvailabilityDisplay(availabilityData);
+        const newDisplays: Record<string, {name: string, data: any}> = {};
+        selectedCaregiverIds.forEach(id => {
+            const availabilityData = availabilities[id];
+            const caregiver = caregiversData.find(cg => cg.id === id);
+            if (caregiver) {
+                newDisplays[id] = { name: caregiver.Name, data: availabilityData };
+            }
+        });
+        setAvailabilityDisplays(newDisplays);
     });
   };
 
@@ -302,21 +325,65 @@ export function AiCaregiverRecommendationClient({ contactId }: { contactId: stri
       <Card className="mt-8">
         <CardHeader>
           <CardTitle>Caregiver Availability Time Slots</CardTitle>
-          <CardDescription>Select a caregiver to check their weekly availability.</CardDescription>
+          <CardDescription>Select up to 5 caregivers to compare their weekly availability.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4 items-center">
-            <Select onValueChange={setSelectedCaregiverIdForAvailability} value={selectedCaregiverIdForAvailability}>
-              <SelectTrigger className="w-full max-w-sm">
-                <SelectValue placeholder="Select a caregiver..." />
-              </SelectTrigger>
-              <SelectContent>
-                {caregiversData.filter(cg => cg.status === 'Active').sort((a, b) => a.Name.localeCompare(b.Name)).map(cg => (
-                  <SelectItem key={cg.id} value={cg.id}>{cg.Name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button onClick={handleCheckAvailability} disabled={!selectedCaregiverIdForAvailability || isCheckingAvailability}>
+          <div className="flex flex-col sm:flex-row gap-4 items-center">
+            <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={popoverOpen}
+                  className="w-full max-w-sm justify-between"
+                >
+                  {selectedCaregiverIds.length > 0
+                    ? `${selectedCaregiverIds.length} caregiver(s) selected`
+                    : "Select caregivers..."}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                <Command>
+                  <CommandInput placeholder="Search caregivers..." />
+                  <CommandList>
+                    <CommandEmpty>No caregivers found.</CommandEmpty>
+                    <CommandGroup>
+                      {caregiversData.filter(cg => cg.status === 'Active').sort((a, b) => a.Name.localeCompare(b.Name)).map(cg => (
+                        <CommandItem
+                          key={cg.id}
+                          value={cg.Name}
+                          onSelect={() => {
+                            const isSelected = selectedCaregiverIds.includes(cg.id);
+                            if (isSelected) {
+                              setSelectedCaregiverIds(selectedCaregiverIds.filter(id => id !== cg.id));
+                            } else if (selectedCaregiverIds.length < 5) {
+                              setSelectedCaregiverIds([...selectedCaregiverIds, cg.id]);
+                            } else {
+                              toast({
+                                title: "Limit Reached",
+                                description: "You can select up to 5 caregivers.",
+                                variant: "default"
+                              })
+                            }
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedCaregiverIds.includes(cg.id) ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {cg.Name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+
+            <Button onClick={handleCheckAvailability} disabled={selectedCaregiverIds.length === 0 || isCheckingAvailability}>
               {isCheckingAvailability ? <Loader2 className="mr-2 animate-spin" /> : null}
               Check Availability
             </Button>
@@ -326,11 +393,17 @@ export function AiCaregiverRecommendationClient({ contactId }: { contactId: stri
                 <Loader2 className="h-8 w-8 animate-spin text-accent" />
             </div>
           ) : (
-             <AvailabilityCalendar data={availabilityDisplay} />
+             <div className="mt-6 space-y-4">
+                {Object.entries(availabilityDisplays).map(([id, displayData]) => (
+                    <div key={id}>
+                        <h4 className="font-semibold">{displayData.name}</h4>
+                        <AvailabilityCalendar data={displayData.data} />
+                    </div>
+                ))}
+             </div>
           )}
         </CardContent>
       </Card>
     </div>
   );
 }
-
