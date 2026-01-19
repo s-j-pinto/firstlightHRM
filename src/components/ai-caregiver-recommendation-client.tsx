@@ -11,6 +11,9 @@ import { getAiCaregiverRecommendations } from "@/lib/ai.actions";
 import type { InitialContact, LevelOfCareFormData, ActiveCaregiver, CaregiverForRecommendation } from "@/lib/types";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "./ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { format, parse } from 'date-fns';
+import { Badge } from "./ui/badge";
+import { cn } from "@/lib/utils";
 
 
 // Helper function to convert Firestore Timestamps to ISO strings recursively
@@ -38,6 +41,7 @@ function sanitizeForServerAction(obj: any): any {
 
 const AvailabilityCalendar = ({ data }: { data: any }) => {
     const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    
     if (!data) {
         return <p className="text-muted-foreground mt-4 text-center">Select a caregiver and click "Check Availability" to see their schedule.</p>;
     }
@@ -48,24 +52,51 @@ const AvailabilityCalendar = ({ data }: { data: any }) => {
         return <p className="text-muted-foreground mt-4 text-center">This caregiver has no availability specified for the current week.</p>;
     }
 
+    const formatTimeRange = (range: string) => {
+        const [start, end] = range.split(' - ');
+        if (!start || !end) return range; // fallback
+        try {
+            const startTime12 = format(parse(start, 'HH:mm', new Date()), 'h:mm a');
+            const endTime12 = format(parse(end, 'HH:mm', new Date()), 'h:mm a');
+            return `${startTime12} - ${endTime12}`;
+        } catch (e) {
+            console.error(`Error formatting time range "${range}":`, e);
+            return range; // fallback on parsing error
+        }
+    };
+    
+    const badgeColors = [
+        "bg-blue-100 text-blue-800 hover:bg-blue-100",
+        "bg-green-100 text-green-800 hover:bg-green-100",
+        "bg-indigo-100 text-indigo-800 hover:bg-indigo-100",
+        "bg-pink-100 text-pink-800 hover:bg-pink-100",
+        "bg-sky-100 text-sky-800 hover:bg-sky-100",
+        "bg-amber-100 text-amber-800 hover:bg-amber-100",
+        "bg-rose-100 text-rose-800 hover:bg-rose-100",
+    ];
+
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
-            {days.map(day => {
+        <div className="grid grid-cols-1 md:grid-cols-7 gap-2 mt-6">
+            {days.map((day, index) => {
                 const daySlots = data[day] as string[] | undefined;
                 return (
-                    <Card key={day}>
-                        <CardHeader className="p-4">
-                            <CardTitle className="text-base capitalize">{day}</CardTitle>
+                    <Card key={day} className="flex flex-col">
+                        <CardHeader className="p-3 pb-2">
+                            <CardTitle className="text-center text-sm capitalize">{day}</CardTitle>
                         </CardHeader>
-                        <CardContent className="p-4 pt-0">
+                        <CardContent className="p-3 pt-0 flex-grow flex flex-col justify-center items-center">
                             {daySlots && daySlots.length > 0 ? (
-                                <ul className="space-y-1">
-                                    {daySlots.map((slot, index) => (
-                                        <li key={index} className="text-sm bg-muted/50 p-2 rounded-md text-center">{slot}</li>
-                                    ))}
-                                </ul>
+                                <div className="space-y-1 w-full">
+                                {daySlots.map((slot, i) => (
+                                    <Badge key={i} variant="outline" className={cn("w-full justify-center text-center block whitespace-nowrap", badgeColors[index % badgeColors.length])}>
+                                        {formatTimeRange(slot)}
+                                    </Badge>
+                                ))}
+                                </div>
                             ) : (
-                                <p className="text-sm text-muted-foreground text-center">-</p>
+                                <div className="text-center text-xs text-muted-foreground h-full flex items-center">
+                                    Not Available
+                                </div>
                             )}
                         </CardContent>
                     </Card>
@@ -302,3 +333,4 @@ export function AiCaregiverRecommendationClient({ contactId }: { contactId: stri
     </div>
   );
 }
+
