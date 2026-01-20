@@ -287,6 +287,10 @@ export function AiCaregiverRecommendationClient({ contactId }: { contactId: stri
         setSendingEmailId(null);
         return;
     }
+    
+    // Sanitize the objects before creating the payload
+    const sanitizedContactData = sanitizeForServerAction(contactData);
+    const sanitizedLocData = sanitizeForServerAction(locData);
 
     const payload = {
         caregiver: {
@@ -295,14 +299,14 @@ export function AiCaregiverRecommendationClient({ contactId }: { contactId: stri
         },
         client: {
             id: contactId,
-            name: contactData.clientName,
-            city: contactData.city,
-            estimatedHours: contactData.estimatedHours,
-            estimatedStartDate: (contactData.estimatedStartDate as any)?.toDate(),
-            promptedCall: contactData.promptedCall,
-            pets: contactData.pets,
-            levelOfCareData: locData,
-            careNeedsData: contactData, // Pass the whole contact data for task mapping
+            name: sanitizedContactData.clientName,
+            city: sanitizedContactData.city,
+            estimatedHours: sanitizedContactData.estimatedHours,
+            estimatedStartDate: sanitizedContactData.estimatedStartDate,
+            promptedCall: sanitizedContactData.promptedCall,
+            pets: sanitizedContactData.pets,
+            levelOfCareData: sanitizedLocData,
+            careNeedsData: sanitizedContactData,
         }
     };
 
