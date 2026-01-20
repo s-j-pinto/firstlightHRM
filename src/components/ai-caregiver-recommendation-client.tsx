@@ -4,7 +4,7 @@
 
 import * as React from "react";
 import { useState, useEffect, useTransition } from "react";
-import { Loader2, UserCheck, Sparkles, Star, CalendarDays, Check, ChevronsUpDown } from "lucide-react";
+import { Loader2, UserCheck, Sparkles, Star, CalendarDays, Check, ChevronsUpDown, Mail } from "lucide-react";
 import { useDoc, firestore, useMemoFirebase } from "@/firebase";
 import { doc, getDocs, collection, query, getDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ import { format, parse } from 'date-fns';
 import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { sendPotentialShiftEmail } from "@/lib/communication.actions";
 
 
 // Helper function to convert Firestore Timestamps to ISO strings recursively
@@ -123,6 +124,7 @@ const AvailabilityCalendar = ({ data }: { data: any }) => {
 export function AiCaregiverRecommendationClient({ contactId }: { contactId: string; }) {
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [isGenerating, startGeneratingTransition] = useTransition();
+  const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const contactDocRef = useMemoFirebase(() => doc(firestore, 'initial_contacts', contactId), [contactId]);
@@ -276,6 +278,45 @@ export function AiCaregiverRecommendationClient({ contactId }: { contactId: stri
     });
   };
 
+  const handleSendShiftEmail = async (caregiverId: string) => {
+    setSendingEmailId(caregiverId);
+
+    const caregiver = caregiversData.find(cg => cg.id === caregiverId);
+    if (!caregiver || !contactData) {
+        toast({ title: "Error", description: "Caregiver or client data not found.", variant: "destructive" });
+        setSendingEmailId(null);
+        return;
+    }
+
+    const payload = {
+        caregiver: {
+            name: caregiver.Name,
+            email: caregiver.Email,
+        },
+        client: {
+            id: contactId,
+            name: contactData.clientName,
+            city: contactData.city,
+            estimatedHours: contactData.estimatedHours,
+            estimatedStartDate: (contactData.estimatedStartDate as any)?.toDate(),
+            promptedCall: contactData.promptedCall,
+            pets: contactData.pets,
+            levelOfCareData: locData,
+            careNeedsData: contactData, // Pass the whole contact data for task mapping
+        }
+    };
+
+    const result = await sendPotentialShiftEmail(payload);
+
+    if (result.error) {
+        toast({ title: "Email Failed", description: result.error, variant: "destructive" });
+    } else {
+        toast({ title: "Email Sent", description: `Shift opportunity sent to ${caregiver.Name}.` });
+    }
+    setSendingEmailId(null);
+};
+
+
   const isLoading = contactLoading || locLoading || caregiversLoading || subcollectionsLoading;
 
   return (
@@ -396,7 +437,12 @@ export function AiCaregiverRecommendationClient({ contactId }: { contactId: stri
              <div className="mt-6 space-y-4">
                 {Object.entries(availabilityDisplays).map(([id, displayData]) => (
                     <div key={id}>
-                        <h4 className="font-semibold">{displayData.name}</h4>
+                        <div className="flex items-center gap-2">
+                            <h4 className="font-semibold">{displayData.name}</h4>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleSendShiftEmail(id)} disabled={sendingEmailId === id}>
+                                {sendingEmailId === id ? <Loader2 className="animate-spin" /> : <Mail />}
+                            </Button>
+                        </div>
                         <AvailabilityCalendar data={displayData.data} />
                     </div>
                 ))}
