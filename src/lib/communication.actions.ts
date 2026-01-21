@@ -110,7 +110,7 @@ export async function sendPotentialShiftEmail(payload: PotentialShiftPayload) {
             <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 5px;">Level of Care & Client Profile</h3>
             <ul>
                 <li><strong>Required Level of Care:</strong> ${levelOfCare}</li>
-                <li><strong>What prompted today's call:</strong> ${client.promptedCall || 'Not specified'}</li>
+                <li><strong>Client Profile:</strong> ${client.promptedCall || 'Not specified'}</li>
             </ul>
             <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 5px;">Home Environment Details</h3>
             <ul>
