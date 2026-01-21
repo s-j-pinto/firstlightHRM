@@ -370,7 +370,7 @@ export function AiCaregiverRecommendationClient({ contactId }: { contactId: stri
       <Card className="mt-8">
         <CardHeader>
           <CardTitle>Caregiver Availability Time Slots</CardTitle>
-          <CardDescription>Select up to 5 caregivers to compare their weekly availability.</CardDescription>
+          <CardDescription>Select up to 5 caregivers to compare their weekly availability. Click the email icon to e-mail potential shift information to the caregiver</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4 items-center">
