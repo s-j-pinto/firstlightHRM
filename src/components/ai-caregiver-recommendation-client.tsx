@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import * as React from "react";
@@ -55,28 +54,32 @@ function sanitizeForServerAction(obj: any): any {
 }
 
 const AvailabilityCalendar = ({ data }: { data: any }) => {
-    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     
     if (!data) {
         return <p className="text-muted-foreground mt-4 text-center">No availability data found for this caregiver.</p>;
     }
 
-    const hasAvailability = days.some(day => data[day] && data[day].length > 0);
+    const hasAvailability = days.some(day => {
+        const dayData = data[day.toLowerCase()];
+        return dayData && dayData.schedule;
+    });
 
     if (!hasAvailability) {
         return <p className="text-muted-foreground mt-4 text-center">This caregiver has no availability specified for the current week.</p>;
     }
 
     const formatTimeRange = (range: string) => {
-        const [start, end] = range.split(' - ');
-        if (!start || !end) return range; // fallback
+        const parts = range.split(' - ');
+        if (parts.length !== 2) return range;
+        const [start, end] = parts;
         try {
-            const startTime12 = format(parse(start, 'HH:mm', new Date()), 'h:mm a');
-            const endTime12 = format(parse(end, 'HH:mm', new Date()), 'h:mm a');
+            const startTime12 = format(parse(start, 'h:mm:ss a', new Date()), 'h:mm a');
+            const endTime12 = format(parse(end, 'h:mm:ss a', new Date()), 'h:mm a');
             return `${startTime12} - ${endTime12}`;
         } catch (e) {
             console.error(`Error formatting time range "${range}":`, e);
-            return range; // fallback on parsing error
+            return range;
         }
     };
     
@@ -93,16 +96,33 @@ const AvailabilityCalendar = ({ data }: { data: any }) => {
     return (
         <div className="grid grid-cols-1 md:grid-cols-7 gap-2 mt-2">
             {days.map((day, index) => {
-                const daySlots = data[day] as string[] | undefined;
+                const dayData = data[day.toLowerCase()];
+                const scheduleText = dayData?.schedule || '';
+                const nonOvertimeHours = dayData?.nonOvertimeHours;
+
+                const timeSlots: string[] = [];
+                const regex = /(\d{1,2}:\d{2}:\d{2}\s*[AP]M)\s*(?:To|-)\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)/gi;
+                let match;
+                while ((match = regex.exec(scheduleText)) !== null) {
+                    timeSlots.push(`${match[1]} - ${match[2]}`);
+                }
+
                 return (
                     <Card key={day} className="flex flex-col">
                         <CardHeader className="p-3 pb-2">
-                            <CardTitle className="text-center text-sm capitalize">{day}</CardTitle>
+                            <CardTitle className="text-center text-sm capitalize flex justify-center items-center gap-1">
+                                {day}
+                                {typeof nonOvertimeHours === 'number' && nonOvertimeHours !== 0 && (
+                                    <span className={cn('font-bold', nonOvertimeHours < 0 ? 'text-red-600' : 'text-green-600')}>
+                                        ({Math.abs(nonOvertimeHours)})
+                                    </span>
+                                )}
+                            </CardTitle>
                         </CardHeader>
                         <CardContent className="p-3 pt-0 flex-grow flex flex-col justify-center items-center">
-                            {daySlots && daySlots.length > 0 ? (
+                            {timeSlots.length > 0 ? (
                                 <div className="space-y-1 w-full">
-                                {daySlots.map((slot, i) => (
+                                {timeSlots.map((slot, i) => (
                                     <Badge key={i} variant="outline" className={cn("w-full justify-center text-center block whitespace-nowrap", badgeColors[index % badgeColors.length])}>
                                         {formatTimeRange(slot)}
                                     </Badge>
