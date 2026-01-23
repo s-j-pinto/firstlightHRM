@@ -2,8 +2,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStorage } from 'firebase-admin/storage';
 import Papa from 'papaparse';
-import { serverApp } from '@/firebase/server-init';
 import { processActiveCaregiverAvailabilityUpload } from '@/lib/active-caregivers.actions';
+import { serverApp } from '@/firebase/server-init';
+
+const DAY_COLUMNS = [
+  "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
+];
+
+function isCaregiverNameRow(rowObj: Record<string, string>, headerColumns: string[]): boolean {
+  if (!headerColumns || headerColumns.length === 0) return false;
+  const firstColValue = rowObj[headerColumns[0]];
+  if (!firstColValue || !firstColValue.trim() || DAY_COLUMNS.includes(firstColValue.trim())) {
+      return false;
+  }
+  for (let i = 1; i <= 7; i++) {
+    const colName = headerColumns[i];
+    if (colName && rowObj[colName] && rowObj[colName].trim()) {
+      return false;
+    }
+  }
+  return true;
+}
 
 // --- Main API Route ---
 export async function GET(request: NextRequest) {
@@ -28,8 +47,57 @@ export async function GET(request: NextRequest) {
     }
     
     const rows: Record<string, string>[] = parseResult.data as Record<string, string>[];
+    const headerColumns = parseResult.meta.fields;
+    if (!headerColumns) {
+        throw new Error('CSV headers are missing.');
+    }
 
-    const result = await processActiveCaregiverAvailabilityUpload(rows);
+    const caregivers: { name: string; schedule: Record<string, string> }[] = [];
+    let currentCaregiver: { name: string; schedule: Record<string, string> } | null = null;
+    
+    for (const row of rows) {
+      if (isCaregiverNameRow(row, headerColumns)) {
+        if (currentCaregiver) {
+            caregivers.push(currentCaregiver);
+        }
+        const name = row[headerColumns[0]].trim();
+        currentCaregiver = {
+            name: name,
+            schedule: {},
+        };
+        // Initialize schedule for all days for the new caregiver
+        DAY_COLUMNS.forEach(day => {
+            if (currentCaregiver) currentCaregiver.schedule[day] = "";
+        });
+        continue;
+      }
+
+      if (currentCaregiver) {
+          DAY_COLUMNS.forEach((day, i) => {
+              const colName = headerColumns[i]; 
+              if (!colName) return;
+              const cell = row[colName];
+              // Pass the raw cell content to be processed by the action
+              if (cell && cell.trim()) {
+                  if (currentCaregiver.schedule[day]) {
+                      currentCaregiver.schedule[day] += "\n" + cell.trim();
+                  } else {
+                      currentCaregiver.schedule[day] = cell.trim();
+                  }
+              }
+          });
+      }
+    }
+    
+    if (currentCaregiver) {
+        caregivers.push(currentCaregiver);
+    }
+    
+    if (caregivers.length === 0) {
+        throw new Error("Could not find any valid caregiver schedules in the provided format.");
+    }
+
+    const result = await processActiveCaregiverAvailabilityUpload(caregivers);
 
     if (result.error) {
         throw new Error(result.message);
