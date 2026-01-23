@@ -1,6 +1,89 @@
 
-
 import { z } from "zod";
+
+export const initialContactSchema = z.object({
+  clientName: z.string().min(1, "Client's Name is required."),
+  source: z.string().min(1, "Source is required."),
+  clientAddress: z.string().min(1, "Client's Address is required."),
+  dateOfBirth: z.date().optional(),
+  rateOffered: z.coerce.number().nonnegative("Rate cannot be negative").optional(),
+  milageOffered: z.coerce.number().nonnegative("Mileage cannot be negative").optional(),
+  clientDepositAmount: z.coerce.number().optional(),
+  city: z.string().min(1, "City is required."),
+  zip: z.string().min(1, "Zip code is required."),
+  clientPhone: z.string().min(1, "Client's Phone is required."),
+  clientEmail: z.string().email("A valid email is required."),
+  mainContact: z.string().min(1, "Main Contact is required."),
+  allergies: z.string().optional(),
+  pets: z.string().optional(),
+  dateOfHomeVisit: z.date().optional(),
+  timeOfVisit: z.string().optional(),
+  referredBy: z.string().optional(),
+  referralCode: z.string().optional(),
+  promptedCall: z.string().min(1, "This field is required."),
+  estimatedHours: z.string().optional(),
+  estimatedStartDate: z.date().optional(),
+  inHomeVisitSet: z.enum(["Yes", "No"]).optional(),
+  inHomeVisitSetNoReason: z.string().optional(),
+  sendFollowUpCampaigns: z.boolean().optional(),
+  medicalIns: z.string().optional(),
+  dnr: z.boolean().optional(),
+  va: z.string().optional(),
+  hasPoa: z.enum(["Yes", "No"]).optional(),
+  ltci: z.string().optional(),
+  contactPhone: z.string().min(1, "Contact Phone is required."),
+  languagePreference: z.string().optional(),
+  additionalEmail: z.string().email("Please enter a valid email.").optional().or(z.literal('')),
+  createdAt: z.any().optional(),
+  createdBy: z.string().optional(),
+  clientIsBedridden: z.enum(["Yes", "No"]).optional(),
+  clientUsesHoyerLift: z.enum(["Yes", "No"]).optional(),
+  smokingEnvironment: z.enum(["Yes", "No"]).optional(),
+  companionCare_mealPreparation: z.boolean().optional(),
+    companionCare_cleanKitchen: z.boolean().optional(),
+    companionCare_assistWithLaundry: z.boolean().optional(),
+    companionCare_dustFurniture: z.boolean().optional(),
+    companionCare_assistWithEating: z.boolean().optional(),
+    companionCare_provideAlzheimersRedirection: z.boolean().optional(),
+    companionCare_assistWithHomeManagement: z.boolean().optional(),
+    companionCare_preparationForBathing: z.boolean().optional(),
+    companionCare_groceryShopping: z.boolean().optional(),
+    companionCare_cleanBathrooms: z.boolean().optional(),
+    companionCare_changeBedLinens: z.boolean().optional(),
+    companionCare_runErrands: z.boolean().optional(),
+    companionCare_escortAndTransportation: z.boolean().optional(),
+    companionCare_provideRemindersAndAssistWithToileting: z.boolean().optional(),
+    companionCare_provideRespiteCare: z.boolean().optional(),
+    companionCare_stimulateMentalAwareness: z.boolean().optional(),
+    companionCare_assistWithDressingAndGrooming: z.boolean().optional(),
+    companionCare_assistWithShavingAndOralCare: z.boolean().optional(),
+    companionCare_other: z.string().optional(),
+    personalCare_provideAlzheimersCare: z.boolean().optional(),
+    personalCare_provideMedicationReminders: z.boolean().optional(),
+    personalCare_assistWithDressingGrooming: z.boolean().optional(),
+    personalCare_assistWithBathingHairCare: z.boolean().optional(),
+    personalCare_assistWithFeedingSpecialDiets: z.boolean().optional(),
+    personalCare_assistWithMobilityAmbulationTransfer: z.boolean().optional(),
+    personalCare_assistWithIncontinenceCare: z.boolean().optional(),
+    personalCare_assistWithOther: z.string().optional(),
+}).superRefine((data, ctx) => {
+    if (data.inHomeVisitSet === "Yes") {
+        if (!data.dateOfHomeVisit) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Date of Home Visit is required when a visit is set.",
+                path: ["dateOfHomeVisit"],
+            });
+        }
+        if (!data.timeOfVisit) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Time of Visit is required when a visit is set.",
+                path: ["timeOfVisit"],
+            });
+        }
+    }
+});
 
 export const generalInfoSchema = z.object({
   uid: z.string().optional(),
@@ -547,18 +630,6 @@ export interface GeneratedForm {
   formData: any;
 }
 
-export const initialContactSchema = z.object({
-    clientName: z.string(),
-    clientAddress: z.string(),
-    source: z.string(),
-    createdAt: z.any(),
-    lastUpdatedAt: z.any(),
-    followUpHistory: z.array(z.any()).optional(),
-    inHomeVisitSet: z.enum(["Yes", "No"]).optional(),
-    sendFollowUpCampaigns: z.boolean().optional(),
-    status: z.string().optional(),
-    clientDepositAmount: z.coerce.number().optional(),
-});
 export type InitialContact = z.infer<typeof initialContactSchema> & { id: string, smsFollowUpSent?: boolean, clientPhone?: string, pets?: string };
 
 export const campaignTemplateSchema = z.object({
@@ -731,5 +802,6 @@ export type CaregiverForRecommendation = z.infer<typeof CaregiverForRecommendati
 
 
     
+
 
 

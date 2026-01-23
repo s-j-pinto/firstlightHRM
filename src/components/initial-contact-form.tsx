@@ -93,8 +93,8 @@ const initialContactSchema = z.object({
   source: z.string().min(1, "Source is required."),
   clientAddress: z.string().min(1, "Client's Address is required."),
   dateOfBirth: z.date().optional(),
-  rateOffered: z.coerce.number().optional(),
-  milageOffered: z.coerce.number().optional(),
+  rateOffered: z.coerce.number().nonnegative("Rate cannot be negative").optional(),
+  milageOffered: z.coerce.number().nonnegative("Mileage cannot be negative").optional(),
   clientDepositAmount: z.coerce.number().optional(),
   city: z.string().min(1, "City is required."),
   zip: z.string().min(1, "Zip code is required."),
@@ -517,9 +517,9 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                         </FormControl>
                     </FormItem>
                 </div>
-                 <div className="grid grid-cols-2 gap-4">
-                    <FormField control={form.control} name="rateOffered" render={({ field }) => ( <FormItem><FormLabel>Rate Offered</FormLabel><FormControl><Input type="number" {...field} value={field.value || ''} disabled={isClosed} /></FormControl><FormMessage /></FormItem> )} />
-                    <FormField control={form.control} name="milageOffered" render={({ field }) => ( <FormItem><FormLabel>Mileage Offered</FormLabel><FormControl><Input type="number" step="0.01" {...field} value={field.value || ''} disabled={isClosed} /></FormControl><FormMessage /></FormItem> )} />
+                 <div className="flex gap-4">
+                    <FormField control={form.control} name="rateOffered" render={({ field }) => ( <FormItem className="flex-grow w-1/4"><FormLabel>Rate Offered</FormLabel><FormControl><Input type="number" min="0" {...field} value={field.value || ''} disabled={isClosed} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="milageOffered" render={({ field }) => ( <FormItem className="flex-grow w-1/4"><FormLabel>Mileage Offered</FormLabel><FormControl><Input type="number" min="0" step="0.01" {...field} value={field.value || ''} disabled={isClosed} /></FormControl><FormMessage /></FormItem> )} />
                 </div>
                 <div className="flex gap-4">
                     <FormField control={form.control} name="clientPhone" render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Client&apos;s Phone Number</FormLabel><FormControl><Input {...field} disabled={isCsaCreated || isClosed} /></FormControl><FormMessage /></FormItem> )} />
