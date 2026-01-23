@@ -53,14 +53,13 @@ function isCaregiverNameRow(rowObj: Record<string, string>, headerColumns: strin
 }
 
 
-export async function processActiveCaregiverAvailabilityUpload(rows: Record<string, string>[]) {
+export async function processActiveCaregiverAvailabilityUpload(caregiversData: { name: string; schedule: Record<string, string> }[]) {
   const firestore = serverDb;
   const now = Timestamp.now();
   
-  if (!rows || rows.length === 0) {
+  if (!caregiversData || caregiversData.length === 0) {
     return { message: "No valid caregiver data was processed from the CSV.", error: true };
   }
-  const headerColumns = Object.keys(rows[0] || {});
 
   try {
     const allCaregiversSnap = await firestore.collection('caregivers_active').where('status', '==', 'Active').get();
@@ -87,28 +86,6 @@ export async function processActiveCaregiverAvailabilityUpload(rows: Record<stri
         }
       }
     });
-
-    const caregiversData: { name: string; schedule: Record<string, string> }[] = [];
-    let currentCaregiver: { name: string; schedule: Record<string, string> } | null = null;
-    
-    for (const row of rows) {
-      if (isCaregiverNameRow(row, headerColumns)) {
-        if (currentCaregiver) caregiversData.push(currentCaregiver);
-        currentCaregiver = { name: row[headerColumns[0]].trim(), schedule: {} };
-      } else if (currentCaregiver) {
-        DAY_COLUMNS.forEach((day, i) => {
-          const colName = headerColumns[i];
-          if (colName && row[colName]) {
-            currentCaregiver!.schedule[day] = (currentCaregiver!.schedule[day] || '') + row[colName] + '\n';
-          }
-        });
-      }
-    }
-    if (currentCaregiver) caregiversData.push(currentCaregiver);
-
-    if (caregiversData.length === 0) {
-      return { error: true, message: "Could not parse any caregiver schedules from the provided file." };
-    }
 
     let batch = firestore.batch();
     let operations = 0;
@@ -140,6 +117,7 @@ export async function processActiveCaregiverAvailabilityUpload(rows: Record<stri
             while ((match = availabilityRegex.exec(cellText)) !== null) {
                 totalAvailabilityHours += calculateDurationInHours(match[1], match[2]);
             }
+            const cappedAvailability = Math.min(totalAvailabilityHours, 9);
 
             let totalShiftHours = 0;
             const shiftRegex = /(\d{1,2}:\d{2}:\d{2}\s*[AP]M)\s*-\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)/gi;
@@ -148,8 +126,7 @@ export async function processActiveCaregiverAvailabilityUpload(rows: Record<stri
             }
             
             let nonOvertimeHours = 0;
-            if (totalAvailabilityHours > 0) {
-              const cappedAvailability = Math.min(totalAvailabilityHours, 9);
+            if (cappedAvailability > 0) {
               nonOvertimeHours = cappedAvailability - totalShiftHours;
             } else if (totalShiftHours > 0) {
               nonOvertimeHours = -totalShiftHours;
