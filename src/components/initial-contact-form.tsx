@@ -94,6 +94,7 @@ const initialContactSchema = z.object({
   clientAddress: z.string().min(1, "Client's Address is required."),
   dateOfBirth: z.date().optional(),
   rateOffered: z.coerce.number().optional(),
+  milageOffered: z.coerce.number().optional(),
   clientDepositAmount: z.coerce.number().optional(),
   city: z.string().min(1, "City is required."),
   zip: z.string().min(1, "Zip code is required."),
@@ -122,6 +123,9 @@ const initialContactSchema = z.object({
   additionalEmail: z.string().email("Please enter a valid email.").optional().or(z.literal('')),
   createdAt: z.any().optional(),
   createdBy: z.string().optional(),
+  clientIsBedridden: z.enum(["Yes", "No"]).optional(),
+  clientUsesHoyerLift: z.enum(["Yes", "No"]).optional(),
+  smokingEnvironment: z.enum(["Yes", "No"]).optional(),
   companionCare_mealPreparation: z.boolean().optional(),
     companionCare_cleanKitchen: z.boolean().optional(),
     companionCare_assistWithLaundry: z.boolean().optional(),
@@ -229,6 +233,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
       clientAddress: "",
       dateOfBirth: undefined,
       rateOffered: 0,
+      milageOffered: 0,
       clientDepositAmount: 0,
       city: "",
       zip: "",
@@ -255,6 +260,9 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
       ltci: "",
       languagePreference: "",
       additionalEmail: "",
+      clientIsBedridden: "No",
+      clientUsesHoyerLift: "No",
+      smokingEnvironment: "No",
       companionCare_other: "",
       personalCare_assistWithOther: "",
     },
@@ -509,7 +517,10 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                         </FormControl>
                     </FormItem>
                 </div>
-                <FormField control={form.control} name="rateOffered" render={({ field }) => ( <FormItem><FormLabel>Rate Offered</FormLabel><FormControl><Input type="number" {...field} value={field.value || ''} disabled={isClosed} /></FormControl><FormMessage /></FormItem> )} />
+                 <div className="grid grid-cols-2 gap-4">
+                    <FormField control={form.control} name="rateOffered" render={({ field }) => ( <FormItem><FormLabel>Rate Offered</FormLabel><FormControl><Input type="number" {...field} value={field.value || ''} disabled={isClosed} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="milageOffered" render={({ field }) => ( <FormItem><FormLabel>Mileage Offered</FormLabel><FormControl><Input type="number" step="0.01" {...field} value={field.value || ''} disabled={isClosed} /></FormControl><FormMessage /></FormItem> )} />
+                </div>
                 <div className="flex gap-4">
                     <FormField control={form.control} name="clientPhone" render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Client&apos;s Phone Number</FormLabel><FormControl><Input {...field} disabled={isCsaCreated || isClosed} /></FormControl><FormMessage /></FormItem> )} />
                     <FormField control={form.control} name="clientEmail" render={({ field }) => ( <FormItem className="flex-1"><FormLabel>Client&apos;s Email</FormLabel><FormControl><Input {...field} disabled={isCsaCreated || isClosed} /></FormControl><FormMessage /></FormItem> )} />
@@ -569,6 +580,45 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
               </div>
             </div>
             
+             <div className="grid grid-cols-3 gap-4 pt-2">
+                <FormField control={form.control} name="clientIsBedridden" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Client is bedridden</FormLabel>
+                        <FormControl>
+                            <RadioGroup onValueChange={field.onChange} value={field.value || 'No'} className="flex items-center gap-4" disabled={isClosed}>
+                                <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes"/></FormControl><FormLabel className="font-normal">Yes</FormLabel></FormItem>
+                                <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No"/></FormControl><FormLabel className="font-normal">No</FormLabel></FormItem>
+                            </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+                <FormField control={form.control} name="clientUsesHoyerLift" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Client uses Hoyer Lift</FormLabel>
+                        <FormControl>
+                            <RadioGroup onValueChange={field.onChange} value={field.value || 'No'} className="flex items-center gap-4" disabled={isClosed}>
+                                <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes"/></FormControl><FormLabel className="font-normal">Yes</FormLabel></FormItem>
+                                <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No"/></FormControl><FormLabel className="font-normal">No</FormLabel></FormItem>
+                            </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+                <FormField control={form.control} name="smokingEnvironment" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Smoking Environment</FormLabel>
+                        <FormControl>
+                            <RadioGroup onValueChange={field.onChange} value={field.value || 'No'} className="flex items-center gap-4" disabled={isClosed}>
+                                <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes"/></FormControl><FormLabel className="font-normal">Yes</FormLabel></FormItem>
+                                <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No"/></FormControl><FormLabel className="font-normal">No</FormLabel></FormItem>
+                            </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+            </div>
+
             <FormField control={form.control} name="promptedCall" render={({ field }) => ( <FormItem><FormLabel>What Prompted the Call In Today:</FormLabel><FormControl><Textarea {...field} rows={4} disabled={isClosed} /></FormControl><FormMessage /></FormItem> )} />
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">

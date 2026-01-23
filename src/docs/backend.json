@@ -1,5 +1,4 @@
 
-
 {
   "entities": {
     "InitialContact": {
@@ -12,6 +11,7 @@
             "clientAddress": { "type": "string" },
             "dateOfBirth": { "type": "string", "format": "date" },
             "rateOffered": { "type": "number" },
+            "milageOffered": { "type": "number" },
             "city": { "type": "string" },
             "zip": { "type": "string" },
             "clientPhone": { "type": "string" },
@@ -49,6 +49,9 @@
             "additionalEmail": { "type": "string", "format": "email" },
             "googleAdsLeadId": { "type": "string" },
             "googleAdsCampaignId": { "type": "string" },
+            "clientIsBedridden": { "type": "string", "enum": ["Yes", "No"] },
+            "clientUsesHoyerLift": { "type": "string", "enum": ["Yes", "No"] },
+            "smokingEnvironment": { "type": "string", "enum": ["Yes", "No"] },
             "companionCare_mealPreparation": { "type": "boolean" },
             "companionCare_cleanKitchen": { "type": "boolean" },
             "companionCare_assistWithLaundry": { "type": "boolean" },
@@ -609,4 +612,3 @@
     }
   }
 }
-

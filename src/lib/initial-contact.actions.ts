@@ -15,6 +15,7 @@ const initialContactSchema = z.object({
   clientAddress: z.string().min(1, "Client's Address is required."),
   dateOfBirth: z.date().optional(),
   rateOffered: z.coerce.number().optional(),
+  milageOffered: z.coerce.number().optional(),
   clientDepositAmount: z.coerce.number().optional(),
   city: z.string().min(1, "City is required."),
   zip: z.string().min(1, "Zip code is required."),
@@ -43,6 +44,9 @@ const initialContactSchema = z.object({
   additionalEmail: z.string().email("Please enter a valid email.").optional().or(z.literal('')),
   createdAt: z.any().optional(),
   createdBy: z.string().optional(),
+  clientIsBedridden: z.enum(["Yes", "No"]).optional(),
+  clientUsesHoyerLift: z.enum(["Yes", "No"]).optional(),
+  smokingEnvironment: z.enum(["Yes", "No"]).optional(),
   companionCare_mealPreparation: z.boolean().optional(),
   companionCare_cleanKitchen: z.boolean().optional(),
   companionCare_assistWithLaundry: z.boolean().optional(),
@@ -280,5 +284,3 @@ export async function sendManualSms(contactId: string, message: string) {
         return { error: `Failed to send SMS: ${error.message}` };
     }
 }
-
-    
