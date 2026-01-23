@@ -9,20 +9,33 @@ const DAY_COLUMNS = [
   "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
 ];
 
-function isCaregiverNameRow(rowObj: Record<string, string>, headerColumns: string[]): boolean {
+/**
+ * Safely checks if a row from the CSV represents a caregiver's name.
+ * It ensures that the first column has a string value and the subsequent
+ * day columns are empty.
+ */
+function isCaregiverNameRow(rowObj: Record<string, any>, headerColumns: string[]): boolean {
   if (!headerColumns || headerColumns.length === 0) return false;
+  
   const firstColValue = rowObj[headerColumns[0]];
-  if (!firstColValue || !firstColValue.trim() || DAY_COLUMNS.includes(firstColValue.trim())) {
+
+  // If first column is empty, not a string, or is a day of the week, it's not a name row.
+  if (typeof firstColValue !== 'string' || !firstColValue.trim() || DAY_COLUMNS.includes(firstColValue.trim())) {
       return false;
   }
+  
+  // A name row should have empty values for the day columns.
   for (let i = 1; i <= 7; i++) {
     const colName = headerColumns[i];
-    if (colName && rowObj[colName] && rowObj[colName].trim()) {
+    // If a day column has a non-empty string value, it's not a name row.
+    if (colName && rowObj[colName] && typeof rowObj[colName] === 'string' && rowObj[colName].trim()) {
       return false;
     }
   }
+
   return true;
 }
+
 
 // --- Main API Route ---
 export async function GET(request: NextRequest) {
@@ -39,14 +52,14 @@ export async function GET(request: NextRequest) {
 
     const parseResult = Papa.parse(csvData, {
       header: true,
-      skipEmptyLines: false,
+      skipEmptyLines: false, // Keep this false to handle multi-line cells correctly
     });
     
     if (parseResult.errors.length > 0) {
         throw new Error('Failed to parse caregiver availability CSV.');
     }
     
-    const rows: Record<string, string>[] = parseResult.data as Record<string, string>[];
+    const rows: Record<string, any>[] = parseResult.data as Record<string, any>[];
     const headerColumns = parseResult.meta.fields;
     if (!headerColumns) {
         throw new Error('CSV headers are missing.');
@@ -56,10 +69,16 @@ export async function GET(request: NextRequest) {
     let currentCaregiver: { name: string; schedule: Record<string, string> } | null = null;
     
     for (const row of rows) {
+      // Safely skip any rows that are not valid objects (e.g., empty trailing rows)
+      if (!row || typeof row !== 'object' || Object.keys(row).length === 0) {
+        continue;
+      }
+
       if (isCaregiverNameRow(row, headerColumns)) {
         if (currentCaregiver) {
             caregivers.push(currentCaregiver);
         }
+        // isCaregiverNameRow has already validated that this is a string
         const name = row[headerColumns[0]].trim();
         currentCaregiver = {
             name: name,
@@ -76,13 +95,16 @@ export async function GET(request: NextRequest) {
           DAY_COLUMNS.forEach((day, i) => {
               const colName = headerColumns[i]; 
               if (!colName) return;
+              
               const cell = row[colName];
-              // Pass the raw cell content to be processed by the action
-              if (cell && cell.trim()) {
+              
+              // **CRITICAL FIX**: Check if the cell content is a string before processing.
+              if (typeof cell === 'string' && cell.trim()) {
                   if (currentCaregiver.schedule[day]) {
-                      currentCaregiver.schedule[day] += "\n" + cell.trim();
+                      // Append with a newline for multi-line cells
+                      currentCaregiver.schedule[day] += "\n" + cell;
                   } else {
-                      currentCaregiver.schedule[day] = cell.trim();
+                      currentCaregiver.schedule[day] = cell;
                   }
               }
           });
@@ -106,6 +128,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: true, message: result.message });
   } catch (error: any) {
     console.error('[CRON-ERROR] /api/cron/sync-availability:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: `An error occurred during the upload: ${error.message}` }, { status: 500 });
   }
 }
