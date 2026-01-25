@@ -34,24 +34,6 @@ const DAY_COLUMNS = [
   "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
 ];
 
-function isCaregiverNameRow(rowObj: Record<string, string>, headerColumns: string[]): boolean {
-  if (!headerColumns || headerColumns.length === 0) return false;
-  
-  const firstColValue = rowObj[headerColumns[0]];
-  if (!firstColValue || !firstColValue.trim() || DAY_COLUMNS.includes(firstColValue.trim())) {
-      return false;
-  }
-  
-  for (let i = 1; i <= 7; i++) {
-    const colName = headerColumns[i];
-    if (colName && rowObj[colName] && rowObj[colName].trim()) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
 
 export async function processActiveCaregiverAvailabilityUpload(caregiversData: { name: string; schedule: Record<string, string> }[]) {
   const firestore = serverDb;
@@ -105,11 +87,15 @@ export async function processActiveCaregiverAvailabilityUpload(caregiversData: {
         };
 
         for (const day of DAY_COLUMNS) {
-            const cellText = (caregiver.schedule[day] || '').trim();
+            let cellText = (caregiver.schedule[day] || '').trim();
             if (!cellText) {
                 availabilityData[day.toLowerCase()] = { schedule: '', nonOvertimeHours: 0 };
                 continue;
             }
+
+            // Sanitize the text by adding spaces in key areas to handle messy data from CSV
+            cellText = cellText.replace(/(Availability)(\d)/g, '$1 $2'); 
+            cellText = cellText.replace(/([AP]M)(\d)/g, '$1 $2');
 
             let totalAvailabilityHours = 0;
             const availabilityRegex = /Scheduled Availability\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)\s*To\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)/gi;
