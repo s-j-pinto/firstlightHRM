@@ -7,7 +7,7 @@ import { google } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
 import { serverDb } from "@/firebase/server-init";
 import type { Appointment } from "./types";
-import { format, toZonedTime, formatInTimeZone } from 'date-fns-tz';
+import { format, toZonedTime, formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 
 export async function sendCalendarInvite(appointment: Appointment & { caregiver: any }) {
     const clientId = process.env.GOOGLE_CLIENT_ID;
