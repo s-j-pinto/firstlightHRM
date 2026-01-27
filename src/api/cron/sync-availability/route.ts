@@ -98,7 +98,8 @@ export async function GET(request: NextRequest) {
               
               const cell = row[colName];
               
-              // **CRITICAL FIX**: Check if the cell content is a string before processing.
+              // **CRITICAL FIX**: Pass the raw cell data without any filtering.
+              // The processing logic is now entirely in the server action.
               if (typeof cell === 'string' && cell.trim()) {
                   if (currentCaregiver.schedule[day]) {
                       // Append with a newline for multi-line cells
