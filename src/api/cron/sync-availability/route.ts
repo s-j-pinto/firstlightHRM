@@ -17,19 +17,18 @@ const DAY_COLUMNS = [
 function isCaregiverNameRow(rowObj: Record<string, any>, headerColumns: string[]): boolean {
   if (!headerColumns || headerColumns.length === 0) return false;
   
-  const firstColValue = rowObj[headerColumns[0]];
+  const firstColKey = headerColumns[0];
+  const firstColValue = rowObj[firstColKey];
 
   // If first column is empty, not a string, or is a day of the week, it's not a name row.
   if (typeof firstColValue !== 'string' || !firstColValue.trim() || DAY_COLUMNS.includes(firstColValue.trim())) {
       return false;
   }
   
-  // A name row should have empty values for the day columns.
-  for (let i = 1; i <= 7; i++) {
-    const colName = headerColumns[i];
-    // If a day column has a non-empty string value, it's not a name row.
-    if (colName && rowObj[colName] && typeof rowObj[colName] === 'string' && rowObj[colName].trim()) {
-      return false;
+  // A name row should have empty values for all the actual day columns.
+  for (const day of DAY_COLUMNS) {
+    if (rowObj[day] && typeof rowObj[day] === 'string' && rowObj[day].trim()) {
+      return false; // This row has data in a day column, so it's not a name row.
     }
   }
 
@@ -78,7 +77,7 @@ export async function GET(request: NextRequest) {
         if (currentCaregiver) {
             caregivers.push(currentCaregiver);
         }
-        // isCaregiverNameRow has already validated that this is a string
+        // isCaregiverNameRow has already validated that the first column exists and is a string
         const name = row[headerColumns[0]].trim();
         currentCaregiver = {
             name: name,
@@ -92,20 +91,16 @@ export async function GET(request: NextRequest) {
       }
 
       if (currentCaregiver) {
-          DAY_COLUMNS.forEach((day, i) => {
-              const colName = headerColumns[i]; 
-              if (!colName) return;
+          // Iterate over the known day names and use them as keys to access row data
+          DAY_COLUMNS.forEach(dayName => {
+              const cellValue = row[dayName];
               
-              const cell = row[colName];
-              
-              // Pass the raw cell data without any filtering.
-              // The processing logic is now entirely in the server action.
-              if (typeof cell === 'string' && cell.trim()) {
-                  if (currentCaregiver.schedule[day]) {
-                      // Append with a newline for multi-line cells
-                      currentCaregiver.schedule[day] += "\n" + cell;
+              if (typeof cellValue === 'string' && cellValue.trim()) {
+                  if (currentCaregiver.schedule[dayName]) {
+                      // Append with a newline for multi-line cells from CSV
+                      currentCaregiver.schedule[dayName] += "\n" + cellValue;
                   } else {
-                      currentCaregiver.schedule[day] = cell;
+                      currentCaregiver.schedule[dayName] = cellValue;
                   }
               }
           });
