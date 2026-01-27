@@ -5,30 +5,31 @@ import Papa from 'papaparse';
 import { processActiveCaregiverAvailabilityUpload } from '@/lib/active-caregivers.actions';
 import { serverApp } from '@/firebase/server-init';
 
-const DAY_COLUMNS = [
-  "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
-];
+const OTHER_DAY_COLUMNS = ["Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 /**
- * Safely checks if a row from the CSV represents a caregiver's name.
- * It ensures that the first column has a string value and the subsequent
- * day columns are empty.
+ * Checks if a row from the CSV represents a new caregiver's name.
+ * A name row is defined as a row where:
+ * 1. The 'Monday' column has text that does not look like a schedule time.
+ * 2. All other day columns ('Tuesday' through 'Sunday') are empty.
  */
-function isCaregiverNameRow(rowObj: Record<string, any>, headerColumns: string[]): boolean {
-  if (!headerColumns || headerColumns.length === 0) return false;
-  
-  const firstColKey = headerColumns[0];
-  const firstColValue = rowObj[firstColKey];
+function isCaregiverNameRow(row: Record<string, any>): boolean {
+  const mondayValue = row['Monday'];
+  if (!mondayValue || typeof mondayValue !== 'string' || !mondayValue.trim()) {
+    return false;
+  }
 
-  // If first column is empty, not a string, or is a day of the week, it's not a name row.
-  if (typeof firstColValue !== 'string' || !firstColValue.trim() || DAY_COLUMNS.includes(firstColValue.trim())) {
-      return false;
+  // Heuristic to check if the value is a name and not schedule data.
+  // It checks if the string does NOT start with a time-like pattern or availability keywords.
+  const isLikelyName = !/^\d{1,2}:\d{2}:\d{2}/.test(mondayValue.trim()) && !/(available|scheduled)/i.test(mondayValue.trim());
+  if (!isLikelyName) {
+    return false;
   }
   
-  // A name row should have empty values for all the actual day columns.
-  for (const day of DAY_COLUMNS) {
-    if (rowObj[day] && typeof rowObj[day] === 'string' && rowObj[day].trim()) {
-      return false; // This row has data in a day column, so it's not a name row.
+  // A name row should have empty values for all other day columns.
+  for (const day of OTHER_DAY_COLUMNS) {
+    if (row[day] && typeof row[day] === 'string' && row[day].trim()) {
+      return false; // If any other day has data, it's not a name row.
     }
   }
 
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
 
     const parseResult = Papa.parse(csvData, {
       header: true,
-      skipEmptyLines: false, // Keep this false to handle multi-line cells correctly
+      skipEmptyLines: false,
     });
     
     if (parseResult.errors.length > 0) {
@@ -68,31 +69,29 @@ export async function GET(request: NextRequest) {
     let currentCaregiver: { name: string; schedule: Record<string, string> } | null = null;
     
     for (const row of rows) {
-      // Safely skip any rows that are not valid objects (e.g., empty trailing rows)
       if (!row || typeof row !== 'object' || Object.keys(row).length === 0) {
         continue;
       }
 
-      if (isCaregiverNameRow(row, headerColumns)) {
+      if (isCaregiverNameRow(row)) {
         if (currentCaregiver) {
             caregivers.push(currentCaregiver);
         }
-        // isCaregiverNameRow has already validated that the first column exists and is a string
-        const name = row[headerColumns[0]].trim();
+        const name = row['Monday'].trim();
         currentCaregiver = {
             name: name,
-            schedule: {},
+            schedule: {
+                "Monday": "", "Tuesday": "", "Wednesday": "", "Thursday": "", 
+                "Friday": "", "Saturday": "", "Sunday": ""
+            },
         };
-        // Initialize schedule for all days for the new caregiver
-        DAY_COLUMNS.forEach(day => {
-            if (currentCaregiver) currentCaregiver.schedule[day] = "";
-        });
+        // The name row itself contains the name, so we don't process it as schedule data.
         continue;
       }
 
       if (currentCaregiver) {
           // Iterate over the known day names and use them as keys to access row data
-          DAY_COLUMNS.forEach(dayName => {
+          ["Monday", ...OTHER_DAY_COLUMNS].forEach(dayName => {
               const cellValue = row[dayName];
               
               if (typeof cellValue === 'string' && cellValue.trim()) {
