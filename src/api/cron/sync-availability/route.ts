@@ -113,6 +113,9 @@ export async function GET(request: NextRequest) {
     if (caregivers.length === 0) {
         throw new Error("Could not find any valid caregiver schedules in the provided format.");
     }
+    
+    // DEBUG: Log the exact data being sent for processing.
+    console.log('[DEBUG] Data being sent to processActiveCaregiverAvailabilityUpload:', JSON.stringify(caregivers, null, 2));
 
     const result = await processActiveCaregiverAvailabilityUpload(caregivers);
 
