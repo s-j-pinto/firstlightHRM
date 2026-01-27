@@ -94,9 +94,12 @@ export async function processActiveCaregiverAvailabilityUpload(caregiversData: {
             }
 
             // More robust sanitization to handle messy CSV data
-            cellText = cellText.replace(/\s*-\s*/g, ' - '); // Ensure spaces around hyphens
-            cellText = cellText.replace(/([AP]M)(?=\S)/g, '$1 '); // Add space after AM/PM if not present
-            cellText = cellText.replace(/([a-zA-Z])(?=\d{1,2}:\d{2}:\d{2})/g, '$1 '); // Add space before a time if preceded by a letter
+            // Add space after AM/PM if followed by a non-space/non-eol character
+            cellText = cellText.replace(/([AP]M)(?=[^\s\r\n])/g, '$1 '); 
+            // Add space before a time if preceded by a letter
+            cellText = cellText.replace(/([a-zA-Z])(?=\d{1,2}:\d{2}:\d{2})/g, '$1 ');
+            // Ensure spaces around hyphens
+            cellText = cellText.replace(/\s*-\s*/g, ' - '); 
 
             let totalAvailabilityHours = 0;
             const availabilityRegex = /Scheduled Availability\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)\s*To\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)/gi;
