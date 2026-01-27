@@ -94,9 +94,9 @@ export async function processActiveCaregiverAvailabilityUpload(caregiversData: {
 
             // Sanitize to handle messy CSV data by adding spaces
             cellText = cellText
-                .replace(/([a-zA-Z])(\d{1,2}:\d{2}:\d{2})/g, '$1 $2')
-                .replace(/([AP]M)(?=[a-zA-Z\d])/g, '$1 ')
-                .replace(/\s*-\s*/g, ' - ');
+                .replace(/([a-zA-Z])(\d{1,2}:\d{2}:\d{2})/g, '$1 $2') // Add space between letters and numbers
+                .replace(/([AP]M)(?=[a-zA-Z\d])/g, '$1 ') // Add space after AM/PM if followed by letter/number
+                .replace(/\s*-\s*/g, ' - '); // Ensure spaces around hyphens
 
             let totalAvailabilityHours = 0;
             const availabilityRegex = /Scheduled Availability\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)\s*To\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)/gi;
@@ -114,7 +114,7 @@ export async function processActiveCaregiverAvailabilityUpload(caregiversData: {
                 totalShiftHours += calculateDurationInHours(shiftMatch[1], shiftMatch[2]);
             }
             
-            const nonOvertimeHours = cappedAvailability - totalShiftHours;
+            const nonOvertimeHours = hasAvailabilityBlock ? (cappedAvailability - totalShiftHours) : (0 - totalShiftHours);
             
             availabilityData[day.toLowerCase()] = {
               schedule: cellText.replace(/\r/g, ""),
