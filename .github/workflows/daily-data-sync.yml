@@ -21,7 +21,7 @@ jobs:
       - name: Sync Caregiver Availability
         run: |
           curl --request GET \
-          --url https://care-connect-360--firstlighthomecare-hrm.us-central1.hosted.app/api/cron/sync-availability \
+          --url https://9000-firebase-studio-1759770880601.cluster-cxy3ise3prdrmx53pigwexthgs.cloudworkstations.dev/api/cron/sync-availability \
           --header 'Authorization: Bearer ${{ secrets.CRON_SECRET }}' \
           --fail
 
