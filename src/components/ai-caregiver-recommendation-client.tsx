@@ -99,6 +99,19 @@ const AvailabilityCalendar = ({ data }: { data: any }) => {
                 const dayData = data[day.toLowerCase()];
                 const scheduleText = dayData?.schedule || '';
                 const nonOvertimeHours = dayData?.nonOvertimeHours;
+                const totalShiftHours = dayData?.totalShiftHours;
+                const hasAvailabilityBlock = dayData?.hasAvailabilityBlock;
+
+                let displayValue: number | null = null;
+                let colorClass = '';
+
+                if (hasAvailabilityBlock) {
+                    displayValue = nonOvertimeHours;
+                    colorClass = 'text-green-600';
+                } else if (totalShiftHours > 0) {
+                    displayValue = totalShiftHours;
+                    colorClass = 'text-red-600';
+                }
 
                 const timeSlots: string[] = [];
                 const regex = /(\d{1,2}:\d{2}:\d{2}\s*[AP]M)\s*(?:To|-)\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)/gi;
@@ -112,9 +125,9 @@ const AvailabilityCalendar = ({ data }: { data: any }) => {
                         <CardHeader className="p-3 pb-2">
                             <CardTitle className="text-center text-sm capitalize flex justify-center items-center gap-1">
                                 {day}
-                                {typeof nonOvertimeHours === 'number' && nonOvertimeHours !== 0 && (
-                                    <span className={cn('font-bold', nonOvertimeHours < 0 ? 'text-red-600' : 'text-green-600')}>
-                                        ({Math.abs(nonOvertimeHours)})
+                                {displayValue !== null && displayValue !== 0 && (
+                                    <span className={cn('font-bold', colorClass)}>
+                                        ({Math.abs(displayValue)})
                                     </span>
                                 )}
                             </CardTitle>

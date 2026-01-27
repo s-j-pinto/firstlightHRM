@@ -88,40 +88,39 @@ export async function processActiveCaregiverAvailabilityUpload(caregiversData: {
         for (const day of DAY_COLUMNS) {
             let cellText = (caregiver.schedule[day] || '').trim();
             if (!cellText) {
-                availabilityData[day.toLowerCase()] = { schedule: '', nonOvertimeHours: 0 };
+                availabilityData[day.toLowerCase()] = { schedule: '', nonOvertimeHours: 0, totalShiftHours: 0, hasAvailabilityBlock: false };
                 continue;
             }
 
             // Sanitize to handle messy CSV data by adding spaces
             cellText = cellText
-                .replace(/([a-zA-Z])(\d{1,2}:\d{2}:\d{2})/g, '$1 $2') // Space between letter and time
-                .replace(/([AP]M)(?=[a-zA-Z\d])/g, '$1 ') // Space after AM/PM if not followed by space/eol
-                .replace(/\s*-\s*/g, ' - '); // Ensure spaces around hyphens
+                .replace(/([a-zA-Z])(\d{1,2}:\d{2}:\d{2})/g, '$1 $2')
+                .replace(/([AP]M)(?=[a-zA-Z\d])/g, '$1 ')
+                .replace(/\s*-\s*/g, ' - ');
 
             let totalAvailabilityHours = 0;
             const availabilityRegex = /Scheduled Availability\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)\s*To\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)/gi;
-            let match;
-            while ((match = availabilityRegex.exec(cellText)) !== null) {
-                totalAvailabilityHours += calculateDurationInHours(match[1], match[2]);
+            let availabilityMatch;
+            while ((availabilityMatch = availabilityRegex.exec(cellText)) !== null) {
+                totalAvailabilityHours += calculateDurationInHours(availabilityMatch[1], availabilityMatch[2]);
             }
+            const hasAvailabilityBlock = totalAvailabilityHours > 0;
             const cappedAvailability = Math.min(totalAvailabilityHours, 9);
 
             let totalShiftHours = 0;
             const shiftRegex = /(\d{1,2}:\d{2}:\d{2}\s*[AP]M)\s*-\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)/gi;
-            while ((match = shiftRegex.exec(cellText)) !== null) {
-                totalShiftHours += calculateDurationInHours(match[1], match[2]);
+            let shiftMatch;
+            while ((shiftMatch = shiftRegex.exec(cellText)) !== null) {
+                totalShiftHours += calculateDurationInHours(shiftMatch[1], shiftMatch[2]);
             }
             
-            let nonOvertimeHours = 0;
-            if (cappedAvailability > 0) {
-              nonOvertimeHours = cappedAvailability - totalShiftHours;
-            } else if (totalShiftHours > 0) {
-              nonOvertimeHours = -totalShiftHours;
-            }
+            const nonOvertimeHours = cappedAvailability - totalShiftHours;
             
             availabilityData[day.toLowerCase()] = {
               schedule: cellText.replace(/\r/g, ""),
               nonOvertimeHours: parseFloat(nonOvertimeHours.toFixed(2)),
+              totalShiftHours: parseFloat(totalShiftHours.toFixed(2)),
+              hasAvailabilityBlock: hasAvailabilityBlock,
             };
         }
         
