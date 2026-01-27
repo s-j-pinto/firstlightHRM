@@ -6,6 +6,10 @@ import { serverDb } from '@/firebase/server-init';
 import { WriteBatch, Timestamp } from 'firebase-admin/firestore';
 import { parse, differenceInMinutes } from 'date-fns';
 
+const DAY_COLUMNS = [
+  "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
+];
+
 function parse12Hour(timeStr: string): Date | null {
   try {
     return parse(timeStr, 'h:mm:ss a', new Date());
@@ -29,11 +33,6 @@ function calculateDurationInHours(startStr: string, endStr: string): number {
   }
   return 0;
 }
-
-const DAY_COLUMNS = [
-  "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
-];
-
 
 export async function processActiveCaregiverAvailabilityUpload(caregiversData: { name: string; schedule: Record<string, string> }[]) {
   const firestore = serverDb;
@@ -93,13 +92,11 @@ export async function processActiveCaregiverAvailabilityUpload(caregiversData: {
                 continue;
             }
 
-            // More robust sanitization to handle messy CSV data
-            // Add space after AM/PM if followed by a non-space/non-eol character
-            cellText = cellText.replace(/([AP]M)(?=[^\s\r\n])/g, '$1 '); 
-            // Add space before a time if preceded by a letter
-            cellText = cellText.replace(/([a-zA-Z])(?=\d{1,2}:\d{2}:\d{2})/g, '$1 ');
-            // Ensure spaces around hyphens
-            cellText = cellText.replace(/\s*-\s*/g, ' - '); 
+            // Sanitize to handle messy CSV data by adding spaces
+            cellText = cellText
+                .replace(/([a-zA-Z])(\d{1,2}:\d{2}:\d{2})/g, '$1 $2') // Space between letter and time
+                .replace(/([AP]M)(?=[a-zA-Z\d])/g, '$1 ') // Space after AM/PM if not followed by space/eol
+                .replace(/\s*-\s*/g, ' - '); // Ensure spaces around hyphens
 
             let totalAvailabilityHours = 0;
             const availabilityRegex = /Scheduled Availability\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)\s*To\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)/gi;
