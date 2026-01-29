@@ -1,20 +1,7 @@
+
 'use server';
 
 import type { CaregiverProfile } from './types';
-
-interface TeletrackPayload {
-  'First Name': string;
-  'Last Name': string;
-  'Address': string;
-  'City': string;
-  'State': string;
-  'Zip Code': string;
-  'Phone Number': string;
-  'Driver\'s License No.': string;
-  'Email': string;
-  'GPS App User Name': string;
-  'TT ID': string;
-}
 
 export async function triggerTeletrackImport(caregiver: CaregiverProfile, teletrackPin: string) {
   const GITHUB_PAT = process.env.GITHUB_PAT;
@@ -30,18 +17,23 @@ export async function triggerTeletrackImport(caregiver: CaregiverProfile, teletr
   const firstName = nameParts[0];
   const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
 
-  const payload: TeletrackPayload = {
-    'First Name': firstName,
-    'Last Name': lastName,
-    'Address': caregiver.address || '',
-    'City': caregiver.city || '',
-    'State': caregiver.state || '',
-    'Zip Code': caregiver.zip || '',
-    'Phone Number': caregiver.phone || '',
-    'Driver\'s License No.': caregiver.driversLicenseNumber || '',
-    'Email': caregiver.email || '',
-    'GPS App User Name': caregiver.email || '',
-    'TT ID': teletrackPin || '',
+  // This payload matches the `inputs` of the `workflow_dispatch` trigger.
+  const payload = {
+    ref: 'main', // Assuming 'main' is the default branch for the workflow
+    inputs: {
+      firstName: firstName,
+      lastName: lastName,
+      address: caregiver.address || '',
+      city: caregiver.city || '',
+      state: caregiver.state || '',
+      dateOfBirth: '', // This field is not collected in the application form
+      zipCode: caregiver.zip || '',
+      phoneNumber: caregiver.phone || '',
+      driversLicenseNo: caregiver.driversLicenseNumber || '',
+      email: caregiver.email || '',
+      gpsAppUserName: caregiver.email || '',
+      ttId: teletrackPin || '',
+    }
   };
 
   try {
@@ -52,10 +44,7 @@ export async function triggerTeletrackImport(caregiver: CaregiverProfile, teletr
         'Authorization': `token ${GITHUB_PAT}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        event_type: 'teletrack-new-applicant-import',
-        client_payload: payload,
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
