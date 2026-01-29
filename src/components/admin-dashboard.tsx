@@ -3,7 +3,7 @@
 "use client";
 
 import { useState, useTransition, useMemo } from "react";
-import { format } from "date-fns";
+import { format, subWeeks } from "date-fns";
 import {
   Calendar,
   Clock,
@@ -108,14 +108,18 @@ export default function AdminDashboard() {
     if (!appointmentsData || !caregiversData) return [];
     
     const caregiversMap = new Map(caregiversData.map(c => [c.id, c]));
+    const fourWeeksAgo = subWeeks(new Date(), 4);
 
     const activeAppointments = appointmentsData.filter(
-        (appt) => appt.appointmentStatus !== "cancelled"
+        (appt) => {
+          const apptDate = (appt.startTime as any).toDate();
+          return appt.appointmentStatus !== "cancelled" && apptDate >= fourWeeksAgo;
+        }
     );
 
     return activeAppointments.map(appt => ({
       ...appt,
-      startTime: (appt.startTime as any).toDate(), // Convert Firestore Timestamp to Date
+      startTime: (appt.startTime as any).toDate(),
       endTime: (appt.endTime as any).toDate(),
       preferredTimes: appt.preferredTimes?.map(t => (t as any).toDate()),
       caregiver: caregiversMap.get(appt.caregiverId),
@@ -149,7 +153,7 @@ export default function AdminDashboard() {
 
   const safeAppointments = appointments || [];
   const groupedAppointments = groupAppointmentsByDay(
-    safeAppointments.sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
+    safeAppointments.sort((a, b) => b.startTime.getTime() - a.startTime.getTime())
   );
   
   const isLoading = appointmentsLoading || caregiversLoading;
@@ -194,145 +198,148 @@ export default function AdminDashboard() {
             <p className="mt-1 text-sm text-muted-foreground">New appointments will appear here once scheduled.</p>
         </div>
       )}
-      {Object.entries(groupedAppointments).map(([date, dayAppointments]) => (
-        <div key={date}>
-          <h2 className="text-xl font-semibold mb-4 pb-2 border-b">
-            {format(dayAppointments[0].startTime, "EEEE, MMMM do, yyyy")}
-          </h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {dayAppointments.map((appointment) => {
-              const isSending = isPending && pendingInviteId === appointment.id;
-              return (
-              <Card key={appointment.id} className={`shadow-md hover:shadow-lg transition-shadow ${appointment.inviteSent ? 'bg-gray-100' : ''}`}>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span className="flex items-center">
-                      <User className="mr-2 h-5 w-5 text-accent" />
-                      {appointment.caregiver?.fullName}
-                    </span>
-                    <Badge variant="outline">{format(appointment.startTime, "h:mm a")}</Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Mail className="mr-2 h-4 w-4" />
-                    <span>{appointment.caregiver?.email}</span>
-                  </div>
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Phone className="mr-2 h-4 w-4" />
-                    <span>{appointment.caregiver?.phone}</span>
-                  </div>
-                  
-                  {appointment.preferredTimes && appointment.preferredTimes.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-semibold flex items-center mb-2">
-                        <Clock4 className="mr-2 h-4 w-4" />
-                        Candidate&apos;s Preferred Times:
-                      </h4>
-                      <div className="flex flex-wrap gap-2">
-                        {appointment.preferredTimes.map((time, index) => (
-                          <Badge key={index} variant={appointment.startTime.getTime() === time.getTime() ? 'default' : 'secondary'}>
-                            {format(time, 'PPp')}
-                          </Badge>
-                        ))}
-                      </div>
+      {Object.keys(groupedAppointments).sort((a, b) => new Date(b).getTime() - new Date(a).getTime()).map(date => {
+        const dayAppointments = groupedAppointments[date];
+        return (
+          <div key={date}>
+            <h2 className="text-xl font-semibold mb-4 pb-2 border-b">
+              {format(dayAppointments[0].startTime, "EEEE, MMMM do, yyyy")}
+            </h2>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {dayAppointments.map((appointment) => {
+                const isSending = isPending && pendingInviteId === appointment.id;
+                return (
+                <Card key={appointment.id} className={`shadow-md hover:shadow-lg transition-shadow ${appointment.inviteSent ? 'bg-gray-100' : ''}`}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="flex items-center">
+                        <User className="mr-2 h-5 w-5 text-accent" />
+                        {appointment.caregiver?.fullName}
+                      </span>
+                      <Badge variant="outline">{format(appointment.startTime, "h:mm a")}</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Mail className="mr-2 h-4 w-4" />
+                      <span>{appointment.caregiver?.email}</span>
                     </div>
-                  )}
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Phone className="mr-2 h-4 w-4" />
+                      <span>{appointment.caregiver?.phone}</span>
+                    </div>
+                    
+                    {appointment.preferredTimes && appointment.preferredTimes.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-semibold flex items-center mb-2">
+                          <Clock4 className="mr-2 h-4 w-4" />
+                          Candidate&apos;s Preferred Times:
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {appointment.preferredTimes.map((time, index) => (
+                            <Badge key={index} variant={appointment.startTime.getTime() === time.getTime() ? 'default' : 'secondary'}>
+                              {format(time, 'PPp')}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-                  <Separator />
-                  <div className="flex gap-2 mt-4">
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" className="w-full">View Profile</Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-[625px]">
-                        <DialogHeader>
-                          <DialogTitle className="text-2xl">{appointment.caregiver?.fullName}</DialogTitle>
-                        </DialogHeader>
-                        {appointment.caregiver && (
-                          <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
-                            <h3 className="font-semibold text-lg flex items-center"><Briefcase className="mr-2 h-5 w-5 text-accent" />Experience</h3>
-                            <p><span className="font-semibold">Years:</span> {appointment.caregiver.yearsExperience}</p>
-                            <p><span className="font-semibold">Summary:</span> {appointment.caregiver.summary}</p>
-                            
-                            <Separator className="my-2"/>
-                            
-                             <h3 className="font-semibold text-lg flex items-center mb-2"><Stethoscope className="mr-2 h-5 w-5 text-accent" />Skills & Experience</h3>
-                            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                                <p className="flex items-center"><span className="font-semibold w-48">Able to change brief:</span> <BooleanDisplay value={appointment.caregiver.canChangeBrief} /></p>
-                                <p className="flex items-center"><span className="font-semibold w-48">Able to Transfer:</span> <BooleanDisplay value={appointment.caregiver.canTransfer} /></p>
-                                <p className="flex items-center"><span className="font-semibold w-48">Able to prepare meals:</span> <BooleanDisplay value={appointment.caregiver.canPrepareMeals} /></p>
-                                <p className="flex items-center"><span className="font-semibold w-48">Bed bath/shower assistance:</span> <BooleanDisplay value={appointment.caregiver.canDoBedBath} /></p>
-                                <p className="flex items-center"><span className="font-semibold w-48">Able to use Hoyer Lift:</span> <BooleanDisplay value={appointment.caregiver.canUseHoyerLift} /></p>
-                                <p className="flex items-center"><span className="font-semibold w-48">Able to use Gait Belt:</span> <BooleanDisplay value={appointment.caregiver.canUseGaitBelt} /></p>
-                                <p className="flex items-center"><span className="font-semibold w-48">Able to use a Purwick:</span> <BooleanDisplay value={appointment.caregiver.canUsePurwick} /></p>
-                                <p className="flex items-center"><span className="font-semibold w-48">Able to empty catheter:</span> <BooleanDisplay value={appointment.caregiver.canEmptyCatheter} /></p>
-                                <p className="flex items-center"><span className="font-semibold w-48">Able to empty colostomy bag:</span> <BooleanDisplay value={appointment.caregiver.canEmptyColostomyBag} /></p>
-                                <p className="flex items-center"><span className="font-semibold w-48">Able to give medication:</span> <BooleanDisplay value={appointment.caregiver.canGiveMedication} /></p>
-                                <p className="flex items-center"><span className="font-semibold w-48">Able to take blood Pressure:</span> <BooleanDisplay value={appointment.caregiver.canTakeBloodPressure} /></p>
-                                <p className="flex items-center"><span className="font-semibold w-48">Dementia patients experience:</span> <BooleanDisplay value={appointment.caregiver.hasDementiaExperience} /></p>
-                                <p className="flex items-center"><span className="font-semibold w-48">Hospice patients experience:</span> <BooleanDisplay value={appointment.caregiver.hasHospiceExperience} /></p>
+                    <Separator />
+                    <div className="flex gap-2 mt-4">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" className="w-full">View Profile</Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[625px]">
+                          <DialogHeader>
+                            <DialogTitle className="text-2xl">{appointment.caregiver?.fullName}</DialogTitle>
+                          </DialogHeader>
+                          {appointment.caregiver && (
+                            <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
+                              <h3 className="font-semibold text-lg flex items-center"><Briefcase className="mr-2 h-5 w-5 text-accent" />Experience</h3>
+                              <p><span className="font-semibold">Years:</span> {appointment.caregiver.yearsExperience}</p>
+                              <p><span className="font-semibold">Summary:</span> {appointment.caregiver.summary}</p>
+                              
+                              <Separator className="my-2"/>
+                              
+                               <h3 className="font-semibold text-lg flex items-center mb-2"><Stethoscope className="mr-2 h-5 w-5 text-accent" />Skills & Experience</h3>
+                              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                                  <p className="flex items-center"><span className="font-semibold w-48">Able to change brief:</span> <BooleanDisplay value={appointment.caregiver.canChangeBrief} /></p>
+                                  <p className="flex items-center"><span className="font-semibold w-48">Able to Transfer:</span> <BooleanDisplay value={appointment.caregiver.canTransfer} /></p>
+                                  <p className="flex items-center"><span className="font-semibold w-48">Able to prepare meals:</span> <BooleanDisplay value={appointment.caregiver.canPrepareMeals} /></p>
+                                  <p className="flex items-center"><span className="font-semibold w-48">Bed bath/shower assistance:</span> <BooleanDisplay value={appointment.caregiver.canDoBedBath} /></p>
+                                  <p className="flex items-center"><span className="font-semibold w-48">Able to use Hoyer Lift:</span> <BooleanDisplay value={appointment.caregiver.canUseHoyerLift} /></p>
+                                  <p className="flex items-center"><span className="font-semibold w-48">Able to use Gait Belt:</span> <BooleanDisplay value={appointment.caregiver.canUseGaitBelt} /></p>
+                                  <p className="flex items-center"><span className="font-semibold w-48">Able to use a Purwick:</span> <BooleanDisplay value={appointment.caregiver.canUsePurwick} /></p>
+                                  <p className="flex items-center"><span className="font-semibold w-48">Able to empty catheter:</span> <BooleanDisplay value={appointment.caregiver.canEmptyCatheter} /></p>
+                                  <p className="flex items-center"><span className="font-semibold w-48">Able to empty colostomy bag:</span> <BooleanDisplay value={appointment.caregiver.canEmptyColostomyBag} /></p>
+                                  <p className="flex items-center"><span className="font-semibold w-48">Able to give medication:</span> <BooleanDisplay value={appointment.caregiver.canGiveMedication} /></p>
+                                  <p className="flex items-center"><span className="font-semibold w-48">Able to take blood Pressure:</span> <BooleanDisplay value={appointment.caregiver.canTakeBloodPressure} /></p>
+                                  <p className="flex items-center"><span className="font-semibold w-48">Dementia patients experience:</span> <BooleanDisplay value={appointment.caregiver.hasDementiaExperience} /></p>
+                                  <p className="flex items-center"><span className="font-semibold w-48">Hospice patients experience:</span> <BooleanDisplay value={appointment.caregiver.hasHospiceExperience} /></p>
+                              </div>
+
+                              <Separator className="my-2"/>
+                              
+                              <h3 className="font-semibold text-lg flex items-center"><FileText className="mr-2 h-5 w-5 text-accent" />Certifications</h3>
+                              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                                  <p className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">HCA:</span> <BooleanDisplay value={appointment.caregiver.hca} /></p>
+                                  <p className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">HHA:</span> <BooleanDisplay value={appointment.caregiver.hha} /></p>
+                                  <p className="flex items-center gap-2"><ScanSearch className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">Live Scan:</span> <BooleanDisplay value={appointment.caregiver.liveScan} /></p>
+                                  <p className="flex items-center gap-2"><FileText className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">TB Test:</span> <BooleanDisplay value={appointment.caregiver.negativeTbTest} /></p>
+                                  <p className="flex items-center gap-2"><Stethoscope className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">CPR/First Aid:</span> <BooleanDisplay value={appointment.caregiver.cprFirstAid} /></p>
+                                  <p className='flex items-center gap-2'><Biohazard className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">COVID Vaccine:</span> <BooleanDisplay value={appointment.caregiver.covidVaccine} /></p>
+                              </div>
+                              {appointment.caregiver.otherLanguages && <p className="flex items-center gap-2"><Languages className="h-4 w-4 mt-1 text-muted-foreground" /><span className="font-semibold">Other Languages:</span> {appointment.caregiver.otherLanguages}</p>}
+                              {appointment.caregiver.otherCertifications && <p><span className="font-semibold">Other:</span> {appointment.caregiver.otherCertifications}</p>}
+                              
+                              <Separator className="my-2"/>
+                              
+                              <h3 className="font-semibold text-lg flex items-center">Availability</h3>
+                              <AvailabilityDisplay availability={appointment.caregiver.availability} />
+
+                              <Separator className="my-2"/>
+                              
+                              <h3 className="font-semibold text-lg flex items-center"><Car className="mr-2 h-5 w-5 text-accent" />Transportation</h3>
+                               <p><span className="font-semibold">Has Vehicle:</span> {appointment.caregiver.hasCar}</p>
+                               <p><span className="font-semibold">Valid License:</span> {appointment.caregiver.validLicense}</p>
                             </div>
+                          )}
+                        </DialogContent>
+                      </Dialog>
 
-                            <Separator className="my-2"/>
-                            
-                            <h3 className="font-semibold text-lg flex items-center"><FileText className="mr-2 h-5 w-5 text-accent" />Certifications</h3>
-                            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                                <p className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">HCA:</span> <BooleanDisplay value={appointment.caregiver.hca} /></p>
-                                <p className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">HHA:</span> <BooleanDisplay value={appointment.caregiver.hha} /></p>
-                                <p className="flex items-center gap-2"><ScanSearch className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">Live Scan:</span> <BooleanDisplay value={appointment.caregiver.liveScan} /></p>
-                                <p className="flex items-center gap-2"><FileText className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">TB Test:</span> <BooleanDisplay value={appointment.caregiver.negativeTbTest} /></p>
-                                <p className="flex items-center gap-2"><Stethoscope className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">CPR/First Aid:</span> <BooleanDisplay value={appointment.caregiver.cprFirstAid} /></p>
-                                <p className='flex items-center gap-2'><Biohazard className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">COVID Vaccine:</span> <BooleanDisplay value={appointment.caregiver.covidVaccine} /></p>
-                            </div>
-                            {appointment.caregiver.otherLanguages && <p className="flex items-center gap-2"><Languages className="h-4 w-4 mt-1 text-muted-foreground" /><span className="font-semibold">Other Languages:</span> {appointment.caregiver.otherLanguages}</p>}
-                            {appointment.caregiver.otherCertifications && <p><span className="font-semibold">Other:</span> {appointment.caregiver.otherCertifications}</p>}
-                            
-                            <Separator className="my-2"/>
-                            
-                            <h3 className="font-semibold text-lg flex items-center">Availability</h3>
-                            <AvailabilityDisplay availability={appointment.caregiver.availability} />
-
-                            <Separator className="my-2"/>
-                            
-                            <h3 className="font-semibold text-lg flex items-center"><Car className="mr-2 h-5 w-5 text-accent" />Transportation</h3>
-                             <p><span className="font-semibold">Has Vehicle:</span> {appointment.caregiver.hasCar}</p>
-                             <p><span className="font-semibold">Valid License:</span> {appointment.caregiver.validLicense}</p>
-                          </div>
-                        )}
-                      </DialogContent>
-                    </Dialog>
+                      <Button 
+                        onClick={() => setEditingAppointment(appointment)}
+                        variant="outline" 
+                        className="w-full"
+                      >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          Edit Appointment
+                      </Button>
+                    </div>
 
                     <Button 
-                      onClick={() => setEditingAppointment(appointment)}
-                      variant="outline" 
-                      className="w-full"
+                      onClick={() => handleSendInvite(appointment)} 
+                      disabled={isSending || appointment.inviteSent}
+                      className="w-full bg-accent hover:bg-accent/90 disabled:bg-gray-300"
                     >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        Edit Appointment
+                      {isSending ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="mr-2 h-4 w-4" />
+                      )}
+                      {appointment.inviteSent ? 'Invite Sent' : 'Send Invite'}
                     </Button>
-                  </div>
 
-                  <Button 
-                    onClick={() => handleSendInvite(appointment)} 
-                    disabled={isSending || appointment.inviteSent}
-                    className="w-full bg-accent hover:bg-accent/90 disabled:bg-gray-300"
-                  >
-                    {isSending ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Send className="mr-2 h-4 w-4" />
-                    )}
-                    {appointment.inviteSent ? 'Invite Sent' : 'Send Invite'}
-                  </Button>
-
-                </CardContent>
-              </Card>
-              );
-            })}
+                  </CardContent>
+                </Card>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      ))}
+        )
+      })}
 
       {editingAppointment && (
         <EditAppointment
