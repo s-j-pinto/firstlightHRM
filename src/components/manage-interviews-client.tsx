@@ -12,6 +12,7 @@ import type { CaregiverProfile, Interview, CaregiverEmployee } from '@/lib/types
 import { caregiverEmployeeSchema } from '@/lib/types';
 import { saveInterviewAndSchedule, rejectCandidateAfterOrientation } from '@/lib/interviews.actions';
 import { getAiInterviewInsights } from '@/lib/ai.actions';
+import { triggerTeletrackImport } from '@/lib/github.actions';
 
 
 import { Input } from '@/components/ui/input';
@@ -442,12 +443,23 @@ export default function ManageInterviewsClient() {
           interviewDocRef = docRef;
         }
 
-        // Update local state to reflect the saved data
         setExistingInterview({ ...interviewPayload, id: interviewId } as Interview);
-        toast({ title: 'Success', description: 'Phone interview results saved.' });
+        let toastMessage = 'Phone interview results saved.';
+        
+        if (data.phoneScreenPassed === 'Yes') {
+          const teletrackPin = hiringForm.getValues('teletrackPin');
+          const githubResult = await triggerTeletrackImport(selectedCaregiver, teletrackPin);
+          if (githubResult.success) {
+            toastMessage += " and TeleTrack new applicant created successfully";
+          } else {
+            toastMessage += ` but failed to create TeleTrack applicant: ${githubResult.error}`;
+          }
+        }
+
+        toast({ title: 'Success', description: toastMessage });
 
         if (data.phoneScreenPassed === 'No') {
-          handleCancel(); // Reset UI if failed
+          handleCancel();
         }
       } catch(serverError) {
           const permissionError = new FirestorePermissionError({

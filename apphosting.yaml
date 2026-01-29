@@ -65,3 +65,11 @@ env:
     availability:
       - BUILD
       - RUNTIME
+  - variable: GITHUB_PAT
+    secret: GITHUB_PAT
+    availability:
+      - RUNTIME
+  - variable: GITHUB_TELETRACK_EXPIMP_API
+    secret: GITHUB_TELETRACK_EXPIMP_API
+    availability:
+      - RUNTIME
