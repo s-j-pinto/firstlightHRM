@@ -66,10 +66,12 @@ env:
       - BUILD
       - RUNTIME
   - variable: GITHUB_PAT
-    value: ${GITHUB_PAT}
+    secret: GITHUB_PAT
     availability:
+      - BUILD
       - RUNTIME
   - variable: GITHUB_TELETRACK_EXPIMP_API
-    value: ${GITHUB_TELETRACK_EXPIMP_API}
+    value: 'https://api.github.com/repos/s-j-pinto/teletrack-export/actions/workflows/import-applicant.yml/dispatches'
     availability:
+      - BUILD
       - RUNTIME

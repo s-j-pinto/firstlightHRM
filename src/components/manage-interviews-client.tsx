@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
@@ -448,7 +449,21 @@ export default function ManageInterviewsClient() {
         
         if (data.phoneScreenPassed === 'Yes') {
           const teletrackPin = hiringForm.getValues('teletrackPin');
-          const githubResult = await triggerTeletrackImport(selectedCaregiver, teletrackPin);
+          
+          if (!selectedCaregiver) return; // Should not happen, but as a type guard
+
+          const applicantData = {
+              fullName: selectedCaregiver.fullName,
+              address: selectedCaregiver.address,
+              city: selectedCaregiver.city,
+              state: selectedCaregiver.state,
+              zip: selectedCaregiver.zip,
+              phone: selectedCaregiver.phone,
+              driversLicenseNumber: selectedCaregiver.driversLicenseNumber,
+              email: selectedCaregiver.email,
+          };
+  
+          const githubResult = await triggerTeletrackImport(applicantData, teletrackPin);
           if (githubResult.success) {
             toastMessage += " and TeleTrack new applicant created successfully";
           } else {

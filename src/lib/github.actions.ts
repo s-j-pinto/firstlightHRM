@@ -1,9 +1,22 @@
 
 'use server';
 
-import type { CaregiverProfile } from './types';
+// The full CaregiverProfile type is not imported to avoid passing complex objects from client to server.
+// import type { CaregiverProfile } from './types';
 
-export async function triggerTeletrackImport(caregiver: CaregiverProfile, teletrackPin: string) {
+// A plain object interface for just the data needed by this action.
+interface TeletrackApplicantPayload {
+  fullName: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  phone?: string;
+  driversLicenseNumber?: string;
+  email?: string;
+}
+
+export async function triggerTeletrackImport(caregiver: TeletrackApplicantPayload, teletrackPin: string) {
   const GITHUB_PAT = process.env.GITHUB_PAT;
   const GITHUB_TELETRACK_EXPIMP_API = process.env.GITHUB_TELETRACK_EXPIMP_API;
 
