@@ -8,7 +8,7 @@ export default function AdvancedSearchPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight font-headline">Phonescreen Dashboard</h1>
           <p className="text-muted-foreground">
-            View and manage upcoming phone screen appointments.
+            View and manage phone screens appointments (going back upto 4 weeks)
           </p>
         </div>
         <HelpDialog topic="phonescreenDashboard" />
@@ -19,5 +19,3 @@ export default function AdvancedSearchPage() {
     </div>
   );
 }
-
-    
