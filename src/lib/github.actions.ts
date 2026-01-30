@@ -53,7 +53,7 @@ export async function triggerTeletrackImport(caregiver: TeletrackApplicantPayloa
     const response = await fetch(GITHUB_TELETRACK_EXPIMP_API, {
       method: 'POST',
       headers: {
-        'Accept': 'application/vnd.github.v3+json',
+        'Accept': 'application/vnd.github+json',
         'Authorization': `Bearer ${GITHUB_PAT}`,
         'Content-Type': 'application/json',
       },
