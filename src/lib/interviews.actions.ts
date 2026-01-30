@@ -224,6 +224,9 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
             <li>Live scan or Clearance letter if you have it,</li>
             <li>If you have not registered, please register on this link: https://guardian.dss.ca.gov/Applicant/ </li>
             <li>CPR-First Aide proof card, Any other certification that you have.</li>
+            <li>Employment history with dates and contact numbers,</li>
+            <li>DMV Driver’s Record Request Report. You can get a Driver’s Record Request online: https://www.dmv.ca.gov/portal   $2 online or  $5 at DMV office.</li>
+            <li>Physical Test(HHA only)</li>
         </ul>
         <p><strong>NEW OR RENEWAL OF HCA AND LIVE SCAN PRINTS</strong></p>
         <ol>
