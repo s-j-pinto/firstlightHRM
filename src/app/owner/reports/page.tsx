@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -9,6 +10,7 @@ import LeadConversionFunnelReport from '@/components/lead-conversion-funnel-repo
 import LeadSourcePerformanceReport from '@/components/lead-source-performance-report';
 import LostLeadAnalysisReport from '@/components/lost-lead-analysis-report';
 import LevelOfCareReport from '@/components/level-of-care-report';
+import SpeedToHireReport from '@/components/speed-to-hire-report';
 import {
   Select,
   SelectContent,
@@ -42,6 +44,7 @@ export default function OwnerReportsPage() {
                             <SelectItem value="lost_lead_analysis">Lost Lead Analysis</SelectItem>
                             <SelectItem value="level_of_care">Level of Care Needs Analysis</SelectItem>
                             <SelectItem value="candidate_status">Candidate Interview Status</SelectItem>
+                            <SelectItem value="speed_to_hire">Time-Based Metrics (Speed to Hire)</SelectItem>
                             <SelectItem value="cancelled_interviews">Cancelled Phone Screen Appointments</SelectItem>
                             <SelectItem value="client_care_requests">Client Care Request Status</SelectItem>
                             <SelectItem value="referrals_rewards">Referrals and Rewards Status</SelectItem>
@@ -61,6 +64,7 @@ export default function OwnerReportsPage() {
         {selectedReport === 'cancelled_interviews' && <CancelledInterviewsReport />}
         {selectedReport === 'client_care_requests' && <ClientCareRequestsReport />}
         {selectedReport === 'referrals_rewards' && <ReferralsRewardsReport />}
+        {selectedReport === 'speed_to_hire' && <SpeedToHireReport />}
       </div>
     </div>
   );
