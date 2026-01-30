@@ -54,7 +54,7 @@ export async function triggerTeletrackImport(caregiver: TeletrackApplicantPayloa
       method: 'POST',
       headers: {
         'Accept': 'application/vnd.github.v3+json',
-        'Authorization': `token ${GITHUB_PAT}`,
+        'Authorization': `Bearer ${GITHUB_PAT}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),

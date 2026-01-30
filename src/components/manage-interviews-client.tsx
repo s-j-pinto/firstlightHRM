@@ -450,7 +450,7 @@ export default function ManageInterviewsClient() {
         if (data.phoneScreenPassed === 'Yes') {
           const teletrackPin = hiringForm.getValues('teletrackPin');
           
-          if (!selectedCaregiver) return; // Should not happen, but as a type guard
+          if (!selectedCaregiver) return;
 
           const applicantData = {
               fullName: selectedCaregiver.fullName,
