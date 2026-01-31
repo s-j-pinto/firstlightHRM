@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -7,6 +6,9 @@ import CandidateStatusReport from "@/components/candidate-status-report";
 import NoShowRateReport from '@/components/no-show-rate-report';
 import GhostingTrendsReport from '@/components/ghosting-trends-report';
 import SpeedToHireReport from '@/components/speed-to-hire-report';
+import TimeInStageReport from '@/components/time-in-stage-report';
+import RejectionPointAnalysisReport from '@/components/rejection-point-analysis-report';
+import TimeToRejectReport from '@/components/time-to-reject-report';
 import {
   Select,
   SelectContent,
@@ -36,10 +38,13 @@ export default function ReportsPage() {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="candidate_status">Candidate Interview Status</SelectItem>
+                            <SelectItem value="speed_to_hire">Time-Based Metrics (Speed to Hire)</SelectItem>
+                            <SelectItem value="time_in_stage">Candidate Time-in-Stage Analysis</SelectItem>
+                            <SelectItem value="rejection_points">Hiring Funnel & Rejection Points</SelectItem>
+                            <SelectItem value="time_to_reject">Time-to-Reject Analysis</SelectItem>
                             <SelectItem value="cancelled_interviews">Cancelled Phone Screen Appointments</SelectItem>
                             <SelectItem value="no_show_rate">"No Show" Candidate Rate</SelectItem>
                             <SelectItem value="ghosting_trends">Ghosting Trends by Month</SelectItem>
-                            <SelectItem value="speed_to_hire">Time-Based Metrics (Speed to Hire)</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -53,6 +58,9 @@ export default function ReportsPage() {
         {selectedReport === 'no_show_rate' && <NoShowRateReport />}
         {selectedReport === 'ghosting_trends' && <GhostingTrendsReport />}
         {selectedReport === 'speed_to_hire' && <SpeedToHireReport />}
+        {selectedReport === 'time_in_stage' && <TimeInStageReport />}
+        {selectedReport === 'rejection_points' && <RejectionPointAnalysisReport />}
+        {selectedReport === 'time_to_reject' && <TimeToRejectReport />}
       </div>
     </div>
   );

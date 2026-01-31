@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -11,6 +10,9 @@ import LeadSourcePerformanceReport from '@/components/lead-source-performance-re
 import LostLeadAnalysisReport from '@/components/lost-lead-analysis-report';
 import LevelOfCareReport from '@/components/level-of-care-report';
 import SpeedToHireReport from '@/components/speed-to-hire-report';
+import TimeInStageReport from '@/components/time-in-stage-report';
+import RejectionPointAnalysisReport from '@/components/rejection-point-analysis-report';
+import TimeToRejectReport from '@/components/time-to-reject-report';
 import {
   Select,
   SelectContent,
@@ -45,6 +47,9 @@ export default function OwnerReportsPage() {
                             <SelectItem value="level_of_care">Level of Care Needs Analysis</SelectItem>
                             <SelectItem value="candidate_status">Candidate Interview Status</SelectItem>
                             <SelectItem value="speed_to_hire">Time-Based Metrics (Speed to Hire)</SelectItem>
+                            <SelectItem value="time_in_stage">Candidate Time-in-Stage Analysis</SelectItem>
+                            <SelectItem value="rejection_points">Hiring Funnel & Rejection Points</SelectItem>
+                            <SelectItem value="time_to_reject">Time-to-Reject Analysis</SelectItem>
                             <SelectItem value="cancelled_interviews">Cancelled Phone Screen Appointments</SelectItem>
                             <SelectItem value="client_care_requests">Client Care Request Status</SelectItem>
                             <SelectItem value="referrals_rewards">Referrals and Rewards Status</SelectItem>
@@ -65,6 +70,9 @@ export default function OwnerReportsPage() {
         {selectedReport === 'client_care_requests' && <ClientCareRequestsReport />}
         {selectedReport === 'referrals_rewards' && <ReferralsRewardsReport />}
         {selectedReport === 'speed_to_hire' && <SpeedToHireReport />}
+        {selectedReport === 'time_in_stage' && <TimeInStageReport />}
+        {selectedReport === 'rejection_points' && <RejectionPointAnalysisReport />}
+        {selectedReport === 'time_to_reject' && <TimeToRejectReport />}
       </div>
     </div>
   );
