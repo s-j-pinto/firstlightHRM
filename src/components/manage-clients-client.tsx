@@ -40,7 +40,7 @@ export default function ManageClientsClient() {
         header: true,
         skipEmptyLines: true,
         complete: async (results) => {
-          const requiredFields = ["Client Name", "Mobile"];
+          const requiredFields = ["Name", "Mobile"];
           const headers = results.meta.fields;
           if (!headers || !requiredFields.every(field => headers.includes(field))) {
             toast({

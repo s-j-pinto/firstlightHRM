@@ -39,12 +39,11 @@ export async function processClientUpload(data: Record<string, any>[]) {
     let updatedCount = 0;
 
     for (const row of data) {
-      const clientName = row['Client Name'];
+      const clientName = row['Name'];
 
-      // FIX: Ensure the primary identifier 'Client Name' exists and is a non-empty string.
-      // This will prevent processing malformed or empty rows from the CSV.
+      // FIX: Ensure the primary identifier 'Name' exists and is a non-empty string.
       if (!clientName || typeof clientName !== 'string' || clientName.trim() === '') {
-        console.warn('[Action] Skipping row due to missing or invalid "Client Name":', row);
+        console.warn('[Action] Skipping row due to missing or invalid "Name":', row);
         continue;
       }
 
