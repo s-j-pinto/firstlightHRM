@@ -31,3 +31,10 @@ jobs:
           --url https://care-connect-360--firstlighthomecare-hrm.us-central1.hosted.app/api/cron/sync-preferences \
           --header 'Authorization: Bearer ${{ secrets.CRON_SECRET }}' \
           --fail
+
+      - name: Sync Active Clients
+        run: |
+          curl --request GET \
+          --url https://care-connect-360--firstlighthomecare-hrm.us-central1.hosted.app/api/cron/sync-clients \
+          --header 'Authorization: Bearer ${{ secrets.CRON_SECRET }}' \
+          --fail
