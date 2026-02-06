@@ -40,15 +40,18 @@ export async function processClientUpload(data: Record<string, any>[]) {
 
     for (const row of data) {
       const clientName = row['Client Name'];
+
+      // FIX: Ensure the primary identifier 'Client Name' exists and is a non-empty string.
+      // This will prevent processing malformed or empty rows from the CSV.
+      if (!clientName || typeof clientName !== 'string' || clientName.trim() === '') {
+        console.warn('[Action] Skipping row due to missing or invalid "Client Name":', row);
+        continue;
+      }
+
       const mobile = row['Mobile'];
       const address = row['Address'];
       const city = row['City'];
       const compositeKey = createCompositeKey(clientName, mobile, address, city);
-
-      if (compositeKey === '|||') {
-        console.warn('[Action] Skipping row due to missing "Client Name", "Mobile", "Address", or "City":', row);
-        continue;
-      }
       
       const clientData = {
         'Client Name': clientName,
