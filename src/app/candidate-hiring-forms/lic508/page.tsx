@@ -1,7 +1,7 @@
-
 "use client";
 
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 
 export default function LIC508Page() {
     return (
@@ -16,6 +16,12 @@ export default function LIC508Page() {
                     CRIMINAL RECORD STATEMENT & OUT-OF-STATE DISCLOSURE
                 </CardTitle>
             </CardHeader>
+            <CardContent className="pt-6">
+                <Separator />
+                <p className="text-sm text-muted-foreground mt-6 text-center">
+                    State law requires that persons associated with licensed care facilities, Home Care Aide Registry or TrustLine Registry applicants be fingerprinted and disclose any conviction. A conviction is any plea of guilty or nolo contendere (no contest) or a verdict of guilty. The fingerprints will be used to obtain a copy of any criminal history you may have.
+                </p>
+            </CardContent>
         </Card>
     );
 }
