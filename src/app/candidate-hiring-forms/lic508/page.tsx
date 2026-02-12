@@ -20,6 +20,7 @@ import { saveLic508Data } from "@/lib/candidate-hiring-forms.actions";
 
 const defaultFormValues: Lic508FormData = {
   convictedInCalifornia: undefined,
+  convictedOutOfState: undefined,
 };
 
 export default function LIC508Page() {
@@ -96,8 +97,11 @@ export default function LIC508Page() {
                 <p className="text-sm text-muted-foreground mt-6 text-center">
                     You do not need to disclose any marijuana-related offenses covered by the marijuana reform legislation codified at Health and Safety Code sections 11361.5 and 11361.7.
                 </p>
+                <p className="text-sm text-muted-foreground mt-6 text-center">
+                    You do not need to disclose convictions that were a result of ones's status as a victim of human trafficking and that were dismissed pursuant to Penal Code Section 1203.49, nor any marijuana related offenses covered by the marijuana reform legislation codified at Health and Safety Code sections 11361.5 and 11361.7. However you are required to disclose convictions that were dismissed pursuant to Penal Code Section 1203.4(a)
+                </p>
 
-                <div className="border p-4 rounded-md">
+                <div className="border p-4 rounded-md space-y-6">
                      <FormField
                         control={form.control}
                         name="convictedInCalifornia"
@@ -113,6 +117,28 @@ export default function LIC508Page() {
                                        <FormItem className="flex items-center space-x-2">
                                            <RadioGroupItem value="no" id="convicted-no" />
                                            <FormLabel htmlFor="convicted-no" className="font-normal">No</FormLabel>
+                                       </FormItem>
+                                   </RadioGroup>
+                               </FormControl>
+                               <FormMessage />
+                           </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="convictedOutOfState"
+                        render={({ field }) => (
+                           <FormItem className="space-y-2">
+                               <FormLabel>Have you ever been convicted of a crime from another state, federal court, military, or jurisdiction outside of U.S.?</FormLabel>
+                               <FormControl>
+                                   <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4 pt-2">
+                                       <FormItem className="flex items-center space-x-2">
+                                           <RadioGroupItem value="yes" id="convicted-oos-yes" />
+                                           <FormLabel htmlFor="convicted-oos-yes" className="font-normal">Yes</FormLabel>
+                                       </FormItem>
+                                       <FormItem className="flex items-center space-x-2">
+                                           <RadioGroupItem value="no" id="convicted-oos-no" />
+                                           <FormLabel htmlFor="convicted-oos-no" className="font-normal">No</FormLabel>
                                        </FormItem>
                                    </RadioGroup>
                                </FormControl>
