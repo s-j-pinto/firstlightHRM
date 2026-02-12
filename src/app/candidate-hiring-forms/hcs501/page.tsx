@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRef, useEffect, useTransition } from "react";
@@ -24,6 +25,28 @@ import { hcs501Schema, type Hcs501FormData } from "@/lib/types";
 import { saveHcs501Data } from "@/lib/candidate-hiring-forms.actions";
 import { format } from "date-fns";
 
+// Define default values to ensure all form fields are controlled from the start.
+const defaultFormValues: Hcs501FormData = {
+  perId: '',
+  hireDate: undefined,
+  separationDate: undefined,
+  fullName: '',
+  phone: '',
+  address: '',
+  dob: undefined,
+  ssn: '',
+  tbDate: undefined,
+  tbResults: '',
+  additionalTbDates: '',
+  alternateNames: '',
+  validLicense: undefined,
+  driversLicenseNumber: '',
+  titleOfPosition: '',
+  hcs501Notes: '',
+  hcs501EmployeeSignature: '',
+  hcs501SignatureDate: undefined,
+};
+
 
 export default function HCS501Page() {
     const sigPadRef = useRef<SignatureCanvas>(null);
@@ -40,7 +63,7 @@ export default function HCS501Page() {
 
     const form = useForm<Hcs501FormData>({
       resolver: zodResolver(hcs501Schema),
-      defaultValues: {},
+      defaultValues: defaultFormValues,
     });
     
     useEffect(() => {
@@ -50,9 +73,17 @@ export default function HCS501Page() {
             ['hireDate', 'separationDate', 'dob', 'tbDate', 'hcs501SignatureDate'].forEach(field => {
                 if (formData[field] && typeof formData[field].toDate === 'function') {
                     formData[field] = formData[field].toDate();
+                } else {
+                    // Ensure undefined for fields that aren't valid dates or are missing
+                    formData[field] = undefined;
                 }
             });
-            form.reset(formData);
+
+            // Merge with defaults to prevent any field from being undefined
+            form.reset({
+                ...defaultFormValues,
+                ...formData
+            });
 
             if (formData.hcs501EmployeeSignature && sigPadRef.current) {
                 sigPadRef.current.fromDataURL(formData.hcs501EmployeeSignature);
