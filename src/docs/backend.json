@@ -233,7 +233,15 @@
         "titleOfPosition": { "type": "string" },
         "hcs501Notes": { "type": "string" },
         "hcs501EmployeeSignature": { "type": "string", "contentEncoding": "base64" },
-        "hcs501SignatureDate": { "type": "string", "format": "date-time" }
+        "hcs501SignatureDate": { "type": "string", "format": "date-time" },
+        "emergencyContact1_name": { "type": "string" },
+        "emergencyContact1_phone": { "type": "string" },
+        "emergencyContact1_address": { "type": "string" },
+        "emergencyContact1_cityStateZip": { "type": "string" },
+        "emergencyContact2_name": { "type": "string" },
+        "emergencyContact2_phone": { "type": "string" },
+        "emergencyContact2_address": { "type": "string" },
+        "emergencyContact2_cityStateZip": { "type": "string" }
       },
       "required": [
         "fullName",

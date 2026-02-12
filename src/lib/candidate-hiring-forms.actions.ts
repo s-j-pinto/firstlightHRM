@@ -1,11 +1,12 @@
 
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
 import { serverDb } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
-import { hcs501Schema } from './types';
+import { hcs501Schema, emergencyContactSchema } from './types';
 
 export async function saveHcs501Data(profileId: string, data: any) {
   const validatedFields = hcs501Schema.safeParse(data);
@@ -32,6 +33,27 @@ export async function saveHcs501Data(profileId: string, data: any) {
     return { success: true, message: 'HCS 501 form saved successfully.' };
   } catch (error: any) {
     console.error("Error saving HCS 501 data:", error);
+    return { error: 'Failed to save form data.' };
+  }
+}
+
+
+export async function saveEmergencyContactData(profileId: string, data: any) {
+  const validatedFields = emergencyContactSchema.safeParse(data);
+
+  if (!validatedFields.success) {
+    console.error("Emergency Contact Save Validation Error:", validatedFields.error.flatten());
+    return { error: 'Invalid data provided.' };
+  }
+
+  try {
+    await serverDb.collection('caregiver_profiles').doc(profileId).set(validatedFields.data, { merge: true });
+    
+    revalidatePath('/candidate-hiring-forms/emergency-contact');
+    
+    return { success: true, message: 'Emergency Contact form saved successfully.' };
+  } catch (error: any) {
+    console.error("Error saving Emergency Contact data:", error);
     return { error: 'Failed to save form data.' };
   }
 }
