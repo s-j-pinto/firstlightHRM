@@ -1,5 +1,7 @@
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function HCS501Page() {
     return (
@@ -22,7 +24,27 @@ export default function HCS501Page() {
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                <p className="text-center text-muted-foreground">Ready for the first section of fields.</p>
+                <div className="border p-4 rounded-md space-y-4">
+                    <p className="text-center text-xs text-muted-foreground">(Form to be kept current at all times) FOR HOME CARE ORGANIZATION (HCO) USE ONLY</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="hcoNumber">HCO Number</Label>
+                            <Input id="hcoNumber" value="364700059" readOnly />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="perId">Employee’s PER ID</Label>
+                            <Input id="perId" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="hireDate">Hire Date</Label>
+                            <Input id="hireDate" type="date" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="separationDate">Date of Separation</Label>
+                            <Input id="separationDate" type="date" />
+                        </div>
+                    </div>
+                </div>
             </CardContent>
         </Card>
     );
