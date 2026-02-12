@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRef } from "react";
@@ -154,25 +155,27 @@ export default function HCS501Page() {
                         <Label htmlFor="notes">Notes:</Label>
                         <Textarea id="notes" rows={5} />
                     </div>
-                    <p className="text-sm text-muted-foreground">I hereby certify under penalty of perjury that I am 18 years of age or older and that the above statements are true and correct. I give my permission for any necessary verification.</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-                         <div className="space-y-2">
-                            <Label>Employee Signature</Label>
-                            <div className="relative w-full h-24 rounded-md border bg-muted/50">
-                                <SignatureCanvas
-                                    ref={sigPadRef}
-                                    penColor='black'
-                                    canvasProps={{ className: 'w-full h-full rounded-md' }}
-                                />
+                    <div className="border p-4 rounded-md space-y-4">
+                        <p className="text-sm font-bold">I hereby certify under penalty of perjury that I am 18 years of age or older and that the above statements are true and correct. I give my permission for any necessary verification.</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                            <div className="space-y-2">
+                                <Label>Employee Signature</Label>
+                                <div className="relative w-full h-24 rounded-md border bg-muted/50">
+                                    <SignatureCanvas
+                                        ref={sigPadRef}
+                                        penColor='black'
+                                        canvasProps={{ className: 'w-full h-full rounded-md' }}
+                                    />
+                                </div>
+                                <Button type="button" variant="ghost" size="sm" onClick={clearSignature} className="mt-2">
+                                    <RefreshCw className="mr-2 h-4 w-4" />
+                                    Clear Signature
+                                </Button>
                             </div>
-                            <Button type="button" variant="ghost" size="sm" onClick={clearSignature} className="mt-2">
-                                <RefreshCw className="mr-2 h-4 w-4" />
-                                Clear Signature
-                            </Button>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="signatureDate">Date</Label>
-                            <Input id="signatureDate" type="date" />
+                            <div className="space-y-2">
+                                <Label htmlFor="signatureDate">Date</Label>
+                                <Input id="signatureDate" type="date" />
+                            </div>
                         </div>
                     </div>
                 </div>
