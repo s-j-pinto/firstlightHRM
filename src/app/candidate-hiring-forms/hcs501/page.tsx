@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useRef } from "react";
@@ -64,8 +63,8 @@ export default function HCS501Page() {
                   <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t" />
                   </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">
+                  <div className="relative flex justify-center text-lg font-semibold tracking-wider uppercase">
+                    <span className="bg-card px-2 text-foreground">
                       Personal
                     </span>
                   </div>
@@ -139,8 +138,8 @@ export default function HCS501Page() {
                     <div className="absolute inset-0 flex items-center">
                         <span className="w-full border-t" />
                     </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-card px-2 text-muted-foreground">
+                    <div className="relative flex justify-center text-lg font-semibold tracking-wider uppercase">
+                        <span className="bg-card px-2 text-foreground">
                         POSITION INFORMATION
                         </span>
                     </div>
