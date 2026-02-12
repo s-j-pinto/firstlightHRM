@@ -2,6 +2,8 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function HCS501Page() {
     return (
@@ -55,6 +57,70 @@ export default function HCS501Page() {
                       Personal
                     </span>
                   </div>
+                </div>
+
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <Label htmlFor="name">Name (Last First Middle)</Label>
+                            <Input id="name" />
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="telephone">Area Code/Telephone</Label>
+                            <Input id="telephone" />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <Label htmlFor="address">Address</Label>
+                            <Input id="address" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="dob">Date of Birth</Label>
+                            <Input id="dob" type="date" />
+                        </div>
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="ssn">Social Security Number <span className="text-muted-foreground">(Voluntary for ID only)</span></Label>
+                        <Input id="ssn" />
+                    </div>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <Label htmlFor="tbDate">Date of TB Test Upon Hire</Label>
+                            <Input id="tbDate" type="date" />
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="tbResults">Results of Last TB Test</Label>
+                            <Input id="tbResults" />
+                        </div>
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="additionalTbDates">Additional TB Test Dates (Please include test results)</Label>
+                        <Textarea id="additionalTbDates" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="alternateNames">Please list any alternate names used (For example - maiden name)</Label>
+                        <Input id="alternateNames" />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                        <div className="space-y-2">
+                            <Label>Do you possess a valid California driver’s license?</Label>
+                            <RadioGroup className="flex gap-4 pt-2">
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="yes" id="cdl-yes" />
+                                    <Label htmlFor="cdl-yes" className="font-normal">Yes</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="no" id="cdl-no" />
+                                    <Label htmlFor="cdl-no" className="font-normal">No</Label>
+                                </div>
+                            </RadioGroup>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="cdlNumber">CDL Number:</Label>
+                            <Input id="cdlNumber" />
+                        </div>
+                    </div>
                 </div>
             </CardContent>
         </Card>
