@@ -126,6 +126,7 @@ export const certificationsSchema = z.object({
   otherLanguages: z.string().optional(),
   negativeTbTest: z.boolean().default(false),
   cprFirstAid: z.boolean().default(false),
+  covidVaccine: z.boolean().default(false),
 });
 
 export const availabilitySchema = z.object({
@@ -182,13 +183,19 @@ export const emergencyContactSchema = z.object({
 });
 export type EmergencyContactFormData = z.infer<typeof emergencyContactSchema>;
 
+export const lic508Schema = z.object({
+  convictedInCalifornia: z.enum(["yes", "no"]).optional(),
+});
+export type Lic508FormData = z.infer<typeof lic508Schema>;
+
 export const caregiverFormSchema = generalInfoSchema
   .merge(experienceSchema)
   .merge(certificationsSchema)
   .merge(availabilitySchema)
   .merge(transportationSchema)
   .merge(hcs501Schema.partial())
-  .merge(emergencyContactSchema);
+  .merge(emergencyContactSchema)
+  .merge(lic508Schema.partial());
 
 export type CaregiverProfile = z.infer<typeof caregiverFormSchema> & { id: string, canWorkWithCovid?: boolean, cna?: boolean };
 
@@ -839,8 +846,5 @@ export type CaregiverForRecommendation = z.infer<typeof CaregiverForRecommendati
 
 
     
-
-
-
 
 
