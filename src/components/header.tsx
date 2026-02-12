@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -22,10 +23,11 @@ export function AppHeader() {
   const isOwnerRoute = pathname.startsWith('/owner');
   const isClientRoute = pathname.startsWith('/client');
   const isNewClientRoute = pathname.startsWith('/new-client');
+  const isCandidateHiringRoute = pathname.startsWith('/candidate-hiring-forms');
 
 
   // Hide the global header on certain routes that have their own layout/header
-  if (pathname.startsWith('/caregiver') || isClientRoute || isNewClientRoute) {
+  if (pathname.startsWith('/caregiver') || isClientRoute || isNewClientRoute || isCandidateHiringRoute) {
     return null;
   }
 
