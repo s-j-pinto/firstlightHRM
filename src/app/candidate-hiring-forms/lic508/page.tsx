@@ -95,9 +95,6 @@ export default function LIC508Page() {
                     State law requires that persons associated with licensed care facilities, Home Care Aide Registry or TrustLine Registry applicants be fingerprinted and disclose any conviction. A conviction is any plea of guilty or nolo contendere (no contest) or a verdict of guilty. The fingerprints will be used to obtain a copy of any criminal history you may have.
                 </p>
                 <p className="text-sm text-muted-foreground mt-6 text-center">
-                    You do not need to disclose any marijuana-related offenses covered by the marijuana reform legislation codified at Health and Safety Code sections 11361.5 and 11361.7.
-                </p>
-                <p className="text-sm text-muted-foreground mt-6 text-center">
                     You do not need to disclose convictions that were a result of ones's status as a victim of human trafficking and that were dismissed pursuant to Penal Code Section 1203.49, nor any marijuana related offenses covered by the marijuana reform legislation codified at Health and Safety Code sections 11361.5 and 11361.7. However you are required to disclose convictions that were dismissed pursuant to Penal Code Section 1203.4(a)
                 </p>
 
@@ -124,6 +121,11 @@ export default function LIC508Page() {
                            </FormItem>
                         )}
                     />
+
+                    <p className="text-xs text-muted-foreground !-mt-2 pl-1">
+                        You do not need to disclose any marijuana-related offenses covered by the marijuana reform legislation codified at Health and Safety Code sections 11361.5 and 11361.7.
+                    </p>
+
                     <FormField
                         control={form.control}
                         name="convictedOutOfState"
