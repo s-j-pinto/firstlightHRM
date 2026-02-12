@@ -13,7 +13,7 @@ export default function LIC508Page() {
                     California Department of Social Services
                 </div>
                 <CardTitle className="text-center pt-4 tracking-wider">
-                    CRIMINAL RECORD STATEMENT
+                    CRIMINAL RECORD STATEMENT & OUT-OF-STATE DISCLOSURE
                 </CardTitle>
             </CardHeader>
         </Card>
