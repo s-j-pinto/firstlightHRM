@@ -202,10 +202,14 @@
         "hasHospiceExperience": { "type": "boolean" },
         "hca": { "type": "boolean" },
         "hha": { "type": "boolean" },
+        "cna": { "type": "boolean" },
         "liveScan": { "type": "boolean" },
         "otherLanguages": { "type": "string" },
         "negativeTbTest": { "type": "boolean" },
         "cprFirstAid": { "type": "boolean" },
+        "canWorkWithCovid": { "type": "boolean" },
+        "covidVaccine": { "type": "boolean" },
+        "cnaLicense": { "type": "string" },
         "otherCertifications": { "type": "string" },
         "availability": {
           "type": "object",
@@ -241,7 +245,11 @@
         "emergencyContact2_name": { "type": "string" },
         "emergencyContact2_phone": { "type": "string" },
         "emergencyContact2_address": { "type": "string" },
-        "emergencyContact2_cityStateZip": { "type": "string" }
+        "emergencyContact2_cityStateZip": { "type": "string" },
+        "convictedInCalifornia": { "type": "string", "enum": ["yes", "no"] },
+        "convictedOutOfState": { "type": "string", "enum": ["yes", "no"] },
+        "livedOutOfStateLast5Years": { "type": "string", "enum": ["yes", "no"] },
+        "outOfStateHistory": { "type": "string" }
       },
       "required": [
         "fullName",

@@ -17,10 +17,13 @@ import { useUser, useDoc, useMemoFirebase, firestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { lic508Schema, type Lic508FormData, type CaregiverProfile } from "@/lib/types";
 import { saveLic508Data } from "@/lib/candidate-hiring-forms.actions";
+import { Textarea } from "@/components/ui/textarea";
 
 const defaultFormValues: Lic508FormData = {
   convictedInCalifornia: undefined,
   convictedOutOfState: undefined,
+  livedOutOfStateLast5Years: undefined,
+  outOfStateHistory: "",
 };
 
 export default function LIC508Page() {
@@ -66,6 +69,7 @@ export default function LIC508Page() {
     }
     
     const isLoading = isUserLoading || isDataLoading;
+    const livedOutOfState = form.watch('livedOutOfStateLast5Years');
 
     if(isLoading) {
       return (
@@ -101,7 +105,7 @@ export default function LIC508Page() {
                             control={form.control}
                             name="convictedInCalifornia"
                             render={({ field }) => (
-                               <FormItem className="space-y-2">
+                               <FormItem className="space-y-3">
                                    <FormLabel>Have you ever been convicted of a crime in California?</FormLabel>
                                    <FormControl>
                                        <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4 pt-2">
@@ -129,7 +133,7 @@ export default function LIC508Page() {
                             control={form.control}
                             name="convictedOutOfState"
                             render={({ field }) => (
-                               <FormItem className="space-y-2">
+                               <FormItem className="space-y-3">
                                    <FormLabel>Have you ever been convicted of a crime from another state, federal court, military, or jurisdiction outside of U.S.?</FormLabel>
                                    <FormControl>
                                        <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4 pt-2">
@@ -147,15 +151,62 @@ export default function LIC508Page() {
                                </FormItem>
                             )}
                         />
-                        <p className="text-xs text-muted-foreground pt-2">
+                         <p className="text-xs text-muted-foreground pt-2">
                             You do not need to disclose convictions that were a result of ones's status as a victim of human trafficking and that were dismissed pursuant to Penal Code Section 1203.49, nor any marijuana related offenses covered by the marijuana reform legislation codified at Health and Safety Code sections 11361.5 and 11361.7. However you are required to disclose convictions that were dismissed pursuant to Penal Code Section 1203.4(a)
                         </p>
                     </div>
                 </div>
                 
-                <p className="text-sm text-muted-foreground mt-6 text-center">
+                 <p className="text-sm text-muted-foreground mt-6 text-center">
                     Criminal convictions from another State or Federal court are considered the same as criminal convictions in California
                 </p>
+
+                <Separator />
+
+                <div className="space-y-4 pt-4">
+                    <p className="text-sm font-semibold">
+                        For Children's Residential Facilities, not including Foster Family Agency Staff, Youth Homelessness Prevention Centers , Private Alternative Boarding Schools, Private Alternative Outdoor Program, or Crisis Nurseries: 
+                    </p>
+                    <FormField
+                        control={form.control}
+                        name="livedOutOfStateLast5Years"
+                        render={({ field }) => (
+                            <FormItem className="space-y-3">
+                                <FormLabel>Have you lived in a state other than California within the last five years?</FormLabel>
+                                <FormControl>
+                                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4 pt-2">
+                                        <FormItem className="flex items-center space-x-2">
+                                            <RadioGroupItem value="yes" id="lived-oos-yes" />
+                                            <FormLabel htmlFor="lived-oos-yes" className="font-normal">Yes</FormLabel>
+                                        </FormItem>
+                                        <FormItem className="flex items-center space-x-2">
+                                            <RadioGroupItem value="no" id="lived-oos-no" />
+                                            <FormLabel htmlFor="lived-oos-no" className="font-normal">No</FormLabel>
+                                        </FormItem>
+                                    </RadioGroup>
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    
+                    {livedOutOfState === 'yes' && (
+                        <FormField
+                            control={form.control}
+                            name="outOfStateHistory"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>If yes, list each state below and then complete an LIC 198B for each state:</FormLabel>
+                                    <FormControl>
+                                        <Textarea placeholder="List states here..." {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    )}
+                </div>
+
 
             </CardContent>
             <CardFooter className="flex justify-end gap-4">

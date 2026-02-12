@@ -186,6 +186,8 @@ export type EmergencyContactFormData = z.infer<typeof emergencyContactSchema>;
 export const lic508Schema = z.object({
   convictedInCalifornia: z.enum(["yes", "no"]).optional(),
   convictedOutOfState: z.enum(["yes", "no"]).optional(),
+  livedOutOfStateLast5Years: z.enum(["yes", "no"]).optional(),
+  outOfStateHistory: z.string().optional(),
 });
 export type Lic508FormData = z.infer<typeof lic508Schema>;
 
@@ -847,6 +849,7 @@ export type CaregiverForRecommendation = z.infer<typeof CaregiverForRecommendati
 
 
     
+
 
 
 
