@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useTransition } from "react";
@@ -128,12 +127,12 @@ export default function LIC508Page() {
                         </p>
                     </div>
 
-                    <div>
+                    <div className="space-y-3">
                         <FormField
                             control={form.control}
                             name="convictedOutOfState"
                             render={({ field }) => (
-                               <FormItem className="space-y-3">
+                               <FormItem>
                                    <FormLabel>Have you ever been convicted of a crime from another state, federal court, military, or jurisdiction outside of U.S.?</FormLabel>
                                    <FormControl>
                                        <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4 pt-2">
@@ -154,6 +153,18 @@ export default function LIC508Page() {
                          <p className="text-xs text-muted-foreground pt-2">
                             You do not need to disclose convictions that were a result of ones's status as a victim of human trafficking and that were dismissed pursuant to Penal Code Section 1203.49, nor any marijuana related offenses covered by the marijuana reform legislation codified at Health and Safety Code sections 11361.5 and 11361.7. However you are required to disclose convictions that were dismissed pursuant to Penal Code Section 1203.4(a)
                         </p>
+                    </div>
+
+                    <div className="mt-4 text-sm text-muted-foreground">
+                        <p>You must check yes to the corresponding question(s) above to report every conviction (including reckless and drunk driving convictions), you have on your record even if:</p>
+                        <ul className="list-disc pl-5 mt-2 space-y-1">
+                            <li>It happened a long time ago;</li>
+                            <li>It was only a misdemeanor;</li>
+                            <li>You didn’t have to go to court (your attorney went for you);</li>
+                            <li>You had no jail time, or the sentence was only a fine or probation;</li>
+                            <li>You received a certificate of rehabilitation; or</li>
+                            <li>The conviction was later dismissed, set aside or the sentence was suspended.</li>
+                        </ul>
                     </div>
                 </div>
                 
@@ -224,3 +235,4 @@ export default function LIC508Page() {
         </Card>
     );
 }
+    
