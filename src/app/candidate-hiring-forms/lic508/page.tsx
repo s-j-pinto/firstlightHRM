@@ -155,17 +155,6 @@ export default function LIC508Page() {
                         </p>
                     </div>
 
-                    <div className="mt-4 text-sm text-muted-foreground">
-                        <p>You must check yes to the corresponding question(s) above to report every conviction (including reckless and drunk driving convictions), you have on your record even if:</p>
-                        <ul className="list-disc pl-5 mt-2 space-y-1">
-                            <li>It happened a long time ago;</li>
-                            <li>It was only a misdemeanor;</li>
-                            <li>You didn’t have to go to court (your attorney went for you);</li>
-                            <li>You had no jail time, or the sentence was only a fine or probation;</li>
-                            <li>You received a certificate of rehabilitation; or</li>
-                            <li>The conviction was later dismissed, set aside or the sentence was suspended.</li>
-                        </ul>
-                    </div>
                 </div>
                 
                  <p className="text-sm text-muted-foreground mt-6 text-center">
@@ -217,6 +206,18 @@ export default function LIC508Page() {
                         />
                     )}
                 </div>
+                
+                <div className="mt-4 text-sm text-muted-foreground">
+                    <p>You must check yes to the corresponding question(s) above to report every conviction (including reckless and drunk driving convictions), you have on your record even if:</p>
+                    <ul className="list-disc pl-5 mt-2 space-y-1">
+                        <li>It happened a long time ago;</li>
+                        <li>It was only a misdemeanor;</li>
+                        <li>You didn’t have to go to court (your attorney went for you);</li>
+                        <li>You had no jail time, or the sentence was only a fine or probation;</li>
+                        <li>You received a certificate of rehabilitation; or</li>
+                        <li>The conviction was later dismissed, set aside or the sentence was suspended.</li>
+                    </ul>
+                </div>
 
 
             </CardContent>
@@ -235,4 +236,3 @@ export default function LIC508Page() {
         </Card>
     );
 }
-    
