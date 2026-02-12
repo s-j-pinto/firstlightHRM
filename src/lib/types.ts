@@ -244,6 +244,29 @@ export const activeCaregiverSchema = z.object({
 
 export type ActiveCaregiver = z.infer<typeof activeCaregiverSchema> & { id: string };
 
+export const hcs501Schema = z.object({
+  perId: z.string().optional(),
+  hireDate: z.date().optional().nullable(),
+  separationDate: z.date().optional().nullable(),
+  fullName: z.string().optional(),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  dob: z.date().optional().nullable(),
+  ssn: z.string().optional(),
+  tbDate: z.date().optional().nullable(),
+  tbResults: z.string().optional(),
+  additionalTbDates: z.string().optional(),
+  alternateNames: z.string().optional(),
+  validLicense: z.enum(["yes", "no"]).optional(),
+  driversLicenseNumber: z.string().optional(),
+  titleOfPosition: z.string().optional(),
+  hcs501Notes: z.string().optional(),
+  hcs501EmployeeSignature: z.string().optional(),
+  hcs501SignatureDate: z.date().optional().nullable(),
+});
+
+export type Hcs501FormData = z.infer<typeof hcs501Schema>;
+
 export const careLogTemplateSchema = z.object({
   name: z.string().min(3, "Template name must be at least 3 characters."),
   description: z.string().optional(),
@@ -802,6 +825,7 @@ export type CaregiverForRecommendation = z.infer<typeof CaregiverForRecommendati
 
 
     
+
 
 
 

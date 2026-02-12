@@ -220,7 +220,20 @@
           }
         },
         "hasCar": { "type": "string", "enum": ["yes", "no"] },
-        "validLicense": { "type": "string", "enum": ["yes", "no"] }
+        "validLicense": { "type": "string", "enum": ["yes", "no"] },
+        "perId": { "type": "string", "description": "Employee’s PER ID" },
+        "hireDate": { "type": "string", "format": "date-time" },
+        "separationDate": { "type": "string", "format": "date-time" },
+        "dob": { "type": "string", "format": "date" },
+        "ssn": { "type": "string", "description": "Social Security Number (voluntary)" },
+        "tbDate": { "type": "string", "format": "date-time", "description": "Date of TB Test Upon Hire" },
+        "tbResults": { "type": "string", "description": "Results of Last TB Test" },
+        "additionalTbDates": { "type": "string" },
+        "alternateNames": { "type": "string" },
+        "titleOfPosition": { "type": "string" },
+        "hcs501Notes": { "type": "string" },
+        "hcs501EmployeeSignature": { "type": "string", "contentEncoding": "base64" },
+        "hcs501SignatureDate": { "type": "string", "format": "date-time" }
       },
       "required": [
         "fullName",

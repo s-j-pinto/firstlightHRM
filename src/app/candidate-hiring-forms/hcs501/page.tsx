@@ -1,21 +1,93 @@
 "use client";
 
-import { useRef } from "react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { useRef, useEffect, useTransition } from "react";
+import { useForm } from "react-hook-form";
+import { useRouter } from "next/navigation";
+import { zodResolver } from "@hookform/resolvers/zod";
+import SignatureCanvas from 'react-signature-canvas';
+import { doc } from "firebase/firestore";
+
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
-import SignatureCanvas from 'react-signature-canvas';
 import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { RefreshCw, Save, X, Loader2, CalendarIcon } from "lucide-react";
+import { useUser, useDoc, useMemoFirebase, firestore } from "@/firebase";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+import { hcs501Schema, type Hcs501FormData } from "@/lib/types";
+import { saveHcs501Data } from "@/lib/candidate-hiring-forms.actions";
+import { format } from "date-fns";
+
 
 export default function HCS501Page() {
     const sigPadRef = useRef<SignatureCanvas>(null);
+    const router = useRouter();
+    const { user, isUserLoading } = useUser();
+    const { toast } = useToast();
+    const [isSaving, startSavingTransition] = useTransition();
+    
+    const caregiverProfileRef = useMemoFirebase(
+      () => (user?.uid ? doc(firestore, 'caregiver_profiles', user.uid) : null),
+      [user?.uid]
+    );
+    const { data: existingData, isLoading: isDataLoading } = useDoc<any>(caregiverProfileRef);
+
+    const form = useForm<Hcs501FormData>({
+      resolver: zodResolver(hcs501Schema),
+      defaultValues: {},
+    });
+    
+    useEffect(() => {
+        if (existingData) {
+            const formData = { ...existingData };
+            // Convert Firestore Timestamps to JS Dates for the form
+            ['hireDate', 'separationDate', 'dob', 'tbDate', 'hcs501SignatureDate'].forEach(field => {
+                if (formData[field] && typeof formData[field].toDate === 'function') {
+                    formData[field] = formData[field].toDate();
+                }
+            });
+            form.reset(formData);
+
+            if (formData.hcs501EmployeeSignature && sigPadRef.current) {
+                sigPadRef.current.fromDataURL(formData.hcs501EmployeeSignature);
+            }
+        }
+    }, [existingData, form]);
 
     const clearSignature = () => {
         sigPadRef.current?.clear();
+        form.setValue('hcs501EmployeeSignature', '');
     };
+    
+    const onSubmit = (data: Hcs501FormData) => {
+      if (!user?.uid) {
+        toast({ title: 'Error', description: 'You must be logged in to save the form.', variant: 'destructive'});
+        return;
+      }
+      startSavingTransition(async () => {
+        const result = await saveHcs501Data(user.uid, data);
+        if (result.error) {
+          toast({ title: "Save Failed", description: result.error, variant: 'destructive'});
+        } else {
+          toast({ title: "Success", description: "Your HCS 501 form has been saved."});
+          router.push('/candidate-hiring-forms');
+        }
+      });
+    }
+
+    if(isUserLoading || isDataLoading) {
+      return (
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <Loader2 className="h-12 w-12 animate-spin text-accent" />
+        </div>
+      )
+    }
 
     return (
         <Card className="max-w-4xl mx-auto">
@@ -36,6 +108,8 @@ export default function HCS501Page() {
                     PERSONNEL RECORD
                 </CardTitle>
             </CardHeader>
+            <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardContent>
                 <div className="border p-4 rounded-md space-y-4">
                     <p className="text-center text-xs text-muted-foreground">(Form to be kept current at all times) FOR HOME CARE ORGANIZATION (HCO) USE ONLY</p>
@@ -44,18 +118,15 @@ export default function HCS501Page() {
                             <Label htmlFor="hcoNumber">HCO Number</Label>
                             <Input id="hcoNumber" value="364700059" readOnly />
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="perId">Employee’s PER ID</Label>
-                            <Input id="perId" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="hireDate">Hire Date</Label>
-                            <Input id="hireDate" type="date" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="separationDate">Date of Separation</Label>
-                            <Input id="separationDate" type="date" />
-                        </div>
+                        <FormField control={form.control} name="perId" render={({ field }) => (
+                          <FormItem><FormLabel>Employee’s PER ID</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                        )} />
+                        <FormField control={form.control} name="hireDate" render={({ field }) => (
+                            <FormItem className="flex flex-col"><FormLabel>Hire Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
+                        )} />
+                         <FormField control={form.control} name="separationDate" render={({ field }) => (
+                            <FormItem className="flex flex-col"><FormLabel>Date of Separation</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
+                        )} />
                     </div>
                 </div>
 
@@ -72,65 +143,45 @@ export default function HCS501Page() {
 
                 <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <Label htmlFor="name">Name (Last First Middle)</Label>
-                            <Input id="name" />
-                        </div>
-                         <div className="space-y-2">
-                            <Label htmlFor="telephone">Area Code/Telephone</Label>
-                            <Input id="telephone" />
-                        </div>
+                        <FormField control={form.control} name="fullName" render={({ field }) => (
+                          <FormItem><FormLabel>Name (Last First Middle)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                        )} />
+                         <FormField control={form.control} name="phone" render={({ field }) => (
+                          <FormItem><FormLabel>Area Code/Telephone</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                        )} />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <Label htmlFor="address">Address</Label>
-                            <Input id="address" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="dob">Date of Birth</Label>
-                            <Input id="dob" type="date" />
-                        </div>
+                        <FormField control={form.control} name="address" render={({ field }) => (
+                          <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                        )} />
+                        <FormField control={form.control} name="dob" render={({ field }) => (
+                            <FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
+                        )} />
                     </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="ssn">Social Security Number <span className="text-muted-foreground">(Voluntary for ID only)</span></Label>
-                        <Input id="ssn" />
-                    </div>
+                     <FormField control={form.control} name="ssn" render={({ field }) => (
+                        <FormItem><FormLabel>Social Security Number <span className="text-muted-foreground">(Voluntary for ID only)</span></FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                      )} />
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <Label htmlFor="tbDate">Date of TB Test Upon Hire</Label>
-                            <Input id="tbDate" type="date" />
-                        </div>
-                         <div className="space-y-2">
-                            <Label htmlFor="tbResults">Results of Last TB Test</Label>
-                            <Input id="tbResults" />
-                        </div>
+                        <FormField control={form.control} name="tbDate" render={({ field }) => (
+                            <FormItem className="flex flex-col"><FormLabel>Date of TB Test Upon Hire</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
+                        )} />
+                         <FormField control={form.control} name="tbResults" render={({ field }) => (
+                            <FormItem><FormLabel>Results of Last TB Test</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                          )} />
                     </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="additionalTbDates">Additional TB Test Dates (Please include test results)</Label>
-                        <Textarea id="additionalTbDates" />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="alternateNames">Please list any alternate names used (For example - maiden name)</Label>
-                        <Input id="alternateNames" />
-                    </div>
+                     <FormField control={form.control} name="additionalTbDates" render={({ field }) => (
+                        <FormItem><FormLabel>Additional TB Test Dates (Please include test results)</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                      )} />
+                    <FormField control={form.control} name="alternateNames" render={({ field }) => (
+                        <FormItem><FormLabel>Please list any alternate names used (For example - maiden name)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                      )} />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                        <div className="space-y-2">
-                            <Label>Do you possess a valid California driver’s license?</Label>
-                            <RadioGroup className="flex gap-4 pt-2">
-                                <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="yes" id="cdl-yes" />
-                                    <Label htmlFor="cdl-yes" className="font-normal">Yes</Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="no" id="cdl-no" />
-                                    <Label htmlFor="cdl-no" className="font-normal">No</Label>
-                                </div>
-                            </RadioGroup>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="cdlNumber">CDL Number:</Label>
-                            <Input id="cdlNumber" />
-                        </div>
+                        <FormField control={form.control} name="validLicense" render={({ field }) => (
+                           <FormItem className="space-y-2"><FormLabel>Do you possess a valid California driver’s license?</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4 pt-2"><FormItem className="flex items-center space-x-2"><RadioGroupItem value="yes" id="cdl-yes" /><Label htmlFor="cdl-yes" className="font-normal">Yes</Label></FormItem><FormItem className="flex items-center space-x-2"><RadioGroupItem value="no" id="cdl-no" /><Label htmlFor="cdl-no" className="font-normal">No</Label></FormItem></RadioGroup></FormControl><FormMessage /></FormItem>
+                        )} />
+                        <FormField control={form.control} name="driversLicenseNumber" render={({ field }) => (
+                           <FormItem><FormLabel>CDL Number:</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                        )} />
                     </div>
                 </div>
 
@@ -146,14 +197,12 @@ export default function HCS501Page() {
                 </div>
 
                 <div className="space-y-6">
-                    <div className="space-y-2">
-                        <Label htmlFor="titleOfPosition">Title of Position</Label>
-                        <Input id="titleOfPosition" />
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="notes">Notes:</Label>
-                        <Textarea id="notes" rows={5} />
-                    </div>
+                    <FormField control={form.control} name="titleOfPosition" render={({ field }) => (
+                       <FormItem><FormLabel>Title of Position</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                     <FormField control={form.control} name="hcs501Notes" render={({ field }) => (
+                       <FormItem><FormLabel>Notes:</FormLabel><FormControl><Textarea {...field} rows={5} /></FormControl><FormMessage /></FormItem>
+                    )} />
                     <div className="border p-4 rounded-md space-y-4">
                         <p className="text-sm font-bold">I hereby certify under penalty of perjury that I am 18 years of age or older and that the above statements are true and correct. I give my permission for any necessary verification.</p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
@@ -164,6 +213,11 @@ export default function HCS501Page() {
                                         ref={sigPadRef}
                                         penColor='black'
                                         canvasProps={{ className: 'w-full h-full rounded-md' }}
+                                        onEnd={() => {
+                                            if (sigPadRef.current) {
+                                                form.setValue('hcs501EmployeeSignature', sigPadRef.current.toDataURL())
+                                            }
+                                        }}
                                     />
                                 </div>
                                 <Button type="button" variant="ghost" size="sm" onClick={clearSignature} className="mt-2">
@@ -171,15 +225,26 @@ export default function HCS501Page() {
                                     Clear Signature
                                 </Button>
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="signatureDate">Date</Label>
-                                <Input id="signatureDate" type="date" />
-                            </div>
+                           <FormField control={form.control} name="hcs501SignatureDate" render={({ field }) => (
+                            <FormItem className="flex flex-col"><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
+                           )} />
                         </div>
                     </div>
                 </div>
 
             </CardContent>
+            <CardFooter className="flex justify-end gap-4">
+                <Button type="button" variant="outline" onClick={() => router.push('/candidate-hiring-forms')}>
+                  <X className="mr-2" />
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isSaving}>
+                  {isSaving ? <Loader2 className="mr-2 animate-spin" /> : <Save className="mr-2" />}
+                  Save Form
+                </Button>
+            </CardFooter>
+            </form>
+            </Form>
         </Card>
     );
 }
