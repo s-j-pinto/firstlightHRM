@@ -1,11 +1,22 @@
+"use client";
 
+import { useRef } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
+import SignatureCanvas from 'react-signature-canvas';
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
 
 export default function HCS501Page() {
+    const sigPadRef = useRef<SignatureCanvas>(null);
+
+    const clearSignature = () => {
+        sigPadRef.current?.clear();
+    };
+
     return (
         <Card className="max-w-4xl mx-auto">
             <CardHeader>
@@ -122,6 +133,50 @@ export default function HCS501Page() {
                         </div>
                     </div>
                 </div>
+
+                <div className="relative my-8">
+                    <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-card px-2 text-muted-foreground">
+                        POSITION INFORMATION
+                        </span>
+                    </div>
+                </div>
+
+                <div className="space-y-6">
+                    <div className="space-y-2">
+                        <Label htmlFor="titleOfPosition">Title of Position</Label>
+                        <Input id="titleOfPosition" />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="notes">Notes:</Label>
+                        <Textarea id="notes" rows={5} />
+                    </div>
+                    <p className="text-sm text-muted-foreground">I hereby certify under penalty of perjury that I am 18 years of age or older and that the above statements are true and correct. I give my permission for any necessary verification.</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                         <div className="space-y-2">
+                            <Label>Employee Signature</Label>
+                            <div className="relative w-full h-24 rounded-md border bg-muted/50">
+                                <SignatureCanvas
+                                    ref={sigPadRef}
+                                    penColor='black'
+                                    canvasProps={{ className: 'w-full h-full rounded-md' }}
+                                />
+                            </div>
+                            <Button type="button" variant="ghost" size="sm" onClick={clearSignature} className="mt-2">
+                                <RefreshCw className="mr-2 h-4 w-4" />
+                                Clear Signature
+                            </Button>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="signatureDate">Date</Label>
+                            <Input id="signatureDate" type="date" />
+                        </div>
+                    </div>
+                </div>
+
             </CardContent>
         </Card>
     );
