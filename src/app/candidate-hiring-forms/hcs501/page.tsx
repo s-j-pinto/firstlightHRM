@@ -11,7 +11,11 @@ export default function HCS501Page() {
                         <br />
                         California Department of Social Services
                     </div>
-                    {/* Right side of header will go here */}
+                    <div className="text-sm text-muted-foreground text-right">
+                        Community Care Licensing Division
+                        <br />
+                        Home Care Services Bureau
+                    </div>
                 </div>
                 <CardTitle className="text-center pt-4 tracking-wider">
                     PERSONNEL RECORD
