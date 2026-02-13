@@ -59,7 +59,7 @@ export async function saveEmergencyContactData(profileId: string, data: any) {
 }
 
 export async function saveLic508Data(profileId: string, data: any) {
-  const validatedFields = lic508Schema.safeParse(data);
+  const validatedFields = lic508Schema.passthrough().safeParse(data);
 
   if (!validatedFields.success) {
     console.error("LIC508 Save Validation Error:", validatedFields.error.flatten());
