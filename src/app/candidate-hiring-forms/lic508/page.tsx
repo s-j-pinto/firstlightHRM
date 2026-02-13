@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useTransition, useRef } from "react";
@@ -75,7 +74,7 @@ export default function LIC508Page() {
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
 
     const form = useForm<Lic508PageFormData>({
-      resolver: zodResolver(lic508PageSchema),
+      resolver: zodResolver(lic508Schema),
       defaultValues: defaultFormValues,
     });
     
@@ -341,7 +340,15 @@ export default function LIC508Page() {
                                             </FormControl>
                                         </PopoverTrigger>
                                         <PopoverContent className="w-auto p-0" align="start">
-                                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                            <Calendar 
+                                                mode="single" 
+                                                selected={field.value} 
+                                                onSelect={field.onChange} 
+                                                captionLayout="dropdown-buttons"
+                                                fromYear={1930}
+                                                toYear={new Date().getFullYear() - 18}
+                                                initialFocus 
+                                            />
                                         </PopoverContent>
                                     </Popover>
                                     <FormMessage />
@@ -498,4 +505,3 @@ naturalization matter, security clearance, or adoption), you have certain rights
         </Card>
     );
 }
-
