@@ -125,7 +125,7 @@ export default function SOC341APage() {
 
     const handleCancel = () => {
         if(isAnAdmin) {
-            router.push(`/admin/advanced-search?search=${encodeURIComponent(existingData?.fullName || '')}`);
+            router.push(`/candidate-hiring-forms?candidateId=${profileIdToLoad}`);
         } else {
             router.push('/candidate-hiring-forms');
         }
@@ -403,7 +403,7 @@ suspected abuse of dependent adults or elders. I will comply with the reporting 
                   Cancel
                 </Button>
                 <Button type="submit" disabled={isSaving}>
-                  {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2" />}
+                  {isSaving ? <Loader2 className="mr-2 animate-spin" /> : <Save className="mr-2" />}
                   Save Form
                 </Button>
             </CardFooter>

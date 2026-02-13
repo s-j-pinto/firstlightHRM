@@ -176,7 +176,7 @@ export default function ReferenceVerificationPage() {
 
     const handleCancel = () => {
         if(isAnAdmin) {
-            router.push(`/admin/advanced-search?search=${encodeURIComponent(existingData?.fullName || '')}`);
+            router.push(`/candidate-hiring-forms?candidateId=${profileIdToLoad}`);
         } else {
             router.push('/candidate-hiring-forms');
         }

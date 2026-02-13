@@ -167,7 +167,7 @@ export default function LIC508Page() {
 
     const handleCancel = () => {
         if(isAnAdmin) {
-            router.push(`/admin/advanced-search?search=${encodeURIComponent(existingData?.fullName || '')}`);
+            router.push(`/candidate-hiring-forms?candidateId=${profileIdToLoad}`);
         } else {
             router.push('/candidate-hiring-forms');
         }
@@ -488,7 +488,7 @@ export default function LIC508Page() {
                     <h3 className="font-bold pt-4">Applicant Notification and Record Challenge</h3>
                     <p className="text-muted-foreground">Your fingerprints will be used to check the criminal history records of the FBI. You have the opportunity to complete or challenge the accuracy of the information contained in the FBI identification record. The procedure
 for obtaining a change, correction, or updating an FBI identification record are set forth in Title 28, CFR, 16.34.
-You can find additional information on the FBI website at https://www.fbi.gov/aboutus/cjis/background-checks.</p>
+You can find additional information on the FBI website at https://www.fbi.gov/services/cjis/identity-history-summary-checks.</p>
 
                     <h3 className="font-bold pt-4">Federal Privacy Act Statement</h3>
                     <p className="text-muted-foreground"><span className="font-semibold">Authority:</span> The FBI’s acquisition, preservation, and exchange of fingerprints and associated information is generally authorized under 28 U.S.C. 534. Depending on the nature of your application, supplemental authorities include Federal statutes, State statutes pursuant to Pub. L. 92-544, Presidential Executive Orders, and federal regulations. Providing your fingerprints and associated information is voluntary; however, failure to
@@ -554,7 +554,3 @@ naturalization matter, security clearance, or adoption), you have certain rights
         </Card>
     );
 }
-
-    
-
-    
