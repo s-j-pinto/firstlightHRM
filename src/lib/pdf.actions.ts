@@ -124,9 +124,9 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
 
         const lineSpacing = 19;
         const sectionSpacing = 24; 
-        const mainFontSize = 10.5; 
-        const titleFontSize = 12.5;
-        const labelFontSize = 9.5;
+        const mainFontSize = 9.5; 
+        const titleFontSize = 11.5;
+        const labelFontSize = 8.5;
         const headerFontSize = 8.5; 
         const subTitleFontSize = 7.5;
         const lightGray = rgb(0.92, 0.92, 0.92);
@@ -165,7 +165,7 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         drawFieldBox("Hire Date", formData.hireDate ? format(new Date(formData.hireDate.seconds * 1000), "MM/dd/yyyy") : '', leftMargin, y, 180);
         drawFieldBox("Date of Separation", formData.separationDate ? format(new Date(formData.separationDate.seconds * 1000), "MM/dd/yyyy") : '', leftMargin + 200, y, 180);
 
-        y -= 35; 
+        y -= 50; 
 
         // Personal Section
         const personalTitle = "PERSONAL";
@@ -178,11 +178,11 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         // Row 1
         drawFieldBox("Name (Last First Middle)", formData.fullName, leftMargin, y, 280);
         drawFieldBox("Area Code/Telephone", formData.phone, leftMargin + 300, y, contentWidth - 300);
-        y -= lineSpacing * 2;
+        y -= lineSpacing * 1.5;
 
         const fullAddress = [formData.address, formData.city, formData.state, formData.zip].filter(Boolean).join(', ');
         drawFieldBox("Address", fullAddress, leftMargin, y, contentWidth);
-        y -= lineSpacing * 1; 
+        y -= lineSpacing * 2.5; 
 
         drawFieldBox("Date of Birth", formData.dob ? format(new Date(formData.dob.seconds * 1000), "MM/dd/yyyy") : '', leftMargin, y, 200);
         drawFieldBox("Social Security Number (Voluntary for ID only)", formData.ssn, leftMargin + 220, y, contentWidth-220);
@@ -391,7 +391,7 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
             width: logoDims.width,
             height: logoDims.height,
         });
-        y -= logoDims.height + 5;
+        y -= logoDims.height + 2;
 
         const title = "FIRSTLIGHT HOMECARE REFERENCE VERIFICATION FORM";
         const titleWidth = boldFont.widthOfTextAtSize(title, 14);
@@ -412,12 +412,12 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
         y -= 30;
         
         const pleasePrint = "PLEASE PRINT";
-        drawText(page, pleasePrint, { x: leftMargin, y: y, font, size: 10 });
+        drawText(page, pleasePrint, { x: leftMargin, y: y, font, size: 9 });
         y -= 5;
         page.drawLine({ start: { x: leftMargin, y: y }, end: { x: rightMargin, y: y }, thickness: 1 });
         y -= 20;
 
-        drawText(page, `Applicant’s First Name Middle Last: ${formData.fullName || ''}`, {x: leftMargin, y, font, size: 10});
+        drawText(page, `Applicant’s First Name Middle Last: ${formData.fullName || ''}`, {x: leftMargin, y, font, size: 9});
         y -= 20;
 
         const permissionText = "I hereby give FirstLight HomeCare permission to obtain the employment references necessary to make a hiring decision and hold all persons giving references free from any and all liability resulting from this process. I waive any provision impeding the release of this information and agree to provide any information necessary for the release of this information beyond that provided on the employment application and this reference verification form.";
@@ -431,7 +431,7 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
         drawText(page, "Signature", {x: leftMargin, y: y-20, font, size: 8});
 
         if (formData.applicantSignatureDate) {
-             drawText(page, `Date: ${format(new Date(formData.applicantSignatureDate.seconds * 1000), "MM/dd/yyyy")}`, {x: leftMargin + 350, y, font, size: 10});
+             drawText(page, `Date: ${format(new Date(formData.applicantSignatureDate.seconds * 1000), "MM/dd/yyyy")}`, {x: leftMargin + 350, y, font, size: 9});
         }
         page.drawLine({ start: { x: leftMargin + 340, y: y-10 }, end: { x: leftMargin + 500, y: y - 10 }, thickness: 0.5 });
         drawText(page, "Date", {x: leftMargin + 340, y: y-20, font, size: 8});
@@ -442,8 +442,8 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
         y -= 25;
 
         const drawTwoColumnField = (label1: string, value1: string, label2: string, value2: string) => {
-            if (value1) drawText(page, `${label1}: ${value1}`, {x: leftMargin + 5, y, font, size: 10});
-            if (value2) drawText(page, `${label2}: ${value2}`, {x: leftMargin + contentWidth / 2, y, font, size: 10});
+            if (value1) drawText(page, `${label1}: ${value1}`, {x: leftMargin + 5, y, font, size: 9});
+            if (value2) drawText(page, `${label2}: ${value2}`, {x: leftMargin + contentWidth / 2, y, font, size: 9});
             y -= 20;
         };
 
@@ -463,11 +463,11 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
         y -= 20;
 
         const drawRating = (label: string, value: string | undefined) => {
-            y -= 5;
+            y -= 2;
             y = drawWrappedText(page, label, boldFont, 9, leftMargin + 5, y, contentWidth - 10, 11);
-            y -= 4; // Reduced by 75%
-            if(value) drawText(page, `Rating: ${value}`, {x: leftMargin + 15, y, font, size: 10});
-            y -= 20;
+            y -= 1; 
+            if(value) drawText(page, `Rating: ${value}`, {x: leftMargin + 15, y, font, size: 9});
+            y -= 15;
         };
 
         drawRating("TEAMWORK: The degree to which you are willing to work harmoniously with others; the extent to which you conform to the policies of management.", formData.teamworkRating);
@@ -484,7 +484,7 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
         y -= 25;
         const drawYesNo = (label: string, value: string | undefined, yPos: number, xPos: number) => {
             if (value) {
-                drawText(page, `${label}: ${value}`, {x: xPos, y: yPos, font, size: 10});
+                drawText(page, `${label}: ${value}`, {x: xPos, y: yPos, font, size: 9});
             }
         };
 
@@ -509,5 +509,3 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
         return { error: `Failed to generate PDF: ${error.message}` };
     }
 }
-
-    
