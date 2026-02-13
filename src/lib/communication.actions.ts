@@ -182,6 +182,7 @@ export async function sendHiringDocsNotification(payload: {
                 
                 <p>If you have any questions, please contact our office at (909)-321-4466.</p>
                 <p>Thank you,<br/>The FirstLight Home Care Team</p>
+                <p style="margin-top: 30px; font-size: 10px; color: #888888;"><small><strong>CONFIDENTIALITY NOTICE</strong><br> This email, including any attachments or files transmitted with it, is intended to be confidential and solely for the use of the individual or entity to whom it is addressed. If you received it in error, or if you are not the intended recipient(s), please notify the sender by reply e-mail and delete/destroy the original message and any attachments, and any copies. Any unauthorized review, use, disclosure or distribution of this e-mail or information is prohibited and may be a violation of applicable laws.</small></p>
             </div>
         </body>
     `;
@@ -191,7 +192,7 @@ export async function sendHiringDocsNotification(payload: {
             to: [email],
             cc: [adminEmail],
             message: {
-                subject: "Action Required: Complete Your FirstLight Home Care Hiring Forms",
+                subject: "Action Required: Complete Your Hiring Forms -FirstLight Home Care of Rancho Cucamonga",
                 html: emailHtml,
             },
         });
