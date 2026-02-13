@@ -18,7 +18,7 @@ import { Save, X, Loader2, RefreshCw, CalendarIcon } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useUser, useDoc, useMemoFirebase, firestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { lic508Schema, type CaregiverProfile } from "@/lib/types";
+import { lic508Schema, lic508Object, type CaregiverProfile } from "@/lib/types";
 import { saveLic508Data } from "@/lib/candidate-hiring-forms.actions";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -27,15 +27,20 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 
-const lic508PageSchema = lic508Schema.extend({
+const lic508PageSchema = lic508Object.extend({
   fullName: z.string().optional(),
   address: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
   zip: z.string().optional(),
-  ssn: z.string().optional(),
-  driversLicenseNumber: z.string().optional(),
-  dob: z.date().optional().nullable(),
+}).refine(data => {
+    if (data.livedOutOfStateLast5Years === 'yes') {
+        return !!data.outOfStateHistory && data.outOfStateHistory.length > 0;
+    }
+    return true;
+}, {
+    message: "Please list the states you have lived in.",
+    path: ['outOfStateHistory'],
 });
 type Lic508PageFormData = z.infer<typeof lic508PageSchema>;
 
@@ -70,7 +75,7 @@ export default function LIC508Page() {
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
 
     const form = useForm<Lic508PageFormData>({
-      resolver: zodResolver(lic508Schema),
+      resolver: zodResolver(lic508PageSchema),
       defaultValues: defaultFormValues,
     });
     
@@ -493,3 +498,4 @@ naturalization matter, security clearance, or adoption), you have certain rights
         </Card>
     );
 }
+

@@ -1,4 +1,5 @@
 
+
 import { z } from "zod";
 
 export const initialContactSchema = z.object({
@@ -148,7 +149,7 @@ export const transportationSchema = z.object({
   validLicense: z.enum(["yes", "no"], { required_error: "Please select an option." }),
 });
 
-const hcs501Object = z.object({
+export const hcs501Object = z.object({
   perId: z.string().optional(),
   hireDate: z.date().optional().nullable(),
   separationDate: z.date().optional().nullable(),
@@ -196,7 +197,7 @@ export const emergencyContactSchema = z.object({
 });
 export type EmergencyContactFormData = z.infer<typeof emergencyContactSchema>;
 
-const lic508Object = z.object({
+export const lic508Object = z.object({
   convictedInCalifornia: z.enum(["yes", "no"], { required_error: "This selection is required." }),
   convictedOutOfState: z.enum(["yes", "no"], { required_error: "This selection is required." }),
   livedOutOfStateLast5Years: z.enum(["yes", "no"], { required_error: "This selection is required." }),
@@ -226,7 +227,7 @@ export const soc341aSchema = z.object({
 });
 export type Soc341aFormData = z.infer<typeof soc341aSchema>;
 
-const referenceVerificationObject = z.object({
+export const referenceVerificationObject = z.object({
   applicantSignature: z.string().min(1, "Signature is required."),
   applicantSignatureDate: z.date({ required_error: "Signature date is required." }),
   company: z.string().min(1, "Company name is required."),
@@ -267,11 +268,11 @@ export const caregiverFormSchema = generalInfoSchema
   .merge(certificationsSchema)
   .merge(availabilitySchema)
   .merge(transportationSchema)
-  .merge(hcs501Object.partial())
-  .merge(emergencyContactSchema.partial())
-  .merge(lic508Object.partial())
-  .merge(soc341aSchema.partial())
-  .merge(referenceVerificationObject.partial());
+  .merge(hcs501Object)
+  .merge(emergencyContactSchema)
+  .merge(lic508Object)
+  .merge(soc341aSchema)
+  .merge(referenceVerificationObject);
 
 export type CaregiverProfile = z.infer<typeof caregiverFormSchema> & { id: string, canWorkWithCovid?: boolean, cna?: boolean };
 
@@ -922,5 +923,6 @@ export type CaregiverForRecommendation = z.infer<typeof CaregiverForRecommendati
 
 
     
+
 
 
