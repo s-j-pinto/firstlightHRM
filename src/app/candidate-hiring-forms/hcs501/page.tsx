@@ -21,7 +21,7 @@ import { RefreshCw, Save, X, Loader2, CalendarIcon } from "lucide-react";
 import { useUser, useDoc, useMemoFirebase, firestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { hcs501Schema, type Hcs501FormData } from "@/lib/types";
+import { hcs501Schema, type Hcs501FormData, type CaregiverProfile } from "@/lib/types";
 import { saveHcs501Data } from "@/lib/candidate-hiring-forms.actions";
 import { format } from "date-fns";
 
@@ -68,7 +68,7 @@ export default function HCS501Page() {
       () => (user?.uid ? doc(firestore, 'caregiver_profiles', user.uid) : null),
       [user?.uid]
     );
-    const { data: existingData, isLoading: isDataLoading } = useDoc<any>(caregiverProfileRef);
+    const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
 
     const form = useForm<Hcs501FormData>({
       resolver: zodResolver(hcs501Schema),
@@ -77,25 +77,39 @@ export default function HCS501Page() {
     
     useEffect(() => {
         if (existingData) {
-            const formData = { ...existingData };
-            // Convert Firestore Timestamps to JS Dates for the form
-            ['hireDate', 'separationDate', 'dob', 'tbDate', 'hcs501SignatureDate'].forEach(field => {
-                if (formData[field] && typeof formData[field].toDate === 'function') {
-                    formData[field] = formData[field].toDate();
-                } else {
-                    // Ensure undefined for fields that aren't valid dates or are missing
-                    formData[field] = undefined;
+            const formData: Partial<Hcs501FormData & { fullName?: string; phone?: string; address?: string; city?: string; state?: string; zip?: string; driversLicenseNumber?: string; }> = {};
+            // Use a whitelist of fields from the schema to populate the form
+            const formFields = Object.keys(hcs501Schema.shape);
+            
+            formFields.forEach(key => {
+                const typedKey = key as keyof Hcs501FormData;
+                if (typedKey in existingData) {
+                    const value = (existingData as any)[typedKey];
+                    if (key.toLowerCase().includes('date') && value && typeof value.toDate === 'function') {
+                        (formData as any)[typedKey] = value.toDate();
+                    } else {
+                        (formData as any)[typedKey] = value;
+                    }
                 }
             });
 
-            // Merge with defaults to prevent any field from being undefined
+            // Also pre-populate from general profile if fields are empty
+            if (!formData.fullName && existingData.fullName) formData.fullName = existingData.fullName;
+            if (!formData.phone && existingData.phone) formData.phone = existingData.phone;
+            if (!formData.address && existingData.address) formData.address = existingData.address;
+            if (!formData.city && existingData.city) formData.city = existingData.city;
+            if (!formData.state && existingData.state) formData.state = existingData.state;
+            if (!formData.zip && existingData.zip) formData.zip = existingData.zip;
+            if (!formData.driversLicenseNumber && existingData.driversLicenseNumber) formData.driversLicenseNumber = existingData.driversLicenseNumber;
+
+
             form.reset({
                 ...defaultFormValues,
                 ...formData
             });
 
-            if (formData.hcs501EmployeeSignature && sigPadRef.current) {
-                sigPadRef.current.fromDataURL(formData.hcs501EmployeeSignature);
+            if (existingData.hcs501EmployeeSignature && sigPadRef.current) {
+                sigPadRef.current.fromDataURL(existingData.hcs501EmployeeSignature);
             }
         }
     }, [existingData, form]);
@@ -209,7 +223,17 @@ export default function HCS501Page() {
                     
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <FormField control={form.control} name="dob" render={({ field }) => (
-                            <FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
+                            <FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    mode="single"
+                                    selected={field.value}
+                                    onSelect={field.onChange}
+                                    captionLayout="dropdown-buttons"
+                                    fromYear={1930}
+                                    toYear={new Date().getFullYear() - 18}
+                                    initialFocus
+                                />
+                            </PopoverContent></Popover><FormMessage /></FormItem>
                         )} />
                          <FormField control={form.control} name="ssn" render={({ field }) => (
                             <FormItem><FormLabel>Social Security Number <span className="text-muted-foreground">(Voluntary for ID only)</span></FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
@@ -217,7 +241,17 @@ export default function HCS501Page() {
                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <FormField control={form.control} name="tbDate" render={({ field }) => (
-                            <FormItem className="flex flex-col"><FormLabel>Date of TB Test Upon Hire</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
+                            <FormItem className="flex flex-col"><FormLabel>Date of TB Test Upon Hire</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    mode="single"
+                                    selected={field.value}
+                                    onSelect={field.onChange}
+                                    captionLayout="dropdown-buttons"
+                                    fromYear={new Date().getFullYear() - 5}
+                                    toYear={new Date().getFullYear()}
+                                    initialFocus
+                                />
+                            </PopoverContent></Popover><FormMessage /></FormItem>
                         )} />
                          <FormField control={form.control} name="tbResults" render={({ field }) => (
                             <FormItem><FormLabel>Results of Last TB Test</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
@@ -302,3 +336,5 @@ export default function HCS501Page() {
         </Card>
     );
 }
+
+    
