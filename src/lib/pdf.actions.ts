@@ -1,3 +1,4 @@
+
 'use server';
 
 import { Buffer } from 'buffer';
@@ -114,18 +115,18 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
         const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-        let y = height - 60; // Adjusted for content shift up
+        let y = height - 50; 
         const leftMargin = 50;
         const rightMargin = width - 50;
         const contentWidth = rightMargin - leftMargin;
 
-        const lineSpacing = 18; // Increased slightly
-        const sectionSpacing = 24; // Increased slightly
-        const mainFontSize = 9.5; // Reduced slightly
-        const titleFontSize = 13; // Reduced slightly
-        const labelFontSize = 8.5; // Reduced slightly
-        const headerFontSize = 8.5; // Reduced slightly
-        const subTitleFontSize = 7.5; // Reduced slightly
+        const lineSpacing = 19;
+        const sectionSpacing = 26; 
+        const mainFontSize = 10; 
+        const titleFontSize = 12;
+        const labelFontSize = 9;
+        const headerFontSize = 8.5; 
+        const subTitleFontSize = 7.5;
         const lightGray = rgb(0.92, 0.92, 0.92);
 
         // Header
@@ -134,11 +135,11 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         y -= 12;
         await drawText(page, 'California Department of Social Services', leftMargin, y, font, headerFontSize);
         await drawText(page, 'Home Care Services Bureau', width - font.widthOfTextAtSize('Home Care Services Bureau', headerFontSize) - leftMargin, y, font, headerFontSize);
-        y -= 28;
+        y -= 25;
 
         // Title
         const title = "PERSONNEL RECORD";
-        page.drawText(title, { x: leftMargin, y, font: boldFont, size: titleFontSize }); // Left aligned
+        page.drawText(title, { x: leftMargin, y, font: boldFont, size: titleFontSize });
         y -= sectionSpacing;
 
         // Personal Record Pane
@@ -160,7 +161,7 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         await drawFieldBox("Hire Date", formData.hireDate ? format(new Date(formData.hireDate.seconds * 1000), "MM/dd/yyyy") : '', leftMargin, y, 180);
         await drawFieldBox("Date of Separation", formData.separationDate ? format(new Date(formData.separationDate.seconds * 1000), "MM/dd/yyyy") : '', leftMargin + 200, y, 180);
 
-        y -= 60; // Move below the gray box
+        y -= 50; 
 
         // Personal Section
         const personalTitle = "PERSONAL";
@@ -174,32 +175,26 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         await drawFieldBox("Area Code/Telephone", formData.phone, leftMargin + 300, y, contentWidth - 300);
         y -= lineSpacing * 2.5;
 
-        // Row 2 & 3 (merged)
         const fullAddress = [formData.address, formData.city, formData.state, formData.zip].filter(Boolean).join(', ');
         await drawFieldBox("Address", fullAddress, leftMargin, y, contentWidth);
-        y -= lineSpacing * 1.25; // Reduced spacing here by 50%
+        y -= (lineSpacing * 1.25); 
 
-        y -= lineSpacing * 2.5; // Added empty space where City/State/Zip row was
+        y -= lineSpacing * 1.25; 
 
-        // Row 4
         await drawFieldBox("Date of Birth", formData.dob ? format(new Date(formData.dob.seconds * 1000), "MM/dd/yyyy") : '', leftMargin, y, 200);
         await drawFieldBox("Social Security Number (Voluntary for ID only)", formData.ssn, leftMargin + 220, y, contentWidth-220);
         y -= lineSpacing * 2.5;
 
-        // Row 5
         await drawFieldBox("Date of TB Test Upon Hire", formData.tbDate ? format(new Date(formData.tbDate.seconds * 1000), "MM/dd/yyyy") : '', leftMargin, y, 200);
         await drawFieldBox("Results of Last TB Test", formData.tbResults, leftMargin + 220, y, contentWidth - 220);
         y -= lineSpacing * 2.5;
 
-        // Row 6
         await drawFieldBox("Additional TB Test Dates (Please include test results)", formData.additionalTbDates, leftMargin, y, contentWidth);
         y -= lineSpacing * 2.5;
 
-        // Row 7
         await drawFieldBox("Please list any alternate names used (For example - maiden name)", formData.alternateNames, leftMargin, y, contentWidth);
         y -= lineSpacing * 2.5;
 
-        // Row 8
         await drawText(page, "Do you possess a valid California driver’s license?", leftMargin, y, font, mainFontSize);
         await drawCheckbox(page, formData.validLicense === 'yes', leftMargin + 250, y, font);
         await drawText(page, 'Yes', leftMargin + 265, y, font, mainFontSize);
@@ -221,7 +216,7 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         await drawText(page, "Notes:", leftMargin, y+10, font, labelFontSize);
         page.drawRectangle({x: leftMargin, y: y-35, width: contentWidth, height: 40, borderColor: rgb(0,0,0), borderWidth: 0.5});
         if (formData.hcs501Notes) drawWrappedText(page, formData.hcs501Notes, font, mainFontSize, leftMargin + 5, y - 5, contentWidth - 10, lineSpacing);
-        y -= 70; // Added extra space here
+        y -= 45;
 
         // Certify Pane
         page.drawRectangle({ x: leftMargin - 10, y: y - 80, width: contentWidth + 20, height: 95, color: lightGray });
@@ -230,14 +225,12 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         y = drawWrappedText(page, certifyText, boldFont, 9, leftMargin, y, contentWidth - 20, 12);
         y -= 25;
 
-        // Signature and date
         if(formData.hcs501EmployeeSignature) await drawSignature(page, formData.hcs501EmployeeSignature, leftMargin + 5, y, 240, 20, pdfDoc);
         page.drawLine({ start: { x: leftMargin, y: y-5 }, end: { x: leftMargin + 250, y: y - 5 }, color: rgb(0, 0, 0), thickness: 0.5 });
         await drawText(page, "Employee Signature", leftMargin, y-15, font, labelFontSize);
         
         await drawFieldBox("Date", formData.hcs501SignatureDate ? format(new Date(formData.hcs501SignatureDate.seconds * 1000), "MM/dd/yyyy") : '', leftMargin + 300, y + 10, 200);
 
-        // Footer
         await drawHcs501Footer(page, font);
 
         const pdfBytes = await pdfDoc.save();
@@ -263,6 +256,7 @@ export async function generateEmergencyContactPdf(formData: any): Promise<{ pdfD
 
         let y = height - 50;
         const leftMargin = 60;
+        const contentWidth = width - (leftMargin * 2);
         
         // Logo
         page.drawImage(logoImage, {
@@ -281,7 +275,9 @@ export async function generateEmergencyContactPdf(formData: any): Promise<{ pdfD
             font: boldFont,
             size: 16,
         });
-        y -= 40;
+        y -= 30;
+
+        const boxStartY = y + 10;
 
         // Helper to draw a section
         const drawSection = (title: string, data: { [key: string]: string | undefined }, isFirst: boolean = false) => {
@@ -290,12 +286,30 @@ export async function generateEmergencyContactPdf(formData: any): Promise<{ pdfD
                 y -= 20;
             }
 
-            page.drawText(title, {
-                x: leftMargin,
-                y,
-                font: boldFont,
-                size: 12,
-            });
+            if (isFirst) {
+                page.drawText(title, { // This is "Your Information"
+                    x: leftMargin,
+                    y,
+                    font: boldFont,
+                    size: 12,
+                });
+                const generalInfoText = "General Information";
+                const generalInfoWidth = boldFont.widthOfTextAtSize(generalInfoText, 12);
+                page.drawText(generalInfoText, {
+                    x: (width / 2) - (generalInfoWidth / 2),
+                    y,
+                    font: boldFont,
+                    size: 12,
+                });
+            } else {
+                page.drawText(title, {
+                    x: leftMargin,
+                    y,
+                    font: boldFont,
+                    size: 12,
+                });
+            }
+
             y -= 25;
 
             const drawField = (label: string, value: string | undefined) => {
@@ -340,6 +354,17 @@ export async function generateEmergencyContactPdf(formData: any): Promise<{ pdfD
             };
             drawSection("Second Person", secondPersonInfo);
         }
+
+        const boxEndY = y;
+
+        page.drawRectangle({
+            x: leftMargin - 20,
+            y: boxEndY - 20,
+            width: contentWidth + 40,
+            height: boxStartY - (boxEndY - 20),
+            borderColor: rgb(0, 0, 0),
+            borderWidth: 1,
+        });
 
         // Footer
         page.drawText("REV 02/03/17", { x: leftMargin, y: 30, font, size: 9 });
