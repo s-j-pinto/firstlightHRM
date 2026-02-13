@@ -176,7 +176,7 @@ export default function LIC508Page() {
                                </FormItem>
                             )}
                         />
-                        <p className="text-xs text-muted-foreground pt-2">
+                        <p className="text-xs text-muted-foreground pt-3">
                             You do not need to disclose any marijuana-related offenses covered by the marijuana reform legislation codified at Health and Safety Code sections 11361.5 and 11361.7.
                         </p>
                     </div>
@@ -204,7 +204,7 @@ export default function LIC508Page() {
                                </FormItem>
                             )}
                         />
-                         <p className="text-xs text-muted-foreground pt-2">
+                         <p className="text-xs text-muted-foreground pt-3">
                             You do not need to disclose convictions that were a result of ones's status as a victim of human trafficking and that were dismissed pursuant to Penal Code Section 1203.49, nor any marijuana related offenses covered by the marijuana reform legislation codified at Health and Safety Code sections 11361.5 and 11361.7. However you are required to disclose convictions that were dismissed pursuant to Penal Code Section 1203.4(a)
                         </p>
                     </div>
@@ -293,6 +293,37 @@ export default function LIC508Page() {
 
                 <Separator />
 
+                <div className="space-y-4 pt-4 text-sm">
+                    <h3 className="text-center font-bold">Privacy Notice</h3>
+                    <p className="text-center text-xs">As Required by Civil Code § 1798.17</p>
+                    <div className="space-y-2 text-muted-foreground">
+                        <p className="font-bold">Collection and Use of Personal Information.</p>
+                        <p>The California Justice Information Services (CJIS) Division in the Department of Justice (DOJ) collects the information requested on this form as authorized by Penal Code sections 11100-11112; Health and Safety Code sections 1522, 1569.10-1569.24, 1596.80-1596.879; Family Code sections 8700-87200; Welfare and Institutions Code sections 16500-16523.1; and other various state statutes and regulations. The CJIS Division uses this information to process requests of authorized entities that want to obtain information as to the existence and content of a record of state or federal convictions to help determine suitability for employment, or volunteer work with children, elderly, or disabled; or for adoption or purposes of a license, certification, or permit. In addition, any personal information collected by state agencies is subject to the limitations in the Information Practices Act and state policy. The DOJ’s general privacy policy is available at http://oag.ca.gov/privacy-policy.</p>
+
+                        <p className="font-bold">Providing Personal Information.</p>
+                        <p>All the personal information requested in the form must be provided. Failure to provide all the necessary information will result in delays and/or the rejection of your request. Notice is given for the request of the Social Security Number (SSN) on this form. The California Department of Justice uses a person’s SSN as an identifying number. The requested SSN is voluntary. Failure to provide the SSN may delay the processing of this form and the criminal record check.</p>
+                        
+                        <p className="font-bold">Access to Your Information.</p>
+                        <p>You may review the records maintained by the CJIS Division in the DOJ that contain your personal information, as permitted by the Information Practices Act. See below for contact information.</p>
+                        
+                        <p className="font-bold">Possible Disclosure of Personal Information.</p>
+                        <p>In order to be licensed, work at, or be present at, a licensed facility/organization, or be placed on a registry administered by the Department, the law requires that you complete a criminal background check. (Health and Safety Code sections 1522, 1568.09, 1569.17 and 1596.871). The Department will create a file concerning your criminal background check that will contain certain documents, including personal information that you provide. You have the right to access certain records containing your personal information maintained by the Department (Civil Code section 1798 et seq.). Under the California Public Records Act (Government Code section 6250 et seq.), the Department may have to provide copies of some of the records in the file to members of the public who ask for them, including newspaper and television reporters.</p>
+                        
+                        <div className="border p-2 rounded-md bg-muted/50">
+                            <p className="font-bold">NOTE: IMPORTANT INFORMATION</p>
+                            <p>The Department is required to tell people who ask, including the press, if someone in a licensed facility/ organization has a criminal record exemption. The Department must also tell people who ask the name of a licensed facility/organization that has a licensee, employee, resident, or other person with a criminal record exemption. This does not apply to Resource Family Homes, Small Family Child Care Homes, or the Home Care Aide Registry. The Department shall not release any information regarding Home Care Aides in response to a Public Records Act request, other than their Home Care Aide number.</p>
+                        </div>
+                        
+                        <p>The information you provide may also be disclosed in the following circumstances:</p>
+                        <ul className="list-disc pl-5">
+                            <li>With other persons or agencies where necessary to perform their legal duties, and their use of your information is compatible and complies with state law, such as for investigations or for licensing, certification, or regulatory purposes.</li>
+                            <li>To another government agency as required by state or federal law.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <Separator />
+
                 <div className="space-y-6 pt-4">
                     <p className="text-sm">I declare under penalty of perjury under the laws of the State of California that I have read and understand the information contained in this affidavit and that my responses and any accompanying attachments are true and correct.</p>
                     
@@ -308,8 +339,9 @@ export default function LIC508Page() {
                     </div>
                     
                     <FormField control={form.control} name="fullName" render={({ field }) => ( <FormItem><FormLabel>YOUR NAME (print clearly):</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                    <FormField control={form.control} name="address" render={({ field }) => ( <FormItem><FormLabel>Street Address:</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <FormField control={form.control} name="address" render={({ field }) => ( <FormItem className="md:col-span-3"><FormLabel>Street Address:</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                         <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                         <FormField control={form.control} name="state" render={({ field }) => ( <FormItem><FormLabel>State</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                         <FormField control={form.control} name="zip" render={({ field }) => ( <FormItem><FormLabel>Zip Code</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
