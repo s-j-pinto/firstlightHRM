@@ -267,14 +267,10 @@ export const caregiverFormSchema = generalInfoSchema
   .merge(experienceSchema)
   .merge(certificationsSchema)
   .merge(availabilitySchema)
-  .merge(transportationSchema)
-  .merge(hcs501Object)
-  .merge(emergencyContactSchema)
-  .merge(lic508Object)
-  .merge(soc341aSchema)
-  .merge(referenceVerificationObject);
+  .merge(transportationSchema);
 
-export type CaregiverProfile = z.infer<typeof caregiverFormSchema> & { id: string, canWorkWithCovid?: boolean, cna?: boolean };
+
+export type CaregiverProfile = z.infer<typeof caregiverFormSchema> & z.infer<typeof hcs501Object> & z.infer<typeof emergencyContactSchema> & z.infer<typeof lic508Object> & z.infer<typeof soc341aSchema> & z.infer<typeof referenceVerificationObject> & { id: string, canWorkWithCovid?: boolean, cna?: boolean };
 
 export const appointmentSchema = z.object({
   caregiverId: z.string(),
@@ -302,7 +298,7 @@ export const interviewSchema = z.object({
   aiGeneratedInsight: z.string().optional(),
   googleMeetLink: z.string().optional(),
   googleEventId: z.string().optional(),
-  createdAt: z.date().optional(),
+  createdAt: z.any().optional(),
   finalInterviewStatus: z.enum(['Passed', 'Failed', 'Pending', 'Pending reference checks', 'Rejected at Orientation', 'No Show', 'Process Terminated']).optional(),
   finalInterviewNotes: z.string().optional(),
   orientationScheduled: z.boolean().optional(),
@@ -310,6 +306,7 @@ export const interviewSchema = z.object({
   rejectionReason: z.string().optional(),
   rejectionNotes: z.string().optional(),
   rejectionDate: z.date().optional(),
+  hiringDocsNotificationSentAt: z.any().optional(),
 });
 
 export type Interview = z.infer<typeof interviewSchema> & { id: string };
@@ -923,6 +920,7 @@ export type CaregiverForRecommendation = z.infer<typeof CaregiverForRecommendati
 
 
     
+
 
 
 

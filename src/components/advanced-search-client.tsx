@@ -11,6 +11,7 @@ import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 import Link from 'next/link';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -21,12 +22,13 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, CalendarIcon, SlidersHorizontal, FilterX, PersonStanding, Move, Utensils, Bath, ArrowUpFromLine, ShieldCheck, Droplet, Pill, Stethoscope, HeartPulse, Languages, ScanSearch, Biohazard, UserCheck, Briefcase, Car, Check, X, FileText, ArrowUpDown } from 'lucide-react';
+import { Loader2, Search, CalendarIcon, SlidersHorizontal, FilterX, PersonStanding, Move, Utensils, Bath, ArrowUpFromLine, ShieldCheck, Droplet, Pill, Stethoscope, HeartPulse, Languages, ScanSearch, Biohazard, UserCheck, Briefcase, Car, Check, X, FileText, ArrowUpDown, Mail, Edit2, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Form, FormControl, FormItem } from '@/components/ui/form';
+import { sendHiringDocsNotification } from '@/lib/communication.actions';
 
 
 const skillsAndAttributes = [
@@ -63,10 +65,14 @@ type CandidateStatus =
   | 'Rejected at Orientation'
   | 'Process Terminated'
   | 'Hired'
-  | string; // Allow for custom rejection reasons
+  | string; 
+
+type DocsStatus = 'not-notified' | 'notified' | 'started' | 'completed';
 
 interface EnrichedCandidate extends CaregiverProfile {
   status: CandidateStatus;
+  docsStatus: DocsStatus;
+  interview?: Interview;
 }
 
 const hiringStatuses: CandidateStatus[] = [
@@ -90,6 +96,14 @@ const dayAbbreviations: { [key: string]: string } = {
     saturday: 'Sa',
     sunday: 'Su',
 };
+
+const hiringFormCompletionKeys: (keyof CaregiverProfile)[] = [
+  'hcs501EmployeeSignature',
+  'emergencyContact1_name',
+  'applicantSignature',
+  'lic508Signature',
+  'soc341aSignature'
+];
 
 const ConciseAvailability = ({ availability }: { availability: CaregiverProfile['availability'] | undefined }) => {
     if (!availability) {
@@ -217,8 +231,10 @@ export default function AdvancedSearchClient() {
     const [isSearching, startSearchTransition] = useTransition();
     const [viewingCandidate, setViewingCandidate] = useState<EnrichedCandidate | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
+    const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
     const rowsPerPage = 20;
     const router = useRouter();
+    const { toast } = useToast();
 
     const [sortKey, setSortKey] = useState<SortKey>('createdAt');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
@@ -238,27 +254,48 @@ export default function AdvancedSearchClient() {
         const interviewsMap = new Map(interviews.map(i => [i.caregiverProfileId, i]));
         const employeesMap = new Map(employees.map(e => [e.caregiverProfileId, e]));
 
-        const getStatus = (profileId: string): CandidateStatus => {
-            if (employeesMap.has(profileId)) return 'Hired';
+        const getStatus = (profileId: string): { status: CandidateStatus, interview?: Interview } => {
+            if (employeesMap.has(profileId)) return { status: 'Hired', interview: interviewsMap.get(profileId) };
             const interview = interviewsMap.get(profileId);
             if (interview) {
-                 if (interview.rejectionReason) return interview.rejectionReason;
-                if (interview.finalInterviewStatus === 'Process Terminated') return 'Process Terminated';
-                if (interview.finalInterviewStatus === 'Rejected at Orientation') return 'Rejected at Orientation';
-                if (interview.finalInterviewStatus === 'No Show') return 'No Show';
-                if (interview.phoneScreenPassed === 'No') return 'Phone Screen Failed';
-                if (interview.orientationScheduled) return 'Orientation Scheduled';
-                if (interview.finalInterviewStatus === 'Passed') return 'Final Interview Passed';
-                if (interview.finalInterviewStatus === 'Failed') return 'Final Interview Failed';
-                return 'Final Interview Pending';
+                if (interview.rejectionReason) return { status: interview.rejectionReason, interview };
+                if (interview.finalInterviewStatus === 'Process Terminated') return { status: 'Process Terminated', interview };
+                if (interview.finalInterviewStatus === 'Rejected at Orientation') return { status: 'Rejected at Orientation', interview };
+                if (interview.finalInterviewStatus === 'No Show') return { status: 'No Show', interview };
+                if (interview.phoneScreenPassed === 'No') return { status: 'Phone Screen Failed', interview };
+                if (interview.orientationScheduled) return { status: 'Orientation Scheduled', interview };
+                if (interview.finalInterviewStatus === 'Passed') return { status: 'Final Interview Passed', interview };
+                if (interview.finalInterviewStatus === 'Failed') return { status: 'Final Interview Failed', interview };
+                return { status: 'Final Interview Pending', interview };
             }
-            return 'Applied';
+            return { status: 'Applied' };
         };
 
-        return profiles.map(profile => ({
-            ...profile,
-            status: getStatus(profile.id),
-        }));
+        const getDocsStatus = (profile: CaregiverProfile, interview?: Interview): DocsStatus => {
+            const completedForms = hiringFormCompletionKeys.filter(key => !!(profile as any)[key]).length;
+
+            if (completedForms === hiringFormCompletionKeys.length) {
+                return 'completed';
+            }
+            if (completedForms > 0) {
+                return 'started';
+            }
+            if (interview?.hiringDocsNotificationSentAt) {
+                return 'notified';
+            }
+            return 'not-notified';
+        };
+
+        return profiles.map(profile => {
+            const { status, interview } = getStatus(profile.id);
+            const docsStatus = getDocsStatus(profile, interview);
+            return {
+                ...profile,
+                status,
+                docsStatus,
+                interview,
+            };
+        });
     }, [profiles, interviews, employees]);
 
 
@@ -352,6 +389,23 @@ export default function AdvancedSearchClient() {
             setSortDirection('asc');
         }
     };
+    
+    const sendNotificationEmail = async (candidate: CaregiverProfile) => {
+        setSendingEmailId(candidate.id);
+        const result = await sendHiringDocsNotification({
+            caregiverId: candidate.id,
+            fullName: candidate.fullName,
+            email: candidate.email,
+            phone: candidate.phone,
+        });
+        setSendingEmailId(null);
+        if (result.error) {
+            toast({ title: 'Error', description: result.error, variant: 'destructive' });
+        } else {
+            toast({ title: 'Success', description: 'Hiring documents notification sent.' });
+        }
+    }
+
 
     const SortableHeader = ({ sortKey: key, label }: { sortKey: SortKey, label: string }) => (
         <TableHead>
@@ -361,6 +415,16 @@ export default function AdvancedSearchClient() {
             </Button>
         </TableHead>
     );
+    
+    const DocsStatusIcon = ({ status }: { status: DocsStatus }) => {
+        switch (status) {
+            case 'not-notified': return <FileText className="h-5 w-5 text-muted-foreground" title="Not Notified" />;
+            case 'notified': return <Mail className="h-5 w-5 text-blue-500" title="Notified" />;
+            case 'started': return <Edit2 className="h-5 w-5 text-yellow-500" title="Started" />;
+            case 'completed': return <CheckCircle className="h-5 w-5 text-green-500" title="Completed" />;
+            default: return null;
+        }
+    };
     
     const isLoading = profilesLoading || interviewsLoading || employeesLoading;
     
@@ -522,6 +586,19 @@ export default function AdvancedSearchClient() {
             </Form>
 
             {(hasSearched || isLoading) && (
+              <>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base">Docs Status Legend</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                        <div className="flex items-center gap-2"><FileText className="h-5 w-5 text-muted-foreground" /> Not Notified</div>
+                        <div className="flex items-center gap-2"><Mail className="h-5 w-5 text-blue-500" /> Notified</div>
+                        <div className="flex items-center gap-2"><Edit2 className="h-5 w-5 text-yellow-500" /> Started</div>
+                        <div className="flex items-center gap-2"><CheckCircle className="h-5 w-5 text-green-500" /> Completed</div>
+                    </CardContent>
+                </Card>
+
                 <Card>
                     <CardHeader>
                         <CardTitle>Search Results</CardTitle>
@@ -544,8 +621,10 @@ export default function AdvancedSearchClient() {
                                             <SortableHeader sortKey="city" label="City" />
                                             <TableHead>Phone</TableHead>
                                             <SortableHeader sortKey="createdAt" label="Application Date" />
-                                            <TableHead>Status</TableHead>
+                                            <TableHead>Hiring Status</TableHead>
                                             <TableHead>Availability</TableHead>
+                                            <TableHead>Docs Notify</TableHead>
+                                            <TableHead>Docs Status</TableHead>
                                             <TableHead className="text-right">Action</TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -570,6 +649,14 @@ export default function AdvancedSearchClient() {
                                                 </TableCell>
                                                 <TableCell>
                                                     <ConciseAvailability availability={candidate.availability} />
+                                                </TableCell>
+                                                 <TableCell>
+                                                    <Button variant="ghost" size="icon" disabled={sendingEmailId === candidate.id} onClick={() => sendNotificationEmail(candidate)}>
+                                                        {sendingEmailId === candidate.id ? <Loader2 className="animate-spin" /> : <Mail />}
+                                                    </Button>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <DocsStatusIcon status={candidate.docsStatus} />
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     {isActionable(candidate.status) && (
@@ -617,6 +704,7 @@ export default function AdvancedSearchClient() {
                         )}
                     </CardContent>
                 </Card>
+              </>
             )}
         </div>
     );

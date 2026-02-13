@@ -1,8 +1,11 @@
 
+
 "use server";
 
-import { serverDb } from '@/firebase/server-init';
+import { serverDb, serverAuth } from '@/firebase/server-init';
 import { format, isValid } from 'date-fns';
+import { Timestamp } from 'firebase-admin/firestore';
+import { revalidatePath } from 'next/cache';
 
 interface PotentialShiftPayload {
     caregiver: {
@@ -140,5 +143,81 @@ export async function sendPotentialShiftEmail(payload: PotentialShiftPayload) {
     } catch (error: any) {
         console.error("Error sending potential shift email:", error);
         return { error: `Failed to send email: ${error.message}` };
+    }
+}
+
+
+export async function sendHiringDocsNotification(payload: {
+  caregiverId: string;
+  fullName: string;
+  email: string;
+  phone: string;
+}) {
+    const { caregiverId, fullName, email, phone } = payload;
+    const adminEmail = "care-rc@firstlighthomecare.com";
+    const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
+
+    const loginUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/candidate-login`;
+    const password = phone.slice(-4);
+
+    const emailHtml = `
+        <body style="font-family: sans-serif; line-height: 1.6;">
+            <div style="max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
+                <img src="${logoUrl}" alt="FirstLight Home Care Logo" style="width: 200px; height: auto; margin-bottom: 20px;" />
+                <h1 style="color: #333;">Action Required: Complete Your Hiring Forms</h1>
+                <p>Hello ${fullName},</p>
+                <p>Congratulations on moving to the next step in the hiring process with FirstLight Home Care! To continue, please log in to our secure portal to complete your required hiring documents.</p>
+                
+                <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                    <h2 style="margin-top: 0; color: #555;">Login Information</h2>
+                    <p><strong>Username:</strong> ${email}</p>
+                    <p><strong>Password:</strong> The last 4 digits of your phone number (${password})</p>
+                </div>
+
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="${loginUrl}" style="background-color: #E07A5F; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-size: 16px; display: inline-block;">
+                        Log In to Complete Forms
+                    </a>
+                </div>
+                
+                <p>If you have any questions, please contact our office at (909)-321-4466.</p>
+                <p>Thank you,<br/>The FirstLight Home Care Team</p>
+            </div>
+        </body>
+    `;
+
+    try {
+        await serverDb.collection("mail").add({
+            to: [email],
+            cc: [adminEmail],
+            message: {
+                subject: "Action Required: Complete Your FirstLight Home Care Hiring Forms",
+                html: emailHtml,
+            },
+        });
+
+        const interviewsRef = serverDb.collection('interviews');
+        const q = interviewsRef.where('caregiverProfileId', '==', caregiverId).limit(1);
+        const snapshot = await q.get();
+
+        const updateData = {
+            hiringDocsNotificationSentAt: Timestamp.now(),
+            lastUpdatedAt: Timestamp.now(),
+        };
+
+        if (snapshot.empty) {
+            await interviewsRef.add({
+                caregiverProfileId: caregiverId,
+                ...updateData,
+            });
+        } else {
+            await snapshot.docs[0].ref.update(updateData);
+        }
+
+        revalidatePath('/admin/advanced-search');
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error sending hiring docs notification:", error);
+        return { error: `Failed to send notification: ${error.message}` };
     }
 }
