@@ -152,7 +152,7 @@ export default function LIC508Page() {
                 </p>
 
                 <div className="border p-4 rounded-md space-y-6">
-                     <div>
+                     <div className="space-y-3">
                          <FormField
                             control={form.control}
                             name="convictedInCalifornia"
@@ -210,7 +210,7 @@ export default function LIC508Page() {
                 </div>
                 
                  <p className="text-sm text-muted-foreground mt-6 text-center">
-                    Criminal convictions from another State or Federal court are considered the same as criminal convictions in California
+                    Criminal convictions from another State or Federal court are considered the same as criminal convictions in California.
                 </p>
 
                 <Separator />
@@ -370,6 +370,16 @@ export default function LIC508Page() {
                 </div>
 
                 <Separator />
+                
+                <div className="space-y-2 text-xs text-muted-foreground pt-4">
+                    <p className="font-bold">Instructions to Licensees:</p>
+                    <p>If the person discloses that they have ever been convicted of a crime, maintain this form in your facility/organization personnel file and send a copy to your Licensed Program Analyst (LPA) or assigned analyst.</p>
+                    <p className="font-bold mt-2">Instructions to Regional Offices and Foster Family Agencies:</p>
+                    <p>If ‘Yes’ is indicated in any box above, forward a copy of this completed form (and the LIC 198B, as applicable) to the Caregiver Background Check Bureau, 744 P Street, MS T9-15-62, Sacramento, CA 95814.</p>
+                    <p>If ‘No’ is indicated above in all boxes, keep this completed form in the facility file.</p>
+                </div>
+                
+                <Separator />
 
                 <div className="space-y-4 pt-4 text-sm">
                     <h3 className="text-center font-bold">Privacy Notice</h3>
@@ -399,15 +409,6 @@ export default function LIC508Page() {
                         </ul>
                     </div>
                 </div>
-
-                <div className="space-y-2 text-xs text-muted-foreground pt-4">
-                    <p className="font-bold">Instructions to Licensees:</p>
-                    <p>If the person discloses that they have ever been convicted of a crime, maintain this form in your facility/organization personnel file and send a copy to your Licensed Program Analyst (LPA) or assigned analyst.</p>
-                    <p className="font-bold mt-2">Instructions to Regional Offices and Foster Family Agencies:</p>
-                    <p>If ‘Yes’ is indicated in any box above, forward a copy of this completed form (and the LIC 198B, as applicable) to the Caregiver Background Check Bureau, 744 P Street, MS T9-15-62, Sacramento, CA 95814.</p>
-                    <p>If ‘No’ is indicated above in all boxes, keep this completed form in the facility file.</p>
-                </div>
-
 
             </CardContent>
             <CardFooter className="flex justify-end gap-4">
