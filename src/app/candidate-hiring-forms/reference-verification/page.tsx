@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useTransition, useRef } from "react";
@@ -100,6 +99,11 @@ export default function ReferenceVerificationPage() {
             const formData: any = {};
             Object.keys(defaultFormValues).forEach(key => {
                 const formKey = key as keyof ReferenceVerificationFormData;
+                // Exclude the 'phone' field from being pre-populated from the caregiver's profile
+                // as this field is for the former employer's phone number.
+                if (formKey === 'phone') {
+                    return;
+                }
                 const existingValue = (existingData as any)[formKey];
                 if (existingValue !== undefined && existingValue !== null) {
                     if (formKey.endsWith('Date')) {
