@@ -6,7 +6,28 @@ import { revalidatePath } from 'next/cache';
 import { serverDb } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
-import { hcs501Schema, emergencyContactSchema, lic508Schema, soc341aSchema, referenceVerificationSchema } from './types';
+import { hcs501Schema, emergencyContactSchema, lic508Object, soc341aSchema, referenceVerificationSchema } from './types';
+
+// Helper to convert date strings to Firestore Timestamps if they are valid dates
+function convertDatesToTimestamps(data: any): any {
+    const dataWithTimestamps: { [key: string]: any } = {};
+    for (const [key, value] of Object.entries(data)) {
+        if (typeof value === 'string' && key.toLowerCase().includes('date')) {
+            const date = new Date(value);
+            if (!isNaN(date.getTime())) {
+                dataWithTimestamps[key] = Timestamp.fromDate(date);
+                continue;
+            }
+        }
+        if (value instanceof Date) {
+             dataWithTimestamps[key] = Timestamp.fromDate(value);
+             continue;
+        }
+        dataWithTimestamps[key] = value;
+    }
+    return dataWithTimestamps;
+}
+
 
 export async function saveHcs501Data(profileId: string, data: any) {
   const validatedFields = hcs501Schema.safeParse(data);
@@ -17,18 +38,12 @@ export async function saveHcs501Data(profileId: string, data: any) {
   }
 
   try {
-    const dataToSave: { [key: string]: any } = {};
-    for (const [key, value] of Object.entries(validatedFields.data)) {
-        if (value instanceof Date) {
-            dataToSave[key] = Timestamp.fromDate(value);
-        } else if (value !== undefined) {
-            dataToSave[key] = value;
-        }
-    }
+    const dataToSave = convertDatesToTimestamps(validatedFields.data);
     
     await serverDb.collection('caregiver_profiles').doc(profileId).set(dataToSave, { merge: true });
     
-    revalidatePath('/candidate-hiring-forms/hcs501');
+    revalidatePath(`/candidate-hiring-forms/hcs501?id=${profileId}`);
+    revalidatePath('/candidate-hiring-forms');
     
     return { success: true, message: 'HCS 501 form saved successfully.' };
   } catch (error: any) {
@@ -49,7 +64,8 @@ export async function saveEmergencyContactData(profileId: string, data: any) {
   try {
     await serverDb.collection('caregiver_profiles').doc(profileId).set(validatedFields.data, { merge: true });
     
-    revalidatePath('/candidate-hiring-forms/emergency-contact');
+    revalidatePath(`/candidate-hiring-forms/emergency-contact?id=${profileId}`);
+    revalidatePath('/candidate-hiring-forms');
     
     return { success: true, message: 'Emergency Contact form saved successfully.' };
   } catch (error: any) {
@@ -59,7 +75,7 @@ export async function saveEmergencyContactData(profileId: string, data: any) {
 }
 
 export async function saveLic508Data(profileId: string, data: any) {
-  const validatedFields = lic508Schema.passthrough().safeParse(data);
+  const validatedFields = lic508Object.passthrough().safeParse(data);
 
   if (!validatedFields.success) {
     console.error("LIC508 Save Validation Error:", validatedFields.error.flatten());
@@ -67,9 +83,11 @@ export async function saveLic508Data(profileId: string, data: any) {
   }
 
   try {
-    await serverDb.collection('caregiver_profiles').doc(profileId).set(validatedFields.data, { merge: true });
+    const dataToSave = convertDatesToTimestamps(validatedFields.data);
+    await serverDb.collection('caregiver_profiles').doc(profileId).set(dataToSave, { merge: true });
     
-    revalidatePath('/candidate-hiring-forms/lic508');
+    revalidatePath(`/candidate-hiring-forms/lic508?id=${profileId}`);
+    revalidatePath('/candidate-hiring-forms');
     
     return { success: true, message: 'LIC 508 form saved successfully.' };
   } catch (error: any) {
@@ -87,18 +105,12 @@ export async function saveSoc341aData(profileId: string, data: any) {
   }
 
   try {
-    const dataToSave: { [key: string]: any } = {};
-    for (const [key, value] of Object.entries(validatedFields.data)) {
-        if (value instanceof Date) {
-            dataToSave[key] = Timestamp.fromDate(value);
-        } else if (value !== undefined) {
-            dataToSave[key] = value;
-        }
-    }
+    const dataToSave = convertDatesToTimestamps(validatedFields.data);
     
     await serverDb.collection('caregiver_profiles').doc(profileId).set(dataToSave, { merge: true });
     
-    revalidatePath('/candidate-hiring-forms/soc341a');
+    revalidatePath(`/candidate-hiring-forms/soc341a?id=${profileId}`);
+    revalidatePath('/candidate-hiring-forms');
     
     return { success: true, message: 'SOC 341A form saved successfully.' };
   } catch (error: any) {
@@ -116,18 +128,12 @@ export async function saveReferenceVerificationData(profileId: string, data: any
   }
 
   try {
-    const dataToSave: { [key: string]: any } = {};
-    for (const [key, value] of Object.entries(validatedFields.data)) {
-        if (value instanceof Date) {
-            dataToSave[key] = Timestamp.fromDate(value);
-        } else if (value !== undefined) {
-            dataToSave[key] = value;
-        }
-    }
+    const dataToSave = convertDatesToTimestamps(validatedFields.data);
 
     await serverDb.collection('caregiver_profiles').doc(profileId).set(dataToSave, { merge: true });
     
-    revalidatePath('/candidate-hiring-forms/reference-verification');
+    revalidatePath(`/candidate-hiring-forms/reference-verification?id=${profileId}`);
+    revalidatePath('/candidate-hiring-forms');
     
     return { success: true, message: 'Reference Verification form saved successfully.' };
   } catch (error: any) {

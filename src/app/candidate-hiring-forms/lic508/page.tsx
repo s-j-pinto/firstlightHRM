@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useTransition, useRef } from "react";
@@ -17,7 +18,7 @@ import { Save, X, Loader2, RefreshCw, CalendarIcon } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useUser, useDoc, useMemoFirebase, firestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { lic508Schema, lic508Object, type CaregiverProfile } from "@/lib/types";
+import { lic508Object, type CaregiverProfile } from "@/lib/types";
 import { saveLic508Data } from "@/lib/candidate-hiring-forms.actions";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -74,23 +75,27 @@ export default function LIC508Page() {
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
 
     const form = useForm<Lic508PageFormData>({
-      resolver: zodResolver(lic508Schema),
+      resolver: zodResolver(lic508PageSchema),
       defaultValues: defaultFormValues,
     });
     
+    const safeToDate = (value: any): Date | undefined => {
+        if (!value) return undefined;
+        if (value.toDate && typeof value.toDate === 'function') {
+            return value.toDate();
+        }
+        const d = new Date(value);
+        if (!isNaN(d.getTime())) {
+            return d;
+        }
+        return undefined;
+    };
+
     useEffect(() => {
         if (existingData) {
             const formData:any = { ...existingData };
-             if (formData.lic508SignatureDate && typeof formData.lic508SignatureDate.toDate === 'function') {
-                formData.lic508SignatureDate = formData.lic508SignatureDate.toDate();
-            } else {
-                formData.lic508SignatureDate = undefined;
-            }
-             if (formData.dob && typeof formData.dob.toDate === 'function') {
-                formData.dob = formData.dob.toDate();
-            } else {
-                formData.dob = undefined;
-            }
+             formData.lic508SignatureDate = safeToDate(formData.lic508SignatureDate);
+             formData.dob = safeToDate(formData.dob);
 
             form.reset({
                 ...defaultFormValues,
