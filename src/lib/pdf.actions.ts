@@ -120,17 +120,18 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         const rightMargin = width - 50;
         const contentWidth = rightMargin - leftMargin;
 
-        const lineSpacing = 12;
-        const sectionSpacing = 18;
+        const lineSpacing = 14;
+        const sectionSpacing = 20;
         const mainFontSize = 9;
         const titleFontSize = 12;
-        const labelFontSize = 7;
+        const labelFontSize = 8;
         const lightGray = rgb(0.92, 0.92, 0.92);
 
         // Header
         await drawText(page, 'State of California – Health and Human Services Agency', leftMargin, y, font, 8);
         await drawText(page, 'Community Care Licensing Division', width - font.widthOfTextAtSize('Community Care Licensing Division', 8) - leftMargin, y, font, 8);
         y -= 10;
+        await drawText(page, 'California Department of Social Services', leftMargin, y, font, 8);
         await drawText(page, 'Home Care Services Bureau', width - font.widthOfTextAtSize('Home Care Services Bureau', 8) - leftMargin, y, font, 8);
         y -= 25;
 
@@ -147,7 +148,7 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         y -= lineSpacing * 2;
 
         const drawFieldBox = async (label: string, value: string | undefined, x: number, yPos: number, boxWidth: number) => {
-            await drawText(page, label, x, yPos + 2, font, labelFontSize);
+            await drawText(page, label, x, yPos + 4, font, labelFontSize);
             page.drawRectangle({x, y: yPos-12, width: boxWidth, height: 14, borderColor: rgb(0,0,0), borderWidth: 0.5});
             if(value) await drawText(page, value, x + 5, yPos-9, font, mainFontSize);
         }
