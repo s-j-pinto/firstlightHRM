@@ -151,37 +151,40 @@ export default function SOC341APage() {
                     </p>
                     <ul className="list-disc pl-6 text-sm text-muted-foreground space-y-2">
                         <li>
-                            If the abuse occurred in a Long-Term Care (LTC) facility (as defined in WIC Section 15610.47) and resulted in serious bodily injury (as defined in WIC Section 15610.67), report by telephone to the local law enforcement agency immediately and no later than two (2) hours after observing, obtaining knowledge of, or suspecting physical abuse. Send the written report to the local law enforcement agency, the local Long-Term Care Ombudsman Program (LTCOP), and the appropriate licensing agency (for long-term health care facilities, the California Department of Public Health; for community care facilities, the California
+                            If the abuse occurred in a Long-Term Care (LTC) facility (as defined in WIC Section 15610.47) and resulted in serious bodily injury (as defined in WIC Section 15610.67), report by telephone to the local law enforcement agency immediately and no later than two (2) hours after observing, obtaining knowledge of, or suspecting physical abuse. Send the written report to the local law enforcement agency, the local Long-Term Care Ombudsman Program (LTCOP), and the appropriate licensing agency (for long-term health care facilities, the California Department of Public Health; for community care facilities, the California Department of Social Services) within two (2) hours of observing, obtaining knowledge of, or suspecting physical abuse.
+                        </li>
+                        <li>
+                            If the abuse occurred in a LTC facility, was physical abuse, but did not result in serious bodily injury, report by telephone to the local law enforcement agency within 24 hours of observing, obtaining knowledge of, or suspecting physical abuse. Send the written report to the local law enforcement agency, the local LTCOP, and the appropriate licensing agency (for long-term health care facilities, the California Department of Public Health; for community care facilities, the California Department of Social Services) within 24 hours of observing, obtaining knowledge of, or suspecting physical abuse.
+                        </li>
+                        <li>
+                            If the abuse occurred in a LTC facility, was physical abuse, did not result in serious bodily injury, and was perpetrated by a resident with a physician's diagnosis of dementia, report by telephone to the local law enforcement agency or the local LTCOP, immediately or as soon as practicably possible. Follow by sending the written report to the LTCOP or the local law enforcement agency within 24 hours of observing, obtaining knowledge of, or suspecting physical abuse.
+                        </li>
+                        <li>
+                            If the abuse occurred in a LTC facility, and was abuse other than physical abuse, report by telephone to the LTCOP or the law enforcement agency immediately or as soon as practicably possible. Follow by sending the written report to the local law enforcement agency or the LTCOP within two working days.
+                        </li>
+                        <li>
+                            If the abuse occurred in a state mental hospital or a state developmental center, mandated reporters shall report by telephone or through a confidential internet reporting tool (established in WIC Section 15658) immediately or as soon as practicably possible and submit the report within two (2) working days of making the telephone report to the responsible agency as identified below:
+                            <ul className="list-['•'] pl-6 mt-2 space-y-1">
+                                <li>If the abuse occurred in a State Mental Hospital, report to the local law enforcement agency or the California Department of State Hospitals.</li>
+                                <li>If the abuse occurred in a State Developmental Center, report to the local law enforcement agency or to the California Department of Developmental Services.</li>
+                            </ul>
+                        </li>
+                        <li>
+                            For all other abuse, mandated reporters shall report by telephone or through a confidential internet reporting tool to the adult protective services agency or the local law enforcement agency immediately or as soon as practicably possible. If reported by telephone, a written or an Internet report shall be sent to adult protective services or law enforcement within two working days.
                         </li>
                     </ul>
                 </div>
-
-                <div className="border p-4 rounded-md space-y-4">
-                    <p className="text-sm font-bold">I have read and understand the requirements of Penal Code Section 11166. I am a mandated reporter and must report any known or suspected cases of abuse.</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-                        <div className="space-y-2">
-                            <FormLabel>Employee Signature</FormLabel>
-                            <div className="relative w-full h-24 rounded-md border bg-muted/50">
-                                <SignatureCanvas
-                                    ref={sigPadRef}
-                                    penColor='black'
-                                    canvasProps={{ className: 'w-full h-full rounded-md' }}
-                                    onEnd={() => {
-                                        if (sigPadRef.current) {
-                                            form.setValue('soc341aSignature', sigPadRef.current.toDataURL())
-                                        }
-                                    }}
-                                />
-                            </div>
-                            <Button type="button" variant="ghost" size="sm" onClick={clearSignature} className="mt-2">
-                                <RefreshCw className="mr-2 h-4 w-4" />
-                                Clear Signature
-                            </Button>
-                        </div>
-                       <FormField control={form.control} name="soc341aSignatureDate" render={({ field }) => (
-                        <FormItem className="flex flex-col"><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
-                       )} />
-                    </div>
+                 <div className="space-y-4">
+                    <h3 className="font-bold">PENALTY FOR FAILURE TO REPORT ABUSE</h3>
+                    <p className="text-sm text-muted-foreground">
+                        Failure to report abuse of an elder or dependent adult is a MISDEMEANOR CRIME, punishable by jail time, fine or both (WIC Section 15630(h)). The reporting duties are individual, and no supervisor or administrator shall impede or inhibit the reporting duties, and no person making the report shall be subject to any sanction for making the report (WIC Section 15630(f)).
+                    </p>
+                </div>
+                 <div className="space-y-4">
+                    <h3 className="font-bold">CONFIDENTIALITY OF REPORTER AND OF ABUSE REPORTS</h3>
+                    <p className="text-sm text-muted-foreground">
+                        The identity of all persons who report under WIC Chapter 11 shall be confidential and disclosed only
+                    </p>
                 </div>
 
             </CardContent>
