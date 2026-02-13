@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { serverDb } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
-import { hcs501Schema, emergencyContactSchema, lic508Schema, soc341aSchema } from './types';
+import { hcs501Schema, emergencyContactSchema, lic508Schema, soc341aSchema, referenceVerificationSchema } from './types';
 
 export async function saveHcs501Data(profileId: string, data: any) {
   const validatedFields = hcs501Schema.safeParse(data);
@@ -103,6 +103,35 @@ export async function saveSoc341aData(profileId: string, data: any) {
     return { success: true, message: 'SOC 341A form saved successfully.' };
   } catch (error: any) {
     console.error("Error saving SOC 341A data:", error);
+    return { error: 'Failed to save form data.' };
+  }
+}
+
+export async function saveReferenceVerificationData(profileId: string, data: any) {
+  const validatedFields = referenceVerificationSchema.safeParse(data);
+
+  if (!validatedFields.success) {
+    console.error("Reference Verification Save Validation Error:", validatedFields.error.flatten());
+    return { error: 'Invalid data provided.' };
+  }
+
+  try {
+    const dataToSave: { [key: string]: any } = {};
+    for (const [key, value] of Object.entries(validatedFields.data)) {
+        if (value instanceof Date) {
+            dataToSave[key] = Timestamp.fromDate(value);
+        } else if (value !== undefined) {
+            dataToSave[key] = value;
+        }
+    }
+
+    await serverDb.collection('caregiver_profiles').doc(profileId).set(dataToSave, { merge: true });
+    
+    revalidatePath('/candidate-hiring-forms/reference-verification');
+    
+    return { success: true, message: 'Reference Verification form saved successfully.' };
+  } catch (error: any) {
+    console.error("Error saving Reference Verification data:", error);
     return { error: 'Failed to save form data.' };
   }
 }

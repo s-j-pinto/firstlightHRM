@@ -202,6 +202,32 @@ export const soc341aSchema = z.object({
 });
 export type Soc341aFormData = z.infer<typeof soc341aSchema>;
 
+export const referenceVerificationSchema = z.object({
+  reference1_name: z.string().optional(),
+  reference1_company: z.string().optional(),
+  reference1_title: z.string().optional(),
+  reference1_phone: z.string().optional(),
+  reference1_employmentFrom: z.date().optional().nullable(),
+  reference1_employmentTo: z.date().optional().nullable(),
+  reference1_reasonForLeaving: z.string().optional(),
+  reference1_wouldRehire: z.enum(["yes", "no"]).optional(),
+  reference1_comments: z.string().optional(),
+
+  reference2_name: z.string().optional(),
+  reference2_company: z.string().optional(),
+  reference2_title: z.string().optional(),
+  reference2_phone: z.string().optional(),
+  reference2_employmentFrom: z.date().optional().nullable(),
+  reference2_employmentTo: z.date().optional().nullable(),
+  reference2_reasonForLeaving: z.string().optional(),
+  reference2_wouldRehire: z.enum(["yes", "no"]).optional(),
+  reference2_comments: z.string().optional(),
+  
+  referenceVerificationSignature: z.string().optional(),
+  referenceVerificationSignatureDate: z.date().optional().nullable(),
+});
+export type ReferenceVerificationFormData = z.infer<typeof referenceVerificationSchema>;
+
 export const caregiverFormSchema = generalInfoSchema
   .merge(experienceSchema)
   .merge(certificationsSchema)
@@ -210,7 +236,8 @@ export const caregiverFormSchema = generalInfoSchema
   .merge(hcs501Schema.partial())
   .merge(emergencyContactSchema)
   .merge(lic508Schema.partial())
-  .merge(soc341aSchema.partial());
+  .merge(soc341aSchema.partial())
+  .merge(referenceVerificationSchema.partial());
 
 export type CaregiverProfile = z.infer<typeof caregiverFormSchema> & { id: string, canWorkWithCovid?: boolean, cna?: boolean };
 
@@ -861,6 +888,7 @@ export type CaregiverForRecommendation = z.infer<typeof CaregiverForRecommendati
 
 
     
+
 
 
 
