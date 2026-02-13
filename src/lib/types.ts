@@ -156,6 +156,9 @@ export const hcs501Schema = z.object({
   fullName: z.string().optional(),
   phone: z.string().optional(),
   address: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  zip: z.string().optional(),
   dob: z.date().optional().nullable(),
   ssn: z.string().optional(),
   tbDate: z.date().optional().nullable(),
@@ -889,11 +892,3 @@ export type CaregiverForRecommendation = z.infer<typeof CaregiverForRecommendati
 
 
     
-
-
-
-
-
-
-
-

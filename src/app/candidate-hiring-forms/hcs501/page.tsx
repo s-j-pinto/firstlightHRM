@@ -33,6 +33,9 @@ const defaultFormValues: Hcs501FormData = {
   fullName: '',
   phone: '',
   address: '',
+  city: '',
+  state: '',
+  zip: '',
   dob: undefined,
   ssn: '',
   tbDate: undefined,
@@ -181,17 +184,31 @@ export default function HCS501Page() {
                           <FormItem><FormLabel>Area Code/Telephone</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                         )} />
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <FormField control={form.control} name="address" render={({ field }) => (
-                          <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                    
+                    <FormField control={form.control} name="address" render={({ field }) => (
+                        <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <FormField control={form.control} name="city" render={({ field }) => (
+                            <FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                         )} />
+                        <FormField control={form.control} name="state" render={({ field }) => (
+                            <FormItem><FormLabel>State</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                        )} />
+                        <FormField control={form.control} name="zip" render={({ field }) => (
+                            <FormItem><FormLabel>Zip Code</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                        )} />
+                    </div>
+                    
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <FormField control={form.control} name="dob" render={({ field }) => (
                             <FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
                         )} />
+                         <FormField control={form.control} name="ssn" render={({ field }) => (
+                            <FormItem><FormLabel>Social Security Number <span className="text-muted-foreground">(Voluntary for ID only)</span></FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                          )} />
                     </div>
-                     <FormField control={form.control} name="ssn" render={({ field }) => (
-                        <FormItem><FormLabel>Social Security Number <span className="text-muted-foreground">(Voluntary for ID only)</span></FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                      )} />
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <FormField control={form.control} name="tbDate" render={({ field }) => (
                             <FormItem className="flex flex-col"><FormLabel>Date of TB Test Upon Hire</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
