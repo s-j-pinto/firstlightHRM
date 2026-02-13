@@ -104,11 +104,12 @@ export default function LIC508Page() {
         if (existingData) {
             const formData: Partial<Lic508PageFormData> = {};
             const formSchemaKeys = Object.keys(lic508Object.shape) as Array<keyof Lic508FormData>;
+            const dateFields = ['lic508SignatureDate', 'dob'];
 
             formSchemaKeys.forEach(key => {
                  if (Object.prototype.hasOwnProperty.call(existingData, key)) {
                     const value = (existingData as any)[key];
-                    if (key.toLowerCase().includes('date') && value) {
+                    if (dateFields.includes(key) && value) {
                         (formData as any)[key] = safeToDate(value);
                     } else {
                         (formData as any)[key] = value;
@@ -553,5 +554,7 @@ naturalization matter, security clearance, or adoption), you have certain rights
         </Card>
     );
 }
+
+    
 
     

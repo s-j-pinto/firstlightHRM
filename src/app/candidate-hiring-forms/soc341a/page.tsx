@@ -28,6 +28,18 @@ const defaultFormValues: Soc341aFormData = {
   soc341aSignatureDate: undefined,
 };
 
+const safeToDate = (value: any): Date | undefined => {
+    if (!value) return undefined;
+    if (value.toDate && typeof value.toDate === 'function') {
+        return value.toDate();
+    }
+    const d = new Date(value);
+    if (!isNaN(d.getTime())) {
+        return d;
+    }
+    return undefined;
+};
+
 export default function SOC341APage() {
     const sigPadRef = useRef<SignatureCanvas>(null);
     const router = useRouter();
@@ -48,13 +60,20 @@ export default function SOC341APage() {
 
     useEffect(() => {
         if (existingData) {
-            const formData:any = {};
-            if(existingData.soc341aSignature) formData.soc341aSignature = existingData.soc341aSignature;
-            if (existingData.soc341aSignatureDate && typeof (existingData.soc341aSignatureDate as any).toDate === 'function') {
-                formData.soc341aSignatureDate = (existingData.soc341aSignatureDate as any).toDate();
-            } else {
-                formData.soc341aSignatureDate = undefined;
-            }
+            const formData:Partial<Soc341aFormData> = {};
+            const formSchemaKeys = Object.keys(soc341aSchema.shape) as Array<keyof Soc341aFormData>;
+            const dateFields = ['soc341aSignatureDate'];
+            
+            formSchemaKeys.forEach(key => {
+                if (Object.prototype.hasOwnProperty.call(existingData, key)) {
+                    const value = (existingData as any)[key];
+                    if (dateFields.includes(key) && value) {
+                        (formData as any)[key] = safeToDate(value);
+                    } else {
+                        (formData as any)[key] = value;
+                    }
+                }
+            });
 
             form.reset(formData);
 
@@ -366,3 +385,5 @@ suspected abuse of dependent adults or elders. I will comply with the reporting 
         </Card>
     );
 }
+
+    

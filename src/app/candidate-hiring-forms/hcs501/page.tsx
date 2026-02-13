@@ -100,11 +100,12 @@ export default function HCS501Page() {
         if (existingData) {
             const formData: Partial<Hcs501FormData> = {};
             const formSchemaKeys = Object.keys(hcs501Object.shape) as Array<keyof Hcs501FormData>;
+            const dateFields = ['hireDate', 'separationDate', 'dob', 'tbDate', 'hcs501SignatureDate'];
             
             formSchemaKeys.forEach(key => {
                 if (Object.prototype.hasOwnProperty.call(existingData, key)) {
                     const value = (existingData as any)[key];
-                    if (key.toLowerCase().includes('date') && value) {
+                    if (dateFields.includes(key) && value) {
                         (formData as any)[key] = safeToDate(value);
                     } else {
                         (formData as any)[key] = value;
@@ -120,6 +121,7 @@ export default function HCS501Page() {
             if (!formData.state && existingData.state) formData.state = existingData.state;
             if (!formData.zip && existingData.zip) formData.zip = existingData.zip;
             if (!formData.driversLicenseNumber && existingData.driversLicenseNumber) formData.driversLicenseNumber = existingData.driversLicenseNumber;
+            if (!formData.dob && existingData.dob) (formData as any).dob = safeToDate(existingData.dob);
 
 
             form.reset({
@@ -368,5 +370,7 @@ export default function HCS501Page() {
         </Card>
     );
 }
+
+    
 
     

@@ -120,11 +120,12 @@ export default function ReferenceVerificationPage() {
         if (existingData) {
             const formData: Partial<ReferenceVerificationFormData> = {};
             const formSchemaKeys = Object.keys(referenceVerificationObject.shape) as Array<keyof ReferenceVerificationFormData>;
+            const dateFields = ['applicantSignatureDate'];
 
             formSchemaKeys.forEach(key => {
                  if (Object.prototype.hasOwnProperty.call(existingData, key)) {
                     const value = (existingData as any)[key];
-                    if (key.toLowerCase().includes('date') && value) {
+                    if (dateFields.includes(key) && value) {
                         (formData as any)[key] = safeToDate(value);
                     } else {
                          (formData as any)[key] = value;
@@ -290,5 +291,7 @@ export default function ReferenceVerificationPage() {
         </Card>
     );
 }
+
+    
 
     
