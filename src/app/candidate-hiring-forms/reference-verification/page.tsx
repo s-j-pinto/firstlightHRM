@@ -97,6 +97,7 @@ export default function ReferenceVerificationPage() {
     const { toast } = useToast();
     const [isSaving, startSavingTransition] = useTransition();
 
+    const isPrintMode = searchParams.get('print') === 'true';
     const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "care-rc@firstlighthomecare.com";
     const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL || "lpinto@firstlighthomecare.com";
     const staffingAdminEmail = process.env.NEXT_PUBLIC_STAFFING_ADMIN_EMAIL || "admin-rc@firstlighthomecare.com";
@@ -115,6 +116,12 @@ export default function ReferenceVerificationPage() {
       resolver: zodResolver(referenceVerificationSchema),
       defaultValues: defaultFormValues,
     });
+
+    useEffect(() => {
+        if (isPrintMode && !isDataLoading) {
+          setTimeout(() => window.print(), 1000);
+        }
+    }, [isPrintMode, isDataLoading]);
 
     useEffect(() => {
         if (existingData) {
@@ -186,7 +193,7 @@ export default function ReferenceVerificationPage() {
     }
 
     return (
-        <Card className="max-w-4xl mx-auto">
+        <Card className={cn("max-w-4xl mx-auto", isPrintMode && "border-none shadow-none")}>
             <CardHeader className="text-center">
                 <CardTitle className="text-2xl tracking-wide font-headline">
                     FIRSTLIGHT HOMECARE REFERENCE VERIFICATION FORM
@@ -276,7 +283,7 @@ export default function ReferenceVerificationPage() {
                 <p className="text-sm text-left text-muted-foreground pt-4">Someone from FirstLight HomeCare will be following up with your shortly regarding the employment reference verification check. If you have any questions, please call: 909-321-4466</p>
 
             </CardContent>
-            <CardFooter className="flex justify-end gap-4">
+            <CardFooter className={cn("flex justify-end gap-4", isPrintMode && "no-print")}>
                 <Button type="button" variant="outline" onClick={handleCancel}>
                   <X className="mr-2" />
                   Cancel
@@ -291,7 +298,3 @@ export default function ReferenceVerificationPage() {
         </Card>
     );
 }
-
-    
-
-    

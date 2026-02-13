@@ -4,7 +4,7 @@
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, CheckCircle, Loader2, ArrowLeft } from "lucide-react";
+import { FileText, CheckCircle, Loader2, ArrowLeft, Printer } from "lucide-react";
 import Link from 'next/link';
 import { useUser, useDoc, useMemoFirebase, firestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -67,7 +67,7 @@ function CandidateHiringFormsContent() {
             </div>
             {isAnAdmin && (
               <Button asChild variant="outline">
-                <Link href="/admin">
+                <Link href="/admin/advanced-search">
                   <ArrowLeft className="mr-2" />
                   Back to Admin Dashboard
                 </Link>
@@ -79,15 +79,23 @@ function CandidateHiringFormsContent() {
           {hiringForms.map((form) => {
             const isCompleted = profileData && profileData[form.completionKey as keyof CaregiverProfile];
             return (
-              <Link href={formLinkHref(form.href)} key={form.name} className="block">
-                <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center gap-4">
-                    <FileText className="h-6 w-6 text-accent" />
-                    <span className="font-medium">{form.name}</span>
-                  </div>
-                  {isCompleted && <CheckCircle className="h-6 w-6 text-green-500" />}
+              <div key={form.name} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                <Link href={formLinkHref(form.href)} className="flex items-center gap-4 flex-grow">
+                  <FileText className="h-6 w-6 text-accent" />
+                  <span className="font-medium">{form.name}</span>
+                </Link>
+                 <div className="flex items-center gap-2">
+                    {isCompleted && <CheckCircle className="h-6 w-6 text-green-500" />}
+                    {isAnAdmin && isCompleted && (
+                        <Button asChild variant="outline" size="icon">
+                        <Link href={`${form.href}?candidateId=${candidateId}&print=true`} target="_blank">
+                            <Printer className="h-4 w-4" />
+                            <span className="sr-only">Print or Generate PDF</span>
+                        </Link>
+                        </Button>
+                    )}
                 </div>
-              </Link>
+              </div>
             )
           })}
         </CardContent>

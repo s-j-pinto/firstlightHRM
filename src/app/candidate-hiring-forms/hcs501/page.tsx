@@ -3,7 +3,7 @@
 
 import { useRef, useEffect, useTransition } from "react";
 import { useForm } from "react-hook-form";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, useParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import SignatureCanvas from 'react-signature-canvas';
 import { doc } from "firebase/firestore";
@@ -84,6 +84,7 @@ export default function HCS501Page() {
     const isAnAdmin = user?.email === adminEmail || user?.email === ownerEmail || user?.email === staffingAdminEmail;
     const candidateId = searchParams.get('candidateId');
     const profileIdToLoad = isAnAdmin && candidateId ? candidateId : user?.uid;
+    const isPrintMode = searchParams.get('print') === 'true';
     
     const caregiverProfileRef = useMemoFirebase(
       () => (profileIdToLoad ? doc(firestore, 'caregiver_profiles', profileIdToLoad) : null),
@@ -96,6 +97,12 @@ export default function HCS501Page() {
       defaultValues: defaultFormValues,
     });
     
+    useEffect(() => {
+        if (isPrintMode && !isDataLoading) {
+          setTimeout(() => window.print(), 1000);
+        }
+      }, [isPrintMode, isDataLoading]);
+
     useEffect(() => {
         if (existingData) {
             const formData: Partial<Hcs501FormData> = {};
@@ -178,7 +185,7 @@ export default function HCS501Page() {
     }
 
     return (
-        <Card className="max-w-4xl mx-auto">
+        <Card className={cn(isPrintMode && "border-none shadow-none")}>
             <CardHeader>
                 <div className="flex justify-between items-start">
                     <div className="text-sm text-muted-foreground">
@@ -355,7 +362,7 @@ export default function HCS501Page() {
                 </div>
 
             </CardContent>
-            <CardFooter className="flex justify-end gap-4">
+            <CardFooter className={cn("flex justify-end gap-4", isPrintMode && "no-print")}>
                 <Button type="button" variant="outline" onClick={handleCancel}>
                   <X className="mr-2" />
                   Cancel
@@ -370,7 +377,3 @@ export default function HCS501Page() {
         </Card>
     );
 }
-
-    
-
-    

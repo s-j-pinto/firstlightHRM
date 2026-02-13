@@ -3,7 +3,7 @@
 
 import { useRef, useEffect, useTransition } from "react";
 import { useForm } from "react-hook-form";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import SignatureCanvas from 'react-signature-canvas';
 import { doc } from "firebase/firestore";
@@ -43,13 +43,22 @@ const safeToDate = (value: any): Date | undefined => {
 export default function SOC341APage() {
     const sigPadRef = useRef<SignatureCanvas>(null);
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { user, isUserLoading } = useUser();
     const { toast } = useToast();
     const [isSaving, startSavingTransition] = useTransition();
 
+    const isPrintMode = searchParams.get('print') === 'true';
+    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "care-rc@firstlighthomecare.com";
+    const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL || "lpinto@firstlighthomecare.com";
+    const staffingAdminEmail = process.env.NEXT_PUBLIC_STAFFING_ADMIN_EMAIL || "admin-rc@firstlighthomecare.com";
+    const isAnAdmin = user?.email === adminEmail || user?.email === ownerEmail || user?.email === staffingAdminEmail;
+    const candidateId = searchParams.get('candidateId');
+    const profileIdToLoad = isAnAdmin && candidateId ? candidateId : user?.uid;
+
     const caregiverProfileRef = useMemoFirebase(
-      () => (user?.uid ? doc(firestore, 'caregiver_profiles', user.uid) : null),
-      [user?.uid]
+      () => (profileIdToLoad ? doc(firestore, 'caregiver_profiles', profileIdToLoad) : null),
+      [profileIdToLoad]
     );
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
     
@@ -57,6 +66,12 @@ export default function SOC341APage() {
       resolver: zodResolver(soc341aSchema),
       defaultValues: defaultFormValues,
     });
+
+    useEffect(() => {
+        if (isPrintMode && !isDataLoading) {
+          setTimeout(() => window.print(), 1000);
+        }
+    }, [isPrintMode, isDataLoading]);
 
     useEffect(() => {
         if (existingData) {
@@ -89,19 +104,31 @@ export default function SOC341APage() {
     };
 
     const onSubmit = (data: Soc341aFormData) => {
-      if (!user?.uid) {
+      if (!profileIdToLoad) {
         toast({ title: 'Error', description: 'You must be logged in to save the form.', variant: 'destructive'});
         return;
       }
       startSavingTransition(async () => {
-        const result = await saveSoc341aData(user.uid, data);
+        const result = await saveSoc341aData(profileIdToLoad, data);
         if (result.error) {
           toast({ title: "Save Failed", description: result.error, variant: 'destructive'});
         } else {
           toast({ title: "Success", description: "Your SOC 341A form has been saved."});
-          router.push('/candidate-hiring-forms');
+          if(isAnAdmin) {
+            router.push(`/candidate-hiring-forms?candidateId=${profileIdToLoad}`);
+          } else {
+            router.push('/candidate-hiring-forms');
+          }
         }
       });
+    }
+
+    const handleCancel = () => {
+        if(isAnAdmin) {
+            router.push(`/admin/advanced-search?search=${encodeURIComponent(existingData?.fullName || '')}`);
+        } else {
+            router.push('/candidate-hiring-forms');
+        }
     }
 
     const isLoading = isUserLoading || isDataLoading;
@@ -115,7 +142,7 @@ export default function SOC341APage() {
     }
 
     return (
-        <Card className="max-w-4xl mx-auto">
+        <Card className={cn("max-w-4xl mx-auto", isPrintMode && "border-none shadow-none")}>
             <CardHeader>
                 <CardTitle className="text-center text-xl tracking-wide">
                     STATEMENT ACKNOWLEDGING REQUIREMENT TO REPORT SUSPECTED ABUSE OF DEPENDENT ADULTS AND ELDERS
@@ -370,8 +397,8 @@ suspected abuse of dependent adults or elders. I will comply with the reporting 
                 </div>
 
             </CardContent>
-            <CardFooter className="flex justify-end gap-4">
-                <Button type="button" variant="outline" onClick={() => router.push('/candidate-hiring-forms')}>
+            <CardFooter className={cn("flex justify-end gap-4", isPrintMode && "no-print")}>
+                <Button type="button" variant="outline" onClick={handleCancel}>
                   <X className="mr-2" />
                   Cancel
                 </Button>
@@ -385,5 +412,3 @@ suspected abuse of dependent adults or elders. I will comply with the reporting 
         </Card>
     );
 }
-
-    
