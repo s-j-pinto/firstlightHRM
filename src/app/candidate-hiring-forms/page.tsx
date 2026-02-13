@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Suspense, useTransition } from 'react';
@@ -10,7 +9,7 @@ import { useUser, useDoc, useMemoFirebase, firestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { CaregiverProfile } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { generateHcs501PdfAction, generateEmergencyContactPdfAction, generateReferenceVerificationPdfAction, generateLic508PdfAction } from '@/lib/candidate-hiring-forms.actions';
+import { generateHcs501PdfAction, generateEmergencyContactPdfAction, generateReferenceVerificationPdfAction, generateLic508PdfAction, generateSoc341aPdfAction } from '@/lib/candidate-hiring-forms.actions';
 import { useToast } from '@/hooks/use-toast';
 
 const hiringForms = [
@@ -18,7 +17,7 @@ const hiringForms = [
   { name: "Caregiver Emergency Contact Numbers", href: "/candidate-hiring-forms/emergency-contact", completionKey: 'emergencyContact1_name', pdfAction: 'emergencyContact' },
   { name: "Reference Verification - CG", href: "/candidate-hiring-forms/reference-verification", completionKey: 'applicantSignature', pdfAction: 'referenceVerification' },
   { name: "LIC 508 - Criminal Record Statement", href: "/candidate-hiring-forms/lic508", completionKey: 'lic508Signature', pdfAction: 'lic508' },
-  { name: "SOC 341A - Elder Abuse Reporting Form", href: "/candidate-hiring-forms/soc341a", completionKey: 'soc341aSignature' },
+  { name: "SOC 341A - Elder Abuse Reporting Form", href: "/candidate-hiring-forms/soc341a", completionKey: 'soc341aSignature', pdfAction: 'soc341a' },
 ];
 
 
@@ -63,6 +62,8 @@ function CandidateHiringFormsContent() {
             result = await generateReferenceVerificationPdfAction(candidateId);
         } else if (formAction === 'lic508') {
             result = await generateLic508PdfAction(candidateId);
+        } else if (formAction === 'soc341a') {
+            result = await generateSoc341aPdfAction(candidateId);
         } else {
              toast({ title: 'PDF Generation Not Implemented', description: `No PDF generator exists for this form yet.`, variant: 'destructive' });
              return;
@@ -163,5 +164,3 @@ export default function CandidateHiringFormsPage() {
         </Suspense>
     )
 }
-
-    

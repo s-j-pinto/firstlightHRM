@@ -1,4 +1,3 @@
-
 'use server';
 
 import { Buffer } from 'buffer';
@@ -278,6 +277,7 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
     }
 }
 
+
 export async function generateEmergencyContactPdf(formData: any): Promise<{ pdfData?: string; error?: string }> {
     try {
         const pdfDoc = await PDFDocument.create();
@@ -550,7 +550,7 @@ export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: stri
         const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
         const pages = [pdfDoc.addPage(), pdfDoc.addPage(), pdfDoc.addPage(), pdfDoc.addPage(), pdfDoc.addPage()];
         
-        const headerFooterFontSize = 7.5;
+        const headerFooterFontSize = 7;
 
         const drawHeaderAndFooter = (page: any, pageNum: number) => {
             const { width, height } = page.getSize();
@@ -576,10 +576,10 @@ export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: stri
         const rightMargin = width - 60;
         const contentWidth = rightMargin - leftMargin;
 
-        const mainFontSize = 8;
-        const titleFontSize = 12.5;
-        const smallFontSize = 7.5;
-        const lineHeight = 11;
+        const mainFontSize = 7.5;
+        const titleFontSize = 11.5;
+        const smallFontSize = 7;
+        const lineHeight = 10;
 
         let title = "CRIMINAL RECORD STATEMENT";
         drawText(page, title, { x: (width / 2) - (boldFont.widthOfTextAtSize(title, titleFontSize) / 2), y, font: boldFont, size: titleFontSize });
@@ -597,7 +597,7 @@ export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: stri
         y -= 15;
         
         const p1_line2 = "You do not need to disclose any marijuana-related offenses covered by the marijuana reform legislation codified at Health and Safety Code sections 11361.5 and 11361.7.";
-        y = drawWrappedText(page, p1_line2, font, smallFontSize, leftMargin, y, contentWidth, 12);
+        y = drawWrappedText(page, p1_line2, font, smallFontSize, leftMargin, y, contentWidth, 11);
         y -= 20;
 
         drawCheckbox(page, formData.convictedOutOfState === 'yes', leftMargin, y);
@@ -608,7 +608,7 @@ export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: stri
         y -= 15;
         
         const p1_line3 = "You do not need to disclose convictions that were a result of one's status as a victim of human trafficking and that were dismissed pursuant to Penal Code Section 1203.49, nor any marijuana related offenses covered by the marijuana reform legislation codified at Health and Safety Code sections 11361.5 and 11361.7. However you are required to disclose convictions that were dismissed pursuant to Penal Code Section 1203.4(a)";
-        y = drawWrappedText(page, p1_line3, font, smallFontSize, leftMargin, y, contentWidth, 12);
+        y = drawWrappedText(page, p1_line3, font, smallFontSize, leftMargin, y, contentWidth, 11);
         y -= 20;
 
         drawText(page, "Criminal convictions from another State or Federal court are considered the same as criminal convictions in California.", {x: leftMargin, y, font, size: smallFontSize, color: rgb(0.5, 0.5, 0.5)});
@@ -649,60 +649,60 @@ export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: stri
         page = pages[1];
         y = height - 70;
         
-        const drawFieldBox_p2 = (page: any, label: string, value: string | undefined, x: number, yPos: number, boxWidth: number) => {
+        const p2_note = "NOTE: IF THE CRIMINAL BACKGROUND CHECK REVEALS ANY CONVICTION(S) THAT YOU DID NOT REPORT ON THIS FORM BY CHECKING YES, YOUR FAILURE TO DISCLOSE THE CONVICTION(S) MAY RESULT IN AN EXEMPTION DENIAL, APPLICATION DENIAL, LICENSE REVOCATION, DECERTIFICATION, RESCISSION OF APPROVAL, OR EXCLUSION FROM A LICENSED FACILITY, CERTIFIED FAMILY HOME, OR THE HOME OF A RESOURCE FAMILY.";
+        y = drawWrappedText(page, p2_note, boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight);
+        y -= lineHeight * 3;
+
+        const p2_move_note = "If you move or change your mailing address, you must send your updated information to the Caregiver Background Check Bureau within 10 days to:";
+        y = drawWrappedText(page, p2_move_note, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
+        y -= lineHeight * 1.5;
+
+        const addressBlock_p2 = "Caregiver Background Check Bureau\n744 P Street, M/S T9-15-62\nSacramento, CA 95814";
+        drawText(page, addressBlock_p2, { x: leftMargin + 20, y: y, font: mainFontSize === 10 ? boldFont : font, size: mainFontSize, lineHeight: lineHeight});
+        y -= (lineHeight * 5);
+        
+        page.drawLine({ start: { x: leftMargin, y: y }, end: { x: rightMargin, y: y }, thickness: 1 });
+        y -= lineHeight * 2;
+        
+        const p2_certifyText = "I declare under penalty of perjury under the laws of the State of California that I have read and understand the information contained in this affidavit and that my responses and any accompanying attachments are true and correct.";
+        y = drawWrappedText(page, p2_certifyText, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
+        y -= lineHeight * 5;
+
+        const drawFieldBox_p2 = (label: string, value: string | undefined, x: number, yPos: number, boxWidth: number) => {
             drawText(page, label, {x, y: yPos + 12, font, size: smallFontSize});
             page.drawRectangle({x, y: yPos-12, width: boxWidth, height: 20, borderColor: rgb(0,0,0), borderWidth: 0.5});
             if(value) drawText(page, value, {x: x + 5, y: yPos-7, font, size: mainFontSize});
         };
         
-        const p2_note = "NOTE: IF THE CRIMINAL BACKGROUND CHECK REVEALS ANY CONVICTION(S) THAT YOU DID NOT REPORT ON THIS FORM BY CHECKING YES, YOUR FAILURE TO DISCLOSE THE CONVICTION(S) MAY RESULT IN AN EXEMPTION DENIAL, APPLICATION DENIAL, LICENSE REVOCATION, DECERTIFICATION, RESCISSION OF APPROVAL, OR EXCLUSION FROM A LICENSED FACILITY, CERTIFIED FAMILY HOME, OR THE HOME OF A RESOURCE FAMILY.";
-        y = drawWrappedText(page, p2_note, boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight);
-        y -= 20;
+        drawFieldBox_p2("FACILITY/ORGANIZATION/AGENCY NAME:", "FirstLight Home Care of Rancho Cucamonga", leftMargin, y + 12, 300);
+        drawFieldBox_p2("FACILITY/ORGANIZATION/AGENCY NUMBER:", "364700059", leftMargin + 320, y + 12, contentWidth - 320);
+        y -= lineHeight * 4.5;
 
-        const p2_move_note = "If you move or change your mailing address, you must send your updated information to the Caregiver Background Check Bureau within 10 days to:";
-        y = drawWrappedText(page, p2_move_note, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
-        y -= 15;
+        drawFieldBox_p2("YOUR NAME (print clearly):", formData.fullName, leftMargin, y + 12, contentWidth);
+        y -= lineHeight * 4.5;
 
-        const addressBlock_p2 = "Caregiver Background Check Bureau\n744 P Street, M/S T9-15-62\nSacramento, CA 95814";
-        drawText(page, addressBlock_p2, { x: leftMargin + 20, y, font: mainFontSize === 10 ? boldFont : font, size: mainFontSize, lineHeight: lineHeight});
-        y -= (lineHeight * 4);
-        
-        page.drawLine({ start: { x: leftMargin, y: y }, end: { x: rightMargin, y: y }, thickness: 1 });
-        y -= 20;
-        
-        const p2_certifyText = "I declare under penalty of perjury under the laws of the State of California that I have read and understand the information contained in this affidavit and that my responses and any accompanying attachments are true and correct.";
-        y = drawWrappedText(page, p2_certifyText, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
-        y -= lineHeight * 3.5;
-        
-        drawFieldBox_p2(page, "FACILITY/ORGANIZATION/AGENCY NAME:", "FirstLight Home Care of Rancho Cucamonga", leftMargin, y + 12, 300);
-        drawFieldBox_p2(page, "FACILITY/ORGANIZATION/AGENCY NUMBER:", "364700059", leftMargin + 320, y + 12, contentWidth - 320);
-        y -= lineHeight * 3.5;
+        drawFieldBox_p2("Street Address:", formData.address, leftMargin, y + 12, contentWidth);
+        y -= lineHeight * 4.5;
 
-        drawFieldBox_p2(page, "YOUR NAME (print clearly):", formData.fullName, leftMargin, y + 12, contentWidth);
-        y -= lineHeight * 3.5;
+        drawFieldBox_p2("City", formData.city, leftMargin, y + 12, 200);
+        drawFieldBox_p2("State", formData.state, leftMargin + 220, y + 12, 100);
+        drawFieldBox_p2("Zip Code", formData.zip, leftMargin + 340, y + 12, contentWidth - 340);
+        y -= lineHeight * 4.5;
 
-        drawFieldBox_p2(page, "Street Address:", formData.address, leftMargin, y + 12, contentWidth);
-        y -= lineHeight * 3.5;
-
-        drawFieldBox_p2(page, "City", formData.city, leftMargin, y + 12, 200);
-        drawFieldBox_p2(page, "State", formData.state, leftMargin + 220, y + 12, 100);
-        drawFieldBox_p2(page, "Zip Code", formData.zip, leftMargin + 340, y + 12, contentWidth - 340);
-        y -= lineHeight * 3.5;
-
-        drawFieldBox_p2(page, "SOCIAL SECURITY NUMBER:", formData.ssn, leftMargin, y + 12, 200);
-        drawFieldBox_p2(page, "DRIVER’S LICENSE NUMBER/STATE:", formData.driversLicenseNumber, leftMargin + 220, y + 12, contentWidth - 220);
-        y -= lineHeight * 3.5;
+        drawFieldBox_p2("SOCIAL SECURITY NUMBER:", formData.ssn, leftMargin, y + 12, 200);
+        drawFieldBox_p2("DRIVER’S LICENSE NUMBER/STATE:", formData.driversLicenseNumber, leftMargin + 220, y + 12, contentWidth - 220);
+        y -= lineHeight * 4.5;
 
         const dobDateForField_p2 = (formData.dob && (formData.dob.toDate || isDate(formData.dob))) ? format(formData.dob.toDate ? formData.dob.toDate() : formData.dob, "MM/dd/yyyy") : '';
-        drawFieldBox_p2(page, "DATE OF BIRTH:", dobDateForField_p2, leftMargin, y + 12, contentWidth);
-        y -= lineHeight * 3.5;
+        drawFieldBox_p2("DATE OF BIRTH:", dobDateForField_p2, leftMargin, y + 12, contentWidth);
+        y -= lineHeight * 5;
 
         if (formData.lic508Signature) await drawSignature(page, formData.lic508Signature, leftMargin + 5, y, 290, 20, pdfDoc);
         page.drawLine({ start: { x: leftMargin, y: y - 5 }, end: { x: leftMargin + 300, y: y - 5 }, color: rgb(0, 0, 0), thickness: 0.5 });
         drawText(page, "SIGNATURE:", { x: leftMargin, y: y - 15, font, size: smallFontSize });
 
         const sigDateForField_p2 = (formData.lic508SignatureDate && (formData.lic508SignatureDate.toDate || isDate(formData.lic508SignatureDate))) ? format(formData.lic508SignatureDate.toDate ? formData.lic508SignatureDate.toDate() : formData.lic508SignatureDate, "MM/dd/yyyy") : '';
-        drawFieldBox_p2(page, "DATE:", sigDateForField_p2, leftMargin + 320, y + 12, contentWidth - 320);
+        drawFieldBox_p2("DATE:", sigDateForField_p2, leftMargin + 320, y + 12, contentWidth - 320);
         y -= 40;
 
         page.drawLine({ start: { x: leftMargin, y: y }, end: { x: rightMargin, y: y }, thickness: 1 });
@@ -710,33 +710,31 @@ export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: stri
 
         const instructionsLicensees_p2 = "Instructions to Licensees:";
         drawText(page, instructionsLicensees_p2, { x: leftMargin, y, font: boldFont, size: mainFontSize });
-        y -= lineHeight;
         const p2_inst1 = "If the person discloses that they have ever been convicted of a crime, maintain this form in your facility/organization personnel file and send a copy to your Licensed Program Analyst (LPA) or assigned analyst.";
         y = drawWrappedText(page, p2_inst1, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
         y -= 15;
 
         const instructionsRegional_p2 = "Instructions to Regional Offices and Foster Family Agencies:";
         drawText(page, instructionsRegional_p2, { x: leftMargin, y, font: boldFont, size: mainFontSize });
-        y -= lineHeight;
         const p2_inst2 = "If ‘Yes’ is indicated in any box above, forward a copy of this completed form (and the LIC 198B, as applicable) to the Caregiver Background Check Bureau, 744 P Street, MS T9-15-62, Sacramento, CA 95814.";
         y = drawWrappedText(page, p2_inst2, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
         y -= lineHeight * 2;
         const p2_inst3 = "If ‘No’ is indicated above in all boxes, keep this completed form in the facility file.";
         y = drawWrappedText(page, p2_inst3, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
 
+
         // --- PAGE 3 ---
         page = pages[2];
         y = height - 70;
-        let boxStartY_p3 = y + 10;
         
         drawText(page, "Privacy Notice", { x: (width / 2) - (boldFont.widthOfTextAtSize("Privacy Notice", titleFontSize) / 2), y, font: boldFont, size: titleFontSize }); y -= 15;
         drawText(page, "As Required by Civil Code § 1798.17", { x: (width / 2) - (font.widthOfTextAtSize("As Required by Civil Code § 1798.17", smallFontSize) / 2), y, font, size: smallFontSize }); y -= 25;
 
         const p3_content = [
-            { text: "Collection and Use of Personal Information. The California Justice Information Services (CJIS) Division in the Department of Justice (DOJ) collects the information requested on this form as authorized by Penal Code sections 11100-11112; Health and Safety Code sections 1522, 1569.10-1569.24, 1596.80-1596.879; Family Code sections 8700-87200; Welfare and Institutions Code sections 16500-16523.1; and other various state statutes and regulations. The CJIS Division uses this information to process requests of authorized entities that want to obtain information as to the existence and content of a record of state or federal convictions to help determine suitability for employment, or volunteer work with children, elderly, or disabled; or for adoption or purposes of a license, certification, or permit. In addition, any personal information collected by state agencies is subject to the limitations in the Information Practices Act and state policy. The DOJ’s general privacy policy is available at http://oag.ca.gov/privacy-policy.", isBold: false },
-            { text: "Providing Personal Information. All the personal information requested in the form must be provided. Failure to provide all the necessary information will result in delays and/or the rejection of your request. Notice is given for the request of the Social Security Number (SSN) on this form. The California Department of Justice uses a person’s SSN as an identifying number. The requested SSN is voluntary. Failure to provide the SSN may delay the processing of this form and the criminal record check.", isBold: false },
-            { text: "Access to Your Information. You may review the records maintained by the CJIS Division in the DOJ that contain your personal information, as permitted by the Information Practices Act. See below for contact information.", isBold: false },
-            { text: "Possible Disclosure of Personal Information. In order to be licensed, work at, or be present at, a licensed facility/organization, or be placed on a registry administered by the Department, the law requires that you complete a criminal background check. (Health and Safety Code sections 1522, 1568.09, 1569.17 and 1596.871). The Department will create a file concerning your criminal background check that will contain certain documents, including personal information that you provide. You have the right to access certain records containing your personal information maintained by the Department (Civil Code section 1798 et seq.). Under the California Public Records Act (Government Code section 6250 et seq.), the Department may have to provide copies of some of the records in the file to members of the public who ask for them, including newspaper and television reporters.", isBold: false },
+            { text: "Collection and Use of Personal Information. The California Justice Information Services (CJIS) Division in the Department of Justice (DOJ) collects the information requested on this form as authorized by Penal Code sections 11100-11112; Health and Safety Code sections 1522, 1569.10-1569.24, 1596.80-1596.879; Family Code sections 8700-87200; Welfare and Institutions Code sections 16500-16523.1; and other various state statutes and regulations. The CJIS Division uses this information to process requests of authorized entities that want to obtain information as to the existence and content of a record of state or federal convictions to help determine suitability for employment, or volunteer work with children, elderly, or disabled; or for adoption or purposes of a license, certification, or permit. In addition, any personal information collected by state agencies is subject to the limitations in the Information Practices Act and state policy. The DOJ’s general privacy policy is available at http://oag.ca.gov/privacy-policy.", isBold: true },
+            { text: "Providing Personal Information. All the personal information requested in the form must be provided. Failure to provide all the necessary information will result in delays and/or the rejection of your request. Notice is given for the request of the Social Security Number (SSN) on this form. The California Department of Justice uses a person’s SSN as an identifying number. The requested SSN is voluntary. Failure to provide the SSN may delay the processing of this form and the criminal record check.", isBold: true },
+            { text: "Access to Your Information. You may review the records maintained by the CJIS Division in the DOJ that contain your personal information, as permitted by the Information Practices Act. See below for contact information.", isBold: true },
+            { text: "Possible Disclosure of Personal Information. In order to be licensed, work at, or be present at, a licensed facility/organization, or be placed on a registry administered by the Department, the law requires that you complete a criminal background check. (Health and Safety Code sections 1522, 1568.09, 1569.17 and 1596.871). The Department will create a file concerning your criminal background check that will contain certain documents, including personal information that you provide. You have the right to access certain records containing your personal information maintained by the Department (Civil Code section 1798 et seq.). Under the California Public Records Act (Government Code section 6250 et seq.), the Department may have to provide copies of some of the records in the file to members of the public who ask for them, including newspaper and television reporters.", isBold: true },
             { text: "NOTE: IMPORTANT INFORMATION", isBold: true },
             { text: "The Department is required to tell people who ask, including the press, if someone in a licensed facility/ organization has a criminal record exemption. The Department must also tell people who ask the name of a licensed facility/organization that has a licensee, employee, resident, or other person with a criminal record exemption. This does not apply to Resource Family Homes, Small Family Child Care Homes, or the Home Care Aide Registry. The Department shall not release any information regarding Home Care Aides in response to a Public Records Act request, other than their Home Care Aide number.", isBold: false },
             { text: "The information you provide may also be disclosed in the following circumstances:", isBold: false },
@@ -747,20 +745,16 @@ export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: stri
         p3_content.forEach(item => {
             const currentFont = item.isBold ? boldFont : font;
             const indent = item.text.startsWith("•") ? 10 : 0;
-            if(item.isBold) y-=5;
             y = drawWrappedText(page, item.text, currentFont, mainFontSize, leftMargin + indent, y, contentWidth - indent, lineHeight);
-            if(item.isBold) y -=5;
+            y -= lineHeight;
         });
 
-        let boxEndY_p3 = y - 20;
-        page.drawRectangle({ x: leftMargin - 10, y: boxEndY_p3, width: contentWidth + 20, height: boxStartY_p3 - boxEndY_p3, borderColor: rgb(0,0,0), borderWidth: 1 });
 
         // --- PAGE 4 ---
         page = pages[3];
         y = height - 70;
-        let boxStartY_p4 = y + 10;
-
-        drawText(page, "Contact Information", { x: leftMargin, y, font: boldFont, size: mainFontSize }); 
+        
+        y = drawWrappedText(page, "Contact Information", boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight);
         const p4_content_1 = "For questions about this notice, CDSS programs, and the authorized use of your criminal history information, please contact your local licensing regional office.";
         y = drawWrappedText(page, p4_content_1, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
         y -= 5;
@@ -768,7 +762,7 @@ export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: stri
         const p4_content_2 = "For further questions about this notice or your criminal records, you may contact the Associate Governmental Program Analyst at the DOJ’s Keeper of Records at (916) 210-3310, by email at keeperofrecords@doj.ca.gov, or by mail at:";
         y = drawWrappedText(page, p4_content_2, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
         y -= 15;
-        drawText(page, "Department of Justice\nBureau of Criminal Information & Analysis Keeper of Records\nP.O. Box 903417\nSacramento, CA 94203-4170", { x: leftMargin + 20, y, font: mainFontSize === 10 ? boldFont : font, size: mainFontSize, lineHeight: lineHeight});
+        drawText(page, "Department of Justice\nBureau of Criminal Information & Analysis Keeper of Records\nP.O. Box 903417\nSacramento, CA 94203-4170", { x: leftMargin + 20, y: y, font: mainFontSize === 10 ? boldFont : font, size: mainFontSize, lineHeight: lineHeight});
         y -= (lineHeight * 5);
         
         const anrcTitle_p4 = "Applicant Notification and Record Challenge";
@@ -779,31 +773,27 @@ export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: stri
         drawText(page, fpasTitle_p4, { x: (width / 2) - (boldFont.widthOfTextAtSize(fpasTitle_p4, mainFontSize) / 2), y, font: boldFont, size: mainFontSize }); y -= lineHeight * 1.5;
         
         const p4_authority_label = "Authority:";
-        drawText(page, p4_authority_label, {x: leftMargin, y, font: boldFont, size: mainFontSize});
+        y = drawWrappedText(page, p4_authority_label, boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight);
         const p4_authority = " The FBI’s acquisition, preservation, and exchange of fingerprints and associated information is generally authorized under 28 U.S.C. 534. Depending on the nature of your application, supplemental authorities include Federal statutes, State statutes pursuant to Pub. L. 92-544, Presidential Executive Orders, and federal regulations. Providing your fingerprints and associated information is voluntary; however, failure to do so may affect completion or approval of your application.";
-        y = drawWrappedText(page, p4_authority, font, mainFontSize, leftMargin + font.widthOfTextAtSize(p4_authority_label, mainFontSize), y, contentWidth - font.widthOfTextAtSize(p4_authority_label, mainFontSize), lineHeight); y -= 15;
+        y = drawWrappedText(page, p4_authority, font, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= 15;
         
         const p4_principal_label = "Principal Purpose:";
-        drawText(page, p4_principal_label, {x: leftMargin, y, font: boldFont, size: mainFontSize});
+        y = drawWrappedText(page, p4_principal_label, boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight);
         const p4_principal = " Certain determinations, such as employment, licensing, and security clearances, may be predicated on fingerprint-based background checks. Your fingerprints and associated information/biometrics may be provided to the employing, investigating, or otherwise responsible agency, and/or the FBI for the purpose of comparing your fingerprints to other fingerprints in the FBI’s Next Generation Identification (NGI) system or its successor systems (including civil, criminal, and latent fingerprint repositories) or other available records of the employing, investigating, or otherwise responsible agency. The FBI may retain your fingerprints and associated information/biometrics in NGI after the completion of this application and, while retained, your fingerprints may continue to be compared against other fingerprints submitted to or retained by NGI.";
-        y = drawWrappedText(page, p4_principal, font, mainFontSize, leftMargin + font.widthOfTextAtSize(p4_principal_label, mainFontSize), y, contentWidth - font.widthOfTextAtSize(p4_principal_label, mainFontSize), lineHeight); y -= 15;
+        y = drawWrappedText(page, p4_principal, font, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= 15;
         
         const p4_routine_label = "Routine Uses:";
-        drawText(page, p4_routine_label, {x: leftMargin, y, font: boldFont, size: mainFontSize});
+        y = drawWrappedText(page, p4_routine_label, boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight);
         const p4_routine = " During the processing of this application and for as long thereafter as your fingerprints and associated information/biometrics are retained in NGI, your information may be disclosed pursuant to your consent, and may be disclosed without your consent as permitted by the Privacy Act of 1974 and all applicable Routine Uses as may be published at any time in the Federal Register, including the Routine Uses for the NGI system and the FBI’s Blanket Routine Uses. Routine uses include, but are not limited to, disclosures to:\n• employing, governmental or authorized non-governmental agencies responsible for employment, contracting, licensing, security clearances, and other suitability determinations;\n• local, state, tribal, or federal law enforcement agencies; criminal justice agencies; and agencies responsible for national security or public safety.";
-        y = drawWrappedText(page, p4_routine, font, mainFontSize, leftMargin + font.widthOfTextAtSize(p4_routine_label, mainFontSize), y, contentWidth - font.widthOfTextAtSize(p4_routine_label, mainFontSize), lineHeight); y-=20;
+        y = drawWrappedText(page, p4_routine, font, mainFontSize, leftMargin, y, contentWidth, lineHeight); y-=20;
         
         const njarprTitle_p4 = "Noncriminal Justice Applicant’s Privacy Rights";
         drawText(page, njarprTitle_p4, { x: (width / 2) - (boldFont.widthOfTextAtSize(njarprTitle_p4, mainFontSize) / 2), y, font: boldFont, size: mainFontSize }); y -= lineHeight * 1.5;
         y = drawWrappedText(page, "As an applicant who is the subject of a national fingerprint-based criminal history record check for a noncriminal justice purpose (such as an application for employment or a license, an immigration or naturalization matter, security clearance, or adoption), you have certain rights which are discussed below.", font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
-        
-        let boxEndY_p4 = y - 10;
-        page.drawRectangle({ x: leftMargin - 10, y: boxEndY_p4, width: contentWidth + 20, height: boxStartY_p4 - boxEndY_p4, borderColor: rgb(0,0,0), borderWidth: 1 });
 
         // --- PAGE 5 ---
         page = pages[4];
         y = height - 70;
-        let boxStartY_p5 = y + 10;
         
         const page5_items = [
             "You must be provided written notification(1) that your fingerprints will be used to check the criminal history records of the FBI.",
@@ -837,11 +827,8 @@ export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: stri
             "(4) See U.S.C. 552a(b); 28 U.S.C. 534(b); 34 U.S.C. § 40316 (formerly cited as 42 U.S.C. § 14616), Article IV(c)"
         ];
         footnotes.forEach(note => {
-             y = drawWrappedText(page, note, font, smallFontSize, leftMargin, y, contentWidth, 12);
+             y = drawWrappedText(page, note, font, smallFontSize, leftMargin, y, contentWidth, 11);
         });
-
-        let boxEndY_p5 = y - 10;
-        page.drawRectangle({ x: leftMargin - 10, y: boxEndY_p5, width: contentWidth + 20, height: boxStartY_p5 - boxEndY_p5, borderColor: rgb(0,0,0), borderWidth: 1 });
         
         const pdfBytes = await pdfDoc.save();
         return { pdfData: Buffer.from(pdfBytes).toString('base64') };
@@ -859,10 +846,10 @@ export async function generateSoc341aPdf(formData: any): Promise<{ pdfData?: str
 
         const pages = [pdfDoc.addPage(), pdfDoc.addPage(), pdfDoc.addPage(), pdfDoc.addPage()];
         
-        const mainFontSize = 9;
-        const smallFontSize = 8;
-        const titleFontSize = 11;
-        const lineHeight = 11;
+        const mainFontSize = 8;
+        const smallFontSize = 7;
+        const titleFontSize = 10;
+        const lineHeight = 10;
 
         const drawHeaderAndFooter = (page: any, pageNum: number, totalPages: number) => {
             const { width, height } = page.getSize();
@@ -893,84 +880,65 @@ export async function generateSoc341aPdf(formData: any): Promise<{ pdfData?: str
         drawText(pages[0], note, { x: (pages[0].getWidth() / 2) - (font.widthOfTextAtSize(note, smallFontSize) / 2), y, font, size: smallFontSize });
         y -= 25;
 
-        // ... Add full content here, breaking pages as needed
-        const p1_content = [
-            `NAME: ${formData.fullName || ''}     POSITION: Caregiver     FACILITY: FirstLight Home Care of Rancho Cucamonga`,
-            "California law REQUIRES certain persons to report known or suspected abuse of dependent adults or elders. As an employee or volunteer at a licensed facility, you are one of those persons - a “mandated reporter.”",
-            "PERSONS WHO ARE REQUIRED TO REPORT ABUSE",
-            "Mandated reporters include care custodians and any person who has assumed full or intermittent responsibility for care or custody of an elder or dependent adult, whether or not paid for that responsibility (Welfare and Institutions Code (WIC) Section 15630(a)). Care custodian means an administrator or an employee of most public or private facilities or agencies, or persons providing care or services for elders or dependent adults, including members of the support staff and maintenance staff (WIC Section 15610.17).",
-            "PERSONS WHO ARE THE SUBJECT OF THE REPORT",
-            "Elder means any person residing in this state who is 65 years of age or older (WIC Section 15610.27). Dependent Adult means any person residing in this state, between the ages of 18 and 64, who has physical or mental limitations that restrict his or her ability to carry out normal activities or to protect his or her rights including, but not limited to, persons who have physical or developmental disabilities or whose physical or mental abilities have diminished because of age and those admitted as inpatients in 24-hour health facilities (WIC Section 15610.23).",
-            "REPORTING RESPONSIBILITIES AND TIME FRAMES",
-            "Any mandated reporter, who in his or her professional capacity, or within the scope of his or her employment, has observed or has knowledge of an incident that reasonably appears to be abuse or neglect, or is told by an elder or dependent adult that he or she has experienced behavior constituting abuse or neglect, or reasonably suspects that abuse or neglect occurred, shall complete form SOC 341, “Report of Suspected Dependent Adult/Elder Abuse” for each report of known or suspected instance of abuse (physical abuse, sexual abuse, financial abuse, abduction, neglect (self-neglect), isolation, and abandonment) involving an elder or dependent adult.",
-            "Reporting shall be completed as follows:",
-            "• If the abuse occurred in a Long-Term Care (LTC) facility (as defined in WIC Section 15610.47) and resulted in serious bodily injury (as defined in WIC Section 15610.67), report by telephone to the local law enforcement agency immediately and no later than two (2) hours after observing, obtaining knowledge of, or suspecting physical abuse. Send the written report to the local law enforcement agency, the local Long-Term Care Ombudsman Program (LTCOP), and the appropriate licensing agency (for long-term health care facilities, the California Department of Public Health; for community care facilities, the California",
-        ];
+        // --- PAGE 1 ---
+        y = drawWrappedText(pages[0], `NAME: ${formData.fullName || ''}     POSITION: Caregiver     FACILITY: FirstLight Home Care of Rancho Cucamonga`, font, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= lineHeight;
+        y = drawWrappedText(pages[0], "California law REQUIRES certain persons to report known or suspected abuse of dependent adults or elders. As an employee or volunteer at a licensed facility, you are one of those persons - a “mandated reporter.”", font, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= lineHeight*2;
+        y = drawWrappedText(pages[0], "PERSONS WHO ARE REQUIRED TO REPORT ABUSE", boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= lineHeight;
+        y = drawWrappedText(pages[0], "Mandated reporters include care custodians and any person who has assumed full or intermittent responsibility for care or custody of an elder or dependent adult, whether or not paid for that responsibility (Welfare and Institutions Code (WIC) Section 15630(a)). Care custodian means an administrator or an employee of most public or private facilities or agencies, or persons providing care or services for elders or dependent adults, including members of the support staff and maintenance staff (WIC Section 15610.17).", font, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= lineHeight*2;
+        y = drawWrappedText(pages[0], "PERSONS WHO ARE THE SUBJECT OF THE REPORT", boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= lineHeight;
+        y = drawWrappedText(pages[0], "Elder means any person residing in this state who is 65 years of age or older (WIC Section 15610.27). Dependent Adult means any person residing in this state, between the ages of 18 and 64, who has physical or mental limitations that restrict his or her ability to carry out normal activities or to protect his or her rights including, but not limited to, persons who have physical or developmental disabilities or whose physical or mental abilities have diminished because of age and those admitted as inpatients in 24-hour health facilities (WIC Section 15610.23).", font, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= lineHeight*2;
+        y = drawWrappedText(pages[0], "REPORTING RESPONSIBILITIES AND TIME FRAMES", boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= lineHeight;
+        y = drawWrappedText(pages[0], "Any mandated reporter, who in his or her professional capacity, or within the scope of his or her employment, has observed or has knowledge of an incident that reasonably appears to be abuse or neglect, or is told by an elder or dependent adult that he or she has experienced behavior constituting abuse or neglect, or reasonably suspects that abuse or neglect occurred, shall complete form SOC 341, “Report of Suspected Dependent Adult/Elder Abuse” for each report of known or suspected instance of abuse (physical abuse, sexual abuse, financial abuse, abduction, neglect (self-neglect), isolation, and abandonment) involving an elder or dependent adult.", font, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= lineHeight*2;
+        y = drawWrappedText(pages[0], "Reporting shall be completed as follows:", font, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= lineHeight;
+        y = drawWrappedText(pages[0], "• If the abuse occurred in a Long-Term Care (LTC) facility (as defined in WIC Section 15610.47) and resulted in serious bodily injury (as defined in WIC Section 15610.67), report by telephone to the local law enforcement agency immediately and no later than two (2) hours after observing, obtaining knowledge of, or suspecting physical abuse. Send the written report to the local law enforcement agency, the local Long-Term Care Ombudsman Program (LTCOP), and the appropriate licensing agency (for long-term health care facilities, the California Department of Public Health; for community care facilities, the California", font, mainFontSize, leftMargin + 10, y, contentWidth - 10, lineHeight);
         
-        const p2_content = [
-            "Department of Social Services) within two (2) hours of observing, obtaining knowledge of, or suspecting physical abuse.",
-            "• If the abuse occurred in a LTC facility, was physical abuse, but did not result in serious bodily injury, report by telephone to the local law enforcement agency within 24 hours of observing, obtaining knowledge of, or suspecting physical abuse. Send the written report to the local law enforcement agency, the local LTCOP, and the appropriate licensing agency (for long-term health care facilities, the California Department of Public Health; for community care facilities, the California Department of Social Services) within 24 hours of observing, obtaining knowledge of, or suspecting physical abuse.",
-            "• If the abuse occurred in a LTC facility, was physical abuse, did not result in serious bodily injury, and was perpetrated by a resident with a physician's diagnosis of dementia, report by telephone to the local law enforcement agency or the local LTCOP, immediately or as soon as practicably possible. Follow by sending the written report to the LTCOP or the local law enforcement agency within 24 hours of observing, obtaining knowledge of, or suspecting physical abuse.",
-            "• If the abuse occurred in a LTC facility, and was abuse other than physical abuse, report by telephone to the LTCOP or the law enforcement agency immediately or as soon as practicably possible. Follow by sending the written report to the local law enforcement agency or the LTCOP within two working days.",
-            "• If the abuse occurred in a state mental hospital or a state developmental center, mandated reporters shall report by telephone or through a confidential internet reporting tool (established in WIC Section 15658) immediately or as soon as practicably possible and submit the report within two (2) working days of making the telephone report to the responsible agency as identified below:",
-            "• If the abuse occurred in a State Mental Hospital, report to the local law enforcement agency or the California Department of State Hospitals.",
-            "• If the abuse occurred in a State Developmental Center, report to the local law enforcement agency or to the California Department of Developmental Services.",
-            "• For all other abuse, mandated reporters shall report by telephone or through a confidential internet reporting tool to the adult protective services agency or the local law enforcement agency immediately or as soon as practicably possible. If reported by telephone, a written or an Internet report shall be sent to adult protective services or law enforcement within two working days.",
-            "PENALTY FOR FAILURE TO REPORT ABUSE",
-            "Failure to report abuse of an elder or dependent adult is a MISDEMEANOR CRIME, punishable by jail time, fine or both (WIC Section 15630(h)). The reporting duties are individual, and no supervisor or administrator shall impede or inhibit the reporting duties, and no person making the report shall be subject to any sanction for making the report (WIC Section 15630(f)).",
-            "CONFIDENTIALITY OF REPORTER AND OF ABUSE REPORTS",
-            "The identity of all persons who report under WIC Chapter 11 shall be confidential and disclosed only"
-        ];
-        
-        const p3_content = [
-            "among APS agencies, local law enforcement agencies, LTCOPs, California State Attorney General Bureau of Medi-Cal Fraud and Elder Abuse, licensing agencies or their counsel, Department of Consumer Affairs Investigators (who investigate elder and dependent adult abuse), the county District Attorney, the Probate Court, and the Public Guardian. Confidentiality may be waived by the reporter or by court order. Any violation of confidentiality is a misdemeanor punishable by jail time, fine, or both (WIC Section 15633(a)).",
-            "DEFINITIONS OF ABUSE",
-            "Physical abuse means any of the following: (a) Assault, as defined in Section 240 of the Penal Code; (b) Battery, as defined in Section 242 of the Penal Code; (c) Assault with a deadly weapon or force likely to produce great bodily injury, as defined in Section 245 of the Penal Code; (d) Unreasonable physical constraint, or prolonged or continual deprivation of food or water; (e) Sexual assault, that means any of the following: (1) Sexual battery, as defined in Section 243.4 of the Penal Code; (2) Rape, as defined in Section 261 of the Penal Code; (3) Rape in concert, as described in Section 264.1 of the Penal Code; (4) Spousal rape, as defined in Section 262 of the Penal Code; (5) Incest, as defined in Section 285 of the Penal Code; (6) Sodomy, as defined in Section 286 of the Penal Code; (7) Oral copulation, as defined in Section 288a of the Penal Code; (8) Sexual penetration, as defined in Section 289 of the Penal Code; or (9) Lewd or lascivious acts as defined in paragraph (2) of subdivision (b) of Section 288 of the Penal Code; or (f) Use of a physical or chemical restraint or psychotropic medication under any of the following conditions: (1) For punishment; (2) For a period beyond that for which the medication was ordered pursuant to the instructions of a physician and surgeon licensed in the State of California, who is providing medical care to the elder or dependent adult at the time the instructions are given; or (3) For any purpose not authorized by the physician and surgeon (WIC Section 15610.63).",
-            "Serious bodily injury means an injury involving extreme physical pain, substantial risk of death, or protracted loss or impairment of function of a bodily member, organ, or of mental faculty, or requiring medical intervention, including, but not limited to, hospitalization, surgery, or physical rehabilitation (WIC Section 15610.67).",
-            "Neglect (a) means either of the following: (1) The negligent failure of any person having the care or custody of an elder or a dependent adult to exercise that degree of care that a reasonable person in a like position would exercise; or (2) The negligent failure of an elder or dependent adult to exercise that degree of self care that a reasonable person in a like position would exercise. (b) Neglect includes, but is not limited to, all of the following: (1) Failure to assist in personal hygiene, or in the provision of food, clothing, or shelter; (2) Failure to provide medical care for physical and mental health needs. No person shall be deemed neglected or abused for the sole reason that he or she voluntarily relies on treatment by spiritual means through prayer alone in lieu of medical treatment; (3) Failure to protect from health and safety hazards; (4) Failure to prevent malnutrition or dehydration; or (5) Failure of an elder or dependent adult to satisfy the needs specified in paragraphs (1) to (4), inclusive, for himself or herself as a result of poor cognitive functioning, mental limitation, substance abuse, or chronic poor health (WIC Section 15610.57).",
-            "Financial abuse of an elder or dependent adult occurs when a person or entity does any of the following: (1) Takes, secretes, appropriates, obtains, or retains real or personal property of an elder or dependent adult for a wrongful use or with intent to defraud, or both; (2) Assists in taking, secreting, appropriating, obtaining, or retaining real or personal property of an elder or dependent adult for a wrongful use or with intent to defraud, or both; or (3) Takes, secretes, appropriates, obtains, or retains real or personal property of an elder or dependent adult by undue influence, as defined in Section 15610.70 (WIC Section 15610.30)."
-        ];
-        
-        const p4_content = [
-            "Abandonment means the desertion or willful forsaking of an elder or a dependent adult by anyone having care or custody of that person under circumstances in which a reasonable person would continue to provide care and custody (WIC Section 15610.05).",
-            "Isolation means any of the following: (1) Acts intentionally committed for the purpose of preventing, and that do serve to prevent, an elder or dependent adult from receiving his or her mail or telephone calls; (2) Telling a caller or prospective visitor that an elder or dependent adult is not present, or does not wish to talk with the caller, or does not wish to meet with the visitor where the statement is false, is contrary to the express wishes of the elder or the dependent adult, whether he or she is competent or not, and is made for the purpose of preventing the elder or dependent adult from having contact with family, friends, or concerned persons; (3) False imprisonment, as defined in Section 236 of the Penal Code; or (4) Physical restraint of an elder or dependent adult, for the purpose of preventing the elder or dependent adult from meeting with visitors (WIC Section 15610.43).",
-            "Abduction means the removal from this state and the restraint from returning to this state, or the restraint from returning to this state, of any elder or dependent adult who does not have the capacity to consent to the removal from this state and the restraint from returning to this state, or the restraint from returning to this state, as well as the removal from this state or the restraint from returning to this state, of any conservatee without the consent of the conservator or the court (WIC Section 15610.06).",
-        ];
+        // --- PAGE 2 ---
+        y = pages[1].getHeight() - 70;
+        y = drawWrappedText(pages[1], "Department of Social Services) within two (2) hours of observing, obtaining knowledge of, or suspecting physical abuse.", font, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= lineHeight;
+        y = drawWrappedText(pages[1], "• If the abuse occurred in a LTC facility, was physical abuse, but did not result in serious bodily injury, report by telephone to the local law enforcement agency within 24 hours of observing, obtaining knowledge of, or suspecting physical abuse. Send the written report to the local law enforcement agency, the local LTCOP, and the appropriate licensing agency (for long-term health care facilities, the California Department of Public Health; for community care facilities, the California Department of Social Services) within 24 hours of observing, obtaining knowledge of, or suspecting physical abuse.", font, mainFontSize, leftMargin + 10, y, contentWidth - 10, lineHeight); y -= lineHeight;
+        y = drawWrappedText(pages[1], "• If the abuse occurred in a LTC facility, was physical abuse, did not result in serious bodily injury, and was perpetrated by a resident with a physician's diagnosis of dementia, report by telephone to the local law enforcement agency or the local LTCOP, immediately or as soon as practicably possible. Follow by sending the written report to the LTCOP or the local law enforcement agency within 24 hours of observing, obtaining knowledge of, or suspecting physical abuse.", font, mainFontSize, leftMargin + 10, y, contentWidth - 10, lineHeight); y -= lineHeight;
+        y = drawWrappedText(pages[1], "• If the abuse occurred in a LTC facility, and was abuse other than physical abuse, report by telephone to the LTCOP or the law enforcement agency immediately or as soon as practicably possible. Follow by sending the written report to the local law enforcement agency or the LTCOP within two working days.", font, mainFontSize, leftMargin + 10, y, contentWidth - 10, lineHeight); y -= lineHeight;
+        y = drawWrappedText(pages[1], "• If the abuse occurred in a state mental hospital or a state developmental center, mandated reporters shall report by telephone or through a confidential internet reporting tool (established in WIC Section 15658) immediately or as soon as practicably possible and submit the report within two (2) working days of making the telephone report to the responsible agency as identified below:", font, mainFontSize, leftMargin + 10, y, contentWidth - 10, lineHeight); y -= lineHeight;
+        y = drawWrappedText(pages[1], "• If the abuse occurred in a State Mental Hospital, report to the local law enforcement agency or the California Department of State Hospitals.", font, mainFontSize, leftMargin + 20, y, contentWidth - 20, lineHeight); y -= lineHeight;
+        y = drawWrappedText(pages[1], "• If the abuse occurred in a State Developmental Center, report to the local law enforcement agency or to the California Department of Developmental Services.", font, mainFontSize, leftMargin + 20, y, contentWidth - 20, lineHeight); y -= lineHeight;
+        y = drawWrappedText(pages[1], "• For all other abuse, mandated reporters shall report by telephone or through a confidential internet reporting tool to the adult protective services agency or the local law enforcement agency immediately or as soon as practicably possible. If reported by telephone, a written or an Internet report shall be sent to adult protective services or law enforcement within two working days.", font, mainFontSize, leftMargin + 10, y, contentWidth - 10, lineHeight); y -= lineHeight*2;
+        y = drawWrappedText(pages[1], "PENALTY FOR FAILURE TO REPORT ABUSE", boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= lineHeight;
+        y = drawWrappedText(pages[1], "Failure to report abuse of an elder or dependent adult is a MISDEMEANOR CRIME, punishable by jail time, fine or both (WIC Section 15630(h)). The reporting duties are individual, and no supervisor or administrator shall impede or inhibit the reporting duties, and no person making the report shall be subject to any sanction for making the report (WIC Section 15630(f)).", font, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= lineHeight*2;
+        y = drawWrappedText(pages[1], "CONFIDENTIALITY OF REPORTER AND OF ABUSE REPORTS", boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= lineHeight;
+        y = drawWrappedText(pages[1], "The identity of all persons who report under WIC Chapter 11 shall be confidential and disclosed only", font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
 
-        const drawContent = (page: any, content: string[], startY: number) => {
-            let currentY = startY;
-            content.forEach(item => {
-                const isBold = ["PERSONS WHO ARE REQUIRED TO REPORT ABUSE", "PERSONS WHO ARE THE SUBJECT OF THE REPORT", "REPORTING RESPONSIBILITIES AND TIME FRAMES", "PENALTY FOR FAILURE TO REPORT ABUSE", "CONFIDENTIALITY OF REPORTER AND OF ABUSE REPORTS", "DEFINITIONS OF ABUSE"].includes(item);
-                const indent = item.startsWith('•') ? 10 : 0;
-                currentY = drawWrappedText(page, item, isBold ? boldFont : font, mainFontSize, leftMargin + indent, currentY, contentWidth - indent, lineHeight);
-                currentY -= 5;
-            });
-            return currentY;
-        };
+        // --- PAGE 3 ---
+        y = pages[2].getHeight() - 70;
+        y = drawWrappedText(pages[2], "among APS agencies, local law enforcement agencies, LTCOPs, California State Attorney General Bureau of Medi-Cal Fraud and Elder Abuse, licensing agencies or their counsel, Department of Consumer Affairs Investigators (who investigate elder and dependent adult abuse), the county District Attorney, the Probate Court, and the Public Guardian. Confidentiality may be waived by the reporter or by court order. Any violation of confidentiality is a misdemeanor punishable by jail time, fine, or both (WIC Section 15633(a)).", font, mainFontSize, leftMargin, y, contentWidth, lineHeight); y-=lineHeight*2;
+        y = drawWrappedText(pages[2], "DEFINITIONS OF ABUSE", boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= lineHeight;
+        y = drawWrappedText(pages[2], "Physical abuse means any of the following: (a) Assault, as defined in Section 240 of the Penal Code; (b) Battery, as defined in Section 242 of the Penal Code; (c) Assault with a deadly weapon or force likely to produce great bodily injury, as defined in Section 245 of the Penal Code; (d) Unreasonable physical constraint, or prolonged or continual deprivation of food or water; (e) Sexual assault, that means any of the following: (1) Sexual battery, as defined in Section 243.4 of the Penal Code; (2) Rape, as defined in Section 261 of the Penal Code; (3) Rape in concert, as described in Section 264.1 of the Penal Code; (4) Spousal rape, as defined in Section 262 of the Penal Code; (5) Incest, as defined in Section 285 of the Penal Code; (6) Sodomy, as defined in Section 286 of the Penal Code; (7) Oral copulation, as defined in Section 288a of the Penal Code; (8) Sexual penetration, as defined in Section 289 of the Penal Code; or (9) Lewd or lascivious acts as defined in paragraph (2) of subdivision (b) of Section 288 of the Penal Code; or (f) Use of a physical or chemical restraint or psychotropic medication under any of the following conditions: (1) For punishment; (2) For a period beyond that for which the medication was ordered pursuant to the instructions of a physician and surgeon licensed in the State of California, who is providing medical care to the elder or dependent adult at the time the instructions are given; or (3) For any purpose not authorized by the physician and surgeon (WIC Section 15610.63).", boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= lineHeight;
+        y = drawWrappedText(pages[2], "Serious bodily injury means an injury involving extreme physical pain, substantial risk of death, or protracted loss or impairment of function of a bodily member, organ, or of mental faculty, or requiring medical intervention, including, but not limited to, hospitalization, surgery, or physical rehabilitation (WIC Section 15610.67).", boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= lineHeight;
+        y = drawWrappedText(pages[2], "Neglect (a) means either of the following: (1) The negligent failure of any person having the care or custody of an elder or a dependent adult to exercise that degree of care that a reasonable person in a like position would exercise; or (2) The negligent failure of an elder or dependent adult to exercise that degree of self care that a reasonable person in a like position would exercise. (b) Neglect includes, but is not limited to, all of the following: (1) Failure to assist in personal hygiene, or in the provision of food, clothing, or shelter; (2) Failure to provide medical care for physical and mental health needs. No person shall be deemed neglected or abused for the sole reason that he or she voluntarily relies on treatment by spiritual means through prayer alone in lieu of medical treatment; (3) Failure to protect from health and safety hazards; (4) Failure to prevent malnutrition or dehydration; or (5) Failure of an elder or dependent adult to satisfy the needs specified in paragraphs (1) to (4), inclusive, for himself or herself as a result of poor cognitive functioning, mental limitation, substance abuse, or chronic poor health (WIC Section 15610.57).", boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= lineHeight;
+        y = drawWrappedText(pages[2], "Financial abuse of an elder or dependent adult occurs when a person or entity does any of the following: (1) Takes, secretes, appropriates, obtains, or retains real or personal property of an elder or dependent adult for a wrongful use or with intent to defraud, or both; (2) Assists in taking, secreting, appropriating, obtaining, or retaining real or personal property of an elder or dependent adult for a wrongful use or with intent to defraud, or both; or (3)", boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight);
 
-        y = drawContent(pages[0], p1_content, y);
-        y = drawContent(pages[1], p2_content, pages[1].getHeight() - 70);
-        y = drawContent(pages[2], p3_content, pages[2].getHeight() - 70);
-        y = drawContent(pages[3], p4_content, pages[3].getHeight() - 70);
+        // --- PAGE 4 ---
+        y = pages[3].getHeight() - 70;
+        y = drawWrappedText(pages[3], "Takes, secretes, appropriates, obtains, or retains real or personal property of an elder or dependent adult by undue influence, as defined in Section 15610.70 (WIC Section 15610.30).", boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= lineHeight;
+        y = drawWrappedText(pages[3], "Abandonment means the desertion or willful forsaking of an elder or a dependent adult by anyone having care or custody of that person under circumstances in which a reasonable person would continue to provide care and custody (WIC Section 15610.05).", boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= lineHeight;
+        y = drawWrappedText(pages[3], "Isolation means any of the following: (1) Acts intentionally committed for the purpose of preventing, and that do serve to prevent, an elder or dependent adult from receiving his or her mail or telephone calls; (2) Telling a caller or prospective visitor that an elder or dependent adult is not present, or does not wish to talk with the caller, or does not wish to meet with the visitor where the statement is false, is contrary to the express wishes of the elder or the dependent adult, whether he or she is competent or not, and is made for the purpose of preventing the elder or dependent adult from having contact with family, friends, or concerned persons; (3) False imprisonment, as defined in Section 236 of the Penal Code; or (4) Physical restraint of an elder or dependent adult, for the purpose of preventing the elder or dependent adult from meeting with visitors (WIC Section 15610.43).", boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= lineHeight;
+        y = drawWrappedText(pages[3], "Abduction means the removal from this state and the restraint from returning to this state, or the restraint from returning to this state, of any elder or dependent adult who does not have the capacity to consent to the removal from this state and the restraint from returning to this state, or the restraint from returning to this state, as well as the removal from this state or the restraint from returning to this state, of any conservatee without the consent of the conservator or the court (WIC Section 15610.06).", boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= lineHeight*2;
+        y = drawWrappedText(pages[3], "AS AN EMPLOYEE OR VOLUNTEER OF THIS FACILITY, YOU MUST COMPLY WITH THE DEPENDENT ADULT AND ELDER ABUSE REQUIREMENTS, AS STATED ABOVE. IF YOU DO NOT COMPLY, YOU MAY BE SUBJECT TO CRIMINAL PENALTY. IF YOU ARE A LONG-TERM CARE OMBUDSMAN, YOU MUST COMPLY WITH FEDERAL AND STATE LAWS, WHICH PROHIBIT YOU FROM DISCLOSING THE IDENTITIES OF LONG-TERM RESIDENTS AND COMPLAINANTS TO ANYONE UNLESS CONSENT TO DISCLOSE IS PROVIDED BY THE RESIDENT OR COMPLAINANT OR DISCLOSURE IS REQUIRED BY COURT ORDER (Title 42 United States Code Section 3058g(d)(2); WIC Section 9725).", boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= lineHeight*2;
         
-        // Page 4 Signature
-        page = pages[3];
-        y -= 20;
         const finalStatement = `I, ${formData.fullName || '[Your Name]'} have read and understand my responsibility to report known or suspected abuse of dependent adults or elders. I will comply with the reporting requirements.`;
-        y = drawWrappedText(page, finalStatement, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
+        y = drawWrappedText(pages[3], finalStatement, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
         y -= 30;
 
         if (formData.soc341aSignature) {
-            await drawSignature(page, formData.soc341aSignature, leftMargin + 80, y, 120, 24, pdfDoc);
+            await drawSignature(pages[3], formData.soc341aSignature, leftMargin + 80, y, 120, 24, pdfDoc);
         }
-        page.drawLine({ start: { x: leftMargin, y: y - 5 }, end: { x: leftMargin + 250, y: y - 5 }, thickness: 0.5 });
-        drawText(page, "SIGNATURE", { x: leftMargin, y: y - 15, font, size: smallFontSize });
+        pages[3].drawLine({ start: { x: leftMargin, y: y - 5 }, end: { x: leftMargin + 250, y: y - 5 }, thickness: 0.5 });
+        drawText(pages[3], "SIGNATURE", { x: leftMargin, y: y - 15, font, size: smallFontSize });
 
         const sigDate = (formData.soc341aSignatureDate && (formData.soc341aSignatureDate.toDate || isDate(formData.soc341aSignatureDate))) ? format(formData.soc341aSignatureDate.toDate ? formData.soc341aSignatureDate.toDate() : formData.soc341aSignatureDate, "MM/dd/yyyy") : '';
         if (sigDate) {
-             drawText(page, `DATE: ${sigDate}`, {x: leftMargin + 350, y: y+5, font, size: mainFontSize});
+             drawText(pages[3], `DATE: ${sigDate}`, {x: leftMargin + 350, y: y+5, font, size: mainFontSize});
         }
-        page.drawLine({ start: { x: leftMargin + 340, y: y - 5 }, end: { x: leftMargin + 500, y: y - 5 }, thickness: 0.5 });
+        pages[3].drawLine({ start: { x: leftMargin + 340, y: y - 5 }, end: { x: leftMargin + 500, y: y - 5 }, thickness: 0.5 });
 
 
         const pdfBytes = await pdfDoc.save();
@@ -980,5 +948,3 @@ export async function generateSoc341aPdf(formData: any): Promise<{ pdfData?: str
         return { error: `Failed to generate PDF: ${error.message}` };
     }
 }
-
-    
