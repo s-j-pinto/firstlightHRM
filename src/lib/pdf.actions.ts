@@ -21,7 +21,7 @@ function drawText(page: any, text: string | undefined, options: { x: number; y: 
 }
 
 // Helper to draw a checkbox
-async function drawCheckbox(page: any, checked: boolean | undefined, x: number, y: number) {
+function drawCheckbox(page: any, checked: boolean | undefined, x: number, y: number) {
     if (checked) {
         page.drawLine({
             start: { x: x + 2, y: y + 5 },
@@ -122,8 +122,8 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         const rightMargin = width - 50;
         const contentWidth = rightMargin - leftMargin;
 
-        const lineSpacing = 18; // Increased spacing
-        const sectionSpacing = 22; // Increased spacing
+        const lineSpacing = 19;
+        const sectionSpacing = 24;
         const mainFontSize = 10;
         const titleFontSize = 12;
         const labelFontSize = 9;
@@ -135,12 +135,12 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         drawText(page, 'State of California – Health and Human Services Agency', { x: leftMargin, y, font, size: headerFontSize });
         const rightHeaderText1 = 'Community Care Licensing Division';
         drawText(page, rightHeaderText1, { x: width - font.widthOfTextAtSize(rightHeaderText1, headerFontSize) - leftMargin, y, font, size: headerFontSize });
-        y -= 12; // Adjust line height
+        y -= 12;
         drawText(page, 'California Department of Social Services', { x: leftMargin, y, font, size: headerFontSize });
         const rightHeaderText2 = 'Home Care Services Bureau';
         drawText(page, rightHeaderText2, { x: width - font.widthOfTextAtSize(rightHeaderText2, headerFontSize) - leftMargin, y, font, size: headerFontSize });
         
-        y -= 40; // Shift form up
+        y -= 25;
 
         // Title
         const title = "PERSONNEL RECORD";
@@ -163,10 +163,10 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         drawFieldBox("HCO Number", "364700059", leftMargin, y, 180);
         drawFieldBox("Employee’s PER ID", formData.perId, leftMargin + 200, y, 180);
         y -= lineSpacing * 2;
-        drawFieldBox("Hire Date", formData.hireDate ? format(new Date(formData.hireDate.seconds * 1000), "MM/dd/yyyy") : '', leftMargin, y, 180);
-        drawFieldBox("Date of Separation", formData.separationDate ? format(new Date(formData.separationDate.seconds * 1000), "MM/dd/yyyy") : '', leftMargin + 200, y, 180);
+        drawFieldBox("Hire Date", formData.hireDate && formData.hireDate.toDate ? format(formData.hireDate.toDate(), "MM/dd/yyyy") : '', leftMargin, y, 180);
+        drawFieldBox("Date of Separation", formData.separationDate && formData.separationDate.toDate ? format(formData.separationDate.toDate(), "MM/dd/yyyy") : '', leftMargin + 200, y, 180);
 
-        y -= 50; 
+        y -= 45; 
 
         // Personal Section
         const personalTitle = "PERSONAL";
@@ -185,13 +185,13 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
 
         const fullAddress = [formData.address, formData.city, formData.state, formData.zip].filter(Boolean).join(', ');
         drawFieldBox("Address", fullAddress, leftMargin, y, contentWidth);
-        y -= lineSpacing * 1.5; // Reduced spacing
+        y -= lineSpacing * 1; 
 
-        drawFieldBox("Date of Birth", formData.dob ? format(new Date(formData.dob.seconds * 1000), "MM/dd/yyyy") : '', leftMargin, y, 200);
+        drawFieldBox("Date of Birth", formData.dob && formData.dob.toDate ? format(formData.dob.toDate(), "MM/dd/yyyy") : '', leftMargin, y, 200);
         drawFieldBox("Social Security Number (Voluntary for ID only)", formData.ssn, leftMargin + 220, y, contentWidth-220);
         y -= lineSpacing * 2;
 
-        drawFieldBox("Date of TB Test Upon Hire", formData.tbDate ? format(new Date(formData.tbDate.seconds * 1000), "MM/dd/yyyy") : '', leftMargin, y, 200);
+        drawFieldBox("Date of TB Test Upon Hire", formData.tbDate && formData.tbDate.toDate ? format(formData.tbDate.toDate(), "MM/dd/yyyy") : '', leftMargin, y, 200);
         drawFieldBox("Results of Last TB Test", formData.tbResults, leftMargin + 220, y, contentWidth - 220);
         y -= lineSpacing * 2;
 
@@ -202,9 +202,9 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         y -= lineSpacing * 2;
 
         drawText(page, "Do you possess a valid California driver’s license?", {x: leftMargin, y, font, size: mainFontSize});
-        await drawCheckbox(page, formData.validLicense === 'yes', leftMargin + 250, y);
+        drawCheckbox(page, formData.validLicense === 'yes', leftMargin + 250, y);
         drawText(page, 'Yes', {x: leftMargin + 265, y, font, size: mainFontSize});
-        await drawCheckbox(page, formData.validLicense === 'no', leftMargin + 300, y);
+        drawCheckbox(page, formData.validLicense === 'no', leftMargin + 300, y);
         drawText(page, 'No', {x: leftMargin + 315, y, font, size: mainFontSize});
         drawFieldBox("CDL Number:", formData.driversLicenseNumber, leftMargin + 350, y + 10, contentWidth - 350 -10);
         y -= sectionSpacing;
@@ -220,12 +220,12 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         y -= sectionSpacing;
 
         drawFieldBox("Title of Position", formData.titleOfPosition, leftMargin, y, contentWidth);
-        y -= lineSpacing * 2 + 30; // Increased spacing
+        y -= lineSpacing * 2 + 50; 
         
         drawText(page, "Notes:", {x: leftMargin, y: y+10, font, size: labelFontSize});
         page.drawRectangle({x: leftMargin, y: y-35, width: contentWidth, height: 40, borderColor: rgb(0,0,0), borderWidth: 0.5});
         if (formData.hcs501Notes) drawWrappedText(page, formData.hcs501Notes, font, mainFontSize, leftMargin + 5, y - 5, contentWidth - 10, lineSpacing);
-        y -= 95; // Increased spacing
+        y -= 95; 
 
         // Certify Pane
         page.drawRectangle({ x: leftMargin - 10, y: y - 80, width: contentWidth + 20, height: 95, color: lightGray });
@@ -238,7 +238,7 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         page.drawLine({ start: { x: leftMargin, y: y-5 }, end: { x: leftMargin + 250, y: y - 5 }, color: rgb(0, 0, 0), thickness: 0.5 });
         drawText(page, "Employee Signature", {x: leftMargin, y: y-15, font, size: labelFontSize});
         
-        drawFieldBox("Date", formData.hcs501SignatureDate ? format(new Date(formData.hcs501SignatureDate.seconds * 1000), "MM/dd/yyyy") : '', leftMargin + 300, y + 10, 200);
+        drawFieldBox("Date", formData.hcs501SignatureDate && formData.hcs501SignatureDate.toDate ? format(formData.hcs501SignatureDate.toDate(), "MM/dd/yyyy") : '', leftMargin + 300, y + 10, 200);
 
         await drawHcs501Footer(page, font);
 
@@ -292,6 +292,7 @@ export async function generateEmergencyContactPdf(formData: any): Promise<{ pdfD
                 y -= 20;
             }
             
+            const titleWidth = boldFont.widthOfTextAtSize(title, 12);
             drawText(page, title, {
                 x: leftMargin,
                 y,
@@ -302,7 +303,7 @@ export async function generateEmergencyContactPdf(formData: any): Promise<{ pdfD
             if (subTitle) {
                 const subTitleWidth = boldFont.widthOfTextAtSize(subTitle, 12);
                 drawText(page, subTitle, {
-                    x: (width / 2) + 50,
+                    x: leftMargin + titleWidth + (contentWidth - titleWidth - subTitleWidth)/2,
                     y,
                     font: boldFont,
                     size: 12,
@@ -392,11 +393,11 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
 
         page.drawImage(logoImage, {
             x: (width / 2) - (logoDims.width / 2),
-            y: y - 10, // Reduced space
+            y: y,
             width: logoDims.width,
             height: logoDims.height,
         });
-        y -= logoDims.height + 2; // Reduced space
+        y -= logoDims.height + 2;
 
         const title = "FIRSTLIGHT HOMECARE REFERENCE VERIFICATION FORM";
         const titleWidth = boldFont.widthOfTextAtSize(title, 14);
@@ -435,18 +436,18 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
         page.drawLine({ start: { x: leftMargin, y: y - 10 }, end: { x: leftMargin + 300, y: y - 10 }, thickness: 0.5 });
         drawText(page, "Signature", {x: leftMargin, y: y-20, font, size: 8});
 
-        if (formData.applicantSignatureDate) {
-             drawText(page, `Date: ${format(new Date(formData.applicantSignatureDate.seconds * 1000), "MM/dd/yyyy")}`, {x: leftMargin + 350, y, font, size: 9});
+        if (formData.applicantSignatureDate && formData.applicantSignatureDate.toDate) {
+             drawText(page, `Date: ${format(formData.applicantSignatureDate.toDate(), "MM/dd/yyyy")}`, {x: leftMargin + 350, y, font, size: 9});
         }
         page.drawLine({ start: { x: leftMargin + 340, y: y-10 }, end: { x: leftMargin + 500, y: y - 10 }, thickness: 0.5 });
         drawText(page, "Date", {x: leftMargin + 340, y: y-20, font, size: 8});
         y -= 30;
 
         const employerBoxStartY = y;
-        drawText(page, "FORMER EMPLOYER CONTACT INFORMATION", {x: leftMargin, y, font: boldFont, size: 11});
+        drawText(page, "FORMER EMPLOYER CONTACT INFORMATION", {x: leftMargin, y, font: boldFont, size: 10});
         y -= 20;
 
-        const drawTwoColumnField = (label1: string, value1: string, label2: string, value2: string) => {
+        const drawTwoColumnField = (label1: string, value1: string | undefined, label2: string, value2: string | undefined) => {
             if (value1) drawText(page, `${label1}: ${value1}`, {x: leftMargin + 5, y, font, size: 8});
             if (value2) drawText(page, `${label2}: ${value2}`, {x: leftMargin + contentWidth / 2, y, font, size: 8});
             y -= 15;
@@ -462,17 +463,16 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
         y -= 20;
 
         const referenceBoxStartY = y;
-        drawText(page, "REFERENCE INFORMATION", {x: leftMargin, y, font: boldFont, size: 11});
+        drawText(page, "REFERENCE INFORMATION", {x: leftMargin, y, font: boldFont, size: 10});
         y -= 12;
         drawText(page, "Please rate yourself in the following categories as you feel your former supervisor will rate you:", {x: leftMargin, y, font, size: 8});
         y -= 15;
 
         const drawRating = (label: string, value: string | undefined) => {
-            y -= 1;
             y = drawWrappedText(page, label, boldFont, 8, leftMargin + 5, y, contentWidth - 10, 10);
-            y -= 2; // Reduced space
+            y -= 1;
             if(value) drawText(page, `Rating: ${value}`, {x: leftMargin + 15, y, font, size: 8});
-            y -= 12; // Reduced space
+            y -= 12;
         };
 
         drawRating("TEAMWORK: The degree to which you are willing to work harmoniously with others; the extent to which you conform to the policies of management.", formData.teamworkRating);
@@ -510,6 +510,113 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
 
     } catch (error: any) {
         console.error("Error generating Reference Verification PDF:", error);
+        return { error: `Failed to generate PDF: ${error.message}` };
+    }
+}
+
+export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: string; error?: string }> {
+    try {
+        const pdfDoc = await PDFDocument.create();
+        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+        const pages = [pdfDoc.addPage(), pdfDoc.addPage(), pdfDoc.addPage(), pdfDoc.addPage(), pdfDoc.addPage()];
+        
+        const drawHeaderAndFooter = (page: any, pageNum: number) => {
+            const { width, height } = page.getSize();
+            const headerY = height - 30;
+            const footerY = 30;
+            const fontSize = 8;
+
+            drawText(page, "State of California – Health and Human Services Agency", { x: 50, y: headerY, font, size: fontSize });
+            drawText(page, "California Department of Social Services", { x: width - font.widthOfTextAtSize("California Department of Social Services", fontSize) - 50, y: headerY, font, size: fontSize });
+
+            drawText(page, "LIC 508 (7/21)", { x: 50, y: footerY, font, size: fontSize });
+            drawText(page, `Page ${pageNum} of 5`, { x: width - font.widthOfTextAtSize(`Page ${pageNum} of 5`, fontSize) - 50, y: footerY, font, size: fontSize });
+        };
+
+        pages.forEach((page, index) => drawHeaderAndFooter(page, index + 1));
+        
+        let page = pages[0];
+        const { width, height } = page.getSize();
+        let y = height - 70;
+        const leftMargin = 60;
+        const rightMargin = width - 60;
+        const contentWidth = rightMargin - leftMargin;
+        const mainFontSize = 9.5;
+        const smallFontSize = 8;
+        const titleFontSize = 14;
+        const lineHeight = 12;
+
+        // Page 1
+        let title = "CRIMINAL RECORD STATEMENT";
+        drawText(page, title, { x: (width / 2) - (boldFont.widthOfTextAtSize(title, titleFontSize) / 2), y, font: boldFont, size: titleFontSize });
+        y -= 20;
+        
+        const p1_line1 = "State law requires that persons associated with licensed care facilities, Home Care Aide Registry or TrustLine Registry applicants be fingerprinted and disclose any conviction. A conviction is any plea of guilty or nolo contendere (no contest) or a verdict of guilty. The fingerprints will be used to obtain a copy of any criminal history you may have.";
+        y = drawWrappedText(page, p1_line1, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
+        y -= 20;
+        
+        drawCheckbox(page, formData.convictedInCalifornia === 'yes', leftMargin, y);
+        drawText(page, 'Yes', {x: leftMargin + 15, y: y+1, font, size: mainFontSize});
+        drawCheckbox(page, formData.convictedInCalifornia === 'no', leftMargin + 50, y);
+        drawText(page, 'No', {x: leftMargin + 65, y: y+1, font, size: mainFontSize});
+        drawText(page, 'Have you ever been convicted of a crime in California?', {x: leftMargin + 100, y, font: boldFont, size: mainFontSize});
+        y -= 15;
+        
+        const p1_line2 = "You do not need to disclose any marijuana-related offenses covered by the marijuana reform legislation codified at Health and Safety Code sections 11361.5 and 11361.7.";
+        y = drawWrappedText(page, p1_line2, font, smallFontSize, leftMargin, y, contentWidth, 10);
+        y -= 20;
+
+        drawCheckbox(page, formData.convictedOutOfState === 'yes', leftMargin, y);
+        drawText(page, 'Yes', {x: leftMargin + 15, y: y+1, font, size: mainFontSize});
+        drawCheckbox(page, formData.convictedOutOfState === 'no', leftMargin + 50, y);
+        drawText(page, 'No', {x: leftMargin + 65, y: y+1, font, size: mainFontSize});
+        y = drawWrappedText(page, 'Have you ever been convicted of a crime from another state, federal court, military, or jurisdiction outside of U.S.?', boldFont, mainFontSize, leftMargin + 100, y, contentWidth - 100, lineHeight);
+        y -= 15;
+        
+        const p1_line3 = "You do not need to disclose convictions that were a result of ones's status as a victim of human trafficking and that were dismissed pursuant to Penal Code Section 1203.49, nor any marijuana related offenses covered by the marijuana reform legislation codified at Health and Safety Code sections 11361.5 and 11361.7. However you are required to disclose convictions that were dismissed pursuant to Penal Code Section 1203.4(a)";
+        y = drawWrappedText(page, p1_line3, font, smallFontSize, leftMargin, y, contentWidth, 10);
+        y -= 20;
+
+        drawText(page, "Criminal convictions from another State or Federal court are considered the same as criminal convictions in California.", {x: leftMargin, y, font, size: smallFontSize, color: rgb(0.5, 0.5, 0.5)});
+        y -= 20;
+        
+        drawText(page, 'For Children\'s Residential Facilities, not including Foster Family Agency Staff, Youth Homelessness Prevention Centers , Private Alternative Boarding Schools, Private Alternative Outdoor Program, or Crisis Nurseries: ', {x: leftMargin, y, font: boldFont, size: mainFontSize});
+        y -= 25;
+        
+        drawCheckbox(page, formData.livedOutOfStateLast5Years === 'yes', leftMargin, y);
+        drawText(page, 'Yes', {x: leftMargin + 15, y: y+1, font, size: mainFontSize});
+        drawCheckbox(page, formData.livedOutOfStateLast5Years === 'no', leftMargin + 50, y);
+        drawText(page, 'No', {x: leftMargin + 65, y: y+1, font, size: mainFontSize});
+        drawText(page, 'Have you lived in a state other than California within the last five years?', {x: leftMargin + 100, y, font: boldFont, size: mainFontSize});
+        y -= 15;
+
+        drawText(page, `If yes, list each state below and then complete an LIC 198B for each state: ${formData.outOfStateHistory || ''}`, {x: leftMargin, y, font, size: mainFontSize});
+        y -= 20;
+
+        const p1_list_title = "You must check yes to the corresponding question(s) above to report every conviction (including reckless and drunk driving convictions), you have on your record even if:";
+        y = drawWrappedText(page, p1_list_title, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
+        y -= 15;
+
+        const p1_list_items = [
+            "It happened a long time ago;",
+            "It was only a misdemeanor;",
+            "You didn’t have to go to court (your attorney went for you);",
+            "You had no jail time, or the sentence was only a fine or probation;",
+            "You received a certificate of rehabilitation; or",
+            "The conviction was later dismissed, set aside or the sentence was suspended."
+        ];
+        p1_list_items.forEach(item => {
+            y -= lineHeight;
+            drawText(page, `• ${item}`, { x: leftMargin + 10, y, font, size: mainFontSize });
+        });
+        
+        // ... (rest of the pages would be implemented here)
+
+        const pdfBytes = await pdfDoc.save();
+        return { pdfData: Buffer.from(pdfBytes).toString('base64') };
+    } catch (error: any) {
+        console.error("Error generating LIC 508 PDF:", error);
         return { error: `Failed to generate PDF: ${error.message}` };
     }
 }
