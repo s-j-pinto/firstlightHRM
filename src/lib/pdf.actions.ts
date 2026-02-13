@@ -125,9 +125,9 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
 
         const lineSpacing = 24; 
         const sectionSpacing = 28;
-        const mainFontSize = 11;
+        const mainFontSize = 10;
         const titleFontSize = 14;
-        const labelFontSize = 10;
+        const labelFontSize = 9;
         const headerFontSize = 9; 
         const subTitleFontSize = 8;
         const lightGray = rgb(0.92, 0.92, 0.92);
@@ -169,7 +169,7 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         drawFieldBox("Hire Date", hireDate, leftMargin, y, 180);
         drawFieldBox("Date of Separation", separationDate, leftMargin + 200, y, 180);
 
-        y -= 45; 
+        y -= 35; // Move up a bit
 
         // Personal Section
         const personalTitle = "PERSONAL";
@@ -188,7 +188,7 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         
         const fullAddress = [formData.address, formData.city, formData.state, formData.zip].filter(Boolean).join(', ');
         drawFieldBox("Address", fullAddress, leftMargin, y, contentWidth);
-        y -= (lineSpacing * 1.3);
+        y -= (lineSpacing * 1.5); // Reduced space
 
         const dobDate = (formData.dob && formData.dob.toDate) ? format(formData.dob.toDate(), "MM/dd/yyyy") : (isDate(formData.dob) ? format(formData.dob, "MM/dd/yyyy") : '');
         drawFieldBox("Date of Birth", dobDate, leftMargin, y, 200);
@@ -230,13 +230,13 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         drawText(page, "Notes:", {x: leftMargin, y: y+12, font, size: labelFontSize});
         page.drawRectangle({x: leftMargin, y: y-35, width: contentWidth, height: 40, borderColor: rgb(0,0,0), borderWidth: 0.5});
         if (formData.hcs501Notes) y = drawWrappedText(page, formData.hcs501Notes, font, mainFontSize, leftMargin + 5, y - 5, contentWidth - 10, lineSpacing);
-        y -= 60;
+        y -= 30; // Adjusted spacing
 
         // Certify Pane
-        page.drawRectangle({ x: leftMargin - 10, y: y - 80, width: contentWidth + 20, height: 95, color: lightGray });
+        page.drawRectangle({ x: leftMargin - 10, y: y - 75, width: contentWidth + 20, height: 90, color: lightGray });
 
         const certifyText = "I hereby certify under penalty of perjury that I am 18 years of age or older and that the above statements are true and correct. I give my permission for any necessary verification.";
-        y = drawWrappedText(page, certifyText, boldFont, 10, leftMargin, y, contentWidth - 20, 14);
+        y = drawWrappedText(page, certifyText, boldFont, 10, leftMargin, y - 5, contentWidth - 20, 14);
         y -= 25;
 
         if(formData.hcs501EmployeeSignature) await drawSignature(page, formData.hcs501EmployeeSignature, leftMargin + 5, y, 240, 20, pdfDoc);
@@ -403,7 +403,7 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
             width: logoDims.width,
             height: logoDims.height,
         });
-        y -= (logoDims.height) + 5; 
+        y -= (logoDims.height) - 5; // Reduced space
 
         const title = "FIRSTLIGHT HOMECARE REFERENCE VERIFICATION FORM";
         const titleWidth = boldFont.widthOfTextAtSize(title, 12);
@@ -424,7 +424,7 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
         y -= 15;
         
         const pleasePrint = "PLEASE PRINT";
-        drawText(page, pleasePrint, { x: leftMargin, y: y, font, size: 7 });
+        drawText(page, pleasePrint, {x: leftMargin, y: y, font, size: 7});
         y -= 5;
         page.drawLine({ start: { x: leftMargin, y: y }, end: { x: rightMargin, y: y }, thickness: 1 });
         y -= 15;
@@ -442,21 +442,22 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
         page.drawLine({ start: { x: leftMargin, y: y - 10 }, end: { x: leftMargin + 300, y: y - 10 }, thickness: 0.5 });
         drawText(page, "Signature", {x: leftMargin, y: y-20, font, size: 6});
 
-        if (formData.applicantSignatureDate && (formData.applicantSignatureDate.toDate || isDate(formData.applicantSignatureDate))) {
-            const dateToFormat = formData.applicantSignatureDate.toDate ? formData.applicantSignatureDate.toDate() : formData.applicantSignatureDate;
-             drawText(page, `Date: ${format(dateToFormat, "MM/dd/yyyy")}`, {x: leftMargin + 350, y, font, size: 7});
+        const sigDate = (formData.applicantSignatureDate && (formData.applicantSignatureDate.toDate || isDate(formData.applicantSignatureDate))) ? format(formData.applicantSignatureDate.toDate ? formData.applicantSignatureDate.toDate() : formData.applicantSignatureDate, "MM/dd/yyyy") : '';
+        if (sigDate) {
+             drawText(page, `Date: ${sigDate}`, {x: leftMargin + 350, y, font, size: 7});
         }
         page.drawLine({ start: { x: leftMargin + 340, y: y-10 }, end: { x: leftMargin + 500, y: y - 10 }, thickness: 0.5 });
         drawText(page, "Date", {x: leftMargin + 340, y: y-20, font, size: 6});
         y -= 30;
 
         const employerBoxStartY = y;
-        drawText(page, "FORMER EMPLOYER CONTACT INFORMATION", {x: leftMargin, y, font: boldFont, size: 7});
+        drawText(page, "FORMER EMPLOYER CONTACT INFORMATION", {x: leftMargin, y, font: boldFont, size: 6});
         y -= 15;
 
         const drawTwoColumnField = (label1: string, value1: string | undefined, label2: string, value2: string | undefined) => {
-            if (value1) drawText(page, `${label1}: ${value1}`, {x: leftMargin + 5, y, font, size: 6});
-            if (value2) drawText(page, `${label2}: ${value2}`, {x: leftMargin + contentWidth / 2, y, font, size: 6});
+            const smallFontSize = 6;
+            if (value1) drawText(page, `${label1}: ${value1}`, {x: leftMargin + 5, y, font, size: smallFontSize});
+            if (value2) drawText(page, `${label2}: ${value2}`, {x: leftMargin + contentWidth / 2, y, font, size: smallFontSize});
             y -= 12;
         };
 
@@ -470,16 +471,17 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
         y -= 15;
 
         const referenceBoxStartY = y;
-        drawText(page, "REFERENCE INFORMATION", {x: leftMargin, y, font: boldFont, size: 7});
+        drawText(page, "REFERENCE INFORMATION", {x: leftMargin, y, font: boldFont, size: 6});
         y -= 10;
         drawText(page, "Please rate yourself in the following categories as you feel your former supervisor will rate you:", {x: leftMargin, y, font, size: 6});
         y -= 12;
 
         const drawRating = (label: string, value: string | undefined) => {
-            y = drawWrappedText(page, label, boldFont, 6, leftMargin + 5, y, contentWidth - 10, 7);
+            const smallFontSize = 6;
+            y = drawWrappedText(page, label, boldFont, smallFontSize, leftMargin + 5, y, contentWidth - 10, 7);
             y -= 6; // Reduced space
-            if(value) drawText(page, `Rating: ${value}`, {x: leftMargin + 15, y, font, size: 6});
-            y -= 10;
+            if(value) drawText(page, `Rating: ${value}`, {x: leftMargin + 15, y, font, size: smallFontSize});
+            y -= 10; // Reduced space
         };
 
         drawRating("TEAMWORK: The degree to which you are willing to work harmoniously with others; the extent to which you conform to the policies of management.", formData.teamworkRating);
@@ -599,7 +601,7 @@ export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: stri
         drawText(page, 'Have you lived in a state other than California within the last five years?', {x: leftMargin + 100, y, font: boldFont, size: mainFontSize});
         y -= 15;
 
-        drawText(page, `If yes, list each state below and then complete an LIC 198B for each state: ${formData.outOfStateHistory || ''}`, {x: leftMargin, y, font, size: mainFontSize});
+        y = drawWrappedText(page, `If yes, list each state below and then complete an LIC 198B for each state: ${formData.outOfStateHistory || ''}`, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
         y -= (lineHeight * 22);
         
         const p1_list_title = "You must check yes to the corresponding question(s) above to report every conviction (including reckless and drunk driving convictions), you have on your record even if:";
@@ -615,8 +617,8 @@ export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: stri
             "The conviction was later dismissed, set aside or the sentence was suspended."
         ];
         p1_list_items.forEach(item => {
+            y = drawWrappedText(page, `• ${item}`, font, mainFontSize, leftMargin + 10, y, contentWidth - 10, lineHeight);
             y -= lineHeight;
-            drawText(page, `• ${item}`, { x: leftMargin + 10, y, font, size: mainFontSize });
         });
         
         // --- PAGE 2 ---
@@ -639,7 +641,7 @@ export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: stri
 
         page.drawLine({ start: { x: leftMargin, y: y }, end: { x: rightMargin, y: y }, thickness: 1 });
         y -= 20;
-
+        
         const drawFieldBox = (label: string, value: string | undefined, x: number, yPos: number, boxWidth: number) => {
             if (!page) return;
             drawText(page, label, {x, y: yPos + 12, font, size: labelFontSize}); // label
@@ -724,11 +726,11 @@ export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: stri
         drawText(page, "NOTE: IMPORTANT INFORMATION", { x: leftMargin, y, font: boldFont, size: mainFontSize }); y -= lineHeight;
         y = drawWrappedText(page, "The Department is required to tell people who ask, including the press, if someone in a licensed facility/ organization has a criminal record exemption. The Department must also tell people who ask the name of a licensed facility/organization that has a licensee, employee, resident, or other person with a criminal record exemption. This does not apply to Resource Family Homes, Small Family Child Care Homes, or the Home Care Aide Registry. The Department shall not release any information regarding Home Care Aides in response to a Public Records Act request, other than their Home Care Aide number.", font, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= 20;
         
-        y = drawWrappedText(page, "The information you provide may also be disclosed in the following circumstances:", font, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= 5;
-        drawText(page, "• With other persons or agencies where necessary to perform their legal duties, and their use of your information is compatible and complies with state law, such as for investigations or for licensing, certification, or regulatory purposes.", {x: leftMargin + 10, y: y-lineHeight, font, size: mainFontSize});
-        drawText(page, "• To another government agency as required by state or federal law.", {x: leftMargin + 10, y: y-(lineHeight*2), font, size: mainFontSize});
+        y = drawWrappedText(page, "The information you provide may also be disclosed in the following circumstances:", font, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= lineHeight;
+        y = drawWrappedText(page, "• With other persons or agencies where necessary to perform their legal duties, and their use of your information is compatible and complies with state law, such as for investigations or for licensing, certification, or regulatory purposes.", font, mainFontSize, leftMargin + 10, y, contentWidth - 10, lineHeight); y -= lineHeight;
+        y = drawWrappedText(page, "• To another government agency as required by state or federal law.", font, mainFontSize, leftMargin + 10, y, contentWidth - 10, lineHeight);
         
-        let boxEndY_p3 = y - (lineHeight * 3) - 10;
+        let boxEndY_p3 = y - 20;
         page.drawRectangle({ x: leftMargin - 10, y: boxEndY_p3, width: contentWidth + 20, height: boxStartY_p3 - boxEndY_p3, borderColor: rgb(0,0,0), borderWidth: 1 });
 
 
@@ -750,18 +752,18 @@ export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: stri
         y = drawWrappedText(page, "Your fingerprints will be used to check the criminal history records of the FBI. You have the opportunity to complete or challenge the accuracy of the information contained in the FBI identification record. The procedure for obtaining a change, correction, or updating an FBI identification record are set forth in Title 28, CFR, 16.34. You can find additional information on the FBI website at https://www.fbi.gov/aboutus/cjis/background-checks.", font, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= 20;
 
         drawText(page, "Federal Privacy Act Statement", { x: leftMargin, y, font: boldFont, size: mainFontSize }); y -= lineHeight;
-        drawText(page, "Authority:", { x: leftMargin, y, font: boldFont, size: mainFontSize });
+        y = drawWrappedText(page, "Authority:", boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight);
         y = drawWrappedText(page, "The FBI’s acquisition, preservation, and exchange of fingerprints and associated information is generally authorized under 28 U.S.C. 534. Depending on the nature of your application, supplemental authorities include Federal statutes, State statutes pursuant to Pub. L. 92-544, Presidential Executive Orders, and federal regulations. Providing your fingerprints and associated information is voluntary; however, failure to do so may affect completion or approval of your application.", font, mainFontSize, leftMargin + 50, y, contentWidth - 50, lineHeight); y -= 20;
 
-        drawText(page, "Principal Purpose:", { x: leftMargin, y, font: boldFont, size: mainFontSize });
+        y = drawWrappedText(page, "Principal Purpose:", boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight);
         y = drawWrappedText(page, "Certain determinations, such as employment, licensing, and security clearances, may be predicated on fingerprint-based background checks. Your fingerprints and associated information/biometrics may be provided to the employing, investigating, or otherwise responsible agency, and/or the FBI for the purpose of comparing your fingerprints to other fingerprints in the FBI’s Next Generation Identification (NGI) system or its successor systems (including civil, criminal, and latent fingerprint repositories) or other available records of the employing, investigating, or otherwise responsible agency. The FBI may retain your fingerprints and associated information/biometrics in NGI after the completion of this application and, while retained, your fingerprints may continue to be compared against other fingerprints submitted to or retained by NGI.", font, mainFontSize, leftMargin + 90, y, contentWidth - 90, lineHeight); y -= 20;
 
-        drawText(page, "Routine Uses:", { x: leftMargin, y, font: boldFont, size: mainFontSize });
-        y = drawWrappedText(page, "During the processing of this application and for as long thereafter as your fingerprints and associated information/biometrics are retained in NGI, your information may be disclosed pursuant to your consent, and may be disclosed without your consent as permitted by the Privacy Act of 1974 and all applicable Routine Uses as may be published at any time in the Federal Register, including the Routine Uses for the NGI system and the FBI’s Blanket Routine Uses. Routine uses include, but are not limited to, disclosures to:", font, mainFontSize, leftMargin + 70, y, contentWidth - 70, lineHeight); y -= 10;
-        drawText(page, "• employing, governmental or authorized non-governmental agencies responsible for employment, contracting, licensing, security clearances, and other suitability determinations;", {x: leftMargin + 10, y: y-lineHeight, font, size: mainFontSize});
-        drawText(page, "• local, state, tribal, or federal law enforcement agencies; criminal justice agencies; and agencies responsible for national security or public safety.", {x: leftMargin + 10, y: y-(lineHeight*2), font, size: mainFontSize}); y -= (lineHeight*2); y -= 15;
-
-        drawText(page, "Noncriminal Justice Applicant’s Privacy Rights", { x: leftMargin, y, font: boldFont, size: mainFontSize }); y -= lineHeight;
+        y = drawWrappedText(page, "Routine Uses:", boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight);
+        y = drawWrappedText(page, "During the processing of this application and for as long thereafter as your fingerprints and associated information/biometrics are retained in NGI, your information may be disclosed pursuant to your consent, and may be disclosed without your consent as permitted by the Privacy Act of 1974 and all applicable Routine Uses as may be published at any time in the Federal Register, including the Routine Uses for the NGI system and the FBI’s Blanket Routine Uses. Routine uses include, but are not limited to, disclosures to:", font, mainFontSize, leftMargin + 70, y, contentWidth - 70, lineHeight); y -= lineHeight;
+        y = drawWrappedText(page, "• employing, governmental or authorized non-governmental agencies responsible for employment, contracting, licensing, security clearances, and other suitability determinations;", font, mainFontSize, leftMargin + 10, y, contentWidth - 10, lineHeight); y -= lineHeight;
+        y = drawWrappedText(page, "• local, state, tribal, or federal law enforcement agencies; criminal justice agencies; and agencies responsible for national security or public safety.", font, mainFontSize, leftMargin + 10, y, contentWidth - 10, lineHeight); y -= 20;
+        
+        y = drawWrappedText(page, "Noncriminal Justice Applicant’s Privacy Rights", boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= lineHeight;
         y = drawWrappedText(page, "As an applicant who is the subject of a national fingerprint-based criminal history record check for a noncriminal justice purpose (such as an application for employment or a license, an immigration or naturalization matter, security clearance, or adoption), you have certain rights which are discussed below.", font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
         
         let boxEndY_p4 = y - 10;
