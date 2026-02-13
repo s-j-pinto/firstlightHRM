@@ -70,7 +70,7 @@ export default function LIC508Page() {
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
 
     const form = useForm<Lic508PageFormData>({
-      resolver: zodResolver(lic508PageSchema),
+      resolver: zodResolver(lic508Schema),
       defaultValues: defaultFormValues,
     });
     
@@ -175,7 +175,7 @@ export default function LIC508Page() {
                                </FormItem>
                             )}
                         />
-                        <p className="text-xs text-muted-foreground pt-3">
+                         <p className="text-xs text-muted-foreground pt-3">
                             You do not need to disclose any marijuana-related offenses covered by the marijuana reform legislation codified at Health and Safety Code sections 11361.5 and 11361.7.
                         </p>
                     </div>
@@ -185,7 +185,7 @@ export default function LIC508Page() {
                             control={form.control}
                             name="convictedOutOfState"
                             render={({ field }) => (
-                               <FormItem>
+                               <FormItem className="space-y-3">
                                    <FormLabel>Have you ever been convicted of a crime from another state, federal court, military, or jurisdiction outside of U.S.?</FormLabel>
                                    <FormControl>
                                        <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4 pt-2">
@@ -410,6 +410,35 @@ export default function LIC508Page() {
                     </div>
                 </div>
 
+                <Separator />
+                <div className="space-y-4 pt-4 text-sm">
+                    <h3 className="text-center font-bold">Contact Information</h3>
+                    <p className="text-muted-foreground">For questions about this notice, CDSS programs, and the authorized use of your criminal history information, please contact your local licensing regional office.</p>
+                    <p className="text-muted-foreground">For further questions about this notice or your criminal records, you may contact the Associate Governmental Program Analyst at the DOJ’s Keeper of Records at (916) 210-3310, by email at keeperofrecords@doj.ca.gov, or by mail at:</p>
+                    <p className="pl-4 text-muted-foreground">
+                        Department of Justice<br />
+                        Bureau of Criminal Information & Analysis Keeper of Records<br />
+                        P.O. Box 903417<br />
+                        Sacramento, CA 94203-4170
+                    </p>
+
+                    <h3 className="font-bold pt-4">Applicant Notification and Record Challenge</h3>
+                    <p className="text-muted-foreground">Your fingerprints will be used to check the criminal history records of the FBI. You have the opportunity to complete or challenge the accuracy of the information contained in the FBI identification record. The procedure for obtaining a change, correction, or updating an FBI identification record are set forth in Title 28, CFR, 16.34. You can find additional information on the FBI website at https://www.fbi.gov/aboutus/cjis/background-checks.</p>
+
+                    <h3 className="font-bold pt-4">Federal Privacy Act Statement</h3>
+                    <p className="text-muted-foreground"><span className="font-semibold">Authority:</span> The FBI’s acquisition, preservation, and exchange of fingerprints and associated information is generally authorized under 28 U.S.C. 534. Depending on the nature of your application, supplemental authorities include Federal statutes, State statutes pursuant to Pub. L. 92-544, Presidential Executive Orders, and federal regulations. Providing your fingerprints and associated information is voluntary; however, failure to do so may affect completion or approval of your application.</p>
+                    <p className="text-muted-foreground"><span className="font-semibold">Principal Purpose:</span> Certain determinations, such as employment, licensing, and security clearances, may be predicated on fingerprint-based background checks. Your fingerprints and associated information/biometrics may be provided to the employing, investigating, or otherwise responsible agency, and/or the FBI for the purpose of comparing your fingerprints to other fingerprints in the FBI’s Next Generation Identification (NGI) system or its successor systems (including civil, criminal, and latent fingerprint repositories) or other available records of the employing, investigating, or otherwise responsible agency. The FBI may retain your fingerprints and associated information/biometrics in NGI after the completion of this application and, while retained, your fingerprints may continue to be compared against other fingerprints submitted to or retained by NGI.</p>
+                    <p className="text-muted-foreground"><span className="font-semibold">Routine Uses:</span> During the processing of this application and for as long thereafter as your fingerprints and associated information/biometrics are retained in NGI, your information may be disclosed pursuant to your consent, and may be disclosed without your consent as permitted by the Privacy Act of 1974 and all applicable Routine Uses as may be published at any time in the Federal Register, including the Routine Uses for the NGI system and the FBI’s Blanket Routine Uses. Routine uses include, but are not limited to, disclosures to:</p>
+                    <ul className="list-disc pl-5 mt-2 space-y-1 text-muted-foreground">
+                        <li>employing, governmental or authorized non-governmental agencies responsible for employment, contracting, licensing, security clearances, and other suitability determinations;</li>
+                        <li>local, state, tribal, or federal law enforcement agencies; criminal justice agencies; and agencies responsible for national security or public safety.</li>
+                    </ul>
+
+                    <h3 className="font-bold pt-4">Noncriminal Justice Applicant’s Privacy Rights</h3>
+                    <p className="text-muted-foreground">As an applicant who is the subject of a national fingerprint-based criminal history record check for a noncriminal justice purpose (such as an application for employment or a license, an immigration or naturalization matter, security clearance, or adoption), you have certain rights which are discussed below.</p>
+                </div>
+
+
             </CardContent>
             <CardFooter className="flex justify-end gap-4">
                 <Button type="button" variant="outline" onClick={() => router.push('/candidate-hiring-forms')}>
@@ -425,4 +454,5 @@ export default function LIC508Page() {
             </Form>
         </Card>
     );
-}
+
+    
