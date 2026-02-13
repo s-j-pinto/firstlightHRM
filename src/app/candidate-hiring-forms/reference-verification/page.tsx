@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useEffect, useTransition, useRef } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { doc } from "firebase/firestore";
 import SignatureCanvas from 'react-signature-canvas';
@@ -15,7 +16,7 @@ import { Save, X, Loader2, RefreshCw, CalendarIcon, User } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useUser, useDoc, useMemoFirebase, firestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { referenceVerificationSchema, type ReferenceVerificationFormData, type CaregiverProfile } from "@/lib/types";
+import { referenceVerificationSchema, referenceVerificationObject, type ReferenceVerificationFormData, type CaregiverProfile } from "@/lib/types";
 import { saveReferenceVerificationData } from "@/lib/candidate-hiring-forms.actions";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -52,6 +53,18 @@ const defaultFormValues: ReferenceVerificationFormData = {
 
 const ratingOptions = ['Unsatisfactory', 'Below Average', 'Average', 'Above Average', 'Outstanding'];
 
+const safeToDate = (value: any): Date | undefined => {
+    if (!value) return undefined;
+    if (value.toDate && typeof value.toDate === 'function') {
+        return value.toDate();
+    }
+    const d = new Date(value);
+    if (!isNaN(d.getTime())) {
+        return d;
+    }
+    return undefined;
+};
+
 const RatingScale = ({ name, control, label }: { name: keyof ReferenceVerificationFormData, control: any, label: string }) => (
     <FormField
       control={control}
@@ -79,13 +92,22 @@ const RatingScale = ({ name, control, label }: { name: keyof ReferenceVerificati
 export default function ReferenceVerificationPage() {
     const sigPadRef = useRef<SignatureCanvas>(null);
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { user, isUserLoading } = useUser();
     const { toast } = useToast();
     const [isSaving, startSavingTransition] = useTransition();
 
+    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "care-rc@firstlighthomecare.com";
+    const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL || "lpinto@firstlighthomecare.com";
+    const staffingAdminEmail = process.env.NEXT_PUBLIC_STAFFING_ADMIN_EMAIL || "admin-rc@firstlighthomecare.com";
+
+    const isAnAdmin = user?.email === adminEmail || user?.email === ownerEmail || user?.email === staffingAdminEmail;
+    const candidateId = searchParams.get('candidateId');
+    const profileIdToLoad = isAnAdmin && candidateId ? candidateId : user?.uid;
+
     const caregiverProfileRef = useMemoFirebase(
-      () => (user?.uid ? doc(firestore, 'caregiver_profiles', user.uid) : null),
-      [user?.uid]
+      () => (profileIdToLoad ? doc(firestore, 'caregiver_profiles', profileIdToLoad) : null),
+      [profileIdToLoad]
     );
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
 
@@ -96,27 +118,24 @@ export default function ReferenceVerificationPage() {
 
     useEffect(() => {
         if (existingData) {
-            const formData: any = {};
-            Object.keys(defaultFormValues).forEach(key => {
-                const formKey = key as keyof ReferenceVerificationFormData;
-                // Exclude the 'phone' field from being pre-populated from the caregiver's profile
-                // as this field is for the former employer's phone number.
-                if (formKey === 'phone') {
-                    return;
-                }
-                const existingValue = (existingData as any)[formKey];
-                if (existingValue !== undefined && existingValue !== null) {
-                    if (formKey.endsWith('Date')) {
-                         formData[formKey] = existingValue.toDate ? existingValue.toDate() : new Date(existingValue);
+            const formData: Partial<ReferenceVerificationFormData> = {};
+            const formSchemaKeys = Object.keys(referenceVerificationObject.shape) as Array<keyof ReferenceVerificationFormData>;
+
+            formSchemaKeys.forEach(key => {
+                 if (Object.prototype.hasOwnProperty.call(existingData, key)) {
+                    const value = (existingData as any)[key];
+                    if (key.toLowerCase().includes('date') && value) {
+                        (formData as any)[key] = safeToDate(value);
                     } else {
-                         formData[formKey] = existingValue;
+                         (formData as any)[key] = value;
                     }
                 }
             });
+
             form.reset({ ...defaultFormValues, ...formData });
 
-             if (formData.applicantSignature && sigPadRef.current) {
-                sigPadRef.current.fromDataURL(formData.applicantSignature);
+             if (existingData.applicantSignature && sigPadRef.current) {
+                sigPadRef.current.fromDataURL(existingData.applicantSignature);
             }
         }
     }, [existingData, form]);
@@ -127,19 +146,32 @@ export default function ReferenceVerificationPage() {
     };
 
     const onSubmit = (data: ReferenceVerificationFormData) => {
-      if (!user?.uid) {
-        toast({ title: 'Error', description: 'You must be logged in to save the form.', variant: 'destructive'});
+      const saveId = profileIdToLoad;
+      if (!saveId) {
+        toast({ title: 'Error', description: 'Cannot save form without a valid user or candidate ID.', variant: 'destructive'});
         return;
       }
       startSavingTransition(async () => {
-        const result = await saveReferenceVerificationData(user.uid, data);
+        const result = await saveReferenceVerificationData(saveId, data);
         if (result.error) {
           toast({ title: "Save Failed", description: result.error, variant: 'destructive'});
         } else {
           toast({ title: "Success", description: "Your Reference Verification form has been saved."});
-          router.push('/candidate-hiring-forms');
+          if(isAnAdmin) {
+            router.push(`/candidate-hiring-forms?candidateId=${saveId}`);
+          } else {
+            router.push('/candidate-hiring-forms');
+          }
         }
       });
+    }
+
+    const handleCancel = () => {
+        if(isAnAdmin) {
+            router.push(`/admin/advanced-search?search=${encodeURIComponent(existingData?.fullName || '')}`);
+        } else {
+            router.push('/candidate-hiring-forms');
+        }
     }
 
     const isLoading = isUserLoading || isDataLoading;
@@ -166,7 +198,12 @@ export default function ReferenceVerificationPage() {
             <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardContent className="space-y-8">
                 <div className="space-y-4">
-                     <FormField control={form.control} name="fullName" render={({ field }) => ( <FormItem><FormLabel>Applicant’s First Name Middle Last</FormLabel><FormControl><Input {...field} value={existingData?.fullName} disabled readOnly /></FormControl></FormItem> )} />
+                     <FormItem>
+                        <FormLabel>Applicant’s First Name Middle Last</FormLabel>
+                        <FormControl>
+                            <Input value={existingData?.fullName || ''} disabled readOnly />
+                        </FormControl>
+                    </FormItem>
                     <p className="text-sm text-muted-foreground">I hereby give FirstLight HomeCare permission to obtain the employment references necessary to make a hiring decision and hold all persons giving references free from any and all liability resulting from this process. I waive any provision impeding the release of this information and agree to provide any information necessary for the release of this information beyond that provided on the employment application and this reference verification form.</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                         <div className="space-y-2">
@@ -239,7 +276,7 @@ export default function ReferenceVerificationPage() {
 
             </CardContent>
             <CardFooter className="flex justify-end gap-4">
-                <Button type="button" variant="outline" onClick={() => router.push('/candidate-hiring-forms')}>
+                <Button type="button" variant="outline" onClick={handleCancel}>
                   <X className="mr-2" />
                   Cancel
                 </Button>
@@ -253,6 +290,5 @@ export default function ReferenceVerificationPage() {
         </Card>
     );
 }
-    
 
     

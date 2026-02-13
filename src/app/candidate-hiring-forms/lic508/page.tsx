@@ -3,7 +3,7 @@
 
 import { useEffect, useTransition, useRef } from "react";
 import { useForm } from "react-hook-form";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { doc } from "firebase/firestore";
 import SignatureCanvas from 'react-signature-canvas';
@@ -27,7 +27,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 
-const lic508PageSchema = lic508Object.extend({
+const lic508PageSchema = lic508Object.passthrough().extend({
   fullName: z.string().optional(),
   address: z.string().optional(),
   city: z.string().optional(),
@@ -61,16 +61,37 @@ const defaultFormValues: Lic508PageFormData = {
   dob: undefined,
 };
 
+const safeToDate = (value: any): Date | undefined => {
+    if (!value) return undefined;
+    if (value.toDate && typeof value.toDate === 'function') {
+        return value.toDate();
+    }
+    const d = new Date(value);
+    if (!isNaN(d.getTime())) {
+        return d;
+    }
+    return undefined;
+};
+
 export default function LIC508Page() {
     const sigPadRef = useRef<SignatureCanvas>(null);
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { user, isUserLoading } = useUser();
     const { toast } = useToast();
     const [isSaving, startSavingTransition] = useTransition();
+
+    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "care-rc@firstlighthomecare.com";
+    const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL || "lpinto@firstlighthomecare.com";
+    const staffingAdminEmail = process.env.NEXT_PUBLIC_STAFFING_ADMIN_EMAIL || "admin-rc@firstlighthomecare.com";
+
+    const isAnAdmin = user?.email === adminEmail || user?.email === ownerEmail || user?.email === staffingAdminEmail;
+    const candidateId = searchParams.get('candidateId');
+    const profileIdToLoad = isAnAdmin && candidateId ? candidateId : user?.uid;
     
     const caregiverProfileRef = useMemoFirebase(
-      () => (user?.uid ? doc(firestore, 'caregiver_profiles', user.uid) : null),
-      [user?.uid]
+      () => (profileIdToLoad ? doc(firestore, 'caregiver_profiles', profileIdToLoad) : null),
+      [profileIdToLoad]
     );
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
 
@@ -79,31 +100,40 @@ export default function LIC508Page() {
       defaultValues: defaultFormValues,
     });
     
-    const safeToDate = (value: any): Date | undefined => {
-        if (!value) return undefined;
-        if (value.toDate && typeof value.toDate === 'function') {
-            return value.toDate();
-        }
-        const d = new Date(value);
-        if (!isNaN(d.getTime())) {
-            return d;
-        }
-        return undefined;
-    };
-
     useEffect(() => {
         if (existingData) {
-            const formData:any = { ...existingData };
-             formData.lic508SignatureDate = safeToDate(formData.lic508SignatureDate);
-             formData.dob = safeToDate(formData.dob);
+            const formData: Partial<Lic508PageFormData> = {};
+            const formSchemaKeys = Object.keys(lic508Object.shape) as Array<keyof Lic508FormData>;
+
+            formSchemaKeys.forEach(key => {
+                 if (Object.prototype.hasOwnProperty.call(existingData, key)) {
+                    const value = (existingData as any)[key];
+                    if (key.toLowerCase().includes('date') && value) {
+                        (formData as any)[key] = safeToDate(value);
+                    } else {
+                        (formData as any)[key] = value;
+                    }
+                }
+            });
+            
+            // Also pre-populate from general profile if fields are empty
+            if (!formData.fullName && existingData.fullName) formData.fullName = existingData.fullName;
+            if (!formData.address && existingData.address) formData.address = existingData.address;
+            if (!formData.city && existingData.city) formData.city = existingData.city;
+            if (!formData.state && existingData.state) formData.state = existingData.state;
+            if (!formData.zip && existingData.zip) formData.zip = existingData.zip;
+            if (!formData.driversLicenseNumber && existingData.driversLicenseNumber) formData.driversLicenseNumber = existingData.driversLicenseNumber;
+            if (!formData.ssn && existingData.ssn) formData.ssn = existingData.ssn;
+            if (!formData.dob && existingData.dob) (formData as any).dob = safeToDate(existingData.dob);
+
 
             form.reset({
                 ...defaultFormValues,
                 ...formData
             });
 
-             if (formData.lic508Signature && sigPadRef.current) {
-                sigPadRef.current.fromDataURL(formData.lic508Signature);
+             if (existingData.lic508Signature && sigPadRef.current) {
+                sigPadRef.current.fromDataURL(existingData.lic508Signature);
             }
         }
     }, [existingData, form]);
@@ -114,19 +144,32 @@ export default function LIC508Page() {
     };
 
     const onSubmit = (data: Lic508PageFormData) => {
-      if (!user?.uid) {
-        toast({ title: 'Error', description: 'You must be logged in to save the form.', variant: 'destructive'});
+      const saveId = profileIdToLoad;
+      if (!saveId) {
+        toast({ title: 'Error', description: 'Cannot save form without a valid user or candidate ID.', variant: 'destructive'});
         return;
       }
       startSavingTransition(async () => {
-        const result = await saveLic508Data(user.uid, data);
+        const result = await saveLic508Data(saveId, data);
         if (result.error) {
           toast({ title: "Save Failed", description: result.error, variant: 'destructive'});
         } else {
           toast({ title: "Success", description: "Your LIC 508 form has been saved."});
-          router.push('/candidate-hiring-forms');
+           if(isAnAdmin) {
+            router.push(`/candidate-hiring-forms?candidateId=${saveId}`);
+          } else {
+            router.push('/candidate-hiring-forms');
+          }
         }
       });
+    }
+
+    const handleCancel = () => {
+        if(isAnAdmin) {
+            router.push(`/admin/advanced-search?search=${encodeURIComponent(existingData?.fullName || '')}`);
+        } else {
+            router.push('/candidate-hiring-forms');
+        }
     }
     
     const isLoading = isUserLoading || isDataLoading;
@@ -496,7 +539,7 @@ naturalization matter, security clearance, or adoption), you have certain rights
 
             </CardContent>
             <CardFooter className="flex justify-end gap-4">
-                <Button type="button" variant="outline" onClick={() => router.push('/candidate-hiring-forms')}>
+                <Button type="button" variant="outline" onClick={handleCancel}>
                   <X className="mr-2" />
                   Cancel
                 </Button>
@@ -510,3 +553,5 @@ naturalization matter, security clearance, or adoption), you have certain rights
         </Card>
     );
 }
+
+    

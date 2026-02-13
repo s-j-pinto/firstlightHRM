@@ -99,16 +99,15 @@ export default function HCS501Page() {
     useEffect(() => {
         if (existingData) {
             const formData: Partial<Hcs501FormData> = {};
-            const formFields = Object.keys(hcs501Object.shape);
+            const formSchemaKeys = Object.keys(hcs501Object.shape) as Array<keyof Hcs501FormData>;
             
-            formFields.forEach(key => {
-                const typedKey = key as keyof Hcs501FormData;
-                if (typedKey in existingData) {
-                    const value = (existingData as any)[typedKey];
+            formSchemaKeys.forEach(key => {
+                if (Object.prototype.hasOwnProperty.call(existingData, key)) {
+                    const value = (existingData as any)[key];
                     if (key.toLowerCase().includes('date') && value) {
-                        (formData as any)[typedKey] = safeToDate(value);
+                        (formData as any)[key] = safeToDate(value);
                     } else {
-                        (formData as any)[typedKey] = value;
+                        (formData as any)[key] = value;
                     }
                 }
             });
