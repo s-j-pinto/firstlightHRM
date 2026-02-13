@@ -130,8 +130,9 @@ export default function SOC341APage() {
                 <div className="space-y-4">
                     <h3 className="font-bold">PERSONS WHO ARE REQUIRED TO REPORT ABUSE</h3>
                     <p className="text-sm text-muted-foreground">
-                        Mandated reporters include care custodians and any person who has assumed full or intermittent responsibility for care or custody of an elder or dependent adult, whether or not paid for that responsibility (Welfare and Institutions Code (WIC) Section 15630(a)). Care custodian means an administrator or an employee of most public or private facilities or agencies, or persons providing care or services for elders or dependent adults, including members of the support staff and maintenance
-staff (WIC Section 15610.17).
+                        Mandated reporters include care custodians and any person who has assumed full or intermittent responsibility for care or custody of an elder or dependent adult, whether or not paid for that responsibility (Welfare and Institutions Code (WIC) Section 15630(a)). Care custodian means an
+                        administrator or an employee of most public or private facilities or agencies, or persons providing care or services for elders or dependent adults, including members of the support staff and maintenance
+                        staff (WIC Section 15610.17).
                     </p>
                 </div>
 
@@ -139,9 +140,9 @@ staff (WIC Section 15610.17).
                     <h3 className="font-bold">PERSONS WHO ARE THE SUBJECT OF THE REPORT</h3>
                     <p className="text-sm text-muted-foreground">
                         Elder means any person residing in this state who is 65 years of age or older (WIC Section 15610.27). Dependent Adult means any person residing in this state, between the ages of 18 and 64, who has physical or mental limitations that restrict his or her ability to carry out normal activities or
-to protect his or her rights including, but not limited to, persons who have physical or developmental
-disabilities or whose physical or mental abilities have diminished because of age and those admitted
-as inpatients in 24-hour health facilities (WIC Section 15610.23).
+                        to protect his or her rights including, but not limited to, persons who have physical or developmental
+                        disabilities or whose physical or mental abilities have diminished because of age and those admitted
+                        as inpatients in 24-hour health facilities (WIC Section 15610.23).
                     </p>
                 </div>
 
@@ -149,12 +150,12 @@ as inpatients in 24-hour health facilities (WIC Section 15610.23).
                     <h3 className="font-bold">REPORTING RESPONSIBILITIES AND TIME FRAMES</h3>
                     <p className="text-sm text-muted-foreground">
                         Any mandated reporter, who in his or her professional capacity, or within the scope of his or her
-employment, has observed or has knowledge of an incident that reasonably appears to be abuse or
-neglect, or is told by an elder or dependent adult that he or she has experienced behavior constituting
-abuse or neglect, or reasonably suspects that abuse or neglect occurred, shall complete form SOC
-341, “Report of Suspected Dependent Adult/Elder Abuse” for each report of known or suspected
-instance of abuse (physical abuse, sexual abuse, financial abuse, abduction, neglect (self-neglect),
-isolation, and abandonment) involving an elder or dependent adult.
+                        employment, has observed or has knowledge of an incident that reasonably appears to be abuse or
+                        neglect, or is told by an elder or dependent adult that he or she has experienced behavior constituting
+                        abuse or neglect, or reasonably suspects that abuse or neglect occurred, shall complete form SOC
+                        341, “Report of Suspected Dependent Adult/Elder Abuse” for each report of known or suspected
+                        instance of abuse (physical abuse, sexual abuse, financial abuse, abduction, neglect (self-neglect),
+                        isolation, and abandonment) involving an elder or dependent adult.
                     </p>
                     <p className="text-sm text-muted-foreground">
                         Reporting shall be completed as follows:
@@ -167,8 +168,7 @@ by telephone to the local law enforcement agency immediately and no later than t
 after observing, obtaining knowledge of, or suspecting physical abuse. Send the written
 report to the local law enforcement agency, the local Long-Term Care Ombudsman Program
 (LTCOP), and the appropriate licensing agency (for long-term health care facilities, the
-California Department of Public Health; for community care facilities, the California
-Department of Social Services) within two (2) hours of observing, obtaining knowledge of, or
+California Department of Social Services) within two (2) hours of observing, obtaining knowledge of, or
 suspecting physical abuse.
                         </li>
                         <li>
@@ -286,7 +286,70 @@ wrongful use or with intent to defraud, or both; or (3) Takes, secretes, appropr
 retains real or personal property of an elder or dependent adult by undue influence, as defined in
 Section 15610.70 (WIC Section 15610.30).
                     </p>
+                     <p className="text-sm text-muted-foreground">
+                        <strong>Abandonment</strong> means the desertion or willful forsaking of an elder or a dependent adult by
+anyone having care or custody of that person under circumstances in which a reasonable
+person would continue to provide care and custody (WIC Section 15610.05).
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                        <strong>Isolation</strong> means any of the following: (1) Acts intentionally committed for the purpose of
+preventing, and that do serve to prevent, an elder or dependent adult from receiving his or her mail
+or telephone calls; (2) Telling a caller or prospective visitor that an elder or dependent adult is not
+present, or does not wish to talk with the caller, or does not wish to meet with the visitor where the
+statement is false, is contrary to the express wishes of the elder or the dependent adult, whether he
+or she is competent or not, and is made for the purpose of preventing the elder or dependent adult
+from having contact with family, friends, or concerned persons; (3) False imprisonment, as defined
+in Section 236 of the Penal Code; or (4) Physical restraint of an elder or dependent adult, for the
+purpose of preventing the elder or dependent adult from meeting with visitors (WIC Section
+15610.43).
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                        <strong>Abduction</strong> means the removal from this state and the restraint from returning to this state, or
+the restraint from returning to this state, of any elder or dependent adult who does not have the
+capacity to consent to the removal from this state and the restraint from returning to this state, or
+the restraint from returning to this state, as well as the removal from this state or the restraint from
+returning to this state, of any conservatee without the consent of the conservator or the court (WIC
+Section 15610.06).
+                    </p>
                 </div>
+                 <p className="text-sm font-bold text-destructive">
+                    AS AN EMPLOYEE OR VOLUNTEER OF THIS FACILITY, YOU MUST COMPLY WITH THE DEPENDENT
+ADULT AND ELDER ABUSE REQUIREMENTS, AS STATED ABOVE. IF YOU DO NOT COMPLY, YOU MAY
+BE SUBJECT TO CRIMINAL PENALTY. IF YOU ARE A LONG-TERM CARE OMBUDSMAN, YOU MUST
+COMPLY WITH FEDERAL AND STATE LAWS, WHICH PROHIBIT YOU FROM DISCLOSING THE
+IDENTITIES OF LONG-TERM RESIDENTS AND COMPLAINANTS TO ANYONE UNLESS CONSENT TO
+DISCLOSE IS PROVIDED BY THE RESIDENT OR COMPLAINANT OR DISCLOSURE IS REQUIRED BY
+COURT ORDER (Title 42 United States Code Section 3058g(d)(2); WIC Section 9725).
+                </p>
+                <div className="space-y-4 pt-6">
+                    <p className="text-sm">I, <span className="font-semibold">{existingData?.fullName || '[Your Name]'}</span> have read and understand my responsibility to report known or
+suspected abuse of dependent adults or elders. I will comply with the reporting requirements.</p>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                        <div className="space-y-2">
+                            <Label>SIGNATURE</Label>
+                            <div className="relative w-full h-24 rounded-md border bg-muted/50">
+                                <SignatureCanvas
+                                    ref={sigPadRef}
+                                    penColor='black'
+                                    canvasProps={{ className: 'w-full h-full rounded-md' }}
+                                    onEnd={() => {
+                                        if (sigPadRef.current) {
+                                            form.setValue('soc341aSignature', sigPadRef.current.toDataURL())
+                                        }
+                                    }}
+                                />
+                            </div>
+                            <Button type="button" variant="ghost" size="sm" onClick={clearSignature} className="mt-2">
+                                <RefreshCw className="mr-2 h-4 w-4" />
+                                Clear Signature
+                            </Button>
+                        </div>
+                       <FormField control={form.control} name="soc341aSignatureDate" render={({ field }) => (
+                        <FormItem className="flex flex-col"><FormLabel>DATE</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
+                       )} />
+                    </div>
+                </div>
+
             </CardContent>
             <CardFooter className="flex justify-end gap-4">
                 <Button type="button" variant="outline" onClick={() => router.push('/candidate-hiring-forms')}>
