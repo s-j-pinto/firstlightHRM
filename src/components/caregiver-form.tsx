@@ -101,7 +101,6 @@ const certificationCheckboxes = [
     { id: "liveScan", label: "Live Scan(fingerprint)" },
     { id: "negativeTbTest", label: "Negative TB-test" },
     { id: "cprFirstAid", label: "CPR/First Aid" },
-    { id: "covidVaccine", label: "COVID Vaccinated" },
 ] as const;
 
 
@@ -157,7 +156,6 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
       otherLanguages: "",
       negativeTbTest: false,
       cprFirstAid: false,
-      covidVaccine: false,
     },
   });
 

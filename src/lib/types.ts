@@ -126,7 +126,6 @@ export const certificationsSchema = z.object({
   otherLanguages: z.string().optional(),
   negativeTbTest: z.boolean().default(false),
   cprFirstAid: z.boolean().default(false),
-  covidVaccine: z.boolean().default(false),
 });
 
 export const availabilitySchema = z.object({
@@ -270,7 +269,7 @@ export const caregiverFormSchema = generalInfoSchema
   .merge(transportationSchema);
 
 
-export type CaregiverProfile = z.infer<typeof caregiverFormSchema> & z.infer<typeof hcs501Object> & z.infer<typeof emergencyContactSchema> & z.infer<typeof lic508Object> & z.infer<typeof soc341aSchema> & z.infer<typeof referenceVerificationObject> & { id: string, canWorkWithCovid?: boolean, cna?: boolean };
+export type CaregiverProfile = z.infer<typeof caregiverFormSchema> & z.infer<typeof hcs501Object> & z.infer<typeof emergencyContactSchema> & z.infer<typeof lic508Object> & z.infer<typeof soc341aSchema> & z.infer<typeof referenceVerificationObject> & { id: string, canWorkWithCovid?: boolean, cna?: boolean, covidVaccine?: boolean };
 
 export const appointmentSchema = z.object({
   caregiverId: z.string(),
@@ -920,6 +919,7 @@ export type CaregiverForRecommendation = z.infer<typeof CaregiverForRecommendati
 
 
     
+
 
 
 

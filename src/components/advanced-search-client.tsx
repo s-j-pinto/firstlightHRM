@@ -50,7 +50,6 @@ const skillsAndAttributes = [
     { id: "liveScan", label: "Live Scan", icon: ScanSearch },
     { id: "negativeTbTest", label: "Negative TB Test", icon: ShieldCheck },
     { id: "cprFirstAid", label: "CPR/First Aid", icon: HeartPulse },
-    { id: "covidVaccine", label: "COVID Vaccinated", icon: Biohazard },
 ] as const;
 
 
@@ -200,7 +199,6 @@ const ProfileDialog = ({ candidate }: { candidate: CaregiverProfile | null }) =>
                     <p className="flex items-center gap-2"><ScanSearch className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">Live Scan:</span> <BooleanDisplay value={candidate.liveScan} /></p>
                     <p className="flex items-center gap-2"><FileText className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">TB Test:</span> <BooleanDisplay value={candidate.negativeTbTest} /></p>
                     <p className="flex items-center gap-2"><Stethoscope className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">CPR/First Aid:</span> <BooleanDisplay value={candidate.cprFirstAid} /></p>
-                    <p className='flex items-center gap-2'><Biohazard className="h-4 w-4 text-muted-foreground"/> <span className="font-semibold w-24">COVID Vaccine:</span> <BooleanDisplay value={candidate.covidVaccine} /></p>
                 </div>
                 {candidate.otherLanguages && <p className="flex items-center gap-2"><Languages className="h-4 w-4 mt-1 text-muted-foreground" /><span className="font-semibold">Other Languages:</span> {candidate.otherLanguages}</p>}
                 {candidate.otherCertifications && <p><span className="font-semibold">Other:</span> {candidate.otherCertifications}</p>}
