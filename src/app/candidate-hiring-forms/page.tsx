@@ -10,12 +10,12 @@ import { useUser, useDoc, useMemoFirebase, firestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { CaregiverProfile } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { generateHcs501PdfAction } from '@/lib/candidate-hiring-forms.actions';
+import { generateHcs501PdfAction, generateEmergencyContactPdfAction } from '@/lib/candidate-hiring-forms.actions';
 import { useToast } from '@/hooks/use-toast';
 
 const hiringForms = [
-  { name: "HCS 501 - Personnel Record 2019", href: "/candidate-hiring-forms/hcs501", completionKey: 'hcs501EmployeeSignature' },
-  { name: "Caregiver Emergency Contact Numbers", href: "/candidate-hiring-forms/emergency-contact", completionKey: 'emergencyContact1_name' },
+  { name: "HCS 501 - Personnel Record 2019", href: "/candidate-hiring-forms/hcs501", completionKey: 'hcs501EmployeeSignature', pdfAction: 'hcs501' },
+  { name: "Caregiver Emergency Contact Numbers", href: "/candidate-hiring-forms/emergency-contact", completionKey: 'emergencyContact1_name', pdfAction: 'emergencyContact' },
   { name: "Reference Verification - CG", href: "/candidate-hiring-forms/reference-verification", completionKey: 'applicantSignature' },
   { name: "LIC 508 - Criminal Record Statement", href: "/candidate-hiring-forms/lic508", completionKey: 'lic508Signature' },
   { name: "SOC 341A - Elder Abuse Reporting Form", href: "/candidate-hiring-forms/soc341a", completionKey: 'soc341aSignature' },
@@ -50,27 +50,34 @@ function CandidateHiringFormsContent() {
     return isAnAdmin && candidateId ? `${baseHref}?candidateId=${candidateId}` : baseHref;
   };
   
-  const handleGeneratePdf = (formName: string) => {
+  const handleGeneratePdf = (formAction: string) => {
     if (!candidateId) return;
 
-    if (formName === 'hcs501') {
-      startPdfGeneration(async () => {
-        const result = await generateHcs501PdfAction(candidateId);
-        if (result.error) {
-          toast({ title: 'PDF Generation Failed', description: result.error, variant: 'destructive' });
-        } else if (result.pdfData) {
-          const byteCharacters = atob(result.pdfData);
-          const byteNumbers = new Array(byteCharacters.length);
-          for (let i = 0; i < byteCharacters.length; i++) {
-              byteNumbers[i] = byteCharacters.charCodeAt(i);
-          }
-          const byteArray = new Uint8Array(byteNumbers);
-          const blob = new Blob([byteArray], { type: 'application/pdf' });
-          const url = URL.createObjectURL(blob);
-          window.open(url, '_blank');
+    startPdfGeneration(async () => {
+        let result: { pdfData?: string; error?: string } | undefined;
+        if (formAction === 'hcs501') {
+            result = await generateHcs501PdfAction(candidateId);
+        } else if (formAction === 'emergencyContact') {
+            result = await generateEmergencyContactPdfAction(candidateId);
+        } else {
+             toast({ title: 'PDF Generation Not Implemented', description: `No PDF generator exists for this form yet.`, variant: 'destructive' });
+             return;
         }
-      });
-    }
+
+        if (result && result.error) {
+            toast({ title: 'PDF Generation Failed', description: result.error, variant: 'destructive' });
+        } else if (result && result.pdfData) {
+            const byteCharacters = atob(result.pdfData);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+        }
+    });
   }
 
 
@@ -115,11 +122,11 @@ function CandidateHiringFormsContent() {
                  <div className="flex items-center gap-2">
                     {isCompleted && <CheckCircle className="h-6 w-6 text-green-500" />}
                     {isAnAdmin && isCompleted && (
-                       form.name === 'HCS 501 - Personnel Record 2019' ? (
+                       form.pdfAction ? (
                             <Button
                                 variant="outline"
                                 size="icon"
-                                onClick={() => handleGeneratePdf('hcs501')}
+                                onClick={() => handleGeneratePdf(form.pdfAction!)}
                                 disabled={isGeneratingPdf}
                             >
                                 {isGeneratingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}

@@ -1,4 +1,3 @@
-
 'use server';
 
 import { Buffer } from 'buffer';
@@ -115,18 +114,18 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
         const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-        let y = height - 40;
+        let y = height - 60; // Adjusted for content shift up
         const leftMargin = 50;
         const rightMargin = width - 50;
         const contentWidth = rightMargin - leftMargin;
 
-        const lineSpacing = 16; // Increased
-        const sectionSpacing = 22; // Increased
-        const mainFontSize = 10;
-        const titleFontSize = 14;
-        const labelFontSize = 9;
-        const headerFontSize = 9;
-        const subTitleFontSize = 8;
+        const lineSpacing = 18; // Increased slightly
+        const sectionSpacing = 24; // Increased slightly
+        const mainFontSize = 9.5; // Reduced slightly
+        const titleFontSize = 13; // Reduced slightly
+        const labelFontSize = 8.5; // Reduced slightly
+        const headerFontSize = 8.5; // Reduced slightly
+        const subTitleFontSize = 7.5; // Reduced slightly
         const lightGray = rgb(0.92, 0.92, 0.92);
 
         // Header
@@ -139,7 +138,7 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
 
         // Title
         const title = "PERSONNEL RECORD";
-        page.drawText(title, { x: (width / 2) - (boldFont.widthOfTextAtSize(title, titleFontSize) / 2), y, font: boldFont, size: titleFontSize });
+        page.drawText(title, { x: leftMargin, y, font: boldFont, size: titleFontSize }); // Left aligned
         y -= sectionSpacing;
 
         // Personal Record Pane
@@ -178,8 +177,8 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         // Row 2 & 3 (merged)
         const fullAddress = [formData.address, formData.city, formData.state, formData.zip].filter(Boolean).join(', ');
         await drawFieldBox("Address", fullAddress, leftMargin, y, contentWidth);
-        y -= lineSpacing * 2.5;
-        
+        y -= lineSpacing * 1.25; // Reduced spacing here by 50%
+
         y -= lineSpacing * 2.5; // Added empty space where City/State/Zip row was
 
         // Row 4
@@ -222,7 +221,7 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         await drawText(page, "Notes:", leftMargin, y+10, font, labelFontSize);
         page.drawRectangle({x: leftMargin, y: y-35, width: contentWidth, height: 40, borderColor: rgb(0,0,0), borderWidth: 0.5});
         if (formData.hcs501Notes) drawWrappedText(page, formData.hcs501Notes, font, mainFontSize, leftMargin + 5, y - 5, contentWidth - 10, lineSpacing);
-        y -= 60; // Increased space
+        y -= 70; // Added extra space here
 
         // Certify Pane
         page.drawRectangle({ x: leftMargin - 10, y: y - 80, width: contentWidth + 20, height: 95, color: lightGray });
@@ -249,4 +248,107 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
     }
 }
 
-    
+export async function generateEmergencyContactPdf(formData: any): Promise<{ pdfData?: string; error?: string }> {
+    try {
+        const pdfDoc = await PDFDocument.create();
+        const page = pdfDoc.addPage(PageSizes.Letter);
+        const { width, height } = page.getSize();
+        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+        const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
+        const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer());
+        const logoImage = await pdfDoc.embedPng(logoImageBytes);
+        const logoDims = logoImage.scale(0.25);
+
+
+        let y = height - 50;
+        const leftMargin = 60;
+        
+        // Logo
+        page.drawImage(logoImage, {
+            x: (width / 2) - (logoDims.width / 2),
+            y: y,
+            width: logoDims.width,
+            height: logoDims.height,
+        });
+        y -= logoDims.height + 20;
+
+        // Title
+        const title = "Caregiver Emergency Contact Numbers";
+        page.drawText(title, {
+            x: (width / 2) - (boldFont.widthOfTextAtSize(title, 16) / 2),
+            y,
+            font: boldFont,
+            size: 16,
+        });
+        y -= 40;
+
+        // Helper to draw a section
+        const drawSection = (title: string, data: { [key: string]: string | undefined }, isFirst: boolean = false) => {
+            if (!isFirst) {
+                page.drawLine({ start: { x: leftMargin, y: y + 10 }, end: { x: width - leftMargin, y: y + 10 }, thickness: 0.5, color: rgb(0.8, 0.8, 0.8) });
+                y -= 20;
+            }
+
+            page.drawText(title, {
+                x: leftMargin,
+                y,
+                font: boldFont,
+                size: 12,
+            });
+            y -= 25;
+
+            const drawField = (label: string, value: string | undefined) => {
+                if (value) {
+                    page.drawText(`${label}:`, { x: leftMargin + 20, y, font: boldFont, size: 11 });
+                    page.drawText(value, { x: leftMargin + 150, y, font, size: 11 });
+                    y -= 20;
+                }
+            };
+            
+            Object.entries(data).forEach(([label, value]) => drawField(label, value));
+            y -= 10;
+        };
+        
+        // Your Information
+        const yourInfo = {
+            "Name": formData.fullName,
+            "Phone/Cell": formData.phone,
+            "Address": formData.address,
+            "City/State/Zip": `${formData.city || ''}, ${formData.state || ''} ${formData.zip || ''}`,
+        };
+        drawSection("Your Information", yourInfo, true);
+        
+        // First Person
+        if (formData.emergencyContact1_name) {
+            const firstPersonInfo = {
+                "Name": formData.emergencyContact1_name,
+                "Phone/Cell": formData.emergencyContact1_phone,
+                "Address": formData.emergencyContact1_address,
+                "City/State/Zip": formData.emergencyContact1_cityStateZip,
+            };
+            drawSection("In Case of Emergency please notify: (First Person)", firstPersonInfo);
+        }
+
+        // Second Person
+        if (formData.emergencyContact2_name) {
+            const secondPersonInfo = {
+                "Name": formData.emergencyContact2_name,
+                "Phone/Cell": formData.emergencyContact2_phone,
+                "Address": formData.emergencyContact2_address,
+                "City/State/Zip": formData.emergencyContact2_cityStateZip,
+            };
+            drawSection("Second Person", secondPersonInfo);
+        }
+
+        // Footer
+        page.drawText("REV 02/03/17", { x: leftMargin, y: 30, font, size: 9 });
+
+        const pdfBytes = await pdfDoc.save();
+        return { pdfData: Buffer.from(pdfBytes).toString('base64') };
+
+    } catch (error: any) {
+        console.error("Error generating Emergency Contact PDF:", error);
+        return { error: `Failed to generate PDF: ${error.message}` };
+    }
+}
