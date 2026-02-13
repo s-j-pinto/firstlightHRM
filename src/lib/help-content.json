@@ -70,6 +70,21 @@
       },
       {
         "type": "heading",
+        "text": "Docs Notification Process"
+      },
+      {
+        "type": "paragraph",
+        "text": "Once a candidate has passed their interviews and is ready to complete hiring paperwork, use the 'Docs Notify' process."
+      },
+      {
+        "type": "list",
+        "items": [
+          "<strong>Administrator:</strong> Find the candidate in the search results and click the mail icon in the 'Docs Notify' column. This sends an email to the candidate with login instructions for the Candidate Hiring Portal.",
+          "<strong>Candidate:</strong> The candidate receives the email, logs in using their email and the last 4 digits of their phone number, and is taken to a dashboard where they can complete all required hiring forms (LIC 508, SOC 341A, etc.)."
+        ]
+      },
+      {
+        "type": "heading",
         "text": "Docs Status Legend"
       },
       {
@@ -487,7 +502,7 @@
         "type": "list",
         "items": [
           "<strong>Share Your Code:</strong> Copy your unique referral code and share it with your friend. They can provide it to us when they first make contact.",
-          "<strong>Invite a Friend:</strong> Use the form to send an email invitation directly to your friend. This email will contain your referral code and a link for them to request care."
+          "<strong>Invite a Friend:</strong> Use the form to send an email invitation directly to your friend's email. This email will contain your referral code and a link for them to request care."
         ]
       },
       {
