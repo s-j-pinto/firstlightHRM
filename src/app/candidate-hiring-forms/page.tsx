@@ -11,6 +11,7 @@ import type { CaregiverProfile } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { generateHcs501PdfAction, generateEmergencyContactPdfAction, generateReferenceVerificationPdfAction, generateLic508PdfAction, generateSoc341aPdfAction } from '@/lib/candidate-hiring-forms.actions';
 import { useToast } from '@/hooks/use-toast';
+import { HelpDialog } from '@/components/HelpDialog';
 
 const hiringForms = [
   { name: "HCS 501 - Personnel Record 2019", href: "/candidate-hiring-forms/hcs501", completionKey: 'hcs501EmployeeSignature', pdfAction: 'hcs501' },
@@ -105,14 +106,17 @@ function CandidateHiringFormsContent() {
                 {isAnAdmin ? 'Review the status of the candidate\'s forms below.' : 'Please complete all of the following forms to continue your onboarding process.'}
               </CardDescription>
             </div>
-            {isAnAdmin && (
-              <Button asChild variant="outline">
-                <Link href="/admin/advanced-search">
-                  <ArrowLeft className="mr-2" />
-                  Back to Admin Dashboard
-                </Link>
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+                {isAnAdmin && (
+                  <Button asChild variant="outline">
+                    <Link href="/admin/advanced-search">
+                      <ArrowLeft className="mr-2" />
+                      Back to Admin Dashboard
+                    </Link>
+                  </Button>
+                )}
+                <HelpDialog topic="candidateHiringForms" />
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">

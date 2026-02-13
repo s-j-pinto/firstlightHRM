@@ -1,4 +1,3 @@
-
 {
   "initialContact": {
     "title": "Initial Contact Form Guide",
@@ -44,10 +43,6 @@
           "<strong>Save and Send for Signature:</strong> This saves the form and sends a secure portal link to the client's email. <strong>Crucially, ensure the client's email and phone number are correct</strong>, as they will need them to log in and sign.",
           "<strong>Submit and Finalize:</strong> After the client has signed, the owner must complete any final fields and click this button. This generates the final, signed PDF, saves it to storage, and sends a copy to both the client and the office."
         ]
-      },
-      {
-        "type": "paragraph",
-        "text": "The client-facing signing page will only show the fields relevant for their signature, ensuring a simple and secure process."
       }
     ]
   },
@@ -71,6 +66,51 @@
           "<strong>Search:</strong> Click the search button to apply all selected filters and view the results.",
           "<strong>Clear Filters:</strong> Resets all filters to their default state and shows all candidates.",
           "<strong>Manage Interview:</strong> For any actionable candidate in the results table, click this button to jump directly to the Interview Management page for that person."
+        ]
+      },
+      {
+        "type": "heading",
+        "text": "Docs Status Legend"
+      },
+      {
+        "type": "list",
+        "items": [
+          "<strong>Not Notified:</strong> The candidate has not yet been sent the email to complete their hiring forms.",
+          "<strong>Notified:</strong> The candidate has been sent the notification email but has not yet started filling out the forms.",
+          "<strong>Started:</strong> The candidate has started filling out one or more hiring forms.",
+          "<strong>Completed:</strong> The candidate has completed all required hiring forms."
+        ]
+      }
+    ]
+  },
+  "candidateHiringForms": {
+    "title": "Candidate Hiring Forms Guide",
+    "content": [
+      {
+        "type": "paragraph",
+        "text": "This page serves as a central hub for completing and managing all required hiring documents."
+      },
+      {
+        "type": "heading",
+        "text": "For Candidates"
+      },
+      {
+        "type": "list",
+        "items": [
+          "Click on each form to fill it out.",
+          "A green checkmark will appear next to each form once it has been successfully completed and saved."
+        ]
+      },
+      {
+        "type": "heading",
+        "text": "For Administrators"
+      },
+      {
+        "type": "list",
+        "items": [
+          "You can view a candidate's progress on their forms.",
+          "Click on a form to review or edit the information the candidate has provided.",
+          "Use the 'Printer' icon next to a completed form to generate a PDF copy of that specific document."
         ]
       }
     ]
