@@ -207,7 +207,7 @@ export default function ReferenceVerificationPage() {
                 
                 <div className="space-y-6">
                     <h3 className="text-lg font-semibold">REFERENCE INFORMATION</h3>
-                    <p className="text-sm text-muted-foreground">When we speak to your former supervisor, we will ask him or her to rate your performance with regard to the following categories. Please rate yourself in the following categories as you feel your former supervisor will rate you:</p>
+                    <p className="text-sm text-muted-foreground">When we speak to your former supervisor, we will ask him or her to rate your performance with regard to the following categories. <span className="bg-yellow-200/70 p-1 rounded">Please rate yourself in the following categories as you feel your former supervisor will rate you:</span></p>
                     <RatingScale name="teamworkRating" control={form.control} label="TEAMWORK: The degree to which you are willing to work harmoniously with others; the extent to which you conform to the policies of management." />
                     <RatingScale name="dependabilityRating" control={form.control} label="DEPENDABILITY: The extent to which you can be depended upon to be available for work and do it properly; the degree to which you are reliable and trustworthy; the extent to which you are able to work scheduled days and times, as well as your willingness to work additional hours if needed." />
                     <RatingScale name="initiativeRating" control={form.control} label="INITIATIVE: The degree to which you act independently in new situations; the extent to which you see what needs to be done and do it without being told; the degree to which you do your best to be an outstanding employee." />
@@ -231,7 +231,7 @@ export default function ReferenceVerificationPage() {
                     )}
                 </div>
 
-                <p className="text-sm text-center text-muted-foreground pt-4">Someone from FirstLight HomeCare will be following up with your shortly regarding the employment reference verification check. If you have any questions, please call: 909-321-4466</p>
+                <p className="text-sm text-left text-muted-foreground pt-4">Someone from FirstLight HomeCare will be following up with your shortly regarding the employment reference verification check. If you have any questions, please call: 909-321-4466</p>
 
             </CardContent>
             <CardFooter className="flex justify-end gap-4">
