@@ -190,8 +190,17 @@ export const lic508Schema = z.object({
   outOfStateHistory: z.string().optional(),
   lic508Signature: z.string().optional(),
   lic508SignatureDate: z.date().optional().nullable(),
+  ssn: z.string().optional(),
+  driversLicenseNumber: z.string().optional(),
+  dob: z.date().optional().nullable(),
 });
 export type Lic508FormData = z.infer<typeof lic508Schema>;
+
+export const soc341aSchema = z.object({
+  soc341aSignature: z.string().optional(),
+  soc341aSignatureDate: z.date().optional().nullable(),
+});
+export type Soc341aFormData = z.infer<typeof soc341aSchema>;
 
 export const caregiverFormSchema = generalInfoSchema
   .merge(experienceSchema)
@@ -200,7 +209,8 @@ export const caregiverFormSchema = generalInfoSchema
   .merge(transportationSchema)
   .merge(hcs501Schema.partial())
   .merge(emergencyContactSchema)
-  .merge(lic508Schema.partial());
+  .merge(lic508Schema.partial())
+  .merge(soc341aSchema.partial());
 
 export type CaregiverProfile = z.infer<typeof caregiverFormSchema> & { id: string, canWorkWithCovid?: boolean, cna?: boolean };
 
@@ -851,6 +861,7 @@ export type CaregiverForRecommendation = z.infer<typeof CaregiverForRecommendati
 
 
     
+
 
 
 
