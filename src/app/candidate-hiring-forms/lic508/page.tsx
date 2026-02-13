@@ -307,9 +307,12 @@ export default function LIC508Page() {
                         </div>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                         <FormField control={form.control} name="fullName" render={({ field }) => ( <FormItem><FormLabel>YOUR NAME (print clearly):</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                         <FormField control={form.control} name="address" render={({ field }) => ( <FormItem><FormLabel>YOUR ADDRESS (street, city, state, zip):</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="fullName" render={({ field }) => ( <FormItem><FormLabel>YOUR NAME (print clearly):</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="address" render={({ field }) => ( <FormItem><FormLabel>Street Address:</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="state" render={({ field }) => ( <FormItem><FormLabel>State</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="zip" render={({ field }) => ( <FormItem><FormLabel>Zip Code</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                     </div>
 
                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
