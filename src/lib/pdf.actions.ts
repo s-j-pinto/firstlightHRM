@@ -6,7 +6,7 @@ import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont } from 'pdf-lib';
 import { format } from 'date-fns';
 
 // Helper to draw text and handle undefined values
-async function drawText(page: any, text: string | undefined, x: number, y: number, font: any, size: number, color = rgb(0, 0, 0)) {    
+function drawText(page: any, text: string | undefined, x: number, y: number, font: any, size: number, color = rgb(0, 0, 0)) {    
     if (text) {
         page.drawText(sanitizeText(text), { x, y, font, size, color });
     }
@@ -87,7 +87,7 @@ async function drawHcs501Footer(page: any, font: PDFFont) {
     const footerText1 = "HCS 501 (10/19)";
     const footerText2 = "Page 1 of 1";
     const footerY = 30;
-    const fontSize = 9;
+    const fontSize = 8;
 
     page.drawText(footerText1, {
         x: 50,
@@ -120,22 +120,22 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         const rightMargin = width - 50;
         const contentWidth = rightMargin - leftMargin;
 
-        const lineSpacing = 18;
-        const sectionSpacing = 22; 
-        const mainFontSize = 9.5; 
-        const titleFontSize = 11;
-        const labelFontSize = 8.5;
-        const headerFontSize = 8; 
-        const subTitleFontSize = 7;
+        const lineSpacing = 17;
+        const sectionSpacing = 20; 
+        const mainFontSize = 9; 
+        const titleFontSize = 10;
+        const labelFontSize = 8;
+        const headerFontSize = 7; 
+        const subTitleFontSize = 6;
         const lightGray = rgb(0.92, 0.92, 0.92);
 
         // Header
-        await drawText(page, 'State of California – Health and Human Services Agency', leftMargin, y, font, headerFontSize);
-        await drawText(page, 'Community Care Licensing Division', width - font.widthOfTextAtSize('Community Care Licensing Division', headerFontSize) - leftMargin, y, font, headerFontSize);
-        y -= 12;
-        await drawText(page, 'California Department of Social Services', leftMargin, y, font, headerFontSize);
-        await drawText(page, 'Home Care Services Bureau', width - font.widthOfTextAtSize('Home Care Services Bureau', headerFontSize) - leftMargin, y, font, headerFontSize);
-        y -= 20;
+        drawText(page, 'State of California – Health and Human Services Agency', leftMargin, y, font, headerFontSize);
+        drawText(page, 'Community Care Licensing Division', width - font.widthOfTextAtSize('Community Care Licensing Division', headerFontSize) - leftMargin, y, font, headerFontSize);
+        y -= 10;
+        drawText(page, 'California Department of Social Services', leftMargin, y, font, headerFontSize);
+        drawText(page, 'Home Care Services Bureau', width - font.widthOfTextAtSize('Home Care Services Bureau', headerFontSize) - leftMargin, y, font, headerFontSize);
+        y -= 25;
 
         // Title
         const title = "PERSONNEL RECORD";
@@ -149,74 +149,76 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         page.drawText(subTitle, { x: (width / 2) - (font.widthOfTextAtSize(subTitle, subTitleFontSize)/2) , y, font, size: subTitleFontSize });
         y -= lineSpacing * 2;
 
-        const drawFieldBox = async (label: string, value: string | undefined, x: number, yPos: number, boxWidth: number) => {
-            await drawText(page, label, x, yPos + 6, font, labelFontSize);
+        const drawFieldBox = (label: string, value: string | undefined, x: number, yPos: number, boxWidth: number) => {
+            drawText(page, label, x, yPos + 6, font, labelFontSize); // label
             page.drawRectangle({x, y: yPos-12, width: boxWidth, height: 16, borderColor: rgb(0,0,0), borderWidth: 0.5});
-            if(value) await drawText(page, value, x + 5, yPos-9, font, mainFontSize);
+            if(value) drawText(page, value, x + 5, yPos-9, font, mainFontSize); // value
         }
 
-        await drawFieldBox("HCO Number", "364700059", leftMargin, y, 180);
-        await drawFieldBox("Employee’s PER ID", formData.perId, leftMargin + 200, y, 180);
+        drawFieldBox("HCO Number", "364700059", leftMargin, y, 180);
+        drawFieldBox("Employee’s PER ID", formData.perId, leftMargin + 200, y, 180);
         y -= lineSpacing * 2;
-        await drawFieldBox("Hire Date", formData.hireDate ? format(new Date(formData.hireDate.seconds * 1000), "MM/dd/yyyy") : '', leftMargin, y, 180);
-        await drawFieldBox("Date of Separation", formData.separationDate ? format(new Date(formData.separationDate.seconds * 1000), "MM/dd/yyyy") : '', leftMargin + 200, y, 180);
+        drawFieldBox("Hire Date", formData.hireDate ? format(new Date(formData.hireDate.seconds * 1000), "MM/dd/yyyy") : '', leftMargin, y, 180);
+        drawFieldBox("Date of Separation", formData.separationDate ? format(new Date(formData.separationDate.seconds * 1000), "MM/dd/yyyy") : '', leftMargin + 200, y, 180);
 
-        y -= 40; 
+        y -= 35; 
 
         // Personal Section
         const personalTitle = "PERSONAL";
-        page.drawText(personalTitle, { x: (width / 2) - (boldFont.widthOfTextAtSize(personalTitle, 11)/2), y, font: boldFont, size: 11 });
-        page.drawLine({ start: { x: leftMargin, y: y + 6 }, end: { x: leftMargin + 230, y: y + 6 }, thickness: 0.5 });
-        page.drawLine({ start: { x: width - leftMargin - 230, y: y + 6 }, end: { x: width - leftMargin, y: y + 6 }, thickness: 0.5 });
+        const personalTitleWidth = boldFont.widthOfTextAtSize(personalTitle, titleFontSize);
+        page.drawText(personalTitle, { x: (width / 2) - (personalTitleWidth / 2), y, font: boldFont, size: titleFontSize });
+        page.drawLine({ start: { x: leftMargin, y: y + 6 }, end: { x: (width/2) - (personalTitleWidth/2) - 5, y: y + 6 }, thickness: 0.5 });
+        page.drawLine({ start: { x: (width / 2) + (personalTitleWidth/2) + 5, y: y + 6 }, end: { x: width - leftMargin, y: y + 6 }, thickness: 0.5 });
         y -= sectionSpacing;
 
         // Row 1
-        await drawFieldBox("Name (Last First Middle)", formData.fullName, leftMargin, y, 280);
-        await drawFieldBox("Area Code/Telephone", formData.phone, leftMargin + 300, y, contentWidth - 300);
+        drawFieldBox("Name (Last First Middle)", formData.fullName, leftMargin, y, 280);
+        drawFieldBox("Area Code/Telephone", formData.phone, leftMargin + 300, y, contentWidth - 300);
         y -= lineSpacing * 2;
 
         const fullAddress = [formData.address, formData.city, formData.state, formData.zip].filter(Boolean).join(', ');
-        await drawFieldBox("Address", fullAddress, leftMargin, y, contentWidth);
+        drawFieldBox("Address", fullAddress, leftMargin, y, contentWidth);
         y -= lineSpacing; 
 
-        y -= lineSpacing; 
+        y -= lineSpacing/2; 
 
-        await drawFieldBox("Date of Birth", formData.dob ? format(new Date(formData.dob.seconds * 1000), "MM/dd/yyyy") : '', leftMargin, y, 200);
-        await drawFieldBox("Social Security Number (Voluntary for ID only)", formData.ssn, leftMargin + 220, y, contentWidth-220);
+        drawFieldBox("Date of Birth", formData.dob ? format(new Date(formData.dob.seconds * 1000), "MM/dd/yyyy") : '', leftMargin, y, 200);
+        drawFieldBox("Social Security Number (Voluntary for ID only)", formData.ssn, leftMargin + 220, y, contentWidth-220);
         y -= lineSpacing * 2;
 
-        await drawFieldBox("Date of TB Test Upon Hire", formData.tbDate ? format(new Date(formData.tbDate.seconds * 1000), "MM/dd/yyyy") : '', leftMargin, y, 200);
-        await drawFieldBox("Results of Last TB Test", formData.tbResults, leftMargin + 220, y, contentWidth - 220);
+        drawFieldBox("Date of TB Test Upon Hire", formData.tbDate ? format(new Date(formData.tbDate.seconds * 1000), "MM/dd/yyyy") : '', leftMargin, y, 200);
+        drawFieldBox("Results of Last TB Test", formData.tbResults, leftMargin + 220, y, contentWidth - 220);
         y -= lineSpacing * 2;
 
-        await drawFieldBox("Additional TB Test Dates (Please include test results)", formData.additionalTbDates, leftMargin, y, contentWidth);
+        drawFieldBox("Additional TB Test Dates (Please include test results)", formData.additionalTbDates, leftMargin, y, contentWidth);
         y -= lineSpacing * 2;
 
-        await drawFieldBox("Please list any alternate names used (For example - maiden name)", formData.alternateNames, leftMargin, y, contentWidth);
+        drawFieldBox("Please list any alternate names used (For example - maiden name)", formData.alternateNames, leftMargin, y, contentWidth);
         y -= lineSpacing * 2;
 
-        await drawText(page, "Do you possess a valid California driver’s license?", leftMargin, y, font, mainFontSize);
+        drawText(page, "Do you possess a valid California driver’s license?", leftMargin, y, font, mainFontSize);
         await drawCheckbox(page, formData.validLicense === 'yes', leftMargin + 250, y, font);
-        await drawText(page, 'Yes', leftMargin + 265, y, font, mainFontSize);
+        drawText(page, 'Yes', leftMargin + 265, y, font, mainFontSize);
         await drawCheckbox(page, formData.validLicense === 'no', leftMargin + 300, y, font);
-        await drawText(page, 'No', leftMargin + 315, y, font, mainFontSize);
-        await drawFieldBox("CDL Number:", formData.driversLicenseNumber, leftMargin + 350, y + 10, contentWidth - 350 -10);
+        drawText(page, 'No', leftMargin + 315, y, font, mainFontSize);
+        drawFieldBox("CDL Number:", formData.driversLicenseNumber, leftMargin + 350, y + 10, contentWidth - 350 -10);
         y -= sectionSpacing;
         
         // Position Information
         const posTitle = "POSITION INFORMATION";
-        page.drawText(posTitle, { x: (width / 2) - (boldFont.widthOfTextAtSize(posTitle, 11)/2), y, font: boldFont, size: 11 });
-        page.drawLine({ start: { x: leftMargin, y: y + 6 }, end: { x: leftMargin + 190, y: y + 6 }, thickness: 0.5 });
-        page.drawLine({ start: { x: width - leftMargin - 190, y: y + 6 }, end: { x: width - leftMargin, y: y + 6 }, thickness: 0.5 });
+        const posTitleWidth = boldFont.widthOfTextAtSize(posTitle, titleFontSize);
+        page.drawText(posTitle, { x: (width / 2) - (posTitleWidth/2), y, font: boldFont, size: titleFontSize });
+        page.drawLine({ start: { x: leftMargin, y: y + 6 }, end: { x: (width/2) - (posTitleWidth/2) - 5, y: y + 6 }, thickness: 0.5 });
+        page.drawLine({ start: { x: (width / 2) + (posTitleWidth/2) + 5, y: y + 6 }, end: { x: width - leftMargin, y: y + 6 }, thickness: 0.5 });
         y -= sectionSpacing;
 
-        await drawFieldBox("Title of Position", formData.titleOfPosition, leftMargin, y, contentWidth);
+        drawFieldBox("Title of Position", formData.titleOfPosition, leftMargin, y, contentWidth);
         y -= lineSpacing * 2;
         
-        await drawText(page, "Notes:", leftMargin, y+10, font, labelFontSize);
+        drawText(page, "Notes:", leftMargin, y+10, font, labelFontSize);
         page.drawRectangle({x: leftMargin, y: y-35, width: contentWidth, height: 40, borderColor: rgb(0,0,0), borderWidth: 0.5});
         if (formData.hcs501Notes) drawWrappedText(page, formData.hcs501Notes, font, mainFontSize, leftMargin + 5, y - 5, contentWidth - 10, lineSpacing);
-        y -= 50;
+        y -= 60;
 
         // Certify Pane
         page.drawRectangle({ x: leftMargin - 10, y: y - 80, width: contentWidth + 20, height: 95, color: lightGray });
@@ -227,9 +229,9 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
 
         if(formData.hcs501EmployeeSignature) await drawSignature(page, formData.hcs501EmployeeSignature, leftMargin + 5, y, 240, 20, pdfDoc);
         page.drawLine({ start: { x: leftMargin, y: y-5 }, end: { x: leftMargin + 250, y: y - 5 }, color: rgb(0, 0, 0), thickness: 0.5 });
-        await drawText(page, "Employee Signature", leftMargin, y-15, font, labelFontSize);
+        drawText(page, "Employee Signature", leftMargin, y-15, font, labelFontSize);
         
-        await drawFieldBox("Date", formData.hcs501SignatureDate ? format(new Date(formData.hcs501SignatureDate.seconds * 1000), "MM/dd/yyyy") : '', leftMargin + 300, y + 10, 200);
+        drawFieldBox("Date", formData.hcs501SignatureDate ? format(new Date(formData.hcs501SignatureDate.seconds * 1000), "MM/dd/yyyy") : '', leftMargin + 300, y + 10, 200);
 
         await drawHcs501Footer(page, font);
 
@@ -269,7 +271,7 @@ export async function generateEmergencyContactPdf(formData: any): Promise<{ pdfD
 
         // Title
         const title = "Caregiver Emergency Contact Numbers";
-        page.drawText(title, {
+        drawText(page, title, {
             x: (width / 2) - (boldFont.widthOfTextAtSize(title, 16) / 2),
             y,
             font: boldFont,
@@ -286,7 +288,7 @@ export async function generateEmergencyContactPdf(formData: any): Promise<{ pdfD
                 y -= 20;
             }
             
-            page.drawText(title, {
+            drawText(page, title, {
                 x: leftMargin,
                 y,
                 font: boldFont,
@@ -295,7 +297,7 @@ export async function generateEmergencyContactPdf(formData: any): Promise<{ pdfD
 
             if (subTitle) {
                 const subTitleWidth = boldFont.widthOfTextAtSize(subTitle, 12);
-                page.drawText(subTitle, {
+                drawText(page, subTitle, {
                     x: (width / 2) - (subTitleWidth / 2),
                     y,
                     font: boldFont,
@@ -307,8 +309,8 @@ export async function generateEmergencyContactPdf(formData: any): Promise<{ pdfD
 
             const drawField = (label: string, value: string | undefined) => {
                 if (value) {
-                    page.drawText(`${label}:`, { x: leftMargin + 20, y, font: boldFont, size: 11 });
-                    page.drawText(value, { x: leftMargin + 150, y, font, size: 11 });
+                    drawText(page, `${label}:`, { x: leftMargin + 20, y, font: boldFont, size: 11 });
+                    drawText(page, value, { x: leftMargin + 150, y, font, size: 11 });
                     y -= 20;
                 }
             };
@@ -360,7 +362,7 @@ export async function generateEmergencyContactPdf(formData: any): Promise<{ pdfD
         });
 
         // Footer
-        page.drawText("REV 02/03/17", { x: leftMargin, y: 30, font, size: 9 });
+        drawText(page, "REV 02/03/17", { x: leftMargin, y: 30, font, size: 9 });
 
         const pdfBytes = await pdfDoc.save();
         return { pdfData: Buffer.from(pdfBytes).toString('base64') };
@@ -407,7 +409,7 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
             height: 20,
             color: rgb(0, 0, 0),
         });
-        page.drawText(title, {
+        drawText(page, title, {
             x: (width / 2) - (titleWidth / 2),
             y: y,
             font: boldFont,
@@ -418,7 +420,7 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
         
         // 3. PLEASE PRINT and separator
         const pleasePrint = "PLEASE PRINT";
-        page.drawText(pleasePrint, {
+        drawText(page, pleasePrint, {
             x: leftMargin,
             y: y,
             font: font,
@@ -433,7 +435,7 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
         y -= 20;
 
         // Applicant Info & Permission Text
-        await drawText(page, `Applicant’s First Name Middle Last: ${formData.fullName || ''}`, leftMargin, y, font, 10);
+        drawText(page, `Applicant’s First Name Middle Last: ${formData.fullName || ''}`, leftMargin, y, font, 10);
         y -= 20;
 
         const permissionText = "I hereby give FirstLight HomeCare permission to obtain the employment references necessary to make a hiring decision and hold all persons giving references free from any and all liability resulting from this process. I waive any provision impeding the release of this information and agree to provide any information necessary for the release of this information beyond that provided on the employment application and this reference verification form.";
@@ -445,23 +447,23 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
             await drawSignature(page, formData.applicantSignature, leftMargin + 80, y - 5, 150, 30, pdfDoc);
         }
         page.drawLine({ start: { x: leftMargin, y: y - 10 }, end: { x: leftMargin + 300, y: y - 10 }, thickness: 0.5 });
-        await drawText(page, "Signature", leftMargin, y-20, font, 8);
+        drawText(page, "Signature", leftMargin, y-20, font, 8);
 
         if (formData.applicantSignatureDate) {
-             await drawText(page, `Date: ${format(new Date(formData.applicantSignatureDate.seconds * 1000), "MM/dd/yyyy")}`, leftMargin + 350, y, font, 10);
+             drawText(page, `Date: ${format(new Date(formData.applicantSignatureDate.seconds * 1000), "MM/dd/yyyy")}`, leftMargin + 350, y, font, 10);
         }
         page.drawLine({ start: { x: leftMargin + 340, y: y-10 }, end: { x: leftMargin + 500, y: y - 10 }, thickness: 0.5 });
-        await drawText(page, "Date", leftMargin + 340, y-20, font, 8);
+        drawText(page, "Date", leftMargin + 340, y-20, font, 8);
         y -= 40;
 
         // 4. FORMER EMPLOYER CONTACT INFORMATION
         const employerBoxStartY = y;
-        await drawText(page, "FORMER EMPLOYER CONTACT INFORMATION", leftMargin, y, boldFont, 12);
+        drawText(page, "FORMER EMPLOYER CONTACT INFORMATION", leftMargin, y, boldFont, 12);
         y -= 25;
 
         const drawTwoColumnField = (label1: string, value1: string, label2: string, value2: string) => {
-            if (value1) await drawText(page, `${label1}: ${value1}`, leftMargin + 5, y, font, 10);
-            if (value2) await drawText(page, `${label2}: ${value2}`, leftMargin + contentWidth / 2, y, font, 10);
+            if (value1) drawText(page, `${label1}: ${value1}`, leftMargin + 5, y, font, 10);
+            if (value2) drawText(page, `${label2}: ${value2}`, leftMargin + contentWidth / 2, y, font, 10);
             y -= 20;
         };
 
@@ -477,16 +479,16 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
 
         // 5. REFERENCE INFORMATION
         const referenceBoxStartY = y;
-        await drawText(page, "REFERENCE INFORMATION", leftMargin, y, boldFont, 12);
+        drawText(page, "REFERENCE INFORMATION", leftMargin, y, boldFont, 12);
         y -= 15;
-        await drawText(page, "Please rate yourself in the following categories as you feel your former supervisor will rate you:", leftMargin, y, font, 9);
+        drawText(page, "Please rate yourself in the following categories as you feel your former supervisor will rate you:", leftMargin, y, font, 9);
         y -= 20;
 
         const drawRating = (label: string, value: string | undefined) => {
             y -= 5;
             y = drawWrappedText(page, label, boldFont, 9, leftMargin + 5, y, contentWidth - 10, 11);
             y -= 15;
-            if(value) await drawText(page, `Rating: ${value}`, leftMargin + 15, y, font, 10);
+            if(value) drawText(page, `Rating: ${value}`, leftMargin + 15, y, font, 10);
             y -= 20;
         };
 
@@ -530,5 +532,3 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
         return { error: `Failed to generate PDF: ${error.message}` };
     }
 }
-
-    
