@@ -22,7 +22,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, CalendarIcon, SlidersHorizontal, FilterX, PersonStanding, Move, Utensils, Bath, ArrowUpFromLine, ShieldCheck, Droplet, Pill, Stethoscope, HeartPulse, Languages, ScanSearch, Biohazard, UserCheck, Briefcase, Car, Check, X, FileText, ArrowUpDown, Mail, Edit2, CheckCircle } from 'lucide-react';
+import { Loader2, Search, CalendarIcon, SlidersHorizontal, FilterX, PersonStanding, Move, Utensils, Bath, ArrowUpFromLine, ShieldCheck, Droplet, Pill, Stethoscope, HeartPulse, Languages, ScanSearch, Biohazard, UserCheck, Briefcase, Car, Check, X, FileText, ArrowUpDown, Mail, Edit2, CheckCircle, BellOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
@@ -418,7 +418,7 @@ export default function AdvancedSearchClient() {
     
     const DocsStatusIcon = ({ status }: { status: DocsStatus }) => {
         switch (status) {
-            case 'not-notified': return <FileText className="h-5 w-5 text-muted-foreground" title="Not Notified" />;
+            case 'not-notified': return <BellOff className="h-5 w-5 text-muted-foreground" title="Not Notified" />;
             case 'notified': return <Mail className="h-5 w-5 text-blue-500" title="Notified" />;
             case 'started': return <Edit2 className="h-5 w-5 text-yellow-500" title="Started" />;
             case 'completed': return <CheckCircle className="h-5 w-5 text-green-500" title="Completed" />;
@@ -599,7 +599,7 @@ export default function AdvancedSearchClient() {
                              <div className="border rounded-lg p-3 text-xs bg-muted/50 max-w-xs">
                                 <h4 className="font-semibold mb-2 text-center">Docs Status Legend</h4>
                                 <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                                    <div className="flex items-center gap-1.5"><FileText className="h-4 w-4 text-muted-foreground" /> Not Notified</div>
+                                    <div className="flex items-center gap-1.5"><BellOff className="h-4 w-4 text-muted-foreground" /> Not Notified</div>
                                     <div className="flex items-center gap-1.5"><Mail className="h-4 w-4 text-blue-500" /> Notified</div>
                                     <div className="flex items-center gap-1.5"><Edit2 className="h-4 w-4 text-yellow-500" /> Started</div>
                                     <div className="flex items-center gap-1.5"><CheckCircle className="h-4 w-4 text-green-500" /> Completed</div>
