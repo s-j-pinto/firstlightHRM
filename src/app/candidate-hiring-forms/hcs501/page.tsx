@@ -57,6 +57,12 @@ export default function HCS501Page() {
     const { user, isUserLoading } = useUser();
     const { toast } = useToast();
     const [isSaving, startSavingTransition] = useTransition();
+
+    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "care-rc@firstlighthomecare.com";
+    const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL || "lpinto@firstlighthomecare.com";
+    const staffingAdminEmail = process.env.NEXT_PUBLIC_STAFFING_ADMIN_EMAIL || "admin-rc@firstlighthomecare.com";
+
+    const isAnAdmin = user?.email === adminEmail || user?.email === ownerEmail || user?.email === staffingAdminEmail;
     
     const caregiverProfileRef = useMemoFirebase(
       () => (user?.uid ? doc(firestore, 'caregiver_profiles', user.uid) : null),
@@ -153,13 +159,13 @@ export default function HCS501Page() {
                             <Input id="hcoNumber" value="364700059" readOnly />
                         </div>
                         <FormField control={form.control} name="perId" render={({ field }) => (
-                          <FormItem><FormLabel>Employee’s PER ID</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                          <FormItem><FormLabel>Employee’s PER ID</FormLabel><FormControl><Input {...field} disabled={!isAnAdmin} /></FormControl><FormMessage /></FormItem>
                         )} />
                         <FormField control={form.control} name="hireDate" render={({ field }) => (
-                            <FormItem className="flex flex-col"><FormLabel>Hire Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
+                            <FormItem className="flex flex-col"><FormLabel>Hire Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={!isAnAdmin}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={!isAnAdmin} /></PopoverContent></Popover><FormMessage /></FormItem>
                         )} />
                          <FormField control={form.control} name="separationDate" render={({ field }) => (
-                            <FormItem className="flex flex-col"><FormLabel>Date of Separation</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
+                            <FormItem className="flex flex-col"><FormLabel>Date of Separation</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={!isAnAdmin}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={!isAnAdmin} /></PopoverContent></Popover><FormMessage /></FormItem>
                         )} />
                     </div>
                 </div>
