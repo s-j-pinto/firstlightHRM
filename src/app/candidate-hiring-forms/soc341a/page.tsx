@@ -20,6 +20,8 @@ import { saveSoc341aData } from "@/lib/candidate-hiring-forms.actions";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const defaultFormValues: Soc341aFormData = {
   soc341aSignature: '',
@@ -96,17 +98,63 @@ export default function SOC341APage() {
     return (
         <Card className="max-w-4xl mx-auto">
             <CardHeader>
-                <CardTitle className="text-center text-2xl tracking-wide">
-                    SOC 341A - Report of Suspected Dependent Adult/Elder Abuse
+                <CardTitle className="text-center text-xl tracking-wide">
+                    STATEMENT ACKNOWLEDGING REQUIREMENT TO REPORT SUSPECTED ABUSE OF DEPENDENT ADULTS AND ELDERS
                 </CardTitle>
-                 <CardDescription className="text-center pt-2">
-                    Please provide the content for this form. This is a placeholder structure.
+                 <CardDescription className="text-center pt-2 text-xs">
+                    NOTE: RETAIN IN EMPLOYEE/ VOLUNTEER FILE
                 </CardDescription>
             </CardHeader>
             <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardContent className="space-y-8">
-                <p className="text-center text-muted-foreground">[Form content will go here]</p>
+                <div className="grid grid-cols-3 gap-4 border p-4 rounded-md">
+                    <div className="space-y-1">
+                        <Label>NAME</Label>
+                        <Input value={existingData?.fullName || ''} readOnly disabled />
+                    </div>
+                    <div className="space-y-1">
+                        <Label>POSITION</Label>
+                        <Input value="Caregiver" readOnly disabled />
+                    </div>
+                    <div className="space-y-1">
+                        <Label>FACILITY</Label>
+                        <Input value="FirstLight Home Care of Rancho Cucamonga" readOnly disabled />
+                    </div>
+                </div>
+
+                <p className="text-sm text-muted-foreground">
+                    California law REQUIRES certain persons to report known or suspected abuse of dependent adults or elders. As an employee or volunteer at a licensed facility, you are one of those persons - a “mandated reporter.”
+                </p>
+
+                <div className="space-y-4">
+                    <h3 className="font-bold">PERSONS WHO ARE REQUIRED TO REPORT ABUSE</h3>
+                    <p className="text-sm text-muted-foreground">
+                        Mandated reporters include care custodians and any person who has assumed full or intermittent responsibility for care or custody of an elder or dependent adult, whether or not paid for that responsibility (Welfare and Institutions Code (WIC) Section 15630(a)). Care custodian means an administrator or an employee of most public or private facilities or agencies, or persons providing care or services for elders or dependent adults, including members of the support staff and maintenance staff (WIC Section 15610.17).
+                    </p>
+                </div>
+
+                <div className="space-y-4">
+                    <h3 className="font-bold">PERSONS WHO ARE THE SUBJECT OF THE REPORT</h3>
+                    <p className="text-sm text-muted-foreground">
+                        Elder means any person residing in this state who is 65 years of age or older (WIC Section 15610.27). Dependent Adult means any person residing in this state, between the ages of 18 and 64, who has physical or mental limitations that restrict his or her ability to carry out normal activities or to protect his or her rights including, but not limited to, persons who have physical or developmental disabilities or whose physical or mental abilities have diminished because of age and those admitted as inpatients in 24-hour health facilities (WIC Section 15610.23).
+                    </p>
+                </div>
+
+                <div className="space-y-4">
+                    <h3 className="font-bold">REPORTING RESPONSIBILITIES AND TIME FRAMES</h3>
+                    <p className="text-sm text-muted-foreground">
+                        Any mandated reporter, who in his or her professional capacity, or within the scope of his or her employment, has observed or has knowledge of an incident that reasonably appears to be abuse or neglect, or is told by an elder or dependent adult that he or she has experienced behavior constituting abuse or neglect, or reasonably suspects that abuse or neglect occurred, shall complete form SOC 341, “Report of Suspected Dependent Adult/Elder Abuse” for each report of known or suspected instance of abuse (physical abuse, sexual abuse, financial abuse, abduction, neglect (self-neglect), isolation, and abandonment) involving an elder or dependent adult.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                        Reporting shall be completed as follows:
+                    </p>
+                    <ul className="list-disc pl-6 text-sm text-muted-foreground space-y-2">
+                        <li>
+                            If the abuse occurred in a Long-Term Care (LTC) facility (as defined in WIC Section 15610.47) and resulted in serious bodily injury (as defined in WIC Section 15610.67), report by telephone to the local law enforcement agency immediately and no later than two (2) hours after observing, obtaining knowledge of, or suspecting physical abuse. Send the written report to the local law enforcement agency, the local Long-Term Care Ombudsman Program (LTCOP), and the appropriate licensing agency (for long-term health care facilities, the California Department of Public Health; for community care facilities, the California
+                        </li>
+                    </ul>
+                </div>
 
                 <div className="border p-4 rounded-md space-y-4">
                     <p className="text-sm font-bold">I have read and understand the requirements of Penal Code Section 11166. I am a mandated reporter and must report any known or suspected cases of abuse.</p>
