@@ -1,6 +1,8 @@
 
 'use client';
 
+import { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, CheckCircle, Loader2 } from "lucide-react";
 import Link from 'next/link';
@@ -16,15 +18,32 @@ const hiringForms = [
   { name: "SOC 341A - Elder Abuse Reporting Form", href: "/candidate-hiring-forms/soc341a", completionKey: 'soc341aSignature' },
 ];
 
-export default function CandidateHiringFormsPage() {
+
+function CandidateHiringFormsContent() {
   const { user, isUserLoading } = useUser();
+  const searchParams = useSearchParams();
+
+  const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "care-rc@firstlighthomecare.com";
+  const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL || "lpinto@firstlighthomecare.com";
+  const staffingAdminEmail = process.env.NEXT_PUBLIC_STAFFING_ADMIN_EMAIL || "admin-rc@firstlighthomecare.com";
+
+  const isAnAdmin = user?.email === adminEmail || user?.email === ownerEmail || user?.email === staffingAdminEmail;
+  const candidateId = searchParams.get('candidateId');
+  
+  // Correctly determine which profile to load
+  const profileIdToLoad = isAnAdmin && candidateId ? candidateId : user?.uid;
+
   const caregiverProfileRef = useMemoFirebase(
-    () => (user?.uid ? doc(firestore, 'caregiver_profiles', user.uid) : null),
-    [user?.uid]
+    () => (profileIdToLoad ? doc(firestore, 'caregiver_profiles', profileIdToLoad) : null),
+    [profileIdToLoad]
   );
   const { data: profileData, isLoading: isProfileLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
 
   const isLoading = isUserLoading || isProfileLoading;
+
+  const formLinkHref = (baseHref: string) => {
+    return isAnAdmin && candidateId ? `${baseHref}?candidateId=${candidateId}` : baseHref;
+  };
 
   if (isLoading) {
     return (
@@ -38,16 +57,16 @@ export default function CandidateHiringFormsPage() {
     <div className="max-w-2xl mx-auto">
       <Card>
         <CardHeader>
-          <CardTitle>Hiring Forms</CardTitle>
+          <CardTitle>Hiring Forms{isAnAdmin && profileData ? ` for ${profileData.fullName}` : ''}</CardTitle>
           <CardDescription>
-            Please complete all of the following forms to continue your onboarding process.
+            {isAnAdmin ? 'Review the status of the candidate\'s forms below.' : 'Please complete all of the following forms to continue your onboarding process.'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {hiringForms.map((form) => {
             const isCompleted = profileData && profileData[form.completionKey as keyof CaregiverProfile];
             return (
-              <Link href={form.href} key={form.name} className="block">
+              <Link href={formLinkHref(form.href)} key={form.name} className="block">
                 <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
                   <div className="flex items-center gap-4">
                     <FileText className="h-6 w-6 text-accent" />
@@ -62,4 +81,13 @@ export default function CandidateHiringFormsPage() {
       </Card>
     </div>
   );
+}
+
+
+export default function CandidateHiringFormsPage() {
+    return (
+        <Suspense fallback={<div className="flex items-center justify-center min-h-[50vh]"><Loader2 className="h-12 w-12 animate-spin text-accent" /></div>}>
+            <CandidateHiringFormsContent />
+        </Suspense>
+    )
 }
