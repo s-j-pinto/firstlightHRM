@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useTransition, useRef } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { doc } from "firebase/firestore";
@@ -27,27 +27,55 @@ import { cn } from "@/lib/utils";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const defaultFormValues: ReferenceVerificationFormData = {
-  reference1_name: '',
-  reference1_company: '',
-  reference1_title: '',
-  reference1_phone: '',
-  reference1_employmentFrom: undefined,
-  reference1_employmentTo: undefined,
-  reference1_reasonForLeaving: '',
-  reference1_wouldRehire: undefined,
-  reference1_comments: '',
-  reference2_name: '',
-  reference2_company: '',
-  reference2_title: '',
-  reference2_phone: '',
-  reference2_employmentFrom: undefined,
-  reference2_employmentTo: undefined,
-  reference2_reasonForLeaving: '',
-  reference2_wouldRehire: undefined,
-  reference2_comments: '',
-  referenceVerificationSignature: '',
-  referenceVerificationSignatureDate: undefined,
+    applicantSignature: '',
+    applicantSignatureDate: undefined,
+    company: '',
+    supervisorName: '',
+    emailOrFax: '',
+    phone: '',
+    employmentDates: '',
+    position: '',
+    startingSalary: '',
+    endingSalary: '',
+    teamworkRating: undefined,
+    dependabilityRating: undefined,
+    initiativeRating: undefined,
+    qualityRating: undefined,
+    customerServiceRating: undefined,
+    overallPerformanceRating: undefined,
+    resignationStatus: undefined,
+    dischargedStatus: undefined,
+    laidOffStatus: undefined,
+    eligibleForRehire: undefined,
+    wasDisciplined: undefined,
+    disciplineExplanation: '',
 };
+
+const ratingOptions = ['Unsatisfactory', 'Below Average', 'Average', 'Above Average', 'Outstanding'];
+
+const RatingScale = ({ name, control, label }: { name: keyof ReferenceVerificationFormData, control: any, label: string }) => (
+    <FormField
+      control={control}
+      name={name}
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel className="text-base">{label}</FormLabel>
+          <FormControl>
+            <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-wrap gap-x-6 gap-y-2">
+              {ratingOptions.map((value) => (
+                <FormItem key={value} className="flex items-center space-x-2 space-y-0">
+                  <FormControl><RadioGroupItem value={value} id={`${name}-${value}`} /></FormControl>
+                  <Label htmlFor={`${name}-${value}`} className="font-normal">{value}</Label>
+                </FormItem>
+              ))}
+            </RadioGroup>
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+
 
 export default function ReferenceVerificationPage() {
     const sigPadRef = useRef<SignatureCanvas>(null);
@@ -69,28 +97,29 @@ export default function ReferenceVerificationPage() {
 
     useEffect(() => {
         if (existingData) {
-            const formData: any = { ...defaultFormValues };
+            const formData: any = {};
             Object.keys(defaultFormValues).forEach(key => {
                 const formKey = key as keyof ReferenceVerificationFormData;
                 const existingValue = (existingData as any)[formKey];
                 if (existingValue !== undefined && existingValue !== null) {
-                    if (formKey.endsWith('Date') || formKey.endsWith('From') || formKey.endsWith('To')) {
+                    if (formKey.endsWith('Date')) {
                          formData[formKey] = existingValue.toDate ? existingValue.toDate() : new Date(existingValue);
                     } else {
                          formData[formKey] = existingValue;
                     }
                 }
             });
-            form.reset(formData);
-             if (formData.referenceVerificationSignature && sigPadRef.current) {
-                sigPadRef.current.fromDataURL(formData.referenceVerificationSignature);
+            form.reset({ ...defaultFormValues, ...formData });
+
+             if (formData.applicantSignature && sigPadRef.current) {
+                sigPadRef.current.fromDataURL(formData.applicantSignature);
             }
         }
     }, [existingData, form]);
 
     const clearSignature = () => {
         sigPadRef.current?.clear();
-        form.setValue('referenceVerificationSignature', '');
+        form.setValue('applicantSignature', '');
     };
 
     const onSubmit = (data: ReferenceVerificationFormData) => {
@@ -121,73 +150,23 @@ export default function ReferenceVerificationPage() {
 
     return (
         <Card className="max-w-4xl mx-auto">
-            <CardHeader>
-                <CardTitle className="text-center text-2xl tracking-wide">
-                    Reference Verification
+            <CardHeader className="text-center">
+                <CardTitle className="text-2xl tracking-wide font-headline">
+                    FIRSTLIGHT HOMECARE REFERENCE VERIFICATION FORM
                 </CardTitle>
-                 <CardDescription className="text-center pt-2">
-                    List two professional references who are not related to you.
+                 <CardDescription className="pt-2">
+                    PLEASE PRINT
                 </CardDescription>
             </CardHeader>
             <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardContent className="space-y-8">
-
-                {/* Reference 1 */}
-                <div className="space-y-4 border p-4 rounded-md">
-                    <h3 className="text-lg font-semibold flex items-center gap-2"><User /> Reference 1</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField control={form.control} name="reference1_name" render={({ field }) => ( <FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="reference1_phone" render={({ field }) => ( <FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="reference1_company" render={({ field }) => ( <FormItem><FormLabel>Company</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="reference1_title" render={({ field }) => ( <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                    </div>
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField control={form.control} name="reference1_employmentFrom" render={({ field }) => (
-                            <FormItem className="flex flex-col"><FormLabel>Dates of Employment (From)</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
-                        )} />
-                        <FormField control={form.control} name="reference1_employmentTo" render={({ field }) => (
-                            <FormItem className="flex flex-col"><FormLabel>Dates of Employment (To)</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
-                        )} />
-                    </div>
-                     <FormField control={form.control} name="reference1_reasonForLeaving" render={({ field }) => ( <FormItem><FormLabel>Reason for Leaving</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                    <FormField control={form.control} name="reference1_wouldRehire" render={({ field }) => (
-                        <FormItem className="space-y-2"><FormLabel>Would you rehire?</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4 pt-2"><FormItem className="flex items-center space-x-2"><RadioGroupItem value="yes" id="ref1-rehire-yes" /><Label htmlFor="ref1-rehire-yes" className="font-normal">Yes</Label></FormItem><FormItem className="flex items-center space-x-2"><RadioGroupItem value="no" id="ref1-rehire-no" /><Label htmlFor="ref1-rehire-no" className="font-normal">No</Label></FormItem></RadioGroup></FormControl><FormMessage /></FormItem>
-                    )} />
-                     <FormField control={form.control} name="reference1_comments" render={({ field }) => ( <FormItem><FormLabel>Additional Comments</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl><FormMessage /></FormItem> )} />
-                </div>
-                
-                {/* Reference 2 */}
-                <div className="space-y-4 border p-4 rounded-md">
-                    <h3 className="text-lg font-semibold flex items-center gap-2"><User /> Reference 2</h3>
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField control={form.control} name="reference2_name" render={({ field }) => ( <FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="reference2_phone" render={({ field }) => ( <FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="reference2_company" render={({ field }) => ( <FormItem><FormLabel>Company</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="reference2_title" render={({ field }) => ( <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                    </div>
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField control={form.control} name="reference2_employmentFrom" render={({ field }) => (
-                            <FormItem className="flex flex-col"><FormLabel>Dates of Employment (From)</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
-                        )} />
-                        <FormField control={form.control} name="reference2_employmentTo" render={({ field }) => (
-                            <FormItem className="flex flex-col"><FormLabel>Dates of Employment (To)</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
-                        )} />
-                    </div>
-                     <FormField control={form.control} name="reference2_reasonForLeaving" render={({ field }) => ( <FormItem><FormLabel>Reason for Leaving</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                    <FormField control={form.control} name="reference2_wouldRehire" render={({ field }) => (
-                        <FormItem className="space-y-2"><FormLabel>Would you rehire?</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4 pt-2"><FormItem className="flex items-center space-x-2"><RadioGroupItem value="yes" id="ref2-rehire-yes" /><Label htmlFor="ref2-rehire-yes" className="font-normal">Yes</Label></FormItem><FormItem className="flex items-center space-x-2"><RadioGroupItem value="no" id="ref2-rehire-no" /><Label htmlFor="ref2-rehire-no" className="font-normal">No</Label></FormItem></RadioGroup></FormControl><FormMessage /></FormItem>
-                    )} />
-                     <FormField control={form.control} name="reference2_comments" render={({ field }) => ( <FormItem><FormLabel>Additional Comments</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl><FormMessage /></FormItem> )} />
-                </div>
-                
-                 <Separator />
-
-                 <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground">I hereby authorize FirstLight Home Care to contact the references listed above to verify my employment and gather information about my work performance.</p>
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                <div className="space-y-4">
+                     <FormField control={form.control} name="fullName" render={({ field }) => ( <FormItem><FormLabel>Applicant’s First Name Middle Last</FormLabel><FormControl><Input {...field} value={existingData?.fullName} disabled readOnly /></FormControl></FormItem> )} />
+                    <p className="text-sm text-muted-foreground">I hereby give FirstLight HomeCare permission to obtain the employment references necessary to make a hiring decision and hold all persons giving references free from any and all liability resulting from this process. I waive any provision impeding the release of this information and agree to provide any information necessary for the release of this information beyond that provided on the employment application and this reference verification form.</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                         <div className="space-y-2">
-                            <Label>Applicant Signature</Label>
+                            <Label>Signature</Label>
                             <div className="relative w-full h-24 rounded-md border bg-muted/50">
                                 <SignatureCanvas
                                     ref={sigPadRef}
@@ -195,21 +174,64 @@ export default function ReferenceVerificationPage() {
                                     canvasProps={{ className: 'w-full h-full rounded-md' }}
                                     onEnd={() => {
                                         if (sigPadRef.current) {
-                                            form.setValue('referenceVerificationSignature', sigPadRef.current.toDataURL())
+                                            form.setValue('applicantSignature', sigPadRef.current.toDataURL())
                                         }
                                     }}
                                 />
                             </div>
-                            <Button type="button" variant="ghost" size="sm" onClick={clearSignature} className="mt-2">
-                                <RefreshCw className="mr-2 h-4 w-4" />
-                                Clear Signature
-                            </Button>
+                             <Button type="button" variant="ghost" size="sm" onClick={clearSignature} className="mt-2"><RefreshCw className="mr-2 h-4 w-4" />Clear Signature</Button>
                         </div>
-                       <FormField control={form.control} name="referenceVerificationSignatureDate" render={({ field }) => (
+                        <FormField control={form.control} name="applicantSignatureDate" render={({ field }) => (
                         <FormItem className="flex flex-col"><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
                        )} />
                     </div>
                 </div>
+
+                <Separator/>
+
+                <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">FORMER EMPLOYER CONTACT INFORMATION</h3>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField control={form.control} name="company" render={({ field }) => ( <FormItem><FormLabel>Company</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="supervisorName" render={({ field }) => ( <FormItem><FormLabel>Supervisor’s Name and Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="emailOrFax" render={({ field }) => ( <FormItem><FormLabel>Email and/or Fax #</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem><FormLabel>Phone</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                         <FormField control={form.control} name="employmentDates" render={({ field }) => ( <FormItem><FormLabel>Dates of Employment</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="position" render={({ field }) => ( <FormItem><FormLabel>Position</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                         <FormField control={form.control} name="startingSalary" render={({ field }) => ( <FormItem><FormLabel>Starting Salary:</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="endingSalary" render={({ field }) => ( <FormItem><FormLabel>Ending Salary:</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    </div>
+                </div>
+
+                <Separator />
+                
+                <div className="space-y-6">
+                    <h3 className="text-lg font-semibold">REFERENCE INFORMATION</h3>
+                    <p className="text-sm text-muted-foreground">When we speak to your former supervisor, we will ask him or her to rate your performance with regard to the following categories. Please rate yourself in the following categories as you feel your former supervisor will rate you:</p>
+                    <RatingScale name="teamworkRating" control={form.control} label="TEAMWORK: The degree to which you are willing to work harmoniously with others; the extent to which you conform to the policies of management." />
+                    <RatingScale name="dependabilityRating" control={form.control} label="DEPENDABILITY: The extent to which you can be depended upon to be available for work and do it properly; the degree to which you are reliable and trustworthy; the extent to which you are able to work scheduled days and times, as well as your willingness to work additional hours if needed." />
+                    <RatingScale name="initiativeRating" control={form.control} label="INITIATIVE: The degree to which you act independently in new situations; the extent to which you see what needs to be done and do it without being told; the degree to which you do your best to be an outstanding employee." />
+                    <RatingScale name="qualityRating" control={form.control} label="QUALITY: The degree to which your work is free from errors and mistakes; the extent to which your work is accurate; the quality of your work in general." />
+                    <RatingScale name="customerServiceRating" control={form.control} label="CUSTOMER SERVICE: The degree to which you relate to the customer’s needs and/or concerns." />
+                    <RatingScale name="overallPerformanceRating" control={form.control} label="OVERALL PERFORMANCE: The degree to which your previous employer was satisfied with your efforts and achievements, as well as your eligibility for rehire." />
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                    <div className="flex flex-wrap gap-8">
+                        <FormField control={form.control} name="resignationStatus" render={({field}) => (<FormItem><FormLabel>Did you resign from this position?</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4 pt-2"><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes" /></FormControl><FormLabel className="font-normal">Yes</FormLabel></FormItem><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No" /></FormControl><FormLabel className="font-normal">No</FormLabel></FormItem></RadioGroup></FormControl><FormMessage/></FormItem>)} />
+                        <FormField control={form.control} name="dischargedStatus" render={({field}) => (<FormItem><FormLabel>Discharged?</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4 pt-2"><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes" /></FormControl><FormLabel className="font-normal">Yes</FormLabel></FormItem><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No" /></FormControl><FormLabel className="font-normal">No</FormLabel></FormItem></RadioGroup></FormControl><FormMessage/></FormItem>)} />
+                        <FormField control={form.control} name="laidOffStatus" render={({field}) => (<FormItem><FormLabel>Laid-Off?</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4 pt-2"><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes" /></FormControl><FormLabel className="font-normal">Yes</FormLabel></FormItem><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No" /></FormControl><FormLabel className="font-normal">No</FormLabel></FormItem></RadioGroup></FormControl><FormMessage/></FormItem>)} />
+                    </div>
+                     <FormField control={form.control} name="eligibleForRehire" render={({field}) => (<FormItem><FormLabel>Are you eligible for rehire?</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4 pt-2"><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes" /></FormControl><FormLabel className="font-normal">Yes</FormLabel></FormItem><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No" /></FormControl><FormLabel className="font-normal">No</FormLabel></FormItem></RadioGroup></FormControl><FormMessage/></FormItem>)} />
+                    <FormField control={form.control} name="wasDisciplined" render={({field}) => (<FormItem><FormLabel>Were you ever disciplined on the job?</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4 pt-2"><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes" /></FormControl><FormLabel className="font-normal">Yes</FormLabel></FormItem><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No" /></FormControl><FormLabel className="font-normal">No</FormLabel></FormItem></RadioGroup></FormControl><FormMessage/></FormItem>)} />
+                    {form.watch('wasDisciplined') === 'Yes' && (
+                        <FormField control={form.control} name="disciplineExplanation" render={({ field }) => ( <FormItem><FormLabel>Explain:</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl><FormMessage /></FormItem> )} />
+                    )}
+                </div>
+
+                <p className="text-sm text-center text-muted-foreground pt-4">Someone from FirstLight HomeCare will be following up with your shortly regarding the employment reference verification check. If you have any questions, please call: 909-321-4466</p>
 
             </CardContent>
             <CardFooter className="flex justify-end gap-4">

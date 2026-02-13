@@ -203,29 +203,30 @@ export const soc341aSchema = z.object({
 export type Soc341aFormData = z.infer<typeof soc341aSchema>;
 
 export const referenceVerificationSchema = z.object({
-  reference1_name: z.string().optional(),
-  reference1_company: z.string().optional(),
-  reference1_title: z.string().optional(),
-  reference1_phone: z.string().optional(),
-  reference1_employmentFrom: z.date().optional().nullable(),
-  reference1_employmentTo: z.date().optional().nullable(),
-  reference1_reasonForLeaving: z.string().optional(),
-  reference1_wouldRehire: z.enum(["yes", "no"]).optional(),
-  reference1_comments: z.string().optional(),
-
-  reference2_name: z.string().optional(),
-  reference2_company: z.string().optional(),
-  reference2_title: z.string().optional(),
-  reference2_phone: z.string().optional(),
-  reference2_employmentFrom: z.date().optional().nullable(),
-  reference2_employmentTo: z.date().optional().nullable(),
-  reference2_reasonForLeaving: z.string().optional(),
-  reference2_wouldRehire: z.enum(["yes", "no"]).optional(),
-  reference2_comments: z.string().optional(),
-  
-  referenceVerificationSignature: z.string().optional(),
-  referenceVerificationSignatureDate: z.date().optional().nullable(),
+  applicantSignature: z.string().optional(),
+  applicantSignatureDate: z.date().optional().nullable(),
+  company: z.string().optional(),
+  supervisorName: z.string().optional(),
+  emailOrFax: z.string().optional(),
+  phone: z.string().optional(),
+  employmentDates: z.string().optional(),
+  position: z.string().optional(),
+  startingSalary: z.string().optional(),
+  endingSalary: z.string().optional(),
+  teamworkRating: z.string().optional(),
+  dependabilityRating: z.string().optional(),
+  initiativeRating: z.string().optional(),
+  qualityRating: z.string().optional(),
+  customerServiceRating: z.string().optional(),
+  overallPerformanceRating: z.string().optional(),
+  resignationStatus: z.enum(["Yes", "No"]).optional(),
+  dischargedStatus: z.enum(["Yes", "No"]).optional(),
+  laidOffStatus: z.enum(["Yes", "No"]).optional(),
+  eligibleForRehire: z.enum(["Yes", "No"]).optional(),
+  wasDisciplined: z.enum(["Yes", "No"]).optional(),
+  disciplineExplanation: z.string().optional(),
 });
+
 export type ReferenceVerificationFormData = z.infer<typeof referenceVerificationSchema>;
 
 export const caregiverFormSchema = generalInfoSchema
@@ -888,6 +889,7 @@ export type CaregiverForRecommendation = z.infer<typeof CaregiverForRecommendati
 
 
     
+
 
 
 
