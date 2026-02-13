@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { Buffer } from 'buffer';
@@ -402,7 +403,7 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
             width: logoDims.width,
             height: logoDims.height,
         });
-        y -= (logoDims.height) - 15;
+        y -= (logoDims.height) - 30; // REDUCED SPACE
 
         const title = "FIRSTLIGHT HOMECARE REFERENCE VERIFICATION FORM";
         const titleWidth = boldFont.widthOfTextAtSize(title, 11);
@@ -423,38 +424,38 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
         y -= 15;
         
         const pleasePrint = "PLEASE PRINT";
-        drawText(page, pleasePrint, {x: leftMargin, y: y, font, size: 6});
+        drawText(page, pleasePrint, {x: leftMargin, y: y, font, size: 7}); // Font size reduced
         y -= 5;
         page.drawLine({ start: { x: leftMargin, y: y }, end: { x: rightMargin, y: y }, thickness: 1 });
         y -= 15;
 
-        drawText(page, `Applicant’s First Name Middle Last: ${formData.fullName || ''}`, {x: leftMargin, y, font, size: 6});
+        drawText(page, `Applicant’s First Name Middle Last: ${formData.fullName || ''}`, {x: leftMargin, y, font, size: 7}); // Font size reduced
         y -= 15;
 
         const permissionText = "I hereby give FirstLight HomeCare permission to obtain the employment references necessary to make a hiring decision and hold all persons giving references free from any and all liability resulting from this process. I waive any provision impeding the release of this information and agree to provide any information necessary for the release of this information beyond that provided on the employment application and this reference verification form.";
-        y = drawWrappedText(page, permissionText, font, 6, leftMargin, y, contentWidth, 8);
+        y = drawWrappedText(page, permissionText, font, 7, leftMargin, y, contentWidth, 9); // Font size reduced
         y -= 20;
         
         if (formData.applicantSignature) {
-            await drawSignature(page, formData.applicantSignature, leftMargin + 80, y - 5, 150, 30, pdfDoc);
+            drawSignature(page, formData.applicantSignature, leftMargin + 80, y - 5, 150, 30, pdfDoc);
         }
         page.drawLine({ start: { x: leftMargin, y: y - 10 }, end: { x: leftMargin + 300, y: y - 10 }, thickness: 0.5 });
-        drawText(page, "Signature", {x: leftMargin, y: y-20, font, size: 6});
+        drawText(page, "Signature", {x: leftMargin, y: y-20, font, size: 7}); // Font size reduced
 
         const sigDate = (formData.applicantSignatureDate && (formData.applicantSignatureDate.toDate || isDate(formData.applicantSignatureDate))) ? format(formData.applicantSignatureDate.toDate ? formData.applicantSignatureDate.toDate() : formData.applicantSignatureDate, "MM/dd/yyyy") : '';
         if (sigDate) {
-             drawText(page, `Date: ${sigDate}`, {x: leftMargin + 350, y, font, size: 6});
+             drawText(page, `Date: ${sigDate}`, {x: leftMargin + 350, y, font, size: 7}); // Font size reduced
         }
         page.drawLine({ start: { x: leftMargin + 340, y: y-10 }, end: { x: leftMargin + 500, y: y - 10 }, thickness: 0.5 });
-        drawText(page, "Date", {x: leftMargin + 340, y: y-20, font, size: 6});
+        drawText(page, "Date", {x: leftMargin + 340, y: y-20, font, size: 7}); // Font size reduced
         y -= 30;
 
         const employerBoxStartY = y;
-        drawText(page, "FORMER EMPLOYER CONTACT INFORMATION", {x: leftMargin, y, font: boldFont, size: 6});
+        drawText(page, "FORMER EMPLOYER CONTACT INFORMATION", {x: leftMargin, y, font: boldFont, size: 7}); // Font size reduced
         y -= 15;
 
         const drawTwoColumnField = (label1: string, value1: string | undefined, label2: string, value2: string | undefined) => {
-            const smallFontSize = 6;
+            const smallFontSize = 7; // Font size reduced
             drawText(page, `${label1}: ${value1 || ''}`, {x: leftMargin + 5, y, font, size: smallFontSize});
             drawText(page, `${label2}: ${value2 || ''}`, {x: leftMargin + contentWidth / 2, y, font, size: smallFontSize});
             y -= 10;
@@ -470,15 +471,15 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
         y -= 15;
 
         const referenceBoxStartY = y;
-        drawText(page, "REFERENCE INFORMATION", {x: leftMargin, y, font: boldFont, size: 6});
+        drawText(page, "REFERENCE INFORMATION", {x: leftMargin, y, font: boldFont, size: 7}); // Font size reduced
         y -= 10;
-        drawText(page, "Please rate yourself in the following categories as you feel your former supervisor will rate you:", {x: leftMargin, y, font, size: 6});
+        drawText(page, "Please rate yourself in the following categories as you feel your former supervisor will rate you:", {x: leftMargin, y, font, size: 7}); // Font size reduced
         y -= 10;
 
         const drawRating = (label: string, value: string | undefined) => {
-            const smallFontSize = 6;
-            y = drawWrappedText(page, label, boldFont, smallFontSize, leftMargin + 5, y, contentWidth - 10, 7);
-            y -= 5; 
+            const smallFontSize = 7; // Font size reduced
+            y = drawWrappedText(page, label, boldFont, smallFontSize, leftMargin + 5, y, contentWidth - 10, 8); // line height adjusted
+            y -= 3; // REDUCED SPACE
             drawText(page, `Rating: ${value || ''}`, {x: leftMargin + 15, y, font, size: smallFontSize});
             y -= 10;
         };
@@ -495,7 +496,7 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
         
         y -= 15;
         const drawYesNo = (label: string, value: string | undefined, yPos: number, xPos: number) => {
-            drawText(page, `${label}: ${value || ''}`, {x: xPos, y: yPos, font, size: 6});
+            drawText(page, `${label}: ${value || ''}`, {x: xPos, y: yPos, font, size: 7}); // Font size reduced
         };
 
         drawYesNo("Did you resign from this position?", formData.resignationStatus, y, leftMargin);
@@ -506,10 +507,10 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
         drawYesNo("Were you ever disciplined on the job?", formData.wasDisciplined, y, leftMargin + 250);
         y -= 10;
         if (formData.wasDisciplined === 'Yes' && formData.disciplineExplanation) {
-            y = drawWrappedText(page, `Explain: ${formData.disciplineExplanation}`, font, 6, leftMargin, y, contentWidth, 8);
+            y = drawWrappedText(page, `Explain: ${formData.disciplineExplanation}`, font, 7, leftMargin, y, contentWidth, 9); // Font size reduced
         }
         y-=10;
-        drawWrappedText(page, "Someone from FirstLight HomeCare will be following up with your shortly regarding the employment reference verification check. If you have any questions, please call: 909-321-4466", font, 6, leftMargin, y, contentWidth, 8);
+        drawWrappedText(page, "Someone from FirstLight HomeCare will be following up with your shortly regarding the employment reference verification check. If you have any questions, please call: 909-321-4466", font, 7, leftMargin, y, contentWidth, 9); // Font size reduced
 
         const pdfBytes = await pdfDoc.save();
         return { pdfData: Buffer.from(pdfBytes).toString('base64') };
@@ -531,7 +532,7 @@ export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: stri
             const { width, height } = page.getSize();
             const headerY = height - 30;
             const footerY = 30;
-            const fontSize = 8;
+            const fontSize = 10; // increased from 8
 
             drawText(page, "State of California – Health and Human Services Agency", { x: 50, y: headerY, font, size: fontSize });
             drawText(page, "California Department of Social Services", { x: width - font.widthOfTextAtSize("California Department of Social Services", fontSize) - 50, y: headerY, font, size: fontSize });
@@ -549,10 +550,10 @@ export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: stri
         const leftMargin = 60;
         const rightMargin = width - 60;
         const contentWidth = rightMargin - leftMargin;
-        const mainFontSize = 9.5;
-        const smallFontSize = 8;
-        const titleFontSize = 14;
-        const lineHeight = 12;
+        const mainFontSize = 10.5; // increased from 9.5
+        const titleFontSize = 15; // increased from 14
+        const smallFontSize = 10; // increased from 8
+        const lineHeight = 14; // increased from 12
 
         let title = "CRIMINAL RECORD STATEMENT";
         drawText(page, title, { x: (width / 2) - (boldFont.widthOfTextAtSize(title, titleFontSize) / 2), y, font: boldFont, size: titleFontSize });
@@ -570,7 +571,7 @@ export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: stri
         y -= 15;
         
         const p1_line2 = "You do not need to disclose any marijuana-related offenses covered by the marijuana reform legislation codified at Health and Safety Code sections 11361.5 and 11361.7.";
-        y = drawWrappedText(page, p1_line2, font, smallFontSize, leftMargin, y, contentWidth, 10);
+        y = drawWrappedText(page, p1_line2, font, smallFontSize, leftMargin, y, contentWidth, 11);
         y -= 20;
 
         drawCheckbox(page, formData.convictedOutOfState === 'yes', leftMargin, y);
@@ -581,7 +582,7 @@ export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: stri
         y -= 15;
         
         const p1_line3 = "You do not need to disclose convictions that were a result of one's status as a victim of human trafficking and that were dismissed pursuant to Penal Code Section 1203.49, nor any marijuana related offenses covered by the marijuana reform legislation codified at Health and Safety Code sections 11361.5 and 11361.7. However you are required to disclose convictions that were dismissed pursuant to Penal Code Section 1203.4(a)";
-        y = drawWrappedText(page, p1_line3, font, smallFontSize, leftMargin, y, contentWidth, 10);
+        y = drawWrappedText(page, p1_line3, font, smallFontSize, leftMargin, y, contentWidth, 11);
         y -= 20;
 
         drawText(page, "Criminal convictions from another State or Federal court are considered the same as criminal convictions in California.", {x: leftMargin, y, font, size: smallFontSize, color: rgb(0.5, 0.5, 0.5)});
@@ -618,11 +619,11 @@ export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: stri
             y = drawWrappedText(page, `• ${item}`, font, mainFontSize, leftMargin + 10, y, contentWidth - 10, lineHeight);
             y -= lineHeight;
         });
-        
+
         // --- PAGE 2 ---
         page = pages[1];
         y = height - 70;
-        const labelFontSize = 10;
+        const labelFontSize = 10; // increased from 8
         
         const p2_note = "NOTE: IF THE CRIMINAL BACKGROUND CHECK REVEALS ANY CONVICTION(S) THAT YOU DID NOT REPORT ON THIS FORM BY CHECKING YES, YOUR FAILURE TO DISCLOSE THE CONVICTION(S) MAY RESULT IN AN EXEMPTION DENIAL, APPLICATION DENIAL, LICENSE REVOCATION, DECERTIFICATION, RESCISSION OF APPROVAL, OR EXCLUSION FROM A LICENSED FACILITY, CERTIFIED FAMILY HOME, OR THE HOME OF A RESOURCE FAMILY.";
         y = drawWrappedText(page, p2_note, boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight);
@@ -697,7 +698,7 @@ export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: stri
         y -= lineHeight;
         const p2_inst3 = "If ‘No’ is indicated above in all boxes, keep this completed form in the facility file.";
         y = drawWrappedText(page, p2_inst3, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
-        
+
         // --- PAGE 3 ---
         page = pages[2];
         y = height - 70;
@@ -719,8 +720,8 @@ export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: stri
 
         drawText(page, "Possible Disclosure of Personal Information.", { x: leftMargin, y, font: boldFont, size: mainFontSize }); y -= lineHeight;
         y = drawWrappedText(page, "In order to be licensed, work at, or be present at, a licensed facility/organization, or be placed on a registry administered by the Department, the law requires that you complete a criminal background check. (Health and Safety Code sections 1522, 1568.09, 1569.17 and 1596.871). The Department will create a file concerning your criminal background check that will contain certain documents, including personal information that you provide. You have the right to access certain records containing your personal information maintained by the Department (Civil Code section 1798 et seq.). Under the California Public Records Act (Government Code section 6250 et seq.), the Department may have to provide copies of some of the records in the file to members of the public who ask for them, including newspaper and television reporters.", font, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= 20;
-
-        drawText(page, "NOTE: IMPORTANT INFORMATION", { x: leftMargin, y, font: boldFont, size: mainFontSize }); y -= lineHeight;
+        
+        y = drawWrappedText(page, "NOTE: IMPORTANT INFORMATION", boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight); y-= lineHeight;
         y = drawWrappedText(page, "The Department is required to tell people who ask, including the press, if someone in a licensed facility/ organization has a criminal record exemption. The Department must also tell people who ask the name of a licensed facility/organization that has a licensee, employee, resident, or other person with a criminal record exemption. This does not apply to Resource Family Homes, Small Family Child Care Homes, or the Home Care Aide Registry. The Department shall not release any information regarding Home Care Aides in response to a Public Records Act request, other than their Home Care Aide number.", font, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= 20;
         
         y = drawWrappedText(page, "The information you provide may also be disclosed in the following circumstances:", font, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= lineHeight;
@@ -729,7 +730,6 @@ export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: stri
         
         let boxEndY_p3 = y - 20;
         page.drawRectangle({ x: leftMargin - 10, y: boxEndY_p3, width: contentWidth + 20, height: boxStartY_p3 - boxEndY_p3, borderColor: rgb(0,0,0), borderWidth: 1 });
-
 
         // --- PAGE 4 ---
         page = pages[3];
@@ -746,7 +746,7 @@ export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: stri
         drawText(page, "Sacramento, CA 94203-4170", { x: leftMargin + 20, y, font, size: mainFontSize }); y -= 20;
         
         drawText(page, "Applicant Notification and Record Challenge", { x: leftMargin, y, font: boldFont, size: mainFontSize }); y -= lineHeight;
-        y = drawWrappedText(page, "Your fingerprints will be used to check the criminal history records of the FBI. You have the opportunity to complete or challenge the accuracy of the information contained in the FBI identification record. The procedure for obtaining a change, correction, or updating an FBI identification record are set forth in Title 28, CFR, 16.34. You can find additional information on the FBI website at https://www.fbi.gov/aboutus/cjis/background-checks.", font, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= 20;
+        y = drawWrappedText(page, "Your fingerprints will be used to check the criminal history records of the FBI. You have the opportunity to complete or challenge the accuracy of the information contained in the FBI identification record. The procedure for obtaining a change, correction, or updating an FBI identification record are set forth in Title 28, CFR, 16.34. You can find additional information on the FBI website at https://www.fbi.gov/about-us/cjis/background-checks.", font, mainFontSize, leftMargin, y, contentWidth, lineHeight); y -= 20;
 
         drawText(page, "Federal Privacy Act Statement", { x: leftMargin, y, font: boldFont, size: mainFontSize }); y -= lineHeight;
         y = drawWrappedText(page, "Authority:", boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight);
@@ -798,8 +798,7 @@ export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: stri
 
         let boxEndY_p5 = y - 10;
         page.drawRectangle({ x: leftMargin - 10, y: boxEndY_p5, width: contentWidth + 20, height: boxStartY_p5 - boxEndY_p5, borderColor: rgb(0,0,0), borderWidth: 1 });
-
-
+        
         const pdfBytes = await pdfDoc.save();
         return { pdfData: Buffer.from(pdfBytes).toString('base64') };
     } catch (error: any) {
@@ -807,3 +806,5 @@ export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: stri
         return { error: `Failed to generate PDF: ${error.message}` };
     }
 }
+
+  
