@@ -1,7 +1,7 @@
 
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useTransition } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, CheckCircle, Loader2, ArrowLeft, Printer } from "lucide-react";
@@ -10,6 +10,8 @@ import { useUser, useDoc, useMemoFirebase, firestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { CaregiverProfile } from '@/lib/types';
 import { Button } from '@/components/ui/button';
+import { generateHcs501PdfAction } from '@/lib/candidate-hiring-forms.actions';
+import { useToast } from '@/hooks/use-toast';
 
 const hiringForms = [
   { name: "HCS 501 - Personnel Record 2019", href: "/candidate-hiring-forms/hcs501", completionKey: 'hcs501EmployeeSignature' },
@@ -23,10 +25,12 @@ const hiringForms = [
 function CandidateHiringFormsContent() {
   const { user, isUserLoading } = useUser();
   const searchParams = useSearchParams();
+  const { toast } = useToast();
 
   const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "care-rc@firstlighthomecare.com";
   const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL || "lpinto@firstlighthomecare.com";
   const staffingAdminEmail = process.env.NEXT_PUBLIC_STAFFING_ADMIN_EMAIL || "admin-rc@firstlighthomecare.com";
+  const [isGeneratingPdf, startPdfGeneration] = useTransition();
 
   const isAnAdmin = user?.email === adminEmail || user?.email === ownerEmail || user?.email === staffingAdminEmail;
   const candidateId = searchParams.get('candidateId');
@@ -45,6 +49,30 @@ function CandidateHiringFormsContent() {
   const formLinkHref = (baseHref: string) => {
     return isAnAdmin && candidateId ? `${baseHref}?candidateId=${candidateId}` : baseHref;
   };
+  
+  const handleGeneratePdf = (formName: string) => {
+    if (!candidateId) return;
+
+    if (formName === 'hcs501') {
+      startPdfGeneration(async () => {
+        const result = await generateHcs501PdfAction(candidateId);
+        if (result.error) {
+          toast({ title: 'PDF Generation Failed', description: result.error, variant: 'destructive' });
+        } else if (result.pdfData) {
+          const byteCharacters = atob(result.pdfData);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: 'application/pdf' });
+          const url = URL.createObjectURL(blob);
+          window.open(url, '_blank');
+        }
+      });
+    }
+  }
+
 
   if (isLoading) {
     return (
@@ -87,12 +115,24 @@ function CandidateHiringFormsContent() {
                  <div className="flex items-center gap-2">
                     {isCompleted && <CheckCircle className="h-6 w-6 text-green-500" />}
                     {isAnAdmin && isCompleted && (
-                        <Button asChild variant="outline" size="icon">
-                        <Link href={`${form.href}?candidateId=${candidateId}&print=true`} target="_blank">
-                            <Printer className="h-4 w-4" />
-                            <span className="sr-only">Print or Generate PDF</span>
-                        </Link>
-                        </Button>
+                       form.name === 'HCS 501 - Personnel Record 2019' ? (
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => handleGeneratePdf('hcs501')}
+                                disabled={isGeneratingPdf}
+                            >
+                                {isGeneratingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
+                                <span className="sr-only">Generate PDF</span>
+                            </Button>
+                        ) : (
+                            <Button asChild variant="outline" size="icon">
+                            <Link href={`${form.href}?candidateId=${candidateId}&print=true`} target="_blank">
+                                <Printer className="h-4 w-4" />
+                                <span className="sr-only">Print or Generate PDF</span>
+                            </Link>
+                            </Button>
+                        )
                     )}
                 </div>
               </div>

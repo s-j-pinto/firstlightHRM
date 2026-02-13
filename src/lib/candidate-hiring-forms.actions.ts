@@ -7,6 +7,7 @@ import { serverDb } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { hcs501Schema, emergencyContactSchema, lic508Object, soc341aSchema, referenceVerificationSchema } from './types';
+import { generateHcs501Pdf } from './pdf.actions';
 
 // Helper to convert date strings to Firestore Timestamps if they are valid dates
 function convertDatesToTimestamps(data: any): any {
@@ -140,4 +141,22 @@ export async function saveReferenceVerificationData(profileId: string, data: any
     console.error("Error saving Reference Verification data:", error);
     return { error: 'Failed to save form data.' };
   }
+}
+
+export async function generateHcs501PdfAction(candidateId: string) {
+    if (!candidateId) {
+        return { error: 'Candidate ID is required.' };
+    }
+    try {
+        const docSnap = await serverDb.collection('caregiver_profiles').doc(candidateId).get();
+        if (!docSnap.exists) {
+            return { error: 'Candidate profile not found.' };
+        }
+        const formData = docSnap.data();
+        const result = await generateHcs501Pdf(formData);
+        
+        return result;
+    } catch (error: any) {
+        return { error: `Failed to generate PDF: ${error.message}` };
+    }
 }
