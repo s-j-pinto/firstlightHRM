@@ -1,5 +1,4 @@
 
-
 import { z } from "zod";
 
 export const initialContactSchema = z.object({
@@ -149,36 +148,47 @@ export const transportationSchema = z.object({
   validLicense: z.enum(["yes", "no"], { required_error: "Please select an option." }),
 });
 
-export const hcs501Schema = z.object({
+const hcs501Object = z.object({
   perId: z.string().optional(),
   hireDate: z.date().optional().nullable(),
   separationDate: z.date().optional().nullable(),
-  fullName: z.string().optional(),
-  phone: z.string().optional(),
-  address: z.string().optional(),
-  city: z.string().optional(),
-  state: z.string().optional(),
-  zip: z.string().optional(),
-  dob: z.date().optional().nullable(),
-  ssn: z.string().optional(),
-  tbDate: z.date().optional().nullable(),
-  tbResults: z.string().optional(),
+  fullName: z.string().min(1, "Full name is required."),
+  phone: z.string().min(1, "Phone is required."),
+  address: z.string().min(1, "Address is required."),
+  city: z.string().min(1, "City is required."),
+  state: z.string().min(1, "State is required."),
+  zip: z.string().min(1, "Zip code is required."),
+  dob: z.date({required_error: "Date of Birth is required."}),
+  ssn: z.string().optional(), // Voluntary for ID only
+  tbDate: z.date({required_error: "Date of TB Test is required."}),
+  tbResults: z.string().min(1, "Results of last TB test are required."),
   additionalTbDates: z.string().optional(),
   alternateNames: z.string().optional(),
-  validLicense: z.enum(["yes", "no"]).optional(),
+  validLicense: z.enum(["yes", "no"], {required_error: "This selection is required."}),
   driversLicenseNumber: z.string().optional(),
-  titleOfPosition: z.string().optional(),
+  titleOfPosition: z.string().min(1, "Title of Position is required."),
   hcs501Notes: z.string().optional(),
-  hcs501EmployeeSignature: z.string().optional(),
-  hcs501SignatureDate: z.date().optional().nullable(),
+  hcs501EmployeeSignature: z.string().min(1, "Signature is required."),
+  hcs501SignatureDate: z.date({required_error: "Signature date is required."}),
 });
+
+export const hcs501Schema = hcs501Object.refine(data => {
+    if (data.validLicense === 'yes') {
+        return !!data.driversLicenseNumber && data.driversLicenseNumber.length > 0;
+    }
+    return true;
+}, {
+    message: "Driver's license number is required if you have a valid license.",
+    path: ['driversLicenseNumber'],
+});
+
 export type Hcs501FormData = z.infer<typeof hcs501Schema>;
 
 export const emergencyContactSchema = z.object({
-  emergencyContact1_name: z.string().optional(),
-  emergencyContact1_phone: z.string().optional(),
-  emergencyContact1_address: z.string().optional(),
-  emergencyContact1_cityStateZip: z.string().optional(),
+  emergencyContact1_name: z.string().min(1, "Name for first contact is required."),
+  emergencyContact1_phone: z.string().min(1, "Phone for first contact is required."),
+  emergencyContact1_address: z.string().min(1, "Address for first contact is required."),
+  emergencyContact1_cityStateZip: z.string().min(1, "City/State/Zip for first contact is required."),
   emergencyContact2_name: z.string().optional(),
   emergencyContact2_phone: z.string().optional(),
   emergencyContact2_address: z.string().optional(),
@@ -186,50 +196,70 @@ export const emergencyContactSchema = z.object({
 });
 export type EmergencyContactFormData = z.infer<typeof emergencyContactSchema>;
 
-export const lic508Schema = z.object({
-  convictedInCalifornia: z.enum(["yes", "no"]).optional(),
-  convictedOutOfState: z.enum(["yes", "no"]).optional(),
-  livedOutOfStateLast5Years: z.enum(["yes", "no"]).optional(),
+const lic508Object = z.object({
+  convictedInCalifornia: z.enum(["yes", "no"], { required_error: "This selection is required." }),
+  convictedOutOfState: z.enum(["yes", "no"], { required_error: "This selection is required." }),
+  livedOutOfStateLast5Years: z.enum(["yes", "no"], { required_error: "This selection is required." }),
   outOfStateHistory: z.string().optional(),
-  lic508Signature: z.string().optional(),
-  lic508SignatureDate: z.date().optional().nullable(),
-  ssn: z.string().optional(),
-  driversLicenseNumber: z.string().optional(),
-  dob: z.date().optional().nullable(),
+  lic508Signature: z.string().min(1, "Signature is required."),
+  lic508SignatureDate: z.date({ required_error: "Signature date is required." }),
+  ssn: z.string().min(1, "Social Security Number is required."),
+  driversLicenseNumber: z.string().min(1, "Driver's License is required."),
+  dob: z.date({ required_error: "Date of Birth is required." }),
 });
+
+export const lic508Schema = lic508Object.refine(data => {
+    if (data.livedOutOfStateLast5Years === 'yes') {
+        return !!data.outOfStateHistory && data.outOfStateHistory.length > 0;
+    }
+    return true;
+}, {
+    message: "Please list the states you have lived in.",
+    path: ['outOfStateHistory'],
+});
+
 export type Lic508FormData = z.infer<typeof lic508Schema>;
 
 export const soc341aSchema = z.object({
-  soc341aSignature: z.string().optional(),
-  soc341aSignatureDate: z.date().optional().nullable(),
+  soc341aSignature: z.string().min(1, "Signature is required."),
+  soc341aSignatureDate: z.date({required_error: "Signature date is required."}),
 });
 export type Soc341aFormData = z.infer<typeof soc341aSchema>;
 
-export const referenceVerificationSchema = z.object({
-  applicantSignature: z.string().optional(),
-  applicantSignatureDate: z.date().optional().nullable(),
-  company: z.string().optional(),
-  supervisorName: z.string().optional(),
-  emailOrFax: z.string().optional(),
-  phone: z.string().optional(),
-  employmentDates: z.string().optional(),
-  position: z.string().optional(),
-  startingSalary: z.string().optional(),
-  endingSalary: z.string().optional(),
-  teamworkRating: z.string().optional(),
-  dependabilityRating: z.string().optional(),
-  initiativeRating: z.string().optional(),
-  qualityRating: z.string().optional(),
-  customerServiceRating: z.string().optional(),
-  overallPerformanceRating: z.string().optional(),
-  resignationStatus: z.enum(["Yes", "No"]).optional(),
-  dischargedStatus: z.enum(["Yes", "No"]).optional(),
-  laidOffStatus: z.enum(["Yes", "No"]).optional(),
-  eligibleForRehire: z.enum(["Yes", "No"]).optional(),
-  wasDisciplined: z.enum(["Yes", "No"]).optional(),
+const referenceVerificationObject = z.object({
+  applicantSignature: z.string().min(1, "Signature is required."),
+  applicantSignatureDate: z.date({ required_error: "Signature date is required." }),
+  company: z.string().min(1, "Company name is required."),
+  supervisorName: z.string().min(1, "Supervisor's name is required."),
+  emailOrFax: z.string().min(1, "Email or Fax is required."),
+  phone: z.string().min(1, "Phone number is required."),
+  employmentDates: z.string().min(1, "Dates of employment are required."),
+  position: z.string().min(1, "Position is required."),
+  startingSalary: z.string().min(1, "Starting salary is required."),
+  endingSalary: z.string().min(1, "Ending salary is required."),
+  teamworkRating: z.string({ required_error: "Rating is required." }),
+  dependabilityRating: z.string({ required_error: "Rating is required." }),
+  initiativeRating: z.string({ required_error: "Rating is required." }),
+  qualityRating: z.string({ required_error: "Rating is required." }),
+  customerServiceRating: z.string({ required_error: "Rating is required." }),
+  overallPerformanceRating: z.string({ required_error: "Rating is required." }),
+  resignationStatus: z.enum(["Yes", "No"], { required_error: "This selection is required." }),
+  dischargedStatus: z.enum(["Yes", "No"], { required_error: "This selection is required." }),
+  laidOffStatus: z.enum(["Yes", "No"], { required_error: "This selection is required." }),
+  eligibleForRehire: z.enum(["Yes", "No"], { required_error: "This selection is required." }),
+  wasDisciplined: z.enum(["Yes", "No"], { required_error: "This selection is required." }),
   disciplineExplanation: z.string().optional(),
 });
 
+export const referenceVerificationSchema = referenceVerificationObject.refine(data => {
+    if (data.wasDisciplined === 'Yes') {
+        return !!data.disciplineExplanation && data.disciplineExplanation.length > 0;
+    }
+    return true;
+}, {
+    message: "Explanation is required if you were disciplined.",
+    path: ['disciplineExplanation'],
+});
 export type ReferenceVerificationFormData = z.infer<typeof referenceVerificationSchema>;
 
 export const caregiverFormSchema = generalInfoSchema
@@ -237,11 +267,11 @@ export const caregiverFormSchema = generalInfoSchema
   .merge(certificationsSchema)
   .merge(availabilitySchema)
   .merge(transportationSchema)
-  .merge(hcs501Schema.partial())
-  .merge(emergencyContactSchema)
-  .merge(lic508Schema.partial())
+  .merge(hcs501Object.partial())
+  .merge(emergencyContactSchema.partial())
+  .merge(lic508Object.partial())
   .merge(soc341aSchema.partial())
-  .merge(referenceVerificationSchema.partial());
+  .merge(referenceVerificationObject.partial());
 
 export type CaregiverProfile = z.infer<typeof caregiverFormSchema> & { id: string, canWorkWithCovid?: boolean, cna?: boolean };
 
@@ -892,3 +922,5 @@ export type CaregiverForRecommendation = z.infer<typeof CaregiverForRecommendati
 
 
     
+
+
