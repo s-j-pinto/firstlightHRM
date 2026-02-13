@@ -91,7 +91,7 @@ async function drawHcs501Footer(page: any, font: PDFFont) {
     const footerY = 30;
     const fontSize = 8;
 
-    page.drawText(footerText1, {
+    drawText(page, footerText1, {
         x: 50,
         y: footerY,
         font: font,
@@ -99,7 +99,7 @@ async function drawHcs501Footer(page: any, font: PDFFont) {
         color: rgb(0, 0, 0)
     });
 
-    page.drawText(footerText2, {
+    drawText(page, footerText2, {
         x: width - 50 - font.widthOfTextAtSize(footerText2, fontSize),
         y: footerY,
         font: font,
@@ -117,18 +117,18 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
         const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-        let y = height - 50; 
+        let y = height - 40; 
         const leftMargin = 50;
         const rightMargin = width - 50;
         const contentWidth = rightMargin - leftMargin;
 
-        const lineSpacing = 18;
-        const sectionSpacing = 22; 
-        const mainFontSize = 10; 
-        const titleFontSize = 12;
-        const labelFontSize = 9;
-        const headerFontSize = 8; 
-        const subTitleFontSize = 7;
+        const lineSpacing = 19;
+        const sectionSpacing = 24; 
+        const mainFontSize = 10.5; 
+        const titleFontSize = 12.5;
+        const labelFontSize = 9.5;
+        const headerFontSize = 8.5; 
+        const subTitleFontSize = 7.5;
         const lightGray = rgb(0.92, 0.92, 0.92);
 
         // Header
@@ -139,12 +139,12 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         drawText(page, 'California Department of Social Services', { x: leftMargin, y, font, size: headerFontSize });
         const rightHeaderText2 = 'Home Care Services Bureau';
         drawText(page, rightHeaderText2, { x: width - font.widthOfTextAtSize(rightHeaderText2, headerFontSize) - leftMargin, y, font, size: headerFontSize });
-        y -= 25;
+        y -= 20;
 
         // Title
         const title = "PERSONNEL RECORD";
         drawText(page, title, { x: leftMargin, y, font: boldFont, size: titleFontSize });
-        y -= sectionSpacing + 5;
+        y -= sectionSpacing;
 
         // Personal Record Pane
         page.drawRectangle({ x: leftMargin - 10, y: y - 85, width: contentWidth + 20, height: 95, color: lightGray });
@@ -182,7 +182,7 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
 
         const fullAddress = [formData.address, formData.city, formData.state, formData.zip].filter(Boolean).join(', ');
         drawFieldBox("Address", fullAddress, leftMargin, y, contentWidth);
-        y -= lineSpacing * 1.5; 
+        y -= lineSpacing * 1; 
 
         drawFieldBox("Date of Birth", formData.dob ? format(new Date(formData.dob.seconds * 1000), "MM/dd/yyyy") : '', leftMargin, y, 200);
         drawFieldBox("Social Security Number (Voluntary for ID only)", formData.ssn, leftMargin + 220, y, contentWidth-220);
@@ -215,12 +215,12 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         y -= sectionSpacing;
 
         drawFieldBox("Title of Position", formData.titleOfPosition, leftMargin, y, contentWidth);
-        y -= lineSpacing * 2 + 10;
+        y -= lineSpacing * 2 + 15;
         
         drawText(page, "Notes:", {x: leftMargin, y: y+10, font, size: labelFontSize});
         page.drawRectangle({x: leftMargin, y: y-35, width: contentWidth, height: 40, borderColor: rgb(0,0,0), borderWidth: 0.5});
         if (formData.hcs501Notes) drawWrappedText(page, formData.hcs501Notes, font, mainFontSize, leftMargin + 5, y - 5, contentWidth - 10, lineSpacing);
-        y -= 70;
+        y -= 75;
 
         // Certify Pane
         page.drawRectangle({ x: leftMargin - 10, y: y - 80, width: contentWidth + 20, height: 95, color: lightGray });
@@ -391,7 +391,7 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
             width: logoDims.width,
             height: logoDims.height,
         });
-        y -= logoDims.height + 20;
+        y -= logoDims.height + 5;
 
         const title = "FIRSTLIGHT HOMECARE REFERENCE VERIFICATION FORM";
         const titleWidth = boldFont.widthOfTextAtSize(title, 14);
@@ -465,7 +465,7 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
         const drawRating = (label: string, value: string | undefined) => {
             y -= 5;
             y = drawWrappedText(page, label, boldFont, 9, leftMargin + 5, y, contentWidth - 10, 11);
-            y -= 15;
+            y -= 4; // Reduced by 75%
             if(value) drawText(page, `Rating: ${value}`, {x: leftMargin + 15, y, font, size: 10});
             y -= 20;
         };
@@ -509,3 +509,5 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
         return { error: `Failed to generate PDF: ${error.message}` };
     }
 }
+
+    
