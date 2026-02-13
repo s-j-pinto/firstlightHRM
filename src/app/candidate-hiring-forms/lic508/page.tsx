@@ -455,6 +455,25 @@ licensing, security clearances, and other suitability determinations;</li>
                     <p className="text-muted-foreground">As an applicant who is the subject of a national fingerprint-based criminal history record check for a
 noncriminal justice purpose (such as an application for employment or a license, an immigration or
 naturalization matter, security clearance, or adoption), you have certain rights which are discussed below.</p>
+                    <ul className="list-disc pl-5 mt-2 space-y-1 text-muted-foreground">
+                        <li>You must be provided written notification¹ that your fingerprints will be used to check the criminal history records of the FBI.</li>
+                        <li>You must be provided, and acknowledge receipt of, an adequate Privacy Act Statement when you submit your fingerprints and associated personal information. This Privacy Act Statement should explain the authority for collecting your information and how your information will be used, retained, and shared.²</li>
+                        <li>If you have a criminal history record, the officials making a determination of your suitability for the employment, license, or other benefit must provide you the opportunity to complete or challenge the accuracy of the information in the record.</li>
+                        <li>The officials must advise you that the procedures for obtaining a change, correction, or update of your criminal history record are set forth at Title 28, Code of Federal Regulations (CFR), Section 16.34.</li>
+                        <li>If you have a criminal history record, you should be afforded a reasonable amount of time to correct or complete the record (or decline to do so) before the officials deny you the employment, license, or other benefit based on information in the criminal history record.³</li>
+                        <li>You have the right to expect that officials receiving the results of the criminal history record check will use it only for authorized purposes and will not retain or disseminate it in violation of federal statute, regulation or executive order, or rule, procedure or standard established by the National Crime Prevention and Privacy Compact Council.⁴</li>
+                    </ul>
+                    <p className="text-muted-foreground pt-2">If agency policy permits, the officials may provide you with a copy of your FBI criminal history record for review and possible challenge. If agency policy does not permit it to provide you a copy of the record, you may obtain a copy of the record by submitting fingerprints and a fee to the FBI. Information regarding this process may be obtained at https://www.fbi.gov/services/cjis/identity-history-summary-checks.</p>
+                    <p className="text-muted-foreground pt-2">If you decide to challenge the accuracy or completeness of your FBI criminal history record, you should send your challenge to the agency that contributed the questioned information to the FBI. Alternatively, you may send your challenge directly to the FBI. The FBI will then forward your challenge to the agency that contributed the questioned information and request the agency to verify or correct the challenged entry. Upon receipt of an official communication from that agency, the FBI will make any necessary changes/corrections to your record in accordance with the information supplied by that agency. (See 28 CFR 16.30 through 16.34.) You can find additional information on the FBI website at https://www.fbi.gov/about-us/cjis/background-checks.</p>
+
+                    <Separator className="my-4"/>
+
+                    <div className="text-xs text-muted-foreground space-y-1">
+                        <p>¹ Written notification includes electronic notification, but excludes oral notification.</p>
+                        <p>² https://www.fbi.gov/services/cjis/compact-council/privacy-act-statement</p>
+                        <p>³ See 28 CFR 50.12(b)</p>
+                        <p>⁴ See U.S.C. 552a(b); 28 U.S.C. 534(b); 34 U.S.C. § 40316 (formerly cited as 42 U.S.C. § 14616), Article IV(c)</p>
+                    </div>
                 </div>
 
 
