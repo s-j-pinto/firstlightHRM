@@ -4,11 +4,12 @@
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, CheckCircle, Loader2 } from "lucide-react";
+import { FileText, CheckCircle, Loader2, ArrowLeft } from "lucide-react";
 import Link from 'next/link';
 import { useUser, useDoc, useMemoFirebase, firestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { CaregiverProfile } from '@/lib/types';
+import { Button } from '@/components/ui/button';
 
 const hiringForms = [
   { name: "HCS 501 - Personnel Record 2019", href: "/candidate-hiring-forms/hcs501", completionKey: 'hcs501EmployeeSignature' },
@@ -57,10 +58,22 @@ function CandidateHiringFormsContent() {
     <div className="max-w-2xl mx-auto">
       <Card>
         <CardHeader>
-          <CardTitle>Hiring Forms{isAnAdmin && profileData ? ` for ${profileData.fullName}` : ''}</CardTitle>
-          <CardDescription>
-            {isAnAdmin ? 'Review the status of the candidate\'s forms below.' : 'Please complete all of the following forms to continue your onboarding process.'}
-          </CardDescription>
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle>Hiring Forms{isAnAdmin && profileData ? ` for ${profileData.fullName}` : ''}</CardTitle>
+              <CardDescription>
+                {isAnAdmin ? 'Review the status of the candidate\'s forms below.' : 'Please complete all of the following forms to continue your onboarding process.'}
+              </CardDescription>
+            </div>
+            {isAnAdmin && (
+              <Button asChild variant="outline">
+                <Link href="/admin">
+                  <ArrowLeft className="mr-2" />
+                  Back to Admin Dashboard
+                </Link>
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {hiringForms.map((form) => {
