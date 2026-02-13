@@ -125,9 +125,9 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
 
         const lineSpacing = 24; 
         const sectionSpacing = 28;
-        const mainFontSize = 10;
+        const mainFontSize = 9.5;
         const titleFontSize = 14;
-        const labelFontSize = 9;
+        const labelFontSize = 8;
         const headerFontSize = 9; 
         const subTitleFontSize = 8;
         const lightGray = rgb(0.92, 0.92, 0.92);
@@ -141,7 +141,7 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         const rightHeaderText2 = 'Home Care Services Bureau';
         drawText(page, rightHeaderText2, { x: width - font.widthOfTextAtSize(rightHeaderText2, headerFontSize) - leftMargin, y, font, size: headerFontSize });
         
-        y -= 40;
+        y -= 30;
 
         // Title
         const title = "PERSONNEL RECORD";
@@ -169,7 +169,7 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         drawFieldBox("Hire Date", hireDate, leftMargin, y, 180);
         drawFieldBox("Date of Separation", separationDate, leftMargin + 200, y, 180);
 
-        y -= 35; // Move up a bit
+        y -= 45; 
 
         // Personal Section
         const personalTitle = "PERSONAL";
@@ -186,9 +186,8 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         drawFieldBox("Area Code/Telephone", formData.phone, leftMargin + 300, y, contentWidth - 300);
         y -= lineSpacing * 1.8;
         
-        const fullAddress = [formData.address, formData.city, formData.state, formData.zip].filter(Boolean).join(', ');
-        drawFieldBox("Address", fullAddress, leftMargin, y, contentWidth);
-        y -= (lineSpacing * 1.5); // Reduced space
+        drawFieldBox("Address", formData.address, leftMargin, y, contentWidth);
+        y -= lineSpacing * 1.3; 
 
         const dobDate = (formData.dob && formData.dob.toDate) ? format(formData.dob.toDate(), "MM/dd/yyyy") : (isDate(formData.dob) ? format(formData.dob, "MM/dd/yyyy") : '');
         drawFieldBox("Date of Birth", dobDate, leftMargin, y, 200);
@@ -229,8 +228,8 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         
         drawText(page, "Notes:", {x: leftMargin, y: y+12, font, size: labelFontSize});
         page.drawRectangle({x: leftMargin, y: y-35, width: contentWidth, height: 40, borderColor: rgb(0,0,0), borderWidth: 0.5});
-        if (formData.hcs501Notes) y = drawWrappedText(page, formData.hcs501Notes, font, mainFontSize, leftMargin + 5, y - 5, contentWidth - 10, lineSpacing);
-        y -= 30; // Adjusted spacing
+        if (formData.hcs501Notes) y = drawWrappedText(page, formData.hcs501Notes, font, mainFontSize, leftMargin + 5, y - 5, contentWidth - 10, 12);
+        y -= 50; 
 
         // Certify Pane
         page.drawRectangle({ x: leftMargin - 10, y: y - 75, width: contentWidth + 20, height: 90, color: lightGray });
@@ -403,10 +402,10 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
             width: logoDims.width,
             height: logoDims.height,
         });
-        y -= (logoDims.height) - 5; // Reduced space
+        y -= (logoDims.height) - 15;
 
         const title = "FIRSTLIGHT HOMECARE REFERENCE VERIFICATION FORM";
-        const titleWidth = boldFont.widthOfTextAtSize(title, 12);
+        const titleWidth = boldFont.widthOfTextAtSize(title, 11);
         page.drawRectangle({
             x: (width / 2) - (titleWidth / 2) - 5,
             y: y - 5,
@@ -418,22 +417,22 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
             x: (width / 2) - (titleWidth / 2),
             y: y,
             font: boldFont,
-            size: 12,
+            size: 11,
             color: rgb(1, 1, 1),
         });
         y -= 15;
         
         const pleasePrint = "PLEASE PRINT";
-        drawText(page, pleasePrint, {x: leftMargin, y: y, font, size: 7});
+        drawText(page, pleasePrint, {x: leftMargin, y: y, font, size: 6});
         y -= 5;
         page.drawLine({ start: { x: leftMargin, y: y }, end: { x: rightMargin, y: y }, thickness: 1 });
         y -= 15;
 
-        drawText(page, `Applicant’s First Name Middle Last: ${formData.fullName || ''}`, {x: leftMargin, y, font, size: 7});
+        drawText(page, `Applicant’s First Name Middle Last: ${formData.fullName || ''}`, {x: leftMargin, y, font, size: 6});
         y -= 15;
 
         const permissionText = "I hereby give FirstLight HomeCare permission to obtain the employment references necessary to make a hiring decision and hold all persons giving references free from any and all liability resulting from this process. I waive any provision impeding the release of this information and agree to provide any information necessary for the release of this information beyond that provided on the employment application and this reference verification form.";
-        y = drawWrappedText(page, permissionText, font, 7, leftMargin, y, contentWidth, 9);
+        y = drawWrappedText(page, permissionText, font, 6, leftMargin, y, contentWidth, 8);
         y -= 20;
         
         if (formData.applicantSignature) {
@@ -444,7 +443,7 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
 
         const sigDate = (formData.applicantSignatureDate && (formData.applicantSignatureDate.toDate || isDate(formData.applicantSignatureDate))) ? format(formData.applicantSignatureDate.toDate ? formData.applicantSignatureDate.toDate() : formData.applicantSignatureDate, "MM/dd/yyyy") : '';
         if (sigDate) {
-             drawText(page, `Date: ${sigDate}`, {x: leftMargin + 350, y, font, size: 7});
+             drawText(page, `Date: ${sigDate}`, {x: leftMargin + 350, y, font, size: 6});
         }
         page.drawLine({ start: { x: leftMargin + 340, y: y-10 }, end: { x: leftMargin + 500, y: y - 10 }, thickness: 0.5 });
         drawText(page, "Date", {x: leftMargin + 340, y: y-20, font, size: 6});
@@ -456,9 +455,9 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
 
         const drawTwoColumnField = (label1: string, value1: string | undefined, label2: string, value2: string | undefined) => {
             const smallFontSize = 6;
-            if (value1) drawText(page, `${label1}: ${value1}`, {x: leftMargin + 5, y, font, size: smallFontSize});
-            if (value2) drawText(page, `${label2}: ${value2}`, {x: leftMargin + contentWidth / 2, y, font, size: smallFontSize});
-            y -= 12;
+            drawText(page, `${label1}: ${value1 || ''}`, {x: leftMargin + 5, y, font, size: smallFontSize});
+            drawText(page, `${label2}: ${value2 || ''}`, {x: leftMargin + contentWidth / 2, y, font, size: smallFontSize});
+            y -= 10;
         };
 
         drawTwoColumnField("Company", formData.company, "Supervisor’s Name and Title", formData.supervisorName);
@@ -474,14 +473,14 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
         drawText(page, "REFERENCE INFORMATION", {x: leftMargin, y, font: boldFont, size: 6});
         y -= 10;
         drawText(page, "Please rate yourself in the following categories as you feel your former supervisor will rate you:", {x: leftMargin, y, font, size: 6});
-        y -= 12;
+        y -= 10;
 
         const drawRating = (label: string, value: string | undefined) => {
             const smallFontSize = 6;
             y = drawWrappedText(page, label, boldFont, smallFontSize, leftMargin + 5, y, contentWidth - 10, 7);
-            y -= 6; // Reduced space
-            if(value) drawText(page, `Rating: ${value}`, {x: leftMargin + 15, y, font, size: smallFontSize});
-            y -= 10; // Reduced space
+            y -= 5; 
+            drawText(page, `Rating: ${value || ''}`, {x: leftMargin + 15, y, font, size: smallFontSize});
+            y -= 10;
         };
 
         drawRating("TEAMWORK: The degree to which you are willing to work harmoniously with others; the extent to which you conform to the policies of management.", formData.teamworkRating);
@@ -496,23 +495,21 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
         
         y -= 15;
         const drawYesNo = (label: string, value: string | undefined, yPos: number, xPos: number) => {
-            if (value) {
-                drawText(page, `${label}: ${value}`, {x: xPos, y: yPos, font, size: 7});
-            }
+            drawText(page, `${label}: ${value || ''}`, {x: xPos, y: yPos, font, size: 6});
         };
 
         drawYesNo("Did you resign from this position?", formData.resignationStatus, y, leftMargin);
         drawYesNo("Discharged?", formData.dischargedStatus, y, leftMargin + 250);
         drawYesNo("Laid-Off?", formData.laidOffStatus, y, leftMargin + 400);
-        y -= 12;
+        y -= 10;
         drawYesNo("Are you eligible for rehire?", formData.eligibleForRehire, y, leftMargin);
         drawYesNo("Were you ever disciplined on the job?", formData.wasDisciplined, y, leftMargin + 250);
-        y -= 12;
+        y -= 10;
         if (formData.wasDisciplined === 'Yes' && formData.disciplineExplanation) {
-            y = drawWrappedText(page, `Explain: ${formData.disciplineExplanation}`, font, 7, leftMargin, y, contentWidth, 9);
+            y = drawWrappedText(page, `Explain: ${formData.disciplineExplanation}`, font, 6, leftMargin, y, contentWidth, 8);
         }
-        y-=12;
-        drawWrappedText(page, "Someone from FirstLight HomeCare will be following up with your shortly regarding the employment reference verification check. If you have any questions, please call: 909-321-4466", font, 7, leftMargin, y, contentWidth, 9);
+        y-=10;
+        drawWrappedText(page, "Someone from FirstLight HomeCare will be following up with your shortly regarding the employment reference verification check. If you have any questions, please call: 909-321-4466", font, 6, leftMargin, y, contentWidth, 8);
 
         const pdfBytes = await pdfDoc.save();
         return { pdfData: Buffer.from(pdfBytes).toString('base64') };
@@ -602,6 +599,7 @@ export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: stri
         y -= 15;
 
         y = drawWrappedText(page, `If yes, list each state below and then complete an LIC 198B for each state: ${formData.outOfStateHistory || ''}`, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
+        
         y -= (lineHeight * 22);
         
         const p1_list_title = "You must check yes to the corresponding question(s) above to report every conviction (including reckless and drunk driving convictions), you have on your record even if:";
@@ -623,7 +621,7 @@ export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: stri
         
         // --- PAGE 2 ---
         page = pages[1];
-        y = height - 70; // Reset y for new page
+        y = height - 70;
         const labelFontSize = 10;
         
         const p2_note = "NOTE: IF THE CRIMINAL BACKGROUND CHECK REVEALS ANY CONVICTION(S) THAT YOU DID NOT REPORT ON THIS FORM BY CHECKING YES, YOUR FAILURE TO DISCLOSE THE CONVICTION(S) MAY RESULT IN AN EXEMPTION DENIAL, APPLICATION DENIAL, LICENSE REVOCATION, DECERTIFICATION, RESCISSION OF APPROVAL, OR EXCLUSION FROM A LICENSED FACILITY, CERTIFIED FAMILY HOME, OR THE HOME OF A RESOURCE FAMILY.";
@@ -642,35 +640,34 @@ export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: stri
         page.drawLine({ start: { x: leftMargin, y: y }, end: { x: rightMargin, y: y }, thickness: 1 });
         y -= 20;
         
-        const drawFieldBox = (label: string, value: string | undefined, x: number, yPos: number, boxWidth: number) => {
-            if (!page) return;
-            drawText(page, label, {x, y: yPos + 12, font, size: labelFontSize}); // label
+        const drawFieldBox = (page: any, label: string, value: string | undefined, x: number, yPos: number, boxWidth: number) => {
+            drawText(page, label, {x, y: yPos + 12, font, size: labelFontSize});
             page.drawRectangle({x, y: yPos-12, width: boxWidth, height: 20, borderColor: rgb(0,0,0), borderWidth: 0.5});
-            if(value) drawText(page, value, {x: x + 5, y: yPos-7, font, size: mainFontSize}); // value
+            if(value) drawText(page, value, {x: x + 5, y: yPos-7, font, size: mainFontSize});
         };
         
         // Draw form fields
-        drawFieldBox("FACILITY/ORGANIZATION/AGENCY NAME:", "FirstLight Home Care of Rancho Cucamonga", leftMargin, y + 12, 300);
-        drawFieldBox("FACILITY/ORGANIZATION/AGENCY NUMBER:", "364700059", leftMargin + 320, y + 12, contentWidth - 320);
+        drawFieldBox(page, "FACILITY/ORGANIZATION/AGENCY NAME:", "FirstLight Home Care of Rancho Cucamonga", leftMargin, y + 12, 300);
+        drawFieldBox(page, "FACILITY/ORGANIZATION/AGENCY NUMBER:", "364700059", leftMargin + 320, y + 12, contentWidth - 320);
         y -= lineHeight * 2;
 
-        drawFieldBox("YOUR NAME (print clearly):", formData.fullName, leftMargin, y + 12, contentWidth);
+        drawFieldBox(page, "YOUR NAME (print clearly):", formData.fullName, leftMargin, y + 12, contentWidth);
         y -= lineHeight * 2;
 
-        drawFieldBox("Street Address:", formData.address, leftMargin, y + 12, contentWidth);
+        drawFieldBox(page, "Street Address:", formData.address, leftMargin, y + 12, contentWidth);
         y -= lineHeight * 2;
 
-        drawFieldBox("City", formData.city, leftMargin, y + 12, 200);
-        drawFieldBox("State", formData.state, leftMargin + 220, y + 12, 100);
-        drawFieldBox("Zip Code", formData.zip, leftMargin + 340, y + 12, contentWidth - 340);
+        drawFieldBox(page, "City", formData.city, leftMargin, y + 12, 200);
+        drawFieldBox(page, "State", formData.state, leftMargin + 220, y + 12, 100);
+        drawFieldBox(page, "Zip Code", formData.zip, leftMargin + 340, y + 12, contentWidth - 340);
         y -= lineHeight * 2;
 
-        drawFieldBox("SOCIAL SECURITY NUMBER:", formData.ssn, leftMargin, y + 12, 200);
-        drawFieldBox("DRIVER’S LICENSE NUMBER/STATE:", formData.driversLicenseNumber, leftMargin + 220, y + 12, contentWidth - 220);
+        drawFieldBox(page, "SOCIAL SECURITY NUMBER:", formData.ssn, leftMargin, y + 12, 200);
+        drawFieldBox(page, "DRIVER’S LICENSE NUMBER/STATE:", formData.driversLicenseNumber, leftMargin + 220, y + 12, contentWidth - 220);
         y -= lineHeight * 2;
 
         const dobDateForField = (formData.dob && (formData.dob.toDate || isDate(formData.dob))) ? format(formData.dob.toDate ? formData.dob.toDate() : formData.dob, "MM/dd/yyyy") : '';
-        drawFieldBox("DATE OF BIRTH:", dobDateForField, leftMargin, y + 12, contentWidth);
+        drawFieldBox(page, "DATE OF BIRTH:", dobDateForField, leftMargin, y + 12, contentWidth);
         y -= lineHeight * 2;
 
         // Signature and Date
@@ -679,7 +676,7 @@ export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: stri
         drawText(page, "SIGNATURE:", { x: leftMargin, y: y - 15, font, size: labelFontSize });
 
         const sigDateForField = (formData.lic508SignatureDate && (formData.lic508SignatureDate.toDate || isDate(formData.lic508SignatureDate))) ? format(formData.lic508SignatureDate.toDate ? formData.lic508SignatureDate.toDate() : formData.lic508SignatureDate, "MM/dd/yyyy") : '';
-        drawFieldBox("DATE:", sigDateForField, leftMargin + 320, y + 12, contentWidth - 320);
+        drawFieldBox(page, "DATE:", sigDateForField, leftMargin + 320, y + 12, contentWidth - 320);
         y -= 40;
 
         page.drawLine({ start: { x: leftMargin, y: y }, end: { x: rightMargin, y: y }, thickness: 1 });
@@ -775,12 +772,12 @@ export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: stri
         let boxStartY_p5 = y + 10;
         
         const page5_items = [
-            "You must be provided written notification¹ that your fingerprints will be used to check the criminal history records of the FBI.",
-            "You must be provided, and acknowledge receipt of, an adequate Privacy Act Statement when you submit your fingerprints and associated personal information. This Privacy Act Statement should explain the authority for collecting your information and how your information will be used, retained, and shared.²",
+            "You must be provided written notification(1) that your fingerprints will be used to check the criminal history records of the FBI.",
+            "You must be provided, and acknowledge receipt of, an adequate Privacy Act Statement when you submit your fingerprints and associated personal information. This Privacy Act Statement should explain the authority for collecting your information and how your information will be used, retained, and shared.(2)",
             "If you have a criminal history record, the officials making a determination of your suitability for the employment, license, or other benefit must provide you the opportunity to complete or challenge the accuracy of the information in the record.",
             "The officials must advise you that the procedures for obtaining a change, correction, or update of your criminal history record are set forth at Title 28, Code of Federal Regulations (CFR), Section 16.34.",
-            "If you have a criminal history record, you should be afforded a reasonable amount of time to correct or complete the record (or decline to do so) before the officials deny you the employment, license, or other benefit based on information in the criminal history record.³",
-            "You have the right to expect that officials receiving the results of the criminal history record check will use it only for authorized purposes and will not retain or disseminate it in violation of federal statute, regulation or executive order, or rule, procedure or standard established by the National Crime Prevention and Privacy Compact Council.⁴"
+            "If you have a criminal history record, you should be afforded a reasonable amount of time to correct or complete the record (or decline to do so) before the officials deny you the employment, license, or other benefit based on information in the criminal history record.(3)",
+            "You have the right to expect that officials receiving the results of the criminal history record check will use it only for authorized purposes and will not retain or disseminate it in violation of federal statute, regulation or executive order, or rule, procedure or standard established by the National Crime Prevention and Privacy Compact Council.(4)"
         ];
         
         page5_items.forEach(item => {
@@ -793,10 +790,11 @@ export async function generateLic508Pdf(formData: any): Promise<{ pdfData?: stri
 
         page.drawLine({ start: { x: leftMargin, y: y }, end: { x: rightMargin, y: y }, thickness: 0.5, color: rgb(0.8, 0.8, 0.8) }); y-= 15;
 
-        drawText(page, "¹ Written notification includes electronic notification, but excludes oral notification.", { x: leftMargin, y, font, size: smallFontSize }); y -= 10;
-        drawText(page, "² https://www.fbi.gov/services/cjis/compact-council/privacy-act-statement", { x: leftMargin, y, font, size: smallFontSize }); y -= 10;
-        drawText(page, "³ See 28 CFR 50.12(b)", { x: leftMargin, y, font, size: smallFontSize }); y -= 10;
-        drawText(page, "⁴ See U.S.C. 552a(b); 28 U.S.C. 534(b); 34 U.S.C. § 40316 (formerly cited as 42 U.S.C. § 14616), Article IV(c)", { x: leftMargin, y, font, size: smallFontSize });
+        drawText(page, "(1) Written notification includes electronic notification, but excludes oral notification.", { x: leftMargin, y, font, size: smallFontSize }); y -= 10;
+        drawText(page, "(2) https://www.fbi.gov/services/cjis/compact-council/privacy-act-statement", { x: leftMargin, y, font, size: smallFontSize }); y -= 10;
+        drawText(page, "(3) See 28 CFR 50.12(b)", { x: leftMargin, y, font, size: smallFontSize }); y -= 10;
+        drawText(page, "(4) See U.S.C. 552a(b); 28 U.S.C. 534(b); 34 U.S.C. § 40316 (formerly cited as 42 U.S.C. § 14616), Article IV(c)", { x: leftMargin, y, font, size: smallFontSize });
+
 
         let boxEndY_p5 = y - 10;
         page.drawRectangle({ x: leftMargin - 10, y: boxEndY_p5, width: contentWidth + 20, height: boxStartY_p5 - boxEndY_p5, borderColor: rgb(0,0,0), borderWidth: 1 });
