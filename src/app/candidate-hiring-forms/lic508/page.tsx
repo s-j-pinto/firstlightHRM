@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useTransition } from "react";
@@ -217,6 +218,25 @@ export default function LIC508Page() {
                         <li>You received a certificate of rehabilitation; or</li>
                         <li>The conviction was later dismissed, set aside or the sentence was suspended.</li>
                     </ul>
+                </div>
+                <Separator />
+                <div className="space-y-4 pt-4 text-sm text-muted-foreground">
+                    <p className="font-bold text-destructive">
+                        NOTE: IF THE CRIMINAL BACKGROUND CHECK REVEALS ANY CONVICTION(S) THAT YOU DID NOT
+                        REPORT ON THIS FORM BY CHECKING YES, YOUR FAILURE TO DISCLOSE THE CONVICTION(S)
+                        MAY RESULT IN AN EXEMPTION DENIAL, APPLICATION DENIAL, LICENSE REVOCATION,
+                        DECERTIFICATION, RESCISSION OF APPROVAL, OR EXCLUSION FROM A LICENSED FACILITY,
+                        CERTIFIED FAMILY HOME, OR THE HOME OF A RESOURCE FAMILY.
+                    </p>
+                    <p>
+                        If you move or change your mailing address, you must send your updated information to the Caregiver
+                        Background Check Bureau within 10 days to:
+                    </p>
+                    <p className="pl-4">
+                        Caregiver Background Check Bureau<br />
+                        744 P Street, M/S T9-15-62<br />
+                        Sacramento, CA 95814
+                    </p>
                 </div>
 
 
