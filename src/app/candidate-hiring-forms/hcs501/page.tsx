@@ -3,10 +3,12 @@
 
 import { useRef, useEffect, useTransition } from "react";
 import { useForm } from "react-hook-form";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import SignatureCanvas from 'react-signature-canvas';
 import { doc } from "firebase/firestore";
+import { format } from "date-fns";
+import { z } from "zod";
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,9 +23,25 @@ import { RefreshCw, Save, X, Loader2, CalendarIcon } from "lucide-react";
 import { useUser, useDoc, useMemoFirebase, firestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { hcs501Schema, type Hcs501FormData, type CaregiverProfile } from "@/lib/types";
+import { hcs501Schema, hcs501Object, type Hcs501FormData, type CaregiverProfile } from "@/lib/types";
 import { saveHcs501Data } from "@/lib/candidate-hiring-forms.actions";
-import { format } from "date-fns";
+
+
+// Helper to safely convert Firestore Timestamps or serialized strings to Date objects
+const safeToDate = (value: any): Date | undefined => {
+    if (!value) return undefined;
+    // Check for Firestore Timestamp
+    if (value.toDate && typeof value.toDate === 'function') {
+        return value.toDate();
+    }
+    // Handle ISO date strings or numbers (milliseconds)
+    const d = new Date(value);
+    if (!isNaN(d.getTime())) {
+        return d;
+    }
+    return undefined;
+};
+
 
 // Define default values to ensure all form fields are controlled from the start.
 const defaultFormValues: Hcs501FormData = {
@@ -54,6 +72,7 @@ const defaultFormValues: Hcs501FormData = {
 export default function HCS501Page() {
     const sigPadRef = useRef<SignatureCanvas>(null);
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { user, isUserLoading } = useUser();
     const { toast } = useToast();
     const [isSaving, startSavingTransition] = useTransition();
@@ -63,10 +82,12 @@ export default function HCS501Page() {
     const staffingAdminEmail = process.env.NEXT_PUBLIC_STAFFING_ADMIN_EMAIL || "admin-rc@firstlighthomecare.com";
 
     const isAnAdmin = user?.email === adminEmail || user?.email === ownerEmail || user?.email === staffingAdminEmail;
+    const candidateId = searchParams.get('candidateId');
+    const profileIdToLoad = isAnAdmin && candidateId ? candidateId : user?.uid;
     
     const caregiverProfileRef = useMemoFirebase(
-      () => (user?.uid ? doc(firestore, 'caregiver_profiles', user.uid) : null),
-      [user?.uid]
+      () => (profileIdToLoad ? doc(firestore, 'caregiver_profiles', profileIdToLoad) : null),
+      [profileIdToLoad]
     );
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
 
@@ -77,16 +98,15 @@ export default function HCS501Page() {
     
     useEffect(() => {
         if (existingData) {
-            const formData: Partial<Hcs501FormData & { fullName?: string; phone?: string; address?: string; city?: string; state?: string; zip?: string; driversLicenseNumber?: string; }> = {};
-            // Use a whitelist of fields from the schema to populate the form
-            const formFields = Object.keys(hcs501Schema.shape);
+            const formData: Partial<Hcs501FormData> = {};
+            const formFields = Object.keys(hcs501Object.shape);
             
             formFields.forEach(key => {
                 const typedKey = key as keyof Hcs501FormData;
                 if (typedKey in existingData) {
                     const value = (existingData as any)[typedKey];
-                    if (key.toLowerCase().includes('date') && value && typeof value.toDate === 'function') {
-                        (formData as any)[typedKey] = value.toDate();
+                    if (key.toLowerCase().includes('date') && value) {
+                        (formData as any)[typedKey] = safeToDate(value);
                     } else {
                         (formData as any)[typedKey] = value;
                     }
@@ -120,19 +140,32 @@ export default function HCS501Page() {
     };
     
     const onSubmit = (data: Hcs501FormData) => {
-      if (!user?.uid) {
-        toast({ title: 'Error', description: 'You must be logged in to save the form.', variant: 'destructive'});
+      const saveId = profileIdToLoad;
+      if (!saveId) {
+        toast({ title: 'Error', description: 'Cannot save form without a valid user or candidate ID.', variant: 'destructive'});
         return;
       }
       startSavingTransition(async () => {
-        const result = await saveHcs501Data(user.uid, data);
+        const result = await saveHcs501Data(saveId, data);
         if (result.error) {
           toast({ title: "Save Failed", description: result.error, variant: 'destructive'});
         } else {
           toast({ title: "Success", description: "Your HCS 501 form has been saved."});
-          router.push('/candidate-hiring-forms');
+          if(isAnAdmin) {
+            router.push(`/candidate-hiring-forms?candidateId=${saveId}`);
+          } else {
+            router.push('/candidate-hiring-forms');
+          }
         }
       });
+    }
+
+    const handleCancel = () => {
+      if(isAnAdmin) {
+          router.push(`/admin/advanced-search?search=${encodeURIComponent(existingData?.fullName || '')}`);
+      } else {
+          router.push('/candidate-hiring-forms');
+      }
     }
 
     if(isUserLoading || isDataLoading) {
@@ -322,7 +355,7 @@ export default function HCS501Page() {
 
             </CardContent>
             <CardFooter className="flex justify-end gap-4">
-                <Button type="button" variant="outline" onClick={() => router.push('/candidate-hiring-forms')}>
+                <Button type="button" variant="outline" onClick={handleCancel}>
                   <X className="mr-2" />
                   Cancel
                 </Button>

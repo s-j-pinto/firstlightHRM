@@ -266,10 +266,15 @@ export const caregiverFormSchema = generalInfoSchema
   .merge(experienceSchema)
   .merge(certificationsSchema)
   .merge(availabilitySchema)
-  .merge(transportationSchema);
+  .merge(transportationSchema)
+  .merge(hcs501Object.partial())
+  .merge(emergencyContactSchema.partial())
+  .merge(lic508Object.partial())
+  .merge(soc341aSchema.partial())
+  .merge(referenceVerificationObject.partial());
 
 
-export type CaregiverProfile = z.infer<typeof caregiverFormSchema> & z.infer<typeof hcs501Object> & z.infer<typeof emergencyContactSchema> & z.infer<typeof lic508Object> & z.infer<typeof soc341aSchema> & z.infer<typeof referenceVerificationObject> & { id: string, canWorkWithCovid?: boolean, cna?: boolean, covidVaccine?: boolean };
+export type CaregiverProfile = z.infer<typeof caregiverFormSchema> & { id: string, canWorkWithCovid?: boolean, cna?: boolean, covidVaccine?: boolean };
 
 export const appointmentSchema = z.object({
   caregiverId: z.string(),
@@ -919,6 +924,7 @@ export type CaregiverForRecommendation = z.infer<typeof CaregiverForRecommendati
 
 
     
+
 
 
 
