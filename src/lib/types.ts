@@ -1,5 +1,3 @@
-
-
 import { z } from "zod";
 
 export const initialContactSchema = z.object({
@@ -262,6 +260,12 @@ export const referenceVerificationSchema = referenceVerificationObject.refine(da
 });
 export type ReferenceVerificationFormData = z.infer<typeof referenceVerificationSchema>;
 
+export const arbitrationAgreementSchema = z.object({
+  arbitrationAgreementSignature: z.string().min(1, "Signature is required."),
+  arbitrationAgreementSignatureDate: z.date({required_error: "Signature date is required."}),
+});
+export type ArbitrationAgreementFormData = z.infer<typeof arbitrationAgreementSchema>;
+
 export const caregiverFormSchema = generalInfoSchema
   .merge(experienceSchema)
   .merge(certificationsSchema)
@@ -271,7 +275,8 @@ export const caregiverFormSchema = generalInfoSchema
   .merge(emergencyContactSchema.partial())
   .merge(lic508Object.partial())
   .merge(soc341aSchema.partial())
-  .merge(referenceVerificationObject.partial());
+  .merge(referenceVerificationObject.partial())
+  .merge(arbitrationAgreementSchema.partial());
 
 
 export type CaregiverProfile = z.infer<typeof caregiverFormSchema> & { id: string, canWorkWithCovid?: boolean, cna?: boolean, covidVaccine?: boolean };
@@ -311,6 +316,7 @@ export const interviewSchema = z.object({
   rejectionNotes: z.string().optional(),
   rejectionDate: z.date().optional(),
   hiringDocsNotificationSentAt: z.any().optional(),
+  onboardingFormsInitiated: z.boolean().optional(),
 });
 
 export type Interview = z.infer<typeof interviewSchema> & { id: string };
@@ -914,19 +920,3 @@ export const CaregiverForRecommendationSchema = z.object({
     availability: z.any(),
 });
 export type CaregiverForRecommendation = z.infer<typeof CaregiverForRecommendationSchema>;
-    
-
-    
-
-
-
-
-
-
-    
-
-
-
-
-
-

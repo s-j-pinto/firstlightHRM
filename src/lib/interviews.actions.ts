@@ -1,4 +1,5 @@
 
+
 "use server";
 
 import { revalidatePath } from 'next/cache';
@@ -360,7 +361,7 @@ export async function rejectCandidateAfterOrientation(payload: { interviewId: st
             This email, including any attachments or files transmitted with it, is intended to be confidential and solely for the use of the individual or entity to whom it is addressed. If you received it in error, or if you are not the intended recipient(s), please notify the sender by reply e-mail and delete/destroy the original message and any attachments, and any copies. Any unauthorized review, use, disclosure or distribution of this e-mail or information is prohibited and may be a violation of applicable laws.</small></p>
         `;
 
-        await firestore.collection("mail").add({
+        await serverDb.collection("mail").add({
             to: [caregiverEmail],
             cc: ['care-rc@firstlighthomecare.com'],
             message: {
@@ -377,23 +378,33 @@ export async function rejectCandidateAfterOrientation(payload: { interviewId: st
         return { error: true, message: `An error occurred: ${error.message}` };
     }
 }
+
+export async function initiateOnboardingForms(interviewId: string) {
+  if (!interviewId) {
+    return { error: 'Interview ID is required.' };
+  }
+
+  try {
+    const interviewRef = serverDb.collection('interviews').doc(interviewId);
+    await interviewRef.update({
+      onboardingFormsInitiated: true,
+      lastUpdatedAt: Timestamp.now(),
+    });
+
+    revalidatePath('/admin/manage-interviews');
+    return { success: true, message: 'Onboarding forms have been initiated for the candidate.' };
+  } catch (error: any) {
+    console.error('Error initiating onboarding forms:', error);
+    return { error: `Failed to initiate onboarding forms: ${error.message}` };
+  }
+}
     
 
     
 
 
-    
-
-
-
-
-
-
 
 
 
 
     
-
-
-
