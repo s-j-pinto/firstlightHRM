@@ -392,7 +392,7 @@ export async function initiateOnboardingForms(interviewId: string) {
     });
 
     revalidatePath('/admin/manage-interviews');
-    return { success: true, message: 'Onboarding forms have been initiated for the candidate.' };
+    return { success: 'Onboarding forms have been initiated for the candidate.' };
   } catch (error: any) {
     console.error('Error initiating onboarding forms:', error);
     return { error: `Failed to initiate onboarding forms: ${error.message}` };
@@ -406,5 +406,7 @@ export async function initiateOnboardingForms(interviewId: string) {
 
 
 
+
+    
 
     

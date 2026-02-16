@@ -11,7 +11,7 @@ import { collection, query, where, getDocs, addDoc, doc, updateDoc, Timestamp } 
 import { firestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import type { CaregiverProfile, Interview, CaregiverEmployee } from '@/lib/types';
 import { caregiverEmployeeSchema } from '@/lib/types';
-import { saveInterviewAndSchedule, rejectCandidateAfterOrientation } from '@/lib/interviews.actions';
+import { saveInterviewAndSchedule, rejectCandidateAfterOrientation, initiateOnboardingForms } from '@/lib/interviews.actions';
 import { getAiInterviewInsights } from '@/lib/ai.actions';
 import { triggerTeletrackImport } from '@/lib/github.actions';
 
@@ -45,7 +45,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Search, Calendar as CalendarIcon, Sparkles, UserCheck, AlertCircle, ExternalLink, Briefcase, Video, GraduationCap, Phone, Star, MessageSquare, CheckCircle, XCircle, UserX, Save, FileClock } from 'lucide-react';
+import { Loader2, Search, Calendar as CalendarIcon, Sparkles, UserCheck, AlertCircle, ExternalLink, Briefcase, Video, GraduationCap, Phone, Star, MessageSquare, CheckCircle, XCircle, UserX, Save, FileText, FileClock } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { cn } from '@/lib/utils';
@@ -121,6 +121,7 @@ export default function ManageInterviewsClient() {
   const [isScheduleSubmitting, startScheduleSubmitTransition] = useTransition();
   const [isRejecting, startRejectingTransition] = useTransition();
   const [isAssessmentSaving, startAssessmentSavingTransition] = useTransition();
+  const [isOnboardingInitiating, startOnboardingInitiation] = useTransition();
 
 
   const { toast } = useToast();
@@ -722,6 +723,19 @@ export default function ManageInterviewsClient() {
     });
 };
 
+  const handleInitiateOnboarding = () => {
+    if (!existingInterview?.id) return;
+    startOnboardingInitiation(async () => {
+        const result = await initiateOnboardingForms(existingInterview.id);
+        if (result.error) {
+            toast({ title: 'Error', description: result.error, variant: 'destructive' });
+        } else {
+            toast({ title: 'Success', description: result.success });
+            setExistingInterview(prev => prev ? { ...prev, onboardingFormsInitiated: true } : null);
+        }
+    });
+  };
+
 
   const isLoading = caregiversLoading || employeesLoading;
   const isPhoneScreenCompleted = !!existingInterview;
@@ -1253,7 +1267,15 @@ export default function ManageInterviewsClient() {
                                             </FormItem>
                                         )}
                                     />
-                                    <div className="flex justify-end">
+                                    <div className="flex justify-between items-center">
+                                        <Button
+                                            type="button"
+                                            onClick={handleInitiateOnboarding}
+                                            disabled={isOnboardingInitiating || existingInterview.onboardingFormsInitiated}
+                                        >
+                                            {isOnboardingInitiating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
+                                            {existingInterview.onboardingFormsInitiated ? 'Onboarding Initiated' : 'Initiate Onboarding Forms'}
+                                        </Button>
                                         <Button type="submit" disabled={isOrientationSubmitting}>
                                             {isOrientationSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GraduationCap className="mr-2 h-4 w-4" />}
                                             Schedule Orientation
@@ -1514,3 +1536,6 @@ function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: strin
     </div>
   );
 }
+
+
+    
