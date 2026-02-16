@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { serverDb } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
-import { hcs501Schema, emergencyContactSchema, lic508Object, soc341aSchema, referenceVerificationSchema, arbitrationAgreementSchema, drugAlcoholPolicySchema, hcaJobDescriptionSchema } from './types';
+import { hcs501Schema, emergencyContactSchema, lic508Object, soc341aSchema, referenceVerificationSchema, arbitrationAgreementSchema, drugAlcoholPolicySchema, hcaJobDescriptionSchema, clientAbandonmentSchema } from './types';
 import { generateHcs501Pdf, generateEmergencyContactPdf, generateReferenceVerificationPdf, generateLic508Pdf, generateSoc341aPdf } from './pdf.actions';
 
 // Helper to convert date strings to Firestore Timestamps if they are valid dates
@@ -211,6 +211,29 @@ export async function saveHcaJobDescriptionData(profileId: string, data: any) {
   }
 }
 
+export async function saveClientAbandonmentData(profileId: string, data: any) {
+  const validatedFields = clientAbandonmentSchema.safeParse(data);
+
+  if (!validatedFields.success) {
+    console.error("Client Abandonment Save Validation Error:", validatedFields.error.flatten());
+    return { error: 'Invalid data provided.' };
+  }
+
+  try {
+    const dataToSave = convertDatesToTimestamps(validatedFields.data);
+    
+    await serverDb.collection('caregiver_profiles').doc(profileId).set(dataToSave, { merge: true });
+    
+    revalidatePath(`/candidate-hiring-forms/client-abandonment?id=${profileId}`);
+    revalidatePath('/candidate-hiring-forms');
+    
+    return { success: true, message: 'Client Abandonment form saved successfully.' };
+  } catch (error: any) {
+    console.error("Error saving Client Abandonment data:", error);
+    return { error: 'Failed to save form data.' };
+  }
+}
+
 
 export async function generateHcs501PdfAction(candidateId: string) {
     if (!candidateId) {
@@ -301,9 +324,3 @@ export async function generateSoc341aPdfAction(candidateId: string) {
         return { error: `Failed to generate PDF: ${error.message}` };
     }
 }
-    
-
-
-    
-
-    

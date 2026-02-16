@@ -283,6 +283,14 @@ export const hcaJobDescriptionSchema = z.object({
 });
 export type HcaJobDescriptionFormData = z.infer<typeof hcaJobDescriptionSchema>;
 
+export const clientAbandonmentSchema = z.object({
+    clientAbandonmentPrintedName: z.string().min(1, "Printed name is required."),
+    clientAbandonmentSignature: z.string().min(1, "Signature is required."),
+    clientAbandonmentSignatureDate: z.date({required_error: "Date is required."}),
+    clientAbandonmentWitnessSignature: z.string().optional(),
+});
+export type ClientAbandonmentFormData = z.infer<typeof clientAbandonmentSchema>;
+
 export const caregiverFormSchema = generalInfoSchema
   .merge(experienceSchema)
   .merge(certificationsSchema)
@@ -296,8 +304,8 @@ export const caregiverFormSchema = generalInfoSchema
   .merge(arbitrationAgreementSchema.partial())
   .merge(drugAlcoholPolicySchema.partial())
   .merge(hcaJobDescriptionSchema.partial())
+  .merge(clientAbandonmentSchema.partial())
   .merge(z.object({
-      clientAbandonmentSignature: z.string().optional(),
       orientationAgreementSignature: z.string().optional(),
   }));
 
@@ -948,5 +956,3 @@ export const CaregiverForRecommendationSchema = z.object({
     availability: z.any(),
 });
 export type CaregiverForRecommendation = z.infer<typeof CaregiverForRecommendationSchema>;
-
-    

@@ -6,8 +6,8 @@ import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, CheckCircle, Loader2, ArrowLeft, Printer } from "lucide-react";
 import Link from 'next/link';
-import { useUser, useDoc, useMemoFirebase, firestore, useCollection } from '@/firebase';
-import { doc, query, where, limit, collection } from 'firebase/firestore';
+import { useUser, useDoc, useMemoFirebase, firestore } from '@/firebase';
+import { doc, query, where, collection } from 'firebase/firestore';
 import type { CaregiverProfile, Interview } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { generateHcs501PdfAction, generateEmergencyContactPdfAction, generateReferenceVerificationPdfAction, generateLic508PdfAction, generateSoc341aPdfAction } from '@/lib/candidate-hiring-forms.actions';
@@ -28,7 +28,7 @@ const onboardingForms = [
   { name: "Mutual Arbitration Agreement", href: "/candidate-hiring-forms/arbitration-agreement", completionKey: 'arbitrationAgreementSignature', pdfAction: 'arbitrationAgreement' },
   { name: "Drug and/or Alcohol Testing Consent Form", href: "/candidate-hiring-forms/drug-alcohol-policy", completionKey: 'drugAlcoholPolicySignature', pdfAction: '' },
   { name: "HCA job description-Rancho-Cucamonga", href: "/candidate-hiring-forms/hca-job-description", completionKey: 'jobDescriptionSignature', pdfAction: '' },
-  { name: "Client_Abandonment", href: "#", completionKey: 'clientAbandonmentSignature', pdfAction: '' },
+  { name: "Client Abandonment", href: "/candidate-hiring-forms/client-abandonment", completionKey: 'clientAbandonmentSignature', pdfAction: '' },
   { name: "EMPLOYEE ORIENTATION AGREEMENT", href: "#", completionKey: 'orientationAgreementSignature', pdfAction: '' },
 ];
 
@@ -218,6 +218,3 @@ export default function CandidateHiringFormsPage() {
         </Suspense>
     )
 }
-    
-
-    
