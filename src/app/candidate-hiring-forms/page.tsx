@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Suspense, useTransition } from 'react';
@@ -29,7 +30,7 @@ const onboardingForms = [
   { name: "Drug and/or Alcohol Testing Consent Form", href: "/candidate-hiring-forms/drug-alcohol-policy", completionKey: 'drugAlcoholPolicySignature', pdfAction: '' },
   { name: "HCA job description-Rancho-Cucamonga", href: "/candidate-hiring-forms/hca-job-description", completionKey: 'jobDescriptionSignature', pdfAction: '' },
   { name: "Client Abandonment", href: "/candidate-hiring-forms/client-abandonment", completionKey: 'clientAbandonmentSignature', pdfAction: '' },
-  { name: "EMPLOYEE ORIENTATION AGREEMENT", href: "#", completionKey: 'orientationAgreementSignature', pdfAction: '' },
+  { name: "EMPLOYEE ORIENTATION AGREEMENT", href: "/candidate-hiring-forms/employee-orientation-agreement", completionKey: 'orientationAgreementSignature', pdfAction: '' },
 ];
 
 
@@ -198,7 +199,6 @@ function CandidateHiringFormsContent() {
                   </Link>
                   <div className="flex items-center gap-2">
                     {isCompleted && <CheckCircle className="h-6 w-6 text-green-500" />}
-                    {isDisabled && <Badge variant="outline">Coming Soon</Badge>}
                   </div>
                 </div>
               )
@@ -218,3 +218,5 @@ export default function CandidateHiringFormsPage() {
         </Suspense>
     )
 }
+
+  
