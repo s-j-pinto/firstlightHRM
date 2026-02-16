@@ -271,6 +271,9 @@ export type ArbitrationAgreementFormData = z.infer<typeof arbitrationAgreementSc
 export const drugAlcoholPolicySchema = z.object({
   drugAlcoholPolicySignature: z.string().min(1, "Signature is required."),
   drugAlcoholPolicySignatureDate: z.date({required_error: "Signature date is required."}),
+  drugAlcoholPolicyEmployeePrintedName: z.string().min(1, "Printed name is required."),
+  drugAlcoholPolicyRepSignature: z.string().optional(),
+  drugAlcoholPolicyRepDate: z.date().optional(),
 });
 export type DrugAlcoholPolicyFormData = z.infer<typeof drugAlcoholPolicySchema>;
 
