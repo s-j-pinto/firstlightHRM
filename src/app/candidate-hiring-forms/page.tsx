@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Suspense, useTransition } from 'react';
@@ -6,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { FileText, CheckCircle, Loader2, ArrowLeft, Printer } from "lucide-react";
 import Link from 'next/link';
 import { useUser, useDoc, useMemoFirebase, firestore, useCollection } from '@/firebase';
-import { doc, query, where, limit } from 'firebase/firestore';
+import { doc, query, where, limit, collection } from 'firebase/firestore';
 import type { CaregiverProfile, Interview } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { generateHcs501PdfAction, generateEmergencyContactPdfAction, generateReferenceVerificationPdfAction, generateLic508PdfAction, generateSoc341aPdfAction } from '@/lib/candidate-hiring-forms.actions';
@@ -214,3 +215,4 @@ export default function CandidateHiringFormsPage() {
         </Suspense>
     )
 }
+    
