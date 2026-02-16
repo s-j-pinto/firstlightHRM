@@ -1,3 +1,4 @@
+
 {
   "initialContact": {
     "title": "Initial Contact Form Guide",
@@ -177,6 +178,20 @@
           "<strong>5. Final Interview:</strong> After the in-person or video interview, mark the candidate as 'Passed' or 'Failed'.",
           "<strong>6. Schedule Orientation:</strong> If the final interview is passed, you can then schedule the orientation session.",
           "<strong>7. Hire:</strong> Once orientation is scheduled, you can complete the process by entering the final hiring details and TeleTrack PIN."
+        ]
+      },
+      {
+        "type": "heading",
+        "text": "Onboarding Documents Process"
+      },
+      {
+        "type": "list",
+        "items": [
+          "<strong>Initiate Onboarding:</strong> Once a candidate's orientation is scheduled, the 'Hiring & Onboarding' section will appear. Click the 'Initiate Onboarding Forms' button.",
+          "<strong>Automatic Notification:</strong> This action sends an email to the candidate with a secure link to the Candidate Hiring Portal and instructions on how to log in (using their email and the last 4 digits of their phone number).",
+          "<strong>Candidate Completion:</strong> The candidate logs in and completes all required hiring and onboarding forms.",
+          "<strong>Review and Edit:</strong> As an administrator, you can monitor their progress. The 'Onboarding Forms Status' indicator will change from 'Initiated' to 'Started' and finally to 'Completed'. You can click this status indicator at any time to be taken to their forms dashboard to review, edit, or see which forms are still pending.",
+          "<strong>PDF Generation:</strong> Once a form is completed by the candidate (indicated by a green checkmark on their forms page), a 'Generate PDF' button will appear for you. This allows you to create a final PDF copy of the signed document."
         ]
       }
     ]
