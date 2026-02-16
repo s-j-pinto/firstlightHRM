@@ -5,13 +5,15 @@ import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, CheckCircle, Loader2, ArrowLeft, Printer } from "lucide-react";
 import Link from 'next/link';
-import { useUser, useDoc, useMemoFirebase, firestore } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import type { CaregiverProfile } from '@/lib/types';
+import { useUser, useDoc, useMemoFirebase, firestore, useCollection } from '@/firebase';
+import { doc, query, where, limit } from 'firebase/firestore';
+import type { CaregiverProfile, Interview } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { generateHcs501PdfAction, generateEmergencyContactPdfAction, generateReferenceVerificationPdfAction, generateLic508PdfAction, generateSoc341aPdfAction } from '@/lib/candidate-hiring-forms.actions';
 import { useToast } from '@/hooks/use-toast';
 import { HelpDialog } from '@/components/HelpDialog';
+import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 const hiringForms = [
   { name: "HCS 501 - Personnel Record 2019", href: "/candidate-hiring-forms/hcs501", completionKey: 'hcs501EmployeeSignature', pdfAction: 'hcs501' },
@@ -19,6 +21,14 @@ const hiringForms = [
   { name: "Reference Verification - CG", href: "/candidate-hiring-forms/reference-verification", completionKey: 'applicantSignature', pdfAction: 'referenceVerification' },
   { name: "LIC 508 - Criminal Record Statement", href: "/candidate-hiring-forms/lic508", completionKey: 'lic508Signature', pdfAction: 'lic508' },
   { name: "SOC 341A - Elder Abuse Reporting Form", href: "/candidate-hiring-forms/soc341a", completionKey: 'soc341aSignature', pdfAction: 'soc341a' },
+];
+
+const onboardingForms = [
+  { name: "Mutual Arbitration Agreement", href: "/candidate-hiring-forms/arbitration-agreement", completionKey: 'arbitrationAgreementSignature', pdfAction: 'arbitrationAgreement' },
+  { name: "A_DRUG_AND_ALCOHOL_POLICY", href: "#", completionKey: 'drugAlcoholPolicySignature', pdfAction: '' },
+  { name: "HCA job description-Rancho-Cucamonga", href: "#", completionKey: 'jobDescriptionSignature', pdfAction: '' },
+  { name: "Client_Abandonment", href: "#", completionKey: 'clientAbandonmentSignature', pdfAction: '' },
+  { name: "EMPLOYEE ORIENTATION AGREEMENT", href: "#", completionKey: 'orientationAgreementSignature', pdfAction: '' },
 ];
 
 
@@ -43,8 +53,15 @@ function CandidateHiringFormsContent() {
     [profileIdToLoad]
   );
   const { data: profileData, isLoading: isProfileLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
+  
+  const interviewQuery = useMemoFirebase(
+    () => (profileIdToLoad ? query(collection(firestore, 'interviews'), where('caregiverProfileId', '==', profileIdToLoad), limit(1)) : null),
+    [profileIdToLoad]
+  );
+  const { data: interviewData, isLoading: isInterviewLoading } = useCollection<Interview>(interviewQuery);
+  const interview = interviewData?.[0];
 
-  const isLoading = isUserLoading || isProfileLoading;
+  const isLoading = isUserLoading || isProfileLoading || isInterviewLoading;
 
   const formLinkHref = (baseHref: string) => {
     return isAnAdmin && candidateId ? `${baseHref}?candidateId=${candidateId}` : baseHref;
@@ -96,7 +113,7 @@ function CandidateHiringFormsContent() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto space-y-8">
       <Card>
         <CardHeader>
           <div className="flex justify-between items-start">
@@ -156,6 +173,35 @@ function CandidateHiringFormsContent() {
           })}
         </CardContent>
       </Card>
+      
+      {interview?.onboardingFormsInitiated && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Onboarding Forms</CardTitle>
+            <CardDescription>
+              Please complete these additional forms as part of your onboarding.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {onboardingForms.map((form) => {
+              const isCompleted = profileData && profileData[form.completionKey as keyof CaregiverProfile];
+              const isDisabled = form.href === '#';
+              return (
+                <div key={form.name} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                  <Link href={isDisabled ? '#' : formLinkHref(form.href)} className={cn("flex items-center gap-4 flex-grow", isDisabled && "cursor-not-allowed opacity-50")}>
+                    <FileText className="h-6 w-6 text-accent" />
+                    <span className="font-medium">{form.name}</span>
+                  </Link>
+                  <div className="flex items-center gap-2">
+                    {isCompleted && <CheckCircle className="h-6 w-6 text-green-500" />}
+                    {isDisabled && <Badge variant="outline">Coming Soon</Badge>}
+                  </div>
+                </div>
+              )
+            })}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

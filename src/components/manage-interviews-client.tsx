@@ -45,7 +45,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Search, Calendar as CalendarIcon, Sparkles, UserCheck, AlertCircle, ExternalLink, Briefcase, Video, GraduationCap, Phone, Star, MessageSquare, CheckCircle, XCircle, UserX, Save, FileText, FileClock } from 'lucide-react';
+import { Loader2, Search, Calendar as CalendarIcon, Sparkles, UserCheck, AlertCircle, ExternalLink, Briefcase, Video, GraduationCap, Phone, Star, MessageSquare, CheckCircle, XCircle, UserX, Save, FileText, FileClock as OnboardingFileClock, File, FileCheck2 } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { cn } from '@/lib/utils';
@@ -102,6 +102,14 @@ const rejectionReasons = [
     "CG ghosted appointment",
     "Candidate withdrew application",
     "Took another Job",
+];
+
+const onboardingFormCompletionKeys: (keyof CaregiverProfile)[] = [
+    'arbitrationAgreementSignature',
+    'drugAlcoholPolicySignature',
+    'jobDescriptionSignature',
+    'clientAbandonmentSignature',
+    'orientationAgreementSignature'
 ];
 
 export default function ManageInterviewsClient() {
@@ -366,6 +374,21 @@ export default function ManageInterviewsClient() {
     return false;
   }
   const shouldShowCompletedSummary = getSummaryVisibility();
+
+  const getOnboardingStatus = () => {
+    if (!existingInterview?.onboardingFormsInitiated) {
+        return null;
+    }
+    const completedForms = onboardingFormCompletionKeys.filter(key => !!selectedCaregiver?.[key]).length;
+    if (completedForms === onboardingFormCompletionKeys.length) {
+        return { text: "Completed", icon: FileCheck2, color: "text-green-500" };
+    }
+    if (completedForms > 0) {
+        return { text: `Started (${completedForms}/${onboardingFormCompletionKeys.length})`, icon: OnboardingFileClock, color: "text-yellow-500" };
+    }
+    return { text: "Initiated", icon: File, color: "text-blue-500" };
+  };
+  const onboardingStatus = getOnboardingStatus();
 
 
   const handleGenerateInsights = () => {
@@ -1351,9 +1374,28 @@ export default function ManageInterviewsClient() {
                     <Card>
                         <CardHeader>
                             <CardTitle>Hiring &amp; Onboarding: {selectedCaregiver?.fullName}</CardTitle>
-                            <CardDescription>
+                             <CardDescription>
                                 The candidate has passed all stages. Enter hiring details to complete onboarding.
                             </CardDescription>
+                            <div className="flex items-center gap-4 pt-2">
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    onClick={handleInitiateOnboarding}
+                                    disabled={isOnboardingInitiating || !existingInterview || existingInterview.onboardingFormsInitiated}
+                                >
+                                    {isOnboardingInitiating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
+                                    {existingInterview?.onboardingFormsInitiated ? 'Onboarding Initiated' : 'Initiate Onboarding Forms'}
+                                </Button>
+                                {onboardingStatus && (
+                                    <div className="flex items-center gap-2 text-sm font-medium">
+                                        <onboardingStatus.icon className={cn("h-5 w-5", onboardingStatus.color)} />
+                                        <span className={cn(onboardingStatus.color)}>
+                                            Onboarding Forms Status: {onboardingStatus.text}
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <Form {...hiringForm}>
@@ -1456,29 +1498,17 @@ export default function ManageInterviewsClient() {
                                             </FormItem>
                                         )}
                                     />
-                                     <div className="flex justify-between items-center pt-4 border-t">
-                                        <Button
-                                            type="button"
-                                            variant="secondary"
-                                            onClick={handleInitiateOnboarding}
-                                            disabled={isOnboardingInitiating || !existingInterview || existingInterview.onboardingFormsInitiated}
-                                        >
-                                            {isOnboardingInitiating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
-                                            {existingInterview?.onboardingFormsInitiated ? 'Onboarding Initiated' : 'Initiate Onboarding Forms'}
-                                        </Button>
-
-                                        <div className="flex gap-4">
-                                            {existingInterview?.interviewType === 'Google Meet' && existingInterview.googleMeetLink && (
-                                                <Button type="button" variant="outline" onClick={handleLaunchMeet}>
-                                                    <Video className="mr-2 h-4 w-4" />
-                                                    Launch Google Meet
-                                                </Button>
-                                            )}
-                                            <Button type="submit" disabled={isSubmitting}>
-                                                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
-                                                {existingEmployee ? 'Update Record' : 'Complete Hiring'}
+                                    <div className="flex justify-end gap-4">
+                                        {existingInterview?.interviewType === 'Google Meet' && existingInterview.googleMeetLink && (
+                                            <Button type="button" variant="outline" onClick={handleLaunchMeet}>
+                                                <Video className="mr-2 h-4 w-4" />
+                                                Launch Google Meet
                                             </Button>
-                                        </div>
+                                        )}
+                                        <Button type="submit" disabled={isSubmitting}>
+                                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
+                                            {existingEmployee ? 'Update Record' : 'Complete Hiring'}
+                                        </Button>
                                     </div>
                                 </form>
                             </Form>

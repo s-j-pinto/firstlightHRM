@@ -276,7 +276,13 @@ export const caregiverFormSchema = generalInfoSchema
   .merge(lic508Object.partial())
   .merge(soc341aSchema.partial())
   .merge(referenceVerificationObject.partial())
-  .merge(arbitrationAgreementSchema.partial());
+  .merge(arbitrationAgreementSchema.partial())
+  .merge(z.object({
+      drugAlcoholPolicySignature: z.string().optional(),
+      jobDescriptionSignature: z.string().optional(),
+      clientAbandonmentSignature: z.string().optional(),
+      orientationAgreementSignature: z.string().optional(),
+  }));
 
 
 export type CaregiverProfile = z.infer<typeof caregiverFormSchema> & { id: string, canWorkWithCovid?: boolean, cna?: boolean, covidVaccine?: boolean };
