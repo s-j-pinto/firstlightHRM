@@ -1387,13 +1387,16 @@ export default function ManageInterviewsClient() {
                                     {isOnboardingInitiating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
                                     {existingInterview?.onboardingFormsInitiated ? 'Onboarding Initiated' : 'Initiate Onboarding Forms'}
                                 </Button>
-                                {onboardingStatus && (
-                                    <div className="flex items-center gap-2 text-sm font-medium">
+                                {onboardingStatus && selectedCaregiver && (
+                                    <Link
+                                        href={`/candidate-hiring-forms?candidateId=${selectedCaregiver.id}`}
+                                        className="flex items-center gap-2 text-sm font-medium hover:underline"
+                                    >
                                         <onboardingStatus.icon className={cn("h-5 w-5", onboardingStatus.color)} />
                                         <span className={cn(onboardingStatus.color)}>
                                             Onboarding Forms Status: {onboardingStatus.text}
                                         </span>
-                                    </div>
+                                    </Link>
                                 )}
                             </div>
                         </CardHeader>
@@ -1575,3 +1578,4 @@ function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: strin
     
 
     
+
