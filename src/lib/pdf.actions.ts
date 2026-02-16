@@ -1214,7 +1214,7 @@ export async function generateClientAbandonmentPdf(formData: any): Promise<{ pdf
         const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/Client-Abandonment.png?alt=media&token=a042a308-64f1-4a14-9561-dfab31424353";
         const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer());
         const logoImage = await pdfDoc.embedPng(logoImageBytes);
-        const logoDims = logoImage.scale(0.8); // 100% bigger than 0.4
+        const logoDims = logoImage.scale(0.4); 
 
         // --- Page 1 ---
         const page1 = pdfDoc.addPage(PageSizes.Letter);
@@ -1229,16 +1229,18 @@ export async function generateClientAbandonmentPdf(formData: any): Promise<{ pdf
         let y = height - 60;
 
         page1.drawImage(logoImage, {
-            x: leftMargin,
+            x: (width / 2) - (logoDims.width / 2),
             y: y - logoDims.height,
             width: logoDims.width,
             height: logoDims.height,
         });
+        
+        y -= (logoDims.height + 20);
 
         const title = "Client Abandonment";
-        drawText(page1, title, { x: (width / 2) - (boldFont.widthOfTextAtSize(title, titleFontSize) / 2), y: y - logoDims.height / 2, font: boldFont, size: titleFontSize, color: rgb(0, 0, 0.8) });
+        drawText(page1, title, { x: (width / 2) - (boldFont.widthOfTextAtSize(title, titleFontSize) / 2), y, font: boldFont, size: titleFontSize, color: rgb(0, 0, 0.8) });
 
-        y -= logoDims.height + 40;
+        y -= 40;
         
         const textContentPage1 = [
             "Client abandonment is defined as the premature termination of the professional treatment relationship by the health care provider, such as you, without adequate notice or the client's consent. This is a form of negligence with the unilateral termination of the provider-client relationship, despite the client's continued need for care.",
@@ -1290,22 +1292,9 @@ export async function generateClientAbandonmentPdf(formData: any): Promise<{ pdf
         y = drawWrappedText(page2, finalStatement, boldFont, 10, leftMargin, y, contentWidth, 14);
         y -= 40;
 
-        // Signatures
-        const printedNameDateY = y - 50;
-
-        // Printed Name
-        drawWrappedText(page2, formData.clientAbandonmentPrintedName, font, 10, leftMargin, printedNameDateY, 250, 12);
-        page2.drawLine({ start: { x: leftMargin, y: printedNameDateY - 5 }, end: { x: leftMargin + 250, y: printedNameDateY - 5 }, thickness: 0.5 });
-        drawText(page2, "Printed Name", { x: leftMargin, y: printedNameDateY - 15, font, size: 8 });
-
-        // Date
-        const sigDate = (formData.clientAbandonmentSignatureDate && (formData.clientAbandonmentSignatureDate.toDate || isDate(formData.clientAbandonmentSignatureDate))) ? format(formData.clientAbandonmentSignatureDate.toDate ? formData.clientAbandonmentSignatureDate.toDate() : formData.clientAbandonmentSignatureDate, "MM/dd/yyyy") : '';
-        drawWrappedText(page2, sigDate, font, 10, leftMargin + 280, printedNameDateY, 150, 12);
-        page2.drawLine({ start: { x: leftMargin + 280, y: printedNameDateY - 5 }, end: { x: leftMargin + 430, y: printedNameDateY - 5 }, thickness: 0.5 });
-        drawText(page2, "Date", { x: leftMargin + 280, y: printedNameDateY - 15, font, size: 8 });
+        // Signature section
+        const signatureY = y;
         
-        const signatureY = printedNameDateY + 30;
-
         // Signature
         if (formData.clientAbandonmentSignature) {
             await drawSignature(page2, formData.clientAbandonmentSignature, leftMargin, signatureY - 10, 250, 25, pdfDoc);
@@ -1319,6 +1308,26 @@ export async function generateClientAbandonmentPdf(formData: any): Promise<{ pdf
         }
         page2.drawLine({ start: { x: leftMargin + 280, y: signatureY - 15 }, end: { x: leftMargin + 530, y: signatureY - 15 }, thickness: 0.5 });
         drawText(page2, "Witness Signature", { x: leftMargin + 280, y: signatureY - 25, font, size: 8 });
+        
+        y -= 40;
+        
+        // Add 2 blank lines of spacing
+        y -= lineHeight * 2;
+
+        // Printed Name section
+        const printedNameDateY = y;
+
+        // Printed Name
+        drawWrappedText(page2, formData.clientAbandonmentPrintedName, font, 10, leftMargin, printedNameDateY, 250, 12);
+        page2.drawLine({ start: { x: leftMargin, y: printedNameDateY - 5 }, end: { x: leftMargin + 250, y: printedNameDateY - 5 }, thickness: 0.5 });
+        drawText(page2, "Printed Name", { x: leftMargin, y: printedNameDateY - 15, font, size: 8 });
+
+        // Date
+        const sigDate = (formData.clientAbandonmentSignatureDate && (formData.clientAbandonmentSignatureDate.toDate || isDate(formData.clientAbandonmentSignatureDate))) ? format(formData.clientAbandonmentSignatureDate.toDate ? formData.clientAbandonmentSignatureDate.toDate() : formData.clientAbandonmentSignatureDate, "MM/dd/yyyy") : '';
+        drawWrappedText(page2, sigDate, font, 10, leftMargin + 280, printedNameDateY, 150, 12);
+        page2.drawLine({ start: { x: leftMargin + 280, y: printedNameDateY - 5 }, end: { x: leftMargin + 430, y: printedNameDateY - 5 }, thickness: 0.5 });
+        drawText(page2, "Date", { x: leftMargin + 280, y: printedNameDateY - 15, font, size: 8 });
+
 
         const pdfBytes = await pdfDoc.save();
         return { pdfData: Buffer.from(pdfBytes).toString('base64') };
@@ -1328,3 +1337,5 @@ export async function generateClientAbandonmentPdf(formData: any): Promise<{ pdf
         return { error: `Failed to generate PDF: ${error.message}` };
     }
 }
+
+    
