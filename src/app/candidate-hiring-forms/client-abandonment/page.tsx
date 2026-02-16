@@ -151,9 +151,9 @@ export default function ClientAbandonmentPage() {
 
     return (
         <Card className={cn("max-w-4xl mx-auto", isPrintMode && "border-none shadow-none")}>
-            <CardHeader>
-                <Image src={logoUrl} alt="Client Abandonment" width={200} height={200} className="object-contain" />
-                <CardTitle className="text-2xl font-bold pt-4">Client Abandonment</CardTitle>
+            <CardHeader className="text-center">
+                <Image src={logoUrl} alt="Client Abandonment" width={400} height={400} className="object-contain mx-auto" />
+                <CardTitle className="text-2xl font-bold pt-4 text-blue-600">Client Abandonment</CardTitle>
             </CardHeader>
             <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -205,7 +205,7 @@ export default function ClientAbandonmentPage() {
                             <FormItem className="flex flex-col"><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
                         )} />
                     </div>
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                     <div className="grid grid-cols-2 gap-6 items-end">
                         <div className="space-y-2">
                             <Label>Signature</Label>
                             <div className="relative w-full h-24 rounded-md border bg-muted/50">
