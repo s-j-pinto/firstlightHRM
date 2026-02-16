@@ -11,7 +11,7 @@ import { useUser, useDoc, useMemoFirebase, firestore, useCollection } from '@/fi
 import { doc, query, where, collection, limit } from 'firebase/firestore';
 import type { CaregiverProfile, Interview } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { generateHcs501PdfAction, generateEmergencyContactPdfAction, generateReferenceVerificationPdfAction, generateLic508PdfAction, generateSoc341aPdfAction, generateHcaJobDescriptionPdfAction } from '@/lib/candidate-hiring-forms.actions';
+import { generateHcs501PdfAction, generateEmergencyContactPdfAction, generateReferenceVerificationPdfAction, generateLic508PdfAction, generateSoc341aPdfAction, generateHcaJobDescriptionPdfAction, generateDrugAlcoholPolicyPdfAction } from '@/lib/candidate-hiring-forms.actions';
 import { useToast } from '@/hooks/use-toast';
 import { HelpDialog } from '@/components/HelpDialog';
 import { cn } from '@/lib/utils';
@@ -86,9 +86,10 @@ function CandidateHiringFormsContent() {
             result = await generateSoc341aPdfAction(candidateId);
         } else if (formAction === 'hcaJobDescription') {
             result = await generateHcaJobDescriptionPdfAction(candidateId);
+        } else if (formAction === 'drugAlcoholPolicy') {
+            result = await generateDrugAlcoholPolicyPdfAction(candidateId);
         } else if ([
             'arbitrationAgreement',
-            'drugAlcoholPolicy',
             'clientAbandonment',
             'employeeOrientationAgreement'
           ].includes(formAction)) {
