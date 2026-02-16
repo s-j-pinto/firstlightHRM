@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { serverDb } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
-import { hcs501Schema, emergencyContactSchema, lic508Object, soc341aSchema, referenceVerificationSchema, arbitrationAgreementSchema } from './types';
+import { hcs501Schema, emergencyContactSchema, lic508Object, soc341aSchema, referenceVerificationSchema, arbitrationAgreementSchema, drugAlcoholPolicySchema } from './types';
 import { generateHcs501Pdf, generateEmergencyContactPdf, generateReferenceVerificationPdf, generateLic508Pdf, generateSoc341aPdf } from './pdf.actions';
 
 // Helper to convert date strings to Firestore Timestamps if they are valid dates
@@ -165,6 +165,30 @@ export async function saveArbitrationAgreementData(profileId: string, data: any)
   }
 }
 
+export async function saveDrugAlcoholPolicyData(profileId: string, data: any) {
+  const validatedFields = drugAlcoholPolicySchema.safeParse(data);
+
+  if (!validatedFields.success) {
+    console.error("Drug Alcohol Policy Save Validation Error:", validatedFields.error.flatten());
+    return { error: 'Invalid data provided.' };
+  }
+
+  try {
+    const dataToSave = convertDatesToTimestamps(validatedFields.data);
+    
+    await serverDb.collection('caregiver_profiles').doc(profileId).set(dataToSave, { merge: true });
+    
+    revalidatePath(`/candidate-hiring-forms/drug-alcohol-policy?id=${profileId}`);
+    revalidatePath('/candidate-hiring-forms');
+    
+    return { success: true, message: 'Drug and/or Alcohol Testing Consent Form saved successfully.' };
+  } catch (error: any) {
+    console.error("Error saving Drug and/or Alcohol Testing Consent Form data:", error);
+    return { error: 'Failed to save form data.' };
+  }
+}
+
+
 export async function generateHcs501PdfAction(candidateId: string) {
     if (!candidateId) {
         return { error: 'Candidate ID is required.' };
@@ -256,5 +280,7 @@ export async function generateSoc341aPdfAction(candidateId: string) {
 }
     
 
+
+    
 
     

@@ -1,3 +1,4 @@
+
 import { z } from "zod";
 
 export const initialContactSchema = z.object({
@@ -267,6 +268,12 @@ export const arbitrationAgreementSchema = z.object({
 });
 export type ArbitrationAgreementFormData = z.infer<typeof arbitrationAgreementSchema>;
 
+export const drugAlcoholPolicySchema = z.object({
+  drugAlcoholPolicySignature: z.string().min(1, "Signature is required."),
+  drugAlcoholPolicySignatureDate: z.date({required_error: "Signature date is required."}),
+});
+export type DrugAlcoholPolicyFormData = z.infer<typeof drugAlcoholPolicySchema>;
+
 export const caregiverFormSchema = generalInfoSchema
   .merge(experienceSchema)
   .merge(certificationsSchema)
@@ -278,8 +285,8 @@ export const caregiverFormSchema = generalInfoSchema
   .merge(soc341aSchema.partial())
   .merge(referenceVerificationObject.partial())
   .merge(arbitrationAgreementSchema.partial())
+  .merge(drugAlcoholPolicySchema.partial())
   .merge(z.object({
-      drugAlcoholPolicySignature: z.string().optional(),
       jobDescriptionSignature: z.string().optional(),
       clientAbandonmentSignature: z.string().optional(),
       orientationAgreementSignature: z.string().optional(),
