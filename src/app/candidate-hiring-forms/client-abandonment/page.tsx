@@ -26,7 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 
-const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/Client-Abandonment.png?alt=media&token=3d99d712-9c7e-41c8-b71b-72798d29890c";
+const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/Client-Abandonment.png?alt=media&token=a042a308-64f1-4a14-9561-dfab31424353";
 
 
 const defaultFormValues: ClientAbandonmentFormData = {
@@ -246,7 +246,7 @@ export default function ClientAbandonmentPage() {
     return (
         <Card className={cn("max-w-4xl mx-auto", isPrintMode && "border-none shadow-none")}>
             <CardHeader className="text-center">
-                <Image src={logoUrl} alt="Client Abandonment" width={800} height={800} className="object-contain mx-auto" />
+                <Image src={logoUrl} alt="Client Abandonment" width={400} height={400} className="object-contain mx-auto" />
                 <CardTitle className="text-2xl font-bold pt-4 text-blue-600 text-center">Client Abandonment</CardTitle>
             </CardHeader>
             <Form {...form}>
