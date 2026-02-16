@@ -11,7 +11,7 @@ import { useUser, useDoc, useMemoFirebase, firestore, useCollection } from '@/fi
 import { doc, query, where, collection, limit } from 'firebase/firestore';
 import type { CaregiverProfile, Interview } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { generateHcs501PdfAction, generateEmergencyContactPdfAction, generateReferenceVerificationPdfAction, generateLic508PdfAction, generateSoc341aPdfAction } from '@/lib/candidate-hiring-forms.actions';
+import { generateHcs501PdfAction, generateEmergencyContactPdfAction, generateReferenceVerificationPdfAction, generateLic508PdfAction, generateSoc341aPdfAction, generateHcaJobDescriptionPdfAction } from '@/lib/candidate-hiring-forms.actions';
 import { useToast } from '@/hooks/use-toast';
 import { HelpDialog } from '@/components/HelpDialog';
 import { cn } from '@/lib/utils';
@@ -84,10 +84,11 @@ function CandidateHiringFormsContent() {
             result = await generateLic508PdfAction(candidateId);
         } else if (formAction === 'soc341a') {
             result = await generateSoc341aPdfAction(candidateId);
+        } else if (formAction === 'hcaJobDescription') {
+            result = await generateHcaJobDescriptionPdfAction(candidateId);
         } else if ([
             'arbitrationAgreement',
             'drugAlcoholPolicy',
-            'hcaJobDescription',
             'clientAbandonment',
             'employeeOrientationAgreement'
           ].includes(formAction)) {
@@ -159,24 +160,16 @@ function CandidateHiringFormsContent() {
                  <div className="flex items-center gap-2">
                     {isCompleted && <CheckCircle className="h-6 w-6 text-green-500" />}
                     {isAnAdmin && isCompleted && (
-                       form.pdfAction ? (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleGeneratePdf(form.pdfAction!)}
-                                disabled={isGeneratingPdf}
-                            >
-                                {isGeneratingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
-                                <span className="ml-2">Generate PDF</span>
-                            </Button>
-                        ) : (
-                            <Button asChild variant="outline" size="sm">
-                            <Link href={`${form.href}?candidateId=${candidateId}&print=true`} target="_blank">
-                                <Printer className="h-4 w-4" />
-                                <span className="ml-2">Generate PDF</span>
-                            </Link>
-                            </Button>
-                        )
+                       <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleGeneratePdf(form.pdfAction!)}
+                            disabled={isGeneratingPdf || !form.pdfAction}
+                            title={!form.pdfAction ? "PDF generation not available for this form" : "Generate PDF"}
+                        >
+                            {isGeneratingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
+                            <span>Generate PDF</span>
+                        </Button>
                     )}
                 </div>
               </div>
