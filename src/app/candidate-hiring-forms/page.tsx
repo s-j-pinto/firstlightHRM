@@ -27,10 +27,10 @@ const hiringForms = [
 
 const onboardingForms = [
   { name: "Mutual Arbitration Agreement", href: "/candidate-hiring-forms/arbitration-agreement", completionKey: 'arbitrationAgreementSignature', pdfAction: 'arbitrationAgreement' },
-  { name: "Drug and/or Alcohol Testing Consent Form", href: "/candidate-hiring-forms/drug-alcohol-policy", completionKey: 'drugAlcoholPolicySignature', pdfAction: '' },
-  { name: "HCA job description-Rancho-Cucamonga", href: "/candidate-hiring-forms/hca-job-description", completionKey: 'jobDescriptionSignature', pdfAction: '' },
-  { name: "Client Abandonment", href: "/candidate-hiring-forms/client-abandonment", completionKey: 'clientAbandonmentSignature', pdfAction: '' },
-  { name: "EMPLOYEE ORIENTATION AGREEMENT", href: "/candidate-hiring-forms/employee-orientation-agreement", completionKey: 'orientationAgreementSignature', pdfAction: '' },
+  { name: "Drug and/or Alcohol Testing Consent Form", href: "/candidate-hiring-forms/drug-alcohol-policy", completionKey: 'drugAlcoholPolicySignature', pdfAction: 'drugAlcoholPolicy' },
+  { name: "HCA job description-Rancho-Cucamonga", href: "/candidate-hiring-forms/hca-job-description", completionKey: 'jobDescriptionSignature', pdfAction: 'hcaJobDescription' },
+  { name: "Client Abandonment", href: "/candidate-hiring-forms/client-abandonment", completionKey: 'clientAbandonmentSignature', pdfAction: 'clientAbandonment' },
+  { name: "EMPLOYEE ORIENTATION AGREEMENT", href: "/candidate-hiring-forms/employee-orientation-agreement", completionKey: 'orientationAgreementSignature', pdfAction: 'employeeOrientationAgreement' },
 ];
 
 
@@ -84,7 +84,13 @@ function CandidateHiringFormsContent() {
             result = await generateLic508PdfAction(candidateId);
         } else if (formAction === 'soc341a') {
             result = await generateSoc341aPdfAction(candidateId);
-        } else if (formAction === 'arbitrationAgreement') {
+        } else if ([
+            'arbitrationAgreement',
+            'drugAlcoholPolicy',
+            'hcaJobDescription',
+            'clientAbandonment',
+            'employeeOrientationAgreement'
+          ].includes(formAction)) {
              toast({ title: 'PDF Generation Not Implemented', description: `No PDF generator exists for this form yet.`, variant: 'destructive' });
              return;
         } else {
@@ -156,18 +162,18 @@ function CandidateHiringFormsContent() {
                        form.pdfAction ? (
                             <Button
                                 variant="outline"
-                                size="icon"
+                                size="sm"
                                 onClick={() => handleGeneratePdf(form.pdfAction!)}
                                 disabled={isGeneratingPdf}
                             >
                                 {isGeneratingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
-                                <span className="sr-only">Generate PDF</span>
+                                <span className="ml-2">Generate PDF</span>
                             </Button>
                         ) : (
-                            <Button asChild variant="outline" size="icon">
+                            <Button asChild variant="outline" size="sm">
                             <Link href={`${form.href}?candidateId=${candidateId}&print=true`} target="_blank">
                                 <Printer className="h-4 w-4" />
-                                <span className="sr-only">Print or Generate PDF</span>
+                                <span className="ml-2">Generate PDF</span>
                             </Link>
                             </Button>
                         )
@@ -199,6 +205,18 @@ function CandidateHiringFormsContent() {
                   </Link>
                   <div className="flex items-center gap-2">
                     {isCompleted && <CheckCircle className="h-6 w-6 text-green-500" />}
+                    {isAnAdmin && isCompleted && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleGeneratePdf(form.pdfAction)}
+                            disabled={isGeneratingPdf || !form.pdfAction}
+                            title={!form.pdfAction ? "PDF generation not available for this form" : "Generate PDF"}
+                        >
+                            {isGeneratingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
+                            <span>Generate PDF</span>
+                        </Button>
+                    )}
                   </div>
                 </div>
               )
@@ -218,5 +236,3 @@ export default function CandidateHiringFormsPage() {
         </Suspense>
     )
 }
-
-  
