@@ -1267,15 +1267,7 @@ export default function ManageInterviewsClient() {
                                             </FormItem>
                                         )}
                                     />
-                                    <div className="flex justify-between items-center">
-                                        <Button
-                                            type="button"
-                                            onClick={handleInitiateOnboarding}
-                                            disabled={isOnboardingInitiating || existingInterview.onboardingFormsInitiated}
-                                        >
-                                            {isOnboardingInitiating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
-                                            {existingInterview.onboardingFormsInitiated ? 'Onboarding Initiated' : 'Initiate Onboarding Forms'}
-                                        </Button>
+                                    <div className="flex justify-end items-center">
                                         <Button type="submit" disabled={isOrientationSubmitting}>
                                             {isOrientationSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GraduationCap className="mr-2 h-4 w-4" />}
                                             Schedule Orientation
@@ -1464,17 +1456,29 @@ export default function ManageInterviewsClient() {
                                             </FormItem>
                                         )}
                                     />
-                                    <div className="flex justify-end gap-4">
-                                        {existingInterview?.interviewType === 'Google Meet' && existingInterview.googleMeetLink && (
-                                            <Button type="button" variant="outline" onClick={handleLaunchMeet}>
-                                                <Video className="mr-2 h-4 w-4" />
-                                                Launch Google Meet
-                                            </Button>
-                                        )}
-                                        <Button type="submit" disabled={isSubmitting}>
-                                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
-                                            {existingEmployee ? 'Update Record' : 'Complete Hiring'}
+                                     <div className="flex justify-between items-center pt-4 border-t">
+                                        <Button
+                                            type="button"
+                                            variant="secondary"
+                                            onClick={handleInitiateOnboarding}
+                                            disabled={isOnboardingInitiating || !existingInterview || existingInterview.onboardingFormsInitiated}
+                                        >
+                                            {isOnboardingInitiating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
+                                            {existingInterview?.onboardingFormsInitiated ? 'Onboarding Initiated' : 'Initiate Onboarding Forms'}
                                         </Button>
+
+                                        <div className="flex gap-4">
+                                            {existingInterview?.interviewType === 'Google Meet' && existingInterview.googleMeetLink && (
+                                                <Button type="button" variant="outline" onClick={handleLaunchMeet}>
+                                                    <Video className="mr-2 h-4 w-4" />
+                                                    Launch Google Meet
+                                                </Button>
+                                            )}
+                                            <Button type="submit" disabled={isSubmitting}>
+                                                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
+                                                {existingEmployee ? 'Update Record' : 'Complete Hiring'}
+                                            </Button>
+                                        </div>
                                     </div>
                                 </form>
                             </Form>
@@ -1537,5 +1541,7 @@ function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: strin
   );
 }
 
+
+    
 
     
