@@ -246,7 +246,7 @@ export default function ClientAbandonmentPage() {
     return (
         <Card className={cn("max-w-4xl mx-auto", isPrintMode && "border-none shadow-none")}>
             <CardHeader>
-                <Image src={logoUrl} alt="Client Abandonment" width={200} height={200} className="object-contain mx-auto" />
+                <Image src={logoUrl} alt="Client Abandonment" width={100} height={100} className="object-contain mx-auto" />
                 <CardTitle className="text-2xl font-bold pt-4 text-blue-600 text-center">Client Abandonment</CardTitle>
             </CardHeader>
             <Form {...form}>
@@ -330,3 +330,5 @@ export default function ClientAbandonmentPage() {
     );
 
 }
+
+    
