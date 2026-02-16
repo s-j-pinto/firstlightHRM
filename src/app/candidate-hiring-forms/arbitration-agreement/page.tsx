@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const defaultFormValues: ArbitrationAgreementFormData = {
+  applicantPrintedName: '',
   arbitrationAgreementSignature: '',
   arbitrationAgreementSignatureDate: undefined,
 };
@@ -232,8 +233,39 @@ export default function ArbitrationAgreementPage() {
                         <strong>9. CONSIDERATION.</strong> The COMPANY and Employee agree that the mutual obligations by the COMPANY and Employee to arbitrate disputes provide adequate consideration for this Agreement.
                     </p>
                     <p>
-                        <strong>10. EFFECTIVE DATE.</strong> By signing this Agreement, it becomes effective immediately. However, should EMPLOYEE not sign this Agreement, but continue his/her employment with the COMPANY after the date of receipt of this Agreement, the Agreement will become effective and be presumed to have been accepted.
+                        <strong>10. EFFECTIVE DATE.</strong> continuing your employment with the COMPANY for a period of 30 days after your receipt of this Agreement constitutes mutual acceptance of the terms of this Agreement commencing upon completion of that 30-day period, and the Agreement will be binding on you and the Company. You have the right to consult with counsel of your choice concerning this Agreement.
                     </p>
+                </div>
+                <div className="space-y-6 pt-6">
+                    <p className="font-bold">AGREED: [FIRSTLIGHT HOME CARE OF RANCHO CUCAMONGA]</p>
+                    <p className="font-bold">RECEIVED AND AGREED:</p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                        <div className="space-y-2 md:col-span-2">
+                            <Label>APPLICANT/EMPLOYEE SIGNATURE</Label>
+                            <div className="relative w-full h-24 rounded-md border bg-muted/50">
+                                <SignatureCanvas
+                                    ref={sigPadRef}
+                                    penColor='black'
+                                    canvasProps={{ className: 'w-full h-full rounded-md' }}
+                                    onEnd={() => {
+                                        if (sigPadRef.current) {
+                                            form.setValue('arbitrationAgreementSignature', sigPadRef.current.toDataURL())
+                                        }
+                                    }}
+                                />
+                            </div>
+                            <Button type="button" variant="ghost" size="sm" onClick={clearSignature} className="mt-2">
+                                <RefreshCw className="mr-2 h-4 w-4" />
+                                Clear Signature
+                            </Button>
+                        </div>
+                        <FormField control={form.control} name="arbitrationAgreementSignatureDate" render={({ field }) => (
+                        <FormItem className="flex flex-col"><FormLabel>DATE</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
+                        )} />
+                    </div>
+                    <FormField control={form.control} name="applicantPrintedName" render={({ field }) => (
+                        <FormItem><FormLabel>APPLICANT/EMPLOYEE NAME PRINTED</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
                 </div>
             </CardContent>
             <CardFooter className={cn("flex justify-end gap-4", isPrintMode && "no-print")}>
@@ -252,3 +284,4 @@ export default function ArbitrationAgreementPage() {
     );
 
     
+}

@@ -261,6 +261,7 @@ export const referenceVerificationSchema = referenceVerificationObject.refine(da
 export type ReferenceVerificationFormData = z.infer<typeof referenceVerificationSchema>;
 
 export const arbitrationAgreementSchema = z.object({
+  applicantPrintedName: z.string().min(1, "Printed name is required."),
   arbitrationAgreementSignature: z.string().min(1, "Signature is required."),
   arbitrationAgreementSignatureDate: z.date({required_error: "Signature date is required."}),
 });
