@@ -11,7 +11,7 @@ import { useUser, useDoc, useMemoFirebase, firestore, useCollection } from '@/fi
 import { doc, query, where, collection, limit } from 'firebase/firestore';
 import type { CaregiverProfile, Interview } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { generateHcs501PdfAction, generateEmergencyContactPdfAction, generateReferenceVerificationPdfAction, generateLic508PdfAction, generateSoc341aPdfAction, generateHcaJobDescriptionPdfAction, generateDrugAlcoholPolicyPdfAction } from '@/lib/candidate-hiring-forms.actions';
+import { generateHcs501PdfAction, generateEmergencyContactPdfAction, generateReferenceVerificationPdfAction, generateLic508PdfAction, generateSoc341aPdfAction, generateHcaJobDescriptionPdfAction, generateDrugAlcoholPolicyPdfAction, generateClientAbandonmentPdfAction } from '@/lib/candidate-hiring-forms.actions';
 import { useToast } from '@/hooks/use-toast';
 import { HelpDialog } from '@/components/HelpDialog';
 import { cn } from '@/lib/utils';
@@ -88,9 +88,10 @@ function CandidateHiringFormsContent() {
             result = await generateHcaJobDescriptionPdfAction(candidateId);
         } else if (formAction === 'drugAlcoholPolicy') {
             result = await generateDrugAlcoholPolicyPdfAction(candidateId);
+        } else if (formAction === 'clientAbandonment') {
+            result = await generateClientAbandonmentPdfAction(candidateId);
         } else if ([
             'arbitrationAgreement',
-            'clientAbandonment',
             'employeeOrientationAgreement'
           ].includes(formAction)) {
              toast({ title: 'PDF Generation Not Implemented', description: `No PDF generator exists for this form yet.`, variant: 'destructive' });
@@ -203,7 +204,7 @@ function CandidateHiringFormsContent() {
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleGeneratePdf(form.pdfAction)}
+                            onClick={() => handleGeneratePdf(form.pdfAction!)}
                             disabled={isGeneratingPdf || !form.pdfAction}
                             title={!form.pdfAction ? "PDF generation not available for this form" : "Generate PDF"}
                         >
