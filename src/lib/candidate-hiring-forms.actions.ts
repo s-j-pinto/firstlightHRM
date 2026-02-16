@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { serverDb } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
-import { hcs501Schema, emergencyContactSchema, lic508Object, soc341aSchema, referenceVerificationSchema, arbitrationAgreementSchema, drugAlcoholPolicySchema } from './types';
+import { hcs501Schema, emergencyContactSchema, lic508Object, soc341aSchema, referenceVerificationSchema, arbitrationAgreementSchema, drugAlcoholPolicySchema, hcaJobDescriptionSchema } from './types';
 import { generateHcs501Pdf, generateEmergencyContactPdf, generateReferenceVerificationPdf, generateLic508Pdf, generateSoc341aPdf } from './pdf.actions';
 
 // Helper to convert date strings to Firestore Timestamps if they are valid dates
@@ -184,6 +184,29 @@ export async function saveDrugAlcoholPolicyData(profileId: string, data: any) {
     return { success: true, message: 'Drug and/or Alcohol Testing Consent Form saved successfully.' };
   } catch (error: any) {
     console.error("Error saving Drug and/or Alcohol Testing Consent Form data:", error);
+    return { error: 'Failed to save form data.' };
+  }
+}
+
+export async function saveHcaJobDescriptionData(profileId: string, data: any) {
+  const validatedFields = hcaJobDescriptionSchema.safeParse(data);
+
+  if (!validatedFields.success) {
+    console.error("HCA Job Description Save Validation Error:", validatedFields.error.flatten());
+    return { error: 'Invalid data provided.' };
+  }
+
+  try {
+    const dataToSave = convertDatesToTimestamps(validatedFields.data);
+    
+    await serverDb.collection('caregiver_profiles').doc(profileId).set(dataToSave, { merge: true });
+    
+    revalidatePath(`/candidate-hiring-forms/hca-job-description?id=${profileId}`);
+    revalidatePath('/candidate-hiring-forms');
+    
+    return { success: true, message: 'HCA Job Description form saved successfully.' };
+  } catch (error: any) {
+    console.error("Error saving HCA Job Description data:", error);
     return { error: 'Failed to save form data.' };
   }
 }

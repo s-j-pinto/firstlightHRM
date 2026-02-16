@@ -27,7 +27,7 @@ const hiringForms = [
 const onboardingForms = [
   { name: "Mutual Arbitration Agreement", href: "/candidate-hiring-forms/arbitration-agreement", completionKey: 'arbitrationAgreementSignature', pdfAction: 'arbitrationAgreement' },
   { name: "Drug and/or Alcohol Testing Consent Form", href: "/candidate-hiring-forms/drug-alcohol-policy", completionKey: 'drugAlcoholPolicySignature', pdfAction: '' },
-  { name: "HCA job description-Rancho-Cucamonga", href: "#", completionKey: 'jobDescriptionSignature', pdfAction: '' },
+  { name: "HCA job description-Rancho-Cucamonga", href: "/candidate-hiring-forms/hca-job-description", completionKey: 'jobDescriptionSignature', pdfAction: '' },
   { name: "Client_Abandonment", href: "#", completionKey: 'clientAbandonmentSignature', pdfAction: '' },
   { name: "EMPLOYEE ORIENTATION AGREEMENT", href: "#", completionKey: 'orientationAgreementSignature', pdfAction: '' },
 ];

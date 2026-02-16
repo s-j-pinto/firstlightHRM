@@ -277,6 +277,12 @@ export const drugAlcoholPolicySchema = z.object({
 });
 export type DrugAlcoholPolicyFormData = z.infer<typeof drugAlcoholPolicySchema>;
 
+export const hcaJobDescriptionSchema = z.object({
+  jobDescriptionSignature: z.string().min(1, "Signature is required."),
+  jobDescriptionSignatureDate: z.date({required_error: "Signature date is required."}),
+});
+export type HcaJobDescriptionFormData = z.infer<typeof hcaJobDescriptionSchema>;
+
 export const caregiverFormSchema = generalInfoSchema
   .merge(experienceSchema)
   .merge(certificationsSchema)
@@ -289,8 +295,8 @@ export const caregiverFormSchema = generalInfoSchema
   .merge(referenceVerificationObject.partial())
   .merge(arbitrationAgreementSchema.partial())
   .merge(drugAlcoholPolicySchema.partial())
+  .merge(hcaJobDescriptionSchema.partial())
   .merge(z.object({
-      jobDescriptionSignature: z.string().optional(),
       clientAbandonmentSignature: z.string().optional(),
       orientationAgreementSignature: z.string().optional(),
   }));
@@ -550,6 +556,11 @@ export const clientSignupFormSchema = clientSignupDraftSchema.extend({
   personalCare_assistWithIncontinenceCare: z.boolean().optional(),
   personalCare_assistWithOther: z.string().optional(),
   servicePlanClientInitials: z.string().optional(),
+
+  // Office Use Only
+  officeTodaysDate: z.date().optional(),
+  officeReferralDate: z.date().optional(),
+  officeInitialContactDate: z.date().optional(),
 
   // Agreement
   agreementClientName: z.string().optional(),
