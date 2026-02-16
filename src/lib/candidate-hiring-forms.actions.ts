@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { serverDb } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
-import { hcs501Schema, emergencyContactSchema, lic508Object, soc341aSchema, referenceVerificationSchema } from './types';
+import { hcs501Schema, emergencyContactSchema, lic508Object, soc341aSchema, referenceVerificationSchema, arbitrationAgreementSchema } from './types';
 import { generateHcs501Pdf, generateEmergencyContactPdf, generateReferenceVerificationPdf, generateLic508Pdf, generateSoc341aPdf } from './pdf.actions';
 
 // Helper to convert date strings to Firestore Timestamps if they are valid dates
@@ -138,6 +138,29 @@ export async function saveReferenceVerificationData(profileId: string, data: any
     return { success: true, message: 'Reference Verification form saved successfully.' };
   } catch (error: any) {
     console.error("Error saving Reference Verification data:", error);
+    return { error: 'Failed to save form data.' };
+  }
+}
+
+export async function saveArbitrationAgreementData(profileId: string, data: any) {
+  const validatedFields = arbitrationAgreementSchema.safeParse(data);
+
+  if (!validatedFields.success) {
+    console.error("Arbitration Agreement Save Validation Error:", validatedFields.error.flatten());
+    return { error: 'Invalid data provided.' };
+  }
+
+  try {
+    const dataToSave = convertDatesToTimestamps(validatedFields.data);
+    
+    await serverDb.collection('caregiver_profiles').doc(profileId).set(dataToSave, { merge: true });
+    
+    revalidatePath(`/candidate-hiring-forms/arbitration-agreement?id=${profileId}`);
+    revalidatePath('/candidate-hiring-forms');
+    
+    return { success: true, message: 'Mutual Arbitration Agreement saved successfully.' };
+  } catch (error: any) {
+    console.error("Error saving Mutual Arbitration Agreement data:", error);
     return { error: 'Failed to save form data.' };
   }
 }

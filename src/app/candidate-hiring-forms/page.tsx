@@ -83,6 +83,9 @@ function CandidateHiringFormsContent() {
             result = await generateLic508PdfAction(candidateId);
         } else if (formAction === 'soc341a') {
             result = await generateSoc341aPdfAction(candidateId);
+        } else if (formAction === 'arbitrationAgreement') {
+             toast({ title: 'PDF Generation Not Implemented', description: `No PDF generator exists for this form yet.`, variant: 'destructive' });
+             return;
         } else {
              toast({ title: 'PDF Generation Not Implemented', description: `No PDF generator exists for this form yet.`, variant: 'destructive' });
              return;
