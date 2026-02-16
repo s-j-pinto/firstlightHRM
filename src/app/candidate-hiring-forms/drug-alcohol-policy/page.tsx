@@ -25,6 +25,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 
 const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
@@ -36,6 +37,10 @@ const defaultFormValues: DrugAlcoholPolicyFormData = {
   drugAlcoholPolicyEmployeePrintedName: '',
   drugAlcoholPolicyRepSignature: '',
   drugAlcoholPolicyRepDate: undefined,
+  oralSalivaTestResult: undefined,
+  oralSalivaPositiveDrug: '',
+  bloodTestResult: undefined,
+  bloodTestPositiveDrug: '',
 };
 
 const safeToDate = (value: any): Date | undefined => {
@@ -300,16 +305,84 @@ export default function DrugAlcoholPolicyPage() {
 
                 <div className="space-y-4">
                     <h3 className="text-center font-bold text-muted-foreground">TEST RESULTS – ORAL SALIVA</h3>
-                    <div className="flex justify-center items-center gap-6">
-                        <div className="flex items-center gap-2"><div className="w-4 h-4 border border-black"/>Negative</div>
-                        <div className="flex items-center gap-2"><div className="w-4 h-4 border border-black"/>Positive Drug: <div className="w-40 border-b border-black h-4"/></div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                        <FormField
+                            control={form.control}
+                            name="oralSalivaTestResult"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormControl>
+                                        <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4" disabled={!isAnAdmin}>
+                                            <FormItem className="flex items-center space-x-2 space-y-0">
+                                                <FormControl><RadioGroupItem value="Negative" /></FormControl>
+                                                <FormLabel className="font-normal">Negative</FormLabel>
+                                            </FormItem>
+                                            <FormItem className="flex items-center space-x-2 space-y-0">
+                                                <FormControl><RadioGroupItem value="Positive" /></FormControl>
+                                                <FormLabel className="font-normal">Positive</FormLabel>
+                                            </FormItem>
+                                        </RadioGroup>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        {form.watch('oralSalivaTestResult') === 'Positive' && (
+                             <FormField
+                                control={form.control}
+                                name="oralSalivaPositiveDrug"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Positive Drug:</FormLabel>
+                                        <FormControl>
+                                            <Input {...field} disabled={!isAnAdmin} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        )}
                     </div>
                 </div>
                  <div className="space-y-4">
                     <h3 className="text-center font-bold text-muted-foreground">TEST RESULTS – BLOOD</h3>
-                    <div className="flex justify-center items-center gap-6">
-                        <div className="flex items-center gap-2"><div className="w-4 h-4 border border-black"/>Negative</div>
-                        <div className="flex items-center gap-2"><div className="w-4 h-4 border border-black"/>Positive Drug: <div className="w-40 border-b border-black h-4"/></div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                       <FormField
+                            control={form.control}
+                            name="bloodTestResult"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormControl>
+                                        <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4" disabled={!isAnAdmin}>
+                                            <FormItem className="flex items-center space-x-2 space-y-0">
+                                                <FormControl><RadioGroupItem value="Negative" /></FormControl>
+                                                <FormLabel className="font-normal">Negative</FormLabel>
+                                            </FormItem>
+                                            <FormItem className="flex items-center space-x-2 space-y-0">
+                                                <FormControl><RadioGroupItem value="Positive" /></FormControl>
+                                                <FormLabel className="font-normal">Positive</FormLabel>
+                                            </FormItem>
+                                        </RadioGroup>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        {form.watch('bloodTestResult') === 'Positive' && (
+                             <FormField
+                                control={form.control}
+                                name="bloodTestPositiveDrug"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Positive Drug:</FormLabel>
+                                        <FormControl>
+                                            <Input {...field} disabled={!isAnAdmin} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        )}
                     </div>
                 </div>
 

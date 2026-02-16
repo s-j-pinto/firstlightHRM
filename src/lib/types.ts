@@ -275,6 +275,10 @@ export const drugAlcoholPolicySchema = z.object({
   drugAlcoholPolicyEmployeePrintedName: z.string().min(1, "Printed name is required."),
   drugAlcoholPolicyRepSignature: z.string().optional(),
   drugAlcoholPolicyRepDate: z.date().optional(),
+  oralSalivaTestResult: z.enum(['Negative', 'Positive']).optional(),
+  oralSalivaPositiveDrug: z.string().optional(),
+  bloodTestResult: z.enum(['Negative', 'Positive']).optional(),
+  bloodTestPositiveDrug: z.string().optional(),
 });
 export type DrugAlcoholPolicyFormData = z.infer<typeof drugAlcoholPolicySchema>;
 
