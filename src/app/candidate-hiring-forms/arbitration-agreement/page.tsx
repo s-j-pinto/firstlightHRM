@@ -3,7 +3,7 @@
 
 import { useRef, useEffect, useTransition } from "react";
 import { useForm } from "react-hook-form";
-import { useRouter, useSearchParams, useParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import SignatureCanvas from 'react-signature-canvas';
 import { doc } from "firebase/firestore";
@@ -158,6 +158,20 @@ export default function ArbitrationAgreementPage() {
                     El Acuerdo Mutuo de Arbitraje es un contrato y cubre aspectos importantes de sus derechos. Es tu absoluta responsabilidad leerlo y entenderlo. Tienes la libertad de buscar asistencia de asesores independientes de su elección fuera de la Compañia o de abstenerte de buscar asistencia si esa es su elección.
                   </p>
                 </div>
+                 <div className="space-y-4 text-sm text-muted-foreground">
+                    <p>
+                        <strong>1.</strong> This Mutual Arbitration Agreement (“Agreement”) is between Employee and [FIRSTLIGHT HOME CARE OF RANCHO CUCAMONGA] (“COMPANY”). The Federal Arbitration Act (9 U.S.C. §§ 1 et seq.) governs this Agreement, which evidences a transaction involving commerce. EXCEPT AS THIS AGREEMENT OTHERWISE PROVIDES, ALL DISPUTES COVERED BY THIS AGREEMENT WILL BE DECIDED BY AN ARBITRATOR THROUGH FINAL AND BINDING ARBITRATION AND NOT BY WAY OF COURT OR JURY TRIAL.
+                    </p>
+                    <p>
+                        <strong>2. COVERED CLAIMS/DISPUTES.</strong> Except as otherwise provided in this Agreement, this Agreement applies to any and all disputes, past, present or future, that may arise between Employee (sometimes “you” or “your”) and COMPANY, including without limitation any dispute arising out of or related to Employee’s application, employment and/or separation of employment with COMPANY. This Agreement applies to a covered dispute that COMPANY may have against Employee or that Employee may have against COMPANY, its parent companies, subsidiaries, related companies and affiliates, franchisors, or their officers, directors, principals, shareholders, members, owners, employees, and managers or agents, each and all of which may enforce this Agreement as direct or third-party beneficiaries.
+                    </p>
+                    <p>
+                        The claims subject to arbitration are those that absent this Agreement could be brought under applicable law. Except as it otherwise provides, this Agreement applies, without limitation, to claims based upon or related to the application for employment, background checks, privacy, the employment relationship, discrimination, harassment, retaliation, defamation (including claims of post-employment defamation or retaliation), breach of a contract or covenant, fraud, negligence, emotional distress, breach of fiduciary duty, trade secrets, unfair competition, wages, minimum wage and overtime or other compensation claimed to be owed, breaks and rest periods, expense reimbursement, seating, termination, tort claims, equitable claims, and all statutory and common law claims unless specifically excluded below. Except as it otherwise provides, the Agreement covers, without limitation, claims arising under the Fair Credit Reporting Act, Defend Trade Secrets Act, Title VII of the Civil Rights Act of 1964, 42 U.S.C. § 1981, the Americans With Disabilities Act, the Age Discrimination in Employment Act, the Family Medical Leave Act, the Fair Labor Standards Act, Rehabilitation Act, the Civil Rights Acts of 1866 and 1871, the Civil Rights Act of 1991, 8 U.S.C. § 1324 (unfair immigration related practices), the Pregnancy Discrimination Act, the Equal Pay Act, the Genetic Information Non-Discrimination Act, Employee Retirement Income Security Act of 1974 (except for claims for employee benefits under any benefit plan sponsored by the COMPANY and (a) covered by the Employee Retirement Income Security Act of 1974 or (b) funded by insurance), Affordable Care Act, Uniformed Services Employment and Reemployment Rights Act, Worker Adjustment and Retraining Notification Act, Older Workers Benefit Protection Act of 1990, False Claims Act, Occupational Safety and Health Act, Consolidated Omnibus Reconciliation Act of 1985, and state statutes or regulations, if any, addressing the same or similar subject matters, and all other federal or state legal claims arising out of or relating to Employee’s employment or the termination of employment.
+                    </p>
+                    <p>
+                        Additionally, except as provided in this Section 3 of this Agreement, Employee and the COMPANY agree that the arbitrator shall have exclusive authority to resolve any dispute relating to the scope, validity, conscionability, interpretation, applicability, or enforceability of this Agreement.
+                    </p>
+                </div>
             </CardContent>
             <CardFooter className={cn("flex justify-end gap-4", isPrintMode && "no-print")}>
                 <Button type="button" variant="outline" onClick={handleCancel}>
@@ -174,4 +188,3 @@ export default function ArbitrationAgreementPage() {
         </Card>
     );
 }
-
