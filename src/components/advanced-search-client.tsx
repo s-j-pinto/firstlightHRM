@@ -576,7 +576,7 @@ export default function AdvancedSearchClient() {
                                                     : field.onChange(
                                                         field.value?.filter(
                                                             (value) => value !== skill.id
-                                                        )
+                                                        ) || []
                                                         );
                                                 }}
                                             />
@@ -721,3 +721,4 @@ export default function AdvancedSearchClient() {
         </div>
     );
 }
+

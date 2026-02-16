@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from "react";
@@ -298,7 +299,7 @@ export default function CampaignManagementClient() {
                                     onCheckedChange={(checked) => {
                                     return checked
                                         ? field.onChange([...(field.value || []), source.id])
-                                        : field.onChange(field.value?.filter((value) => value !== source.id));
+                                        : field.onChange(field.value?.filter((value) => value !== source.id) || []);
                                     }}
                                 />
                                 </FormControl>

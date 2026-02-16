@@ -353,7 +353,7 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
                                                   field.value?.filter(
                                                     (value) =>
                                                       value !== shift.id
-                                                  )
+                                                  ) || []
                                                 );
                                           }}
                                         />
