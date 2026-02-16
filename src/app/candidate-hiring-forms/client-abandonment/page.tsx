@@ -245,8 +245,8 @@ export default function ClientAbandonmentPage() {
 
     return (
         <Card className={cn("max-w-4xl mx-auto", isPrintMode && "border-none shadow-none")}>
-            <CardHeader className="text-center">
-                <Image src={logoUrl} alt="Client Abandonment" width={400} height={400} className="object-contain mx-auto" />
+            <CardHeader>
+                <Image src={logoUrl} alt="Client Abandonment" width={200} height={200} className="object-contain mx-auto" />
                 <CardTitle className="text-2xl font-bold pt-4 text-blue-600 text-center">Client Abandonment</CardTitle>
             </CardHeader>
             <Form {...form}>
@@ -291,17 +291,17 @@ export default function ClientAbandonmentPage() {
                     <p className="font-semibold">
                         I have read and understand the following information on Client Abandonment. I understand abandonment and will never leave a client without care for any reason.
                     </p>
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                    <div className="flex flex-col md:flex-row gap-6 items-start">
+                        <SignatureField fieldName="clientAbandonmentSignature" title="Signature" />
+                        <SignatureField fieldName="clientAbandonmentWitnessSignature" title="Witness Signature" adminOnly={true} />
+                    </div>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end pt-8">
                         <FormField control={form.control} name="clientAbandonmentPrintedName" render={({ field }) => (
                             <FormItem><FormLabel>Printed Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                         )} />
                         <FormField control={form.control} name="clientAbandonmentSignatureDate" render={({ field }) => (
                             <FormItem className="flex flex-col"><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
                         )} />
-                    </div>
-                     <div className="flex flex-col md:flex-row gap-6 items-start">
-                        <SignatureField fieldName="clientAbandonmentSignature" title="Signature" />
-                        <SignatureField fieldName="clientAbandonmentWitnessSignature" title="Witness Signature" adminOnly={true} />
                     </div>
                 </div>
             </CardContent>
