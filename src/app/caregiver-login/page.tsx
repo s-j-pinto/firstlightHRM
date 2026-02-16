@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useTransition } from "react";
@@ -69,12 +70,6 @@ export default function CaregiverLoginPage() {
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : null}
             Start Your Application
-          </Button>
-
-          <Button asChild variant="outline" className="w-full">
-            <Link href="/candidate-login">
-                Complete Application Forms
-            </Link>
           </Button>
 
            <div className="relative">
