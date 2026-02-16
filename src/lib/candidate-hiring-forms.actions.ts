@@ -7,7 +7,7 @@ import { serverDb } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { hcs501Schema, emergencyContactSchema, lic508Object, soc341aSchema, referenceVerificationSchema, arbitrationAgreementSchema, drugAlcoholPolicySchema, hcaJobDescriptionSchema, clientAbandonmentSchema, employeeOrientationAgreementSchema } from './types';
-import { generateHcs501Pdf, generateEmergencyContactPdf, generateReferenceVerificationPdf, generateLic508Pdf, generateSoc341aPdf, generateHcaJobDescriptionPdf, generateDrugAlcoholPolicyPdf, generateClientAbandonmentPdf } from './pdf.actions';
+import { generateHcs501Pdf, generateEmergencyContactPdf, generateReferenceVerificationPdf, generateLic508Pdf, generateSoc341aPdf, generateHcaJobDescriptionPdf, generateDrugAlcoholPolicyPdf, generateClientAbandonmentPdf, generateArbitrationAgreementPdf } from './pdf.actions';
 
 // Helper to convert date strings to Firestore Timestamps if they are valid dates
 function convertDatesToTimestamps(data: any): any {
@@ -396,6 +396,24 @@ export async function generateClientAbandonmentPdfAction(candidateId: string) {
         }
         const formData = docSnap.data();
         const result = await generateClientAbandonmentPdf(formData);
+        
+        return result;
+    } catch (error: any) {
+        return { error: `Failed to generate PDF: ${error.message}` };
+    }
+}
+
+export async function generateArbitrationAgreementPdfAction(candidateId: string) {
+    if (!candidateId) {
+        return { error: 'Candidate ID is required.' };
+    }
+    try {
+        const docSnap = await serverDb.collection('caregiver_profiles').doc(candidateId).get();
+        if (!docSnap.exists) {
+            return { error: 'Candidate profile not found.' };
+        }
+        const formData = docSnap.data();
+        const result = await generateArbitrationAgreementPdf(formData);
         
         return result;
     } catch (error: any) {
