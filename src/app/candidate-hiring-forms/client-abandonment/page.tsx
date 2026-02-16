@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useRef, useEffect, useTransition } from "react";
@@ -153,7 +152,7 @@ export default function ClientAbandonmentPage() {
     return (
         <Card className={cn("max-w-4xl mx-auto", isPrintMode && "border-none shadow-none")}>
             <CardHeader>
-                <Image src={logoUrl} alt="Client Abandonment" width={100} height={100} className="object-contain" />
+                <Image src={logoUrl} alt="Client Abandonment" width={200} height={200} className="object-contain" />
                 <CardTitle className="text-2xl font-bold pt-4">Client Abandonment</CardTitle>
             </CardHeader>
             <Form {...form}>
