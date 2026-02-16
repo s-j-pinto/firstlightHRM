@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useTransition, useRef } from "react";
+import { useEffect, useTransition, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,12 +9,13 @@ import { doc } from "firebase/firestore";
 import SignatureCanvas from 'react-signature-canvas';
 import { format } from "date-fns";
 import { z } from "zod";
+import Image from "next/image";
 
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Save, X, Loader2, RefreshCw, CalendarIcon } from "lucide-react";
+import { Save, X, Loader2, RefreshCw, CalendarIcon, Edit2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useUser, useDoc, useMemoFirebase, firestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
@@ -26,6 +27,7 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const lic508PageSchema = lic508Object.passthrough().extend({
   fullName: z.string().optional(),
@@ -73,13 +75,81 @@ const safeToDate = (value: any): Date | undefined => {
     return undefined;
 };
 
-export default function LIC508Page() {
+const SignaturePadModal = ({
+    isOpen,
+    onClose,
+    onSave,
+    signatureData,
+    title
+}: {
+    isOpen: boolean;
+    onClose: () => void;
+    onSave: (dataUrl: string) => void;
+    signatureData: string | undefined | null;
+    title: string;
+}) => {
     const sigPadRef = useRef<SignatureCanvas>(null);
+    const [isSigned, setIsSigned] = useState(false);
+
+    useEffect(() => {
+        if (isOpen && sigPadRef.current) {
+            sigPadRef.current.clear();
+            if (signatureData) {
+                sigPadRef.current.fromDataURL(signatureData);
+                setIsSigned(true);
+            } else {
+                setIsSigned(false);
+            }
+        }
+    }, [isOpen, signatureData]);
+    
+    const handleClear = () => {
+        sigPadRef.current?.clear();
+        setIsSigned(false);
+    }
+    
+    const handleDone = () => {
+        if (sigPadRef.current && !sigPadRef.current.isEmpty()) {
+            onSave(sigPadRef.current.toDataURL());
+        } else {
+             onSave(""); 
+        }
+        onClose();
+    }
+    
+    return (
+        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+            <DialogContent className="sm:max-w-[600px] h-[400px] flex flex-col p-0">
+                <DialogHeader className="p-4 border-b">
+                    <DialogTitle>{title}</DialogTitle>
+                </DialogHeader>
+                <div className="flex-grow p-2">
+                    <SignatureCanvas
+                        ref={sigPadRef}
+                        penColor='black'
+                        canvasProps={{ className: 'w-full h-full bg-muted/50 rounded-md' }}
+                        onEnd={() => setIsSigned(true)}
+                    />
+                </div>
+                <div className="flex justify-between p-4 border-t">
+                    <Button type="button" variant="ghost" onClick={handleClear}>
+                        <RefreshCw className="mr-2"/>
+                        Clear
+                    </Button>
+                    <Button type="button" onClick={handleDone}>Done</Button>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
+export default function LIC508Page() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { user, isUserLoading } = useUser();
     const { toast } = useToast();
     const [isSaving, startSavingTransition] = useTransition();
+    const [activeSignature, setActiveSignature] = useState<{ fieldName: keyof Lic508PageFormData; title: string; } | null>(null);
 
     const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "care-rc@firstlighthomecare.com";
     const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL || "lpinto@firstlighthomecare.com";
@@ -100,10 +170,37 @@ export default function LIC508Page() {
       defaultValues: defaultFormValues,
     });
     
+    const SignatureField = ({ fieldName, title }: { fieldName: keyof Lic508PageFormData; title: string; }) => {
+        const signatureData = form.watch(fieldName);
+        
+        return (
+            <div className="space-y-2">
+                <FormLabel>{title}</FormLabel>
+                <div className="relative rounded-md border bg-muted/30 h-28 flex items-center justify-center">
+                    {signatureData ? (
+                        <Image src={signatureData as string} alt="Signature" layout="fill" objectFit="contain" />
+                    ) : (
+                        <span className="text-muted-foreground">Not Signed</span>
+                    )}
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-1 right-1 h-7 w-7"
+                        onClick={() => setActiveSignature({ fieldName, title })}
+                    >
+                        <Edit2 className="h-4 w-4" />
+                    </Button>
+                </div>
+                <FormMessage>{form.formState.errors[fieldName]?.message}</FormMessage>
+            </div>
+        );
+    };
+
     useEffect(() => {
         if (existingData) {
             const formData: Partial<Lic508PageFormData> = {};
-            const formSchemaKeys = Object.keys(lic508Object.shape) as Array<keyof Lic508FormData>;
+            const formSchemaKeys = Object.keys(lic508Object.shape) as Array<keyof Lic508PageFormData>;
             const dateFields = ['lic508SignatureDate', 'dob'];
 
             formSchemaKeys.forEach(key => {
@@ -117,7 +214,6 @@ export default function LIC508Page() {
                 }
             });
             
-            // Also pre-populate from general profile if fields are empty
             if (!formData.fullName && existingData.fullName) formData.fullName = existingData.fullName;
             if (!formData.address && existingData.address) formData.address = existingData.address;
             if (!formData.city && existingData.city) formData.city = existingData.city;
@@ -127,21 +223,17 @@ export default function LIC508Page() {
             if (!formData.ssn && existingData.ssn) formData.ssn = existingData.ssn;
             if (!formData.dob && existingData.dob) (formData as any).dob = safeToDate(existingData.dob);
 
-
             form.reset({
                 ...defaultFormValues,
                 ...formData
             });
-
-             if (existingData.lic508Signature && sigPadRef.current) {
-                sigPadRef.current.fromDataURL(existingData.lic508Signature);
-            }
         }
     }, [existingData, form]);
 
-    const clearSignature = () => {
-        sigPadRef.current?.clear();
-        form.setValue('lic508Signature', '');
+    const handleSaveSignature = (dataUrl: string) => {
+        if (activeSignature) {
+            form.setValue(activeSignature.fieldName, dataUrl, { shouldValidate: true, shouldDirty: true });
+        }
     };
 
     const onSubmit = (data: Lic508PageFormData) => {
@@ -407,25 +499,7 @@ export default function LIC508Page() {
                     </div>
                     
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-                        <div className="space-y-2">
-                            <Label>SIGNATURE:</Label>
-                            <div className="relative w-full h-24 rounded-md border bg-muted/50">
-                                <SignatureCanvas
-                                    ref={sigPadRef}
-                                    penColor='black'
-                                    canvasProps={{ className: 'w-full h-full rounded-md' }}
-                                    onEnd={() => {
-                                        if (sigPadRef.current) {
-                                            form.setValue('lic508Signature', sigPadRef.current.toDataURL())
-                                        }
-                                    }}
-                                />
-                            </div>
-                            <Button type="button" variant="ghost" size="sm" onClick={clearSignature} className="mt-2">
-                                <RefreshCw className="mr-2 h-4 w-4" />
-                                Clear Signature
-                            </Button>
-                        </div>
+                        <SignatureField fieldName="lic508Signature" title="SIGNATURE:" />
                        <FormField control={form.control} name="lic508SignatureDate" render={({ field }) => (
                         <FormItem className="flex flex-col"><FormLabel>DATE:</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
                        )} />
@@ -539,6 +613,15 @@ naturalization matter, security clearance, or adoption), you have certain rights
 
 
             </CardContent>
+            {activeSignature && (
+                <SignaturePadModal
+                    isOpen={!!activeSignature}
+                    onClose={() => setActiveSignature(null)}
+                    onSave={handleSaveSignature}
+                    signatureData={form.getValues(activeSignature.fieldName)}
+                    title={activeSignature.title}
+                />
+            )}
             <CardFooter className="flex justify-end gap-4">
                 <Button type="button" variant="outline" onClick={handleCancel}>
                   <X className="mr-2" />

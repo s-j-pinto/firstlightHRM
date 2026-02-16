@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useRef, useEffect, useTransition } from "react";
+import { useRef, useEffect, useTransition, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,10 +10,10 @@ import { doc } from "firebase/firestore";
 import { format } from "date-fns";
 import Image from "next/image";
 
-import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { RefreshCw, Save, X, Loader2, CalendarIcon } from "lucide-react";
+import { RefreshCw, Save, X, Loader2, CalendarIcon, Edit2 } from "lucide-react";
 import { useUser, useDoc, useMemoFirebase, firestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { clientAbandonmentSchema, type ClientAbandonmentFormData, type CaregiverProfile } from "@/lib/types";
@@ -22,6 +23,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
 
 const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/Client-Abandonment.png?alt=media&token=3d99d712-9c7e-41c8-b71b-72798d29890c";
 
@@ -45,14 +48,81 @@ const safeToDate = (value: any): Date | undefined => {
     return undefined;
 };
 
+const SignaturePadModal = ({
+    isOpen,
+    onClose,
+    onSave,
+    signatureData,
+    title
+}: {
+    isOpen: boolean;
+    onClose: () => void;
+    onSave: (dataUrl: string) => void;
+    signatureData: string | undefined | null;
+    title: string;
+}) => {
+    const sigPadRef = useRef<SignatureCanvas>(null);
+    const [isSigned, setIsSigned] = useState(false);
+
+    useEffect(() => {
+        if (isOpen && sigPadRef.current) {
+            sigPadRef.current.clear();
+            if (signatureData) {
+                sigPadRef.current.fromDataURL(signatureData);
+                setIsSigned(true);
+            } else {
+                setIsSigned(false);
+            }
+        }
+    }, [isOpen, signatureData]);
+    
+    const handleClear = () => {
+        sigPadRef.current?.clear();
+        setIsSigned(false);
+    }
+    
+    const handleDone = () => {
+        if (sigPadRef.current && !sigPadRef.current.isEmpty()) {
+            onSave(sigPadRef.current.toDataURL());
+        } else {
+             onSave(""); 
+        }
+        onClose();
+    }
+    
+    return (
+        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+            <DialogContent className="sm:max-w-[600px] h-[400px] flex flex-col p-0">
+                <DialogHeader className="p-4 border-b">
+                    <DialogTitle>{title}</DialogTitle>
+                </DialogHeader>
+                <div className="flex-grow p-2">
+                    <SignatureCanvas
+                        ref={sigPadRef}
+                        penColor='black'
+                        canvasProps={{ className: 'w-full h-full bg-muted/50 rounded-md' }}
+                        onEnd={() => setIsSigned(true)}
+                    />
+                </div>
+                <div className="flex justify-between p-4 border-t">
+                    <Button type="button" variant="ghost" onClick={handleClear}>
+                        <RefreshCw className="mr-2"/>
+                        Clear
+                    </Button>
+                    <Button type="button" onClick={handleDone}>Done</Button>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
 export default function ClientAbandonmentPage() {
-    const applicantSigPadRef = useRef<SignatureCanvas>(null);
-    const witnessSigPadRef = useRef<SignatureCanvas>(null);
     const router = useRouter();
     const searchParams = useSearchParams();
     const { user, isUserLoading } = useUser();
     const { toast } = useToast();
     const [isSaving, startSavingTransition] = useTransition();
+    const [activeSignature, setActiveSignature] = useState<{ fieldName: keyof ClientAbandonmentFormData; title: string; } | null>(null);
 
     const isPrintMode = searchParams.get('print') === 'true';
     const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "care-rc@firstlighthomecare.com";
@@ -72,6 +142,36 @@ export default function ClientAbandonmentPage() {
       resolver: zodResolver(clientAbandonmentSchema),
       defaultValues: defaultFormValues,
     });
+    
+    const SignatureField = ({ fieldName, title, adminOnly = false }: { fieldName: keyof ClientAbandonmentFormData; title: string; adminOnly?: boolean; }) => {
+        const signatureData = form.watch(fieldName);
+        const disabled = isPrintMode || (adminOnly && !isAnAdmin);
+        
+        return (
+            <div className="space-y-2 flex-1">
+                <FormLabel>{title}</FormLabel>
+                <div className="relative rounded-md border bg-muted/30 h-28 flex items-center justify-center">
+                    {signatureData ? (
+                        <Image src={signatureData as string} alt="Signature" layout="fill" objectFit="contain" />
+                    ) : (
+                        <span className="text-muted-foreground">Not Signed</span>
+                    )}
+                     {!disabled && (
+                         <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute top-1 right-1 h-7 w-7"
+                            onClick={() => setActiveSignature({ fieldName, title })}
+                        >
+                            <Edit2 className="h-4 w-4" />
+                        </Button>
+                     )}
+                </div>
+                <FormMessage>{form.formState.errors[fieldName]?.message}</FormMessage>
+            </div>
+        );
+    };
 
     useEffect(() => {
         if (isPrintMode && !isDataLoading) {
@@ -96,19 +196,13 @@ export default function ClientAbandonmentPage() {
             });
 
             form.reset(formData);
-
-            if (formData.clientAbandonmentSignature && applicantSigPadRef.current) {
-                applicantSigPadRef.current.fromDataURL(formData.clientAbandonmentSignature);
-            }
-            if (formData.clientAbandonmentWitnessSignature && witnessSigPadRef.current) {
-                witnessSigPadRef.current.fromDataURL(formData.clientAbandonmentWitnessSignature);
-            }
         }
     }, [existingData, form]);
 
-    const clearSignature = (ref: React.RefObject<SignatureCanvas>, fieldName: keyof ClientAbandonmentFormData) => {
-        ref.current?.clear();
-        form.setValue(fieldName, '');
+    const handleSaveSignature = (dataUrl: string) => {
+        if (activeSignature) {
+            form.setValue(activeSignature.fieldName, dataUrl, { shouldValidate: true, shouldDirty: true });
+        }
     };
 
     const onSubmit = (data: ClientAbandonmentFormData) => {
@@ -152,8 +246,8 @@ export default function ClientAbandonmentPage() {
     return (
         <Card className={cn("max-w-4xl mx-auto", isPrintMode && "border-none shadow-none")}>
             <CardHeader className="text-center">
-                <Image src={logoUrl} alt="Client Abandonment" width={400} height={400} className="object-contain mx-auto" />
-                <CardTitle className="text-2xl font-bold pt-4 text-blue-600">Client Abandonment</CardTitle>
+                <Image src={logoUrl} alt="Client Abandonment" width={800} height={800} className="object-contain mx-auto" />
+                <CardTitle className="text-2xl font-bold pt-4 text-blue-600 text-center">Client Abandonment</CardTitle>
             </CardHeader>
             <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -205,51 +299,21 @@ export default function ClientAbandonmentPage() {
                             <FormItem className="flex flex-col"><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
                         )} />
                     </div>
-                     <div className="grid grid-cols-2 gap-6 items-end">
-                        <div className="space-y-2">
-                            <Label>Signature</Label>
-                            <div className="relative w-full h-24 rounded-md border bg-muted/50">
-                                <SignatureCanvas
-                                    ref={applicantSigPadRef}
-                                    penColor='black'
-                                    canvasProps={{ className: 'w-full h-full rounded-md' }}
-                                    onEnd={() => {
-                                        if (applicantSigPadRef.current) {
-                                            form.setValue('clientAbandonmentSignature', applicantSigPadRef.current.toDataURL())
-                                        }
-                                    }}
-                                />
-                            </div>
-                            <Button type="button" variant="ghost" size="sm" onClick={() => clearSignature(applicantSigPadRef, 'clientAbandonmentSignature')} className="mt-2">
-                                <RefreshCw className="mr-2 h-4 w-4" />
-                                Clear Signature
-                            </Button>
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Witness Signature</Label>
-                            <div className="relative w-full h-24 rounded-md border bg-muted/50">
-                                <SignatureCanvas
-                                    ref={witnessSigPadRef}
-                                    penColor='black'
-                                    canvasProps={{ className: 'w-full h-full rounded-md' }}
-                                    onEnd={() => {
-                                        if (isAnAdmin && witnessSigPadRef.current) {
-                                            form.setValue('clientAbandonmentWitnessSignature', witnessSigPadRef.current.toDataURL())
-                                        }
-                                    }}
-                                    onBegin={() => !isAnAdmin && witnessSigPadRef.current?.clear()}
-                                />
-                            </div>
-                            {isAnAdmin && (
-                                <Button type="button" variant="ghost" size="sm" onClick={() => clearSignature(witnessSigPadRef, 'clientAbandonmentWitnessSignature')} className="mt-2">
-                                    <RefreshCw className="mr-2 h-4 w-4" />
-                                    Clear Signature
-                                </Button>
-                            )}
-                        </div>
+                     <div className="flex flex-col md:flex-row gap-6 items-start">
+                        <SignatureField fieldName="clientAbandonmentSignature" title="Signature" />
+                        <SignatureField fieldName="clientAbandonmentWitnessSignature" title="Witness Signature" adminOnly={true} />
                     </div>
                 </div>
             </CardContent>
+             {activeSignature && (
+                <SignaturePadModal
+                    isOpen={!!activeSignature}
+                    onClose={() => setActiveSignature(null)}
+                    onSave={handleSaveSignature}
+                    signatureData={form.getValues(activeSignature.fieldName)}
+                    title={activeSignature.title}
+                />
+            )}
             <CardFooter className={cn("flex justify-end gap-4", isPrintMode && "no-print")}>
                 <Button type="button" variant="outline" onClick={handleCancel}>
                   <X className="mr-2" />

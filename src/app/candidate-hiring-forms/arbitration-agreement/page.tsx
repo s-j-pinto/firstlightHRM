@@ -1,18 +1,19 @@
 
 "use client";
 
-import { useRef, useEffect, useTransition } from "react";
+import { useRef, useEffect, useTransition, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import SignatureCanvas from 'react-signature-canvas';
 import { doc } from "firebase/firestore";
 import { format } from "date-fns";
+import Image from "next/image";
 
-import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { RefreshCw, Save, X, Loader2, CalendarIcon } from "lucide-react";
+import { RefreshCw, Save, X, Loader2, CalendarIcon, Edit2 } from "lucide-react";
 import { useUser, useDoc, useMemoFirebase, firestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { arbitrationAgreementSchema, type ArbitrationAgreementFormData, type CaregiverProfile } from "@/lib/types";
@@ -22,6 +23,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const defaultFormValues: ArbitrationAgreementFormData = {
   applicantPrintedName: '',
@@ -41,13 +43,81 @@ const safeToDate = (value: any): Date | undefined => {
     return undefined;
 };
 
-export default function ArbitrationAgreementPage() {
+const SignaturePadModal = ({
+    isOpen,
+    onClose,
+    onSave,
+    signatureData,
+    title
+}: {
+    isOpen: boolean;
+    onClose: () => void;
+    onSave: (dataUrl: string) => void;
+    signatureData: string | undefined | null;
+    title: string;
+}) => {
     const sigPadRef = useRef<SignatureCanvas>(null);
+    const [isSigned, setIsSigned] = useState(false);
+
+    useEffect(() => {
+        if (isOpen && sigPadRef.current) {
+            sigPadRef.current.clear();
+            if (signatureData) {
+                sigPadRef.current.fromDataURL(signatureData);
+                setIsSigned(true);
+            } else {
+                setIsSigned(false);
+            }
+        }
+    }, [isOpen, signatureData]);
+    
+    const handleClear = () => {
+        sigPadRef.current?.clear();
+        setIsSigned(false);
+    }
+    
+    const handleDone = () => {
+        if (sigPadRef.current && !sigPadRef.current.isEmpty()) {
+            onSave(sigPadRef.current.toDataURL());
+        } else {
+             onSave(""); 
+        }
+        onClose();
+    }
+    
+    return (
+        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+            <DialogContent className="sm:max-w-[600px] h-[400px] flex flex-col p-0">
+                <DialogHeader className="p-4 border-b">
+                    <DialogTitle>{title}</DialogTitle>
+                </DialogHeader>
+                <div className="flex-grow p-2">
+                    <SignatureCanvas
+                        ref={sigPadRef}
+                        penColor='black'
+                        canvasProps={{ className: 'w-full h-full bg-muted/50 rounded-md' }}
+                        onEnd={() => setIsSigned(true)}
+                    />
+                </div>
+                <div className="flex justify-between p-4 border-t">
+                    <Button type="button" variant="ghost" onClick={handleClear}>
+                        <RefreshCw className="mr-2"/>
+                        Clear
+                    </Button>
+                    <Button type="button" onClick={handleDone}>Done</Button>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
+export default function ArbitrationAgreementPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { user, isUserLoading } = useUser();
     const { toast } = useToast();
     const [isSaving, startSavingTransition] = useTransition();
+    const [activeSignature, setActiveSignature] = useState<{ fieldName: keyof ArbitrationAgreementFormData; title: string; } | null>(null);
 
     const isPrintMode = searchParams.get('print') === 'true';
     const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "care-rc@firstlighthomecare.com";
@@ -91,17 +161,45 @@ export default function ArbitrationAgreementPage() {
             });
 
             form.reset(formData);
-
-             if (formData.arbitrationAgreementSignature && sigPadRef.current) {
-                sigPadRef.current.fromDataURL(formData.arbitrationAgreementSignature);
-            }
         }
     }, [existingData, form]);
 
-    const clearSignature = () => {
-        sigPadRef.current?.clear();
-        form.setValue('arbitrationAgreementSignature', '');
+    const handleSaveSignature = (dataUrl: string) => {
+        if (activeSignature) {
+            form.setValue(activeSignature.fieldName, dataUrl, { shouldValidate: true, shouldDirty: true });
+        }
     };
+    
+    const SignatureField = ({ fieldName, title }: { fieldName: keyof ArbitrationAgreementFormData; title: string; }) => {
+        const signatureData = form.watch(fieldName);
+        const disabled = isPrintMode;
+        
+        return (
+            <div className="space-y-2">
+                <FormLabel>{title}</FormLabel>
+                <div className="relative rounded-md border bg-muted/30 h-28 flex items-center justify-center">
+                    {signatureData ? (
+                        <Image src={signatureData as string} alt="Signature" layout="fill" objectFit="contain" />
+                    ) : (
+                        <span className="text-muted-foreground">Not Signed</span>
+                    )}
+                     {!disabled && (
+                         <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute top-1 right-1 h-7 w-7"
+                            onClick={() => setActiveSignature({ fieldName, title })}
+                        >
+                            <Edit2 className="h-4 w-4" />
+                        </Button>
+                     )}
+                </div>
+                <FormMessage>{form.formState.errors[fieldName]?.message}</FormMessage>
+            </div>
+        );
+    };
+
 
     const onSubmit = (data: ArbitrationAgreementFormData) => {
       if (!profileIdToLoad) {
@@ -212,7 +310,9 @@ export default function ArbitrationAgreementPage() {
                         <strong>3. CLASS AND COLLECTIVE ACTION WAIVER.</strong> Private attorney general representative actions brought on behalf of the state under the California Labor Code are not arbitrable, not within the scope of this Agreement and may be maintained in a court of law.. However, this Agreement affects your ability to otherwise participate in class and collective actions. Both you and COMPANY agree to bring any dispute in arbitration on an individual basis only, and not on a class or collective action basis on behalf of others. There will be no right or authority for any dispute to be brought, heard or arbitrated as a class or collective action and the arbitrator will have no authority to hear or preside over any such claim ("Class Action Waiver"). Regardless of anything else in this Agreement and/or the American Arbitration Association (“AAA") Rules (described below), any dispute relating to the scope,, validity, conscionability, interpretation, applicability, or enforceability of the Class Action Waiver, or any dispute relating to whether this Arbitration Agreement precludes a class or collective action proceeding, may only be determined by a court and not an arbitrator. In any case in which (1) the dispute is filed as a class or collective action and (2) there is a final judicial determination that all or part of the Class Action Waiver is unenforceable, the class or collective action to that extent must be litigated in a civil court of competent jurisdiction, but the portion of the Class Action Waiver that is enforceable shall be enforced in arbitration. You will not be retaliated against, disciplined or threatened with discipline by the filing of or participation in a class or collective action in any forum. However, COMPANY may lawfully seek enforcement of this Agreement and the Class Action Waiver under the Federal Arbitration Act and seek dismissal of such class or collective actions or claims. The Class Action Waiver shall be severable in any case in which the dispute is filed as an individual action and severance is necessary to ensure that the individual action proceeds in arbitration.
                     </p>
                     <p>
-                        <strong>4. ARBITRATOR SELECTION.</strong> If the claim is not resolved via informal resolution, the parties will proceed to arbitration before a single arbitrator and in accordance with the then current American Arbitration Association (“AAA”) Employment Arbitration Rules (“AAA Rules”) (the AAA Rules may be found at www.adr.org or by searching for “AAA Employment Arbitration Rules” using a service such as www.Google.com), provided, however, that if there is a conflict between the AAA Rules and this Agreement, this Agreement will govern. Unless the parties mutually agree otherwise, the Arbitrator will be either an attorney experienced in employment law or a retired judge. The AAA will give each party a list of eleven (11) arbitrators drawn from its panel of arbitrators. Ten days after AAA’s transmission of the list of neutrals, AAA will convene a telephone conference and the parties will strike names alternately from the list of common names, until only one remains. The party who strikes first will be determined by a coin toss. The person that remains will be designated as the Arbitrator. If for any reason, the individual selected cannot serve as the Arbitrator, AAA will issue another list of eleven (11) arbitrators and repeat the alternate striking selection process. If for any reason the AAA will not administer the arbitration, either party may apply to a court of competent jurisdiction with authority over the location where the arbitration will be conducted to appoint a neutral Arbitrator.
+                        <strong>4. ARBITRATOR SELECTION.</strong> If the claim is not resolved via informal resolution, the parties will proceed to arbitration before a single arbitrator and in accordance with the then current American Arbitration Association (“AAA”) Employment Arbitration Rules (“AAA Rules”) (the AAA Rules may be found at www.adr.org or by searching for “AAA Employment Arbitration Rules” using a service such as www.Google.com), provided, however, that if there is a conflict between the AAA Rules and this Agreement, this Agreement will govern. Unless the parties mutually agree otherwise, the Arbitrator will be either an attorney experienced in employment law or a retired judge. The AAA will give each party a list of eleven (11) arbitrators drawn from its panel of arbitrators. Ten days after AAA’s transmission of the list of neutrals, AAA will convene a telephone conference and the parties will strike names alternately from the list of common names, until only one remains. The party who strikes first will be determined by a coin toss. The person that remains will be designated as the Arbitrator. If for any reason, the individual selected cannot serve as the Arbitrator, AAA will issue another list of eleven (11) arbitrators and repeat the alternate striking
+selection process. If for any reason the AAA will not administer the arbitration, either party may apply to a court of competent
+jurisdiction with authority over the location where the arbitration will be conducted to appoint a neutral Arbitrator.
                     </p>
                     <p>
                         <strong>5. INITIATING ARBITRATION.</strong> A party who wishes to arbitrate a claim covered by this Agreement must make a written Request for Arbitration and deliver it to the other party by hand or mail no later than the expiration of the statute of limitations (deadline for filing) that applicable law prescribes for the claim. The Request for Arbitration shall identify the claims asserted, the factual basis for the claim(s), and the relief and/or remedy sought. The Arbitrator will resolve all disputes regarding the timeliness or propriety of the Request for Arbitration and apply the statute of limitations that would have applied if the claim(s) had been brought in court.
@@ -233,32 +333,14 @@ export default function ArbitrationAgreementPage() {
                         <strong>9. CONSIDERATION.</strong> The COMPANY and Employee agree that the mutual obligations by the COMPANY and Employee to arbitrate disputes provide adequate consideration for this Agreement.
                     </p>
                     <p>
-                        <strong>10. EFFECTIVE DATE.</strong> continuing your employment with the COMPANY for a period of 30 days after your receipt of this Agreement constitutes mutual acceptance of the terms of this Agreement commencing upon completion of that 30-day period, and the Agreement will be binding on you and the Company. You have the right to consult with counsel of your choice concerning this Agreement.
+                        <strong>10. EFFECTIVE DATE.</strong> By signing this Agreement, it becomes effective immediately. However, should EMPLOYEE not sign this Agreement, continuing your employment with the COMPANY for a period of 30 days after your receipt of this Agreement constitutes mutual acceptance of the terms of this Agreement commencing upon completion of that 30-day period, and the Agreement will be binding on you and the Company. You have the right to consult with counsel of your choice concerning this Agreement.
                     </p>
                 </div>
                 <div className="space-y-6 pt-6">
                     <p className="font-bold">AGREED: [FIRSTLIGHT HOME CARE OF RANCHO CUCAMONGA]</p>
                     <p className="font-bold">RECEIVED AND AGREED:</p>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-                        <div className="space-y-2 md:col-span-2">
-                            <Label>APPLICANT/EMPLOYEE SIGNATURE</Label>
-                            <div className="relative w-full h-24 rounded-md border bg-muted/50">
-                                <SignatureCanvas
-                                    ref={sigPadRef}
-                                    penColor='black'
-                                    canvasProps={{ className: 'w-full h-full rounded-md' }}
-                                    onEnd={() => {
-                                        if (sigPadRef.current) {
-                                            form.setValue('arbitrationAgreementSignature', sigPadRef.current.toDataURL())
-                                        }
-                                    }}
-                                />
-                            </div>
-                            <Button type="button" variant="ghost" size="sm" onClick={clearSignature} className="mt-2">
-                                <RefreshCw className="mr-2 h-4 w-4" />
-                                Clear Signature
-                            </Button>
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                        <SignatureField fieldName="arbitrationAgreementSignature" title="APPLICANT/EMPLOYEE SIGNATURE" />
                         <FormField control={form.control} name="arbitrationAgreementSignatureDate" render={({ field }) => (
                         <FormItem className="flex flex-col"><FormLabel>DATE</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
                         )} />
@@ -268,6 +350,15 @@ export default function ArbitrationAgreementPage() {
                     )} />
                 </div>
             </CardContent>
+            {activeSignature && (
+                <SignaturePadModal
+                    isOpen={!!activeSignature}
+                    onClose={() => setActiveSignature(null)}
+                    onSave={handleSaveSignature}
+                    signatureData={form.getValues(activeSignature.fieldName)}
+                    title={activeSignature.title}
+                />
+            )}
             <CardFooter className={cn("flex justify-end gap-4", isPrintMode && "no-print")}>
                 <Button type="button" variant="outline" onClick={handleCancel}>
                   <X className="mr-2" />
