@@ -11,7 +11,7 @@ import { useUser, useDoc, useMemoFirebase, firestore, useCollection } from '@/fi
 import { doc, query, where, collection, limit } from 'firebase/firestore';
 import type { CaregiverProfile, Interview } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { generateHcs501PdfAction, generateEmergencyContactPdfAction, generateReferenceVerificationPdfAction, generateLic508PdfAction, generateSoc341aPdfAction, generateHcaJobDescriptionPdfAction, generateDrugAlcoholPolicyPdfAction, generateClientAbandonmentPdfAction, generateArbitrationAgreementPdfAction, generateEmployeeOrientationAgreementPdfAction, generateAcknowledgmentFormPdfAction, generateConfidentialityAgreementPdfAction } from '@/lib/candidate-hiring-forms.actions';
+import { generateHcs501PdfAction, generateEmergencyContactPdfAction, generateReferenceVerificationPdfAction, generateLic508PdfAction, generateSoc341aPdfAction, generateHcaJobDescriptionPdfAction, generateDrugAlcoholPolicyPdfAction, generateClientAbandonmentPdfAction, generateArbitrationAgreementPdfAction, generateEmployeeOrientationAgreementPdfAction, generateAcknowledgmentFormPdfAction, generateConfidentialityAgreementPdfAction, generateTrainingAcknowledgementPdfAction } from '@/lib/candidate-hiring-forms.actions';
 import { useToast } from '@/hooks/use-toast';
 import { HelpDialog } from '@/components/HelpDialog';
 import { cn } from '@/lib/utils';
@@ -33,7 +33,7 @@ const onboardingForms = [
   { name: "EMPLOYEE ORIENTATION AGREEMENT", href: "/candidate-hiring-forms/employee-orientation-agreement", completionKey: 'orientationAgreementSignature', pdfAction: 'employeeOrientationAgreement' },
   { name: "FirstLightHomeCare_AcknowledgmentForm", href: "/candidate-hiring-forms/acknowledgment-form", completionKey: 'acknowledgmentSignature', pdfAction: 'acknowledgmentForm' },
   { name: "FirstLightHomeCare_CONFIDENTIALITY_AGREEMENT", href: "/candidate-hiring-forms/confidentiality-agreement", completionKey: 'confidentialityAgreementEmployeeSignature', pdfAction: 'confidentialityAgreement' },
-  { name: "FirstLightHomeCareTrainingAcknowledgement", href: "#", completionKey: '', pdfAction: '' },
+  { name: "FirstLightHomeCareTrainingAcknowledgement", href: "/candidate-hiring-forms/training-acknowledgement", completionKey: 'trainingAcknowledgementSignature', pdfAction: 'trainingAcknowledgement' },
   { name: "MASTER-FLHC Offer Letter revised-2-16-26", href: "#", completionKey: '', pdfAction: '' },
 ];
 
@@ -102,6 +102,8 @@ function CandidateHiringFormsContent() {
             result = await generateAcknowledgmentFormPdfAction(candidateId);
         } else if (formAction === 'confidentialityAgreement') {
             result = await generateConfidentialityAgreementPdfAction(candidateId);
+        } else if (formAction === 'trainingAcknowledgement') {
+            result = await generateTrainingAcknowledgementPdfAction(candidateId);
         } else {
              toast({ title: 'PDF Generation Not Implemented', description: `No PDF generator exists for this form yet.`, variant: 'destructive' });
              return;
@@ -237,3 +239,5 @@ export default function CandidateHiringFormsPage() {
         </Suspense>
     )
 }
+
+    

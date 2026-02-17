@@ -6,8 +6,8 @@ import { revalidatePath } from 'next/cache';
 import { serverDb } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
-import { hcs501Schema, emergencyContactSchema, lic508Object, soc341aSchema, referenceVerificationSchema, arbitrationAgreementSchema, drugAlcoholPolicySchema, hcaJobDescriptionSchema, clientAbandonmentSchema, employeeOrientationAgreementSchema, acknowledgmentFormSchema, confidentialityAgreementSchema } from './types';
-import { generateHcs501Pdf, generateEmergencyContactPdf, generateReferenceVerificationPdf, generateLic508Pdf, generateSoc341aPdf, generateHcaJobDescriptionPdf, generateDrugAlcoholPolicyPdf, generateClientAbandonmentPdf, generateArbitrationAgreementPdf, generateEmployeeOrientationAgreementPdf, generateAcknowledgmentFormPdf, generateConfidentialityAgreementPdf } from './pdf.actions';
+import { hcs501Schema, emergencyContactSchema, lic508Object, soc341aSchema, referenceVerificationSchema, arbitrationAgreementSchema, drugAlcoholPolicySchema, hcaJobDescriptionSchema, clientAbandonmentSchema, employeeOrientationAgreementSchema, acknowledgmentFormSchema, confidentialityAgreementSchema, trainingAcknowledgementSchema } from './types';
+import { generateHcs501Pdf, generateEmergencyContactPdf, generateReferenceVerificationPdf, generateLic508Pdf, generateSoc341aPdf, generateHcaJobDescriptionPdf, generateDrugAlcoholPolicyPdf, generateClientAbandonmentPdf, generateArbitrationAgreementPdf, generateEmployeeOrientationAgreementPdf, generateAcknowledgmentFormPdf, generateConfidentialityAgreementPdf, generateTrainingAcknowledgementPdf } from './pdf.actions';
 
 // Helper to convert date strings to Firestore Timestamps if they are valid dates
 function convertDatesToTimestamps(data: any): any {
@@ -304,6 +304,29 @@ export async function saveConfidentialityAgreementData(profileId: string, data: 
   }
 }
 
+export async function saveTrainingAcknowledgementData(profileId: string, data: any) {
+  const validatedFields = trainingAcknowledgementSchema.safeParse(data);
+
+  if (!validatedFields.success) {
+    console.error("Training Acknowledgement Save Validation Error:", validatedFields.error.flatten());
+    return { error: 'Invalid data provided.' };
+  }
+
+  try {
+    const dataToSave = convertDatesToTimestamps(validatedFields.data);
+    
+    await serverDb.collection('caregiver_profiles').doc(profileId).set(dataToSave, { merge: true });
+    
+    revalidatePath(`/candidate-hiring-forms/training-acknowledgement?id=${profileId}`);
+    revalidatePath('/candidate-hiring-forms');
+    
+    return { success: true, message: 'Training Acknowledgement form saved successfully.' };
+  } catch (error: any) {
+    console.error("Error saving Training Acknowledgement form data:", error);
+    return { error: 'Failed to save form data.' };
+  }
+}
+
 
 export async function generateHcs501PdfAction(candidateId: string) {
     if (!candidateId) {
@@ -427,6 +450,7 @@ export async function generateDrugAlcoholPolicyPdfAction(candidateId: string) {
         
         return result;
     } catch (error: any) {
+        console.error("Error generating PDF:", error);
         return { error: `Failed to generate PDF: ${error.message}` };
     }
 }
@@ -445,6 +469,7 @@ export async function generateClientAbandonmentPdfAction(candidateId: string) {
         
         return result;
     } catch (error: any) {
+        console.error("Error generating PDF:", error);
         return { error: `Failed to generate PDF: ${error.message}` };
     }
 }
@@ -463,6 +488,7 @@ export async function generateArbitrationAgreementPdfAction(candidateId: string)
         
         return result;
     } catch (error: any) {
+        console.error("Error generating PDF:", error);
         return { error: `Failed to generate PDF: ${error.message}` };
     }
 }
@@ -481,6 +507,7 @@ export async function generateEmployeeOrientationAgreementPdfAction(candidateId:
         
         return result;
     } catch (error: any) {
+        console.error("Error generating PDF:", error);
         return { error: `Failed to generate PDF: ${error.message}` };
     }
 }
@@ -499,6 +526,7 @@ export async function generateAcknowledgmentFormPdfAction(candidateId: string) {
         
         return result;
     } catch (error: any) {
+        console.error("Error generating Acknowledgment Form PDF:", error);
         return { error: `Failed to generate PDF: ${error.message}` };
     }
 }
@@ -517,10 +545,32 @@ export async function generateConfidentialityAgreementPdfAction(candidateId: str
         
         return result;
     } catch (error: any) {
+        console.error("Error generating Confidentiality Agreement PDF:", error);
         return { error: `Failed to generate PDF: ${error.message}` };
     }
 }
 
+export async function generateTrainingAcknowledgementPdfAction(candidateId: string) {
+    if (!candidateId) {
+        return { error: 'Candidate ID is required.' };
+    }
+    try {
+        const docSnap = await serverDb.collection('caregiver_profiles').doc(candidateId).get();
+        if (!docSnap.exists) {
+            return { error: 'Candidate profile not found.' };
+        }
+        const formData = docSnap.data();
+        const result = await generateTrainingAcknowledgementPdf(formData);
+        
+        return result;
+    } catch (error: any) {
+        console.error("Error generating Training Acknowledgement PDF:", error);
+        return { error: `Failed to generate PDF: ${error.message}` };
+    }
+}
     
 
 
+
+
+    

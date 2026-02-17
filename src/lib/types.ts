@@ -1,4 +1,5 @@
 
+
 import { z } from "zod";
 
 export const initialContactSchema = z.object({
@@ -317,6 +318,13 @@ export const confidentialityAgreementSchema = z.object({
 });
 export type ConfidentialityAgreementFormData = z.infer<typeof confidentialityAgreementSchema>;
 
+export const trainingAcknowledgementSchema = z.object({
+  trainingAcknowledgementEmployeeName: z.string().min(1, "Printed name is required."),
+  trainingAcknowledgementSignature: z.string().min(1, "Signature is required."),
+  trainingAcknowledgementSignatureDate: z.date({required_error: "Signature date is required."}),
+});
+export type TrainingAcknowledgementFormData = z.infer<typeof trainingAcknowledgementSchema>;
+
 
 export const caregiverFormSchema = generalInfoSchema
   .merge(experienceSchema)
@@ -334,7 +342,8 @@ export const caregiverFormSchema = generalInfoSchema
   .merge(clientAbandonmentSchema.partial())
   .merge(employeeOrientationAgreementSchema.partial())
   .merge(acknowledgmentFormSchema.partial())
-  .merge(confidentialityAgreementSchema.partial());
+  .merge(confidentialityAgreementSchema.partial())
+  .merge(trainingAcknowledgementSchema.partial());
 
 
 export type CaregiverProfile = z.infer<typeof caregiverFormSchema> & { id: string, canWorkWithCovid?: boolean, cna?: boolean, covidVaccine?: boolean };
@@ -985,3 +994,5 @@ export const CaregiverForRecommendationSchema = z.object({
 export type CaregiverForRecommendation = z.infer<typeof CaregiverForRecommendationSchema>;
 
   
+
+    
