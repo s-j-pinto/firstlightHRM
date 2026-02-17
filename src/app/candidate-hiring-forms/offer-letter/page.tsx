@@ -185,17 +185,9 @@ export default function OfferLetterPage() {
                         <p>Dear {existingData?.fullName},</p>
                         
                         <div className="space-y-4 text-sm text-muted-foreground">
-                            <p>We are pleased to confirm our offer to join FirstLight Home Care as Home Care Aide.</p>
-                            <p>The information below confirms the details of our previous discussions.</p>
-                            <p>Your caregiver rate will be as follows:</p>
-                            <p>Training/Orientation - ${rateTrngOrient}.</p>
-                            <p>Your client visit hourly rate will be determined by the services provided to a client and may be adjusted
-periodically based upon your performance at FirstLight HomeCare. The minimum client care pay rate is
-${minPayRate}.</p>
-                            <p>Based on the client care duties, you may be eligible for a higher pay rate. You will be
-eligible to receive overtime pay if you work more than 9 hours a day and/or 45 hours a week.</p>
-                            <p>We have Workers’ Compensation available for our employees in case of injury at work. The carrier is
-Benchmark. Sick days are accumulated up to a maximum of 40 hours a year.</p>
+                            <p>We are pleased to confirm our offer to join FirstLight Home Care as Home Care Aide. The information below confirms the details of our previous discussions.</p>
+                            <p>Your caregiver rate will be as follows:<br/>Training/Orientation - ${rateTrngOrient}.<br/>Your client visit hourly rate will be determined by the services provided to a client and may be adjusted periodically based upon your performance at FirstLight HomeCare. The minimum client care pay rate is ${minPayRate}. Based on the client care duties, you may be eligible for a higher pay rate. You will be eligible to receive overtime pay if you work more than 9 hours a day and/or 45 hours a week.</p>
+                            <p>We have Workers’ Compensation available for our employees in case of injury at work. The carrier is Benchmark. Sick days are accumulated up to a maximum of 40 hours a year.</p>
                             <div className="flex items-center flex-wrap">
                                 <p className="mr-2">We look forward to you joining us on</p>
                                 <FormField
@@ -222,19 +214,10 @@ Benchmark. Sick days are accumulated up to a maximum of 40 hours a year.</p>
                                 />
                             </div>
                             <p>On your first day with FirstLight Home Care, you will need to demonstrate your eligibility to work in the United States by providing the documentation required by INS form I-9. A summary of these requirements is enclosed.</p>
-                            <p>This offer of employment is contingent upon FirstLight’s satisfactory verification of the qualifications,
-documents submitted, and background [HCA registration and live scan fingerprints] presented in your
-resume and application, in the course of our conversations, and in correspondence with FirstLight. The
-offer is also contingent upon demonstrating a drug-free lifestyle through the completion of a company
-drug screening and the satisfactory completion of a background check, which includes a review of
-criminal history.</p>
-                            <p>While we hope you accept this offer, nothing in this letter should be interpreted as creating an
-employment contract for a definite period of time. All employees of FirstLight are employed at-will, and
-either you or FirstLight may terminate your employment at any time, for any reason, with or without cause.</p>
-                            <p>I am excited about the background and potential you bring to FirstLight and hope you view this offer as an
-indication of our confidence in your long-term success with us.</p>
-                            <p>Please acknowledge your acceptance of this offer by returning a signed copy of this letter and the
-Confidentiality agreement by fax or email.</p>
+                            <p>This offer of employment is contingent upon FirstLight’s satisfactory verification of the qualifications, documents submitted, and background [HCA registration and live scan fingerprints] presented in your resume and application, in the course of our conversations, and in correspondence with FirstLight. The offer is also contingent upon demonstrating a drug-free lifestyle through the completion of a company drug screening and the satisfactory completion of a background check, which includes a review of criminal history.</p>
+                            <p>While we hope you accept this offer, nothing in this letter should be interpreted as creating an employment contract for a definite period of time. All employees of FirstLight are employed at-will, and either you or FirstLight may terminate your employment at any time, for any reason, with or without cause.</p>
+                            <p>I am excited about the background and potential you bring to FirstLight and hope you view this offer as an indication of our confidence in your long-term success with us.</p>
+                            <p>Please acknowledge your acceptance of this offer by returning a signed copy of this letter and the Confidentiality agreement by fax or email.</p>
                         </div>
                         
                         <div className="space-y-2">
@@ -285,4 +268,3 @@ Confidentiality agreement by fax or email.</p>
         </Card>
     );
 }
-

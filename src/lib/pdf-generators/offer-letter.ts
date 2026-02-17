@@ -1,3 +1,4 @@
+
 'use server';
 
 import { PDFDocument, rgb, StandardFonts, PageSizes } from 'pdf-lib';
@@ -38,12 +39,8 @@ export async function generateOfferLetterPdf(formData: any): Promise<{ pdfData?:
         y -= 20;
 
         const paragraphs = [
-            `We are pleased to confirm our offer to join FirstLight Home Care as Home Care Aide.`,
-            `The information below confirms the details of our previous discussions.`,
-            `Your caregiver rate will be as follows:`,
-            `Training/Orientation- $${formData.caregiver_rate_trng_orient || '16.00'}.`,
-            `Your client visit hourly rate will be determined by the services provided to a client and may be adjusted periodically based upon your performance at FirstLight HomeCare. The minimum client care pay rate is $${formData.minimum_client_care_pay_rate || '18.00'}.`,
-            `Based on the client care duties, you may be eligible for a higher pay rate. You will be eligible to receive overtime pay if you work more than 9 hours a day and/or 45 hours a week.`,
+            `We are pleased to confirm our offer to join FirstLight Home Care as Home Care Aide.\nThe information below confirms the details of our previous discussions.`,
+            `Your caregiver rate will be as follows:\nTraining/Orientation- $${formData.caregiver_rate_trng_orient || '16.00'}.\nYour client visit hourly rate will be determined by the services provided to a client and may be adjusted periodically based upon your performance at FirstLight HomeCare. The minimum client care pay rate is $${formData.minimum_client_care_pay_rate || '18.00'}. Based on the client care duties, you may be eligible for a higher pay rate. You will be eligible to receive overtime pay if you work more than 9 hours a day and/or 45 hours a week.`,
             `We have Workers’ Compensation available for our employees in case of injury at work. The carrier is Benchmark. Sick days are accumulated up to a maximum of 40 hours a year.`,
             `We look forward to you joining us on ${hireDate}. On your first day with FirstLight Home Care, you will need to demonstrate your eligibility to work in the United States by providing the documentation required by INS form I-9. A summary of these requirements is enclosed.`,
             `This offer of employment is contingent upon FirstLight’s satisfactory verification of the qualifications, documents submitted, and background [HCA registration and live scan fingerprints] presented in your resume and application, in the course of our conversations, and in correspondence with FirstLight. The offer is also contingent upon demonstrating a drug-free lifestyle through the completion of a company drug screening and the satisfactory completion of a background check, which includes a review of criminal history.`,
