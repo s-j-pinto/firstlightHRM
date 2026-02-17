@@ -5,7 +5,7 @@ import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { format, isDate } from 'date-fns';
 import { drawText, drawSignature, drawWrappedText } from './utils';
 
-export async function generateReferenceVerificationPdf(formData: any): Promise<{ pdfData?: string; error?: string }> {
+export async function generateReferenceVerification1Pdf(formData: any): Promise<{ pdfData?: string; error?: string }> {
     try {
         const pdfDoc = await PDFDocument.create();
         const page = pdfDoc.addPage();
@@ -32,7 +32,7 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
         });
         y -= (logoDims.height + 5); 
 
-        const title = "FIRSTLIGHT HOMECARE REFERENCE VERIFICATION FORM";
+        const title = "FIRSTLIGHT HOMECARE REFERENCE VERIFICATION FORM (1)";
         const titleWidth = boldFont.widthOfTextAtSize(title, 12);
         page.drawRectangle({
             x: (width / 2) - (titleWidth / 2) - 5,
@@ -63,13 +63,13 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
         y = drawWrappedText(page, permissionText, font, smallFontSize, leftMargin, y, contentWidth, 10);
         y -= 25;
         
-        if (formData.applicantSignature) {
-            await drawSignature(page, formData.applicantSignature, leftMargin + 80, y - 5, 120, 24, pdfDoc);
+        if (formData.applicantSignature1) {
+            await drawSignature(page, formData.applicantSignature1, leftMargin + 80, y - 5, 120, 24, pdfDoc);
         }
         page.drawLine({ start: { x: leftMargin, y: y - 10 }, end: { x: leftMargin + 300, y: y - 10 }, thickness: 0.5 });
         drawText(page, "Signature", {x: leftMargin, y: y-18, font, size: smallerFontSize});
 
-        const sigDate = (formData.applicantSignatureDate && (formData.applicantSignatureDate.toDate || isDate(formData.applicantSignatureDate))) ? format(formData.applicantSignatureDate.toDate ? formData.applicantSignatureDate.toDate() : formData.applicantSignatureDate, "MM/dd/yyyy") : '';
+        const sigDate = (formData.applicantSignatureDate1 && (formData.applicantSignatureDate1.toDate || isDate(formData.applicantSignatureDate1))) ? format(formData.applicantSignatureDate1.toDate ? formData.applicantSignatureDate1.toDate() : formData.applicantSignatureDate1, "MM/dd/yyyy") : '';
         if (sigDate) {
              drawText(page, `Date: ${sigDate}`, {x: leftMargin + 350, y, font, size: smallFontSize});
         }
@@ -87,10 +87,10 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
             y -= 12;
         };
 
-        drawTwoColumnField("Company", formData.company, "Supervisor’s Name and Title", formData.supervisorName);
-        drawTwoColumnField("Email and/or Fax #", formData.emailOrFax, "Phone", formData.phone);
-        drawTwoColumnField("Dates of Employment", formData.employmentDates, "Position", formData.position);
-        drawTwoColumnField("Starting Salary:", formData.startingSalary, "Ending Salary:", formData.endingSalary);
+        drawTwoColumnField("Company", formData.company1, "Supervisor’s Name and Title", formData.supervisorName1);
+        drawTwoColumnField("Email and/or Fax #", formData.emailOrFax1, "Phone", formData.phone1);
+        drawTwoColumnField("Dates of Employment", formData.employmentDates1, "Position", formData.position1);
+        drawTwoColumnField("Starting Salary:", formData.startingSalary1, "Ending Salary:", formData.endingSalary1);
         
         const employerBoxEndY = y;
         page.drawRectangle({x: leftMargin - 5, y: employerBoxEndY, width: contentWidth+10, height: employerBoxStartY - employerBoxEndY + 5, borderColor: rgb(0,0,0), borderWidth: 1});
@@ -109,12 +109,12 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
             y -= 8;
         };
 
-        drawRating("TEAMWORK: The degree to which you are willing to work harmoniously with others; the extent to which you conform to the policies of management.", formData.teamworkRating);
-        drawRating("DEPENDABILITY: The extent to which you can be depended upon to be available for work and do it properly; the degree to which you are reliable and trustworthy; the extent to which you are able to work scheduled days and times, as well as your willingness to work additional hours if needed.", formData.dependabilityRating);
-        drawRating("INITIATIVE: The degree to which you act independently in new situations; the extent to which you see what needs to be done and do it without being told; the degree to which you do your best to be an outstanding employee.", formData.initiativeRating);
-        drawRating("QUALITY: The degree to which your work is free from errors and mistakes; the extent to which your work is accurate; the quality of your work in general.", formData.qualityRating);
-        drawRating("CUSTOMER SERVICE: The degree to which you relate to the customer’s needs and/or concerns.", formData.customerServiceRating);
-        drawRating("OVERALL PERFORMANCE: The degree to which your previous employer was satisfied with your efforts and achievements, as well as your eligibility for rehire.", formData.overallPerformanceRating);
+        drawRating("TEAMWORK: The degree to which you are willing to work harmoniously with others; the extent to which you conform to the policies of management.", formData.teamworkRating1);
+        drawRating("DEPENDABILITY: The extent to which you can be depended upon to be available for work and do it properly; the degree to which you are reliable and trustworthy; the extent to which you are able to work scheduled days and times, as well as your willingness to work additional hours if needed.", formData.dependabilityRating1);
+        drawRating("INITIATIVE: The degree to which you act independently in new situations; the extent to which you see what needs to be done and do it without being told; the degree to which you do your best to be an outstanding employee.", formData.initiativeRating1);
+        drawRating("QUALITY: The degree to which your work is free from errors and mistakes; the extent to which your work is accurate; the quality of your work in general.", formData.qualityRating1);
+        drawRating("CUSTOMER SERVICE: The degree to which you relate to the customer’s needs and/or concerns.", formData.customerServiceRating1);
+        drawRating("OVERALL PERFORMANCE: The degree to which your previous employer was satisfied with your efforts and achievements, as well as your eligibility for rehire.", formData.overallPerformanceRating1);
         
         const referenceBoxEndY = y;
         page.drawRectangle({x: leftMargin - 5, y: referenceBoxEndY, width: contentWidth+10, height: referenceBoxStartY - referenceBoxEndY + 5, borderColor: rgb(0,0,0), borderWidth: 1});
@@ -124,15 +124,15 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
             drawText(page, `${label}: ${value || ''}`, {x: xPos, y: yPos, font, size: smallFontSize});
         };
 
-        drawYesNo("Did you resign from this position?", formData.resignationStatus, y, leftMargin);
-        drawYesNo("Discharged?", formData.dischargedStatus, y, leftMargin + 250);
-        drawYesNo("Laid-Off?", formData.laidOffStatus, y, leftMargin + 400);
+        drawYesNo("Did you resign from this position?", formData.resignationStatus1, y, leftMargin);
+        drawYesNo("Discharged?", formData.dischargedStatus1, y, leftMargin + 250);
+        drawYesNo("Laid-Off?", formData.laidOffStatus1, y, leftMargin + 400);
         y -= 12;
-        drawYesNo("Are you eligible for rehire?", formData.eligibleForRehire, y, leftMargin);
-        drawYesNo("Were you ever disciplined on the job?", formData.wasDisciplined, y, leftMargin + 250);
+        drawYesNo("Are you eligible for rehire?", formData.eligibleForRehire1, y, leftMargin);
+        drawYesNo("Were you ever disciplined on the job?", formData.wasDisciplined1, y, leftMargin + 250);
         y -= 12;
-        if (formData.wasDisciplined === 'Yes' && formData.disciplineExplanation) {
-            y = drawWrappedText(page, `Explain: ${formData.disciplineExplanation}`, font, smallFontSize, leftMargin, y, contentWidth, 8);
+        if (formData.wasDisciplined1 === 'Yes' && formData.disciplineExplanation1) {
+            y = drawWrappedText(page, `Explain: ${formData.disciplineExplanation1}`, font, smallFontSize, leftMargin, y, contentWidth, 8);
         }
         y-=12;
         drawWrappedText(page, "Someone from FirstLight HomeCare will be following up with your shortly regarding the employment reference verification check. If you have any questions, please call: 909-321-4466", font, smallFontSize, leftMargin, y, contentWidth, 8);
@@ -141,7 +141,7 @@ export async function generateReferenceVerificationPdf(formData: any): Promise<{
         return { pdfData: Buffer.from(pdfBytes).toString('base64') };
 
     } catch (error: any) {
-        console.error("Error generating Reference Verification PDF:", error);
+        console.error("Error generating Reference Verification 1 PDF:", error);
         return { error: `Failed to generate PDF: ${error.message}` };
     }
 }

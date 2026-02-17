@@ -17,8 +17,8 @@ import { Save, X, Loader2, RefreshCw, CalendarIcon, User, Edit2 } from "lucide-r
 import { Separator } from "@/components/ui/separator";
 import { useUser, useDoc, useMemoFirebase, firestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { referenceVerificationSchema, referenceVerificationObject, type ReferenceVerificationFormData, type CaregiverProfile } from "@/lib/types";
-import { saveReferenceVerificationData } from "@/lib/candidate-hiring-forms.actions";
+import { referenceVerification1Schema, referenceVerification1Object, type ReferenceVerification1FormData, type CaregiverProfile } from "@/lib/types";
+import { saveReferenceVerification1Data } from "@/lib/candidate-hiring-forms.actions";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,29 +28,29 @@ import { cn } from "@/lib/utils";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-const defaultFormValues: ReferenceVerificationFormData = {
-    applicantSignature: '',
-    applicantSignatureDate: undefined,
-    company: '',
-    supervisorName: '',
-    emailOrFax: '',
-    phone: '',
-    employmentDates: '',
-    position: '',
-    startingSalary: '',
-    endingSalary: '',
-    teamworkRating: undefined,
-    dependabilityRating: undefined,
-    initiativeRating: undefined,
-    qualityRating: undefined,
-    customerServiceRating: undefined,
-    overallPerformanceRating: undefined,
-    resignationStatus: undefined,
-    dischargedStatus: undefined,
-    laidOffStatus: undefined,
-    eligibleForRehire: undefined,
-    wasDisciplined: undefined,
-    disciplineExplanation: '',
+const defaultFormValues: ReferenceVerification1FormData = {
+    applicantSignature1: '',
+    applicantSignatureDate1: undefined,
+    company1: '',
+    supervisorName1: '',
+    emailOrFax1: '',
+    phone1: '',
+    employmentDates1: '',
+    position1: '',
+    startingSalary1: '',
+    endingSalary1: '',
+    teamworkRating1: undefined,
+    dependabilityRating1: undefined,
+    initiativeRating1: undefined,
+    qualityRating1: undefined,
+    customerServiceRating1: undefined,
+    overallPerformanceRating1: undefined,
+    resignationStatus1: undefined,
+    dischargedStatus1: undefined,
+    laidOffStatus1: undefined,
+    eligibleForRehire1: undefined,
+    wasDisciplined1: undefined,
+    disciplineExplanation1: '',
 };
 
 const ratingOptions = ['Unsatisfactory', 'Below Average', 'Average', 'Above Average', 'Outstanding'];
@@ -135,7 +135,7 @@ const SignaturePadModal = ({
     );
 };
 
-const RatingScale = ({ name, control, label }: { name: keyof ReferenceVerificationFormData, control: any, label: string }) => (
+const RatingScale = ({ name, control, label }: { name: keyof ReferenceVerification1FormData, control: any, label: string }) => (
     <FormField
       control={control}
       name={name}
@@ -159,13 +159,13 @@ const RatingScale = ({ name, control, label }: { name: keyof ReferenceVerificati
   );
 
 
-export default function ReferenceVerificationPage() {
+export default function ReferenceVerification1Page() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { user, isUserLoading } = useUser();
     const { toast } = useToast();
     const [isSaving, startSavingTransition] = useTransition();
-    const [activeSignature, setActiveSignature] = useState<{ fieldName: keyof ReferenceVerificationFormData; title: string; } | null>(null);
+    const [activeSignature, setActiveSignature] = useState<{ fieldName: keyof ReferenceVerification1FormData; title: string; } | null>(null);
 
     const isPrintMode = searchParams.get('print') === 'true';
     const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "care-rc@firstlighthomecare.com";
@@ -182,12 +182,12 @@ export default function ReferenceVerificationPage() {
     );
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
 
-    const form = useForm<ReferenceVerificationFormData>({
-      resolver: zodResolver(referenceVerificationSchema),
+    const form = useForm<ReferenceVerification1FormData>({
+      resolver: zodResolver(referenceVerification1Schema),
       defaultValues: defaultFormValues,
     });
     
-    const SignatureField = ({ fieldName, title }: { fieldName: keyof ReferenceVerificationFormData; title: string; }) => {
+    const SignatureField = ({ fieldName, title }: { fieldName: keyof ReferenceVerification1FormData; title: string; }) => {
         const signatureData = form.watch(fieldName);
         const disabled = isPrintMode;
         
@@ -225,9 +225,9 @@ export default function ReferenceVerificationPage() {
 
     useEffect(() => {
         if (existingData) {
-            const formData: Partial<ReferenceVerificationFormData> = {};
-            const formSchemaKeys = Object.keys(referenceVerificationObject.shape) as Array<keyof ReferenceVerificationFormData>;
-            const dateFields = ['applicantSignatureDate'];
+            const formData: Partial<ReferenceVerification1FormData> = {};
+            const formSchemaKeys = Object.keys(referenceVerification1Object.shape) as Array<keyof ReferenceVerification1FormData>;
+            const dateFields = ['applicantSignatureDate1'];
 
             formSchemaKeys.forEach(key => {
                  if (Object.prototype.hasOwnProperty.call(existingData, key)) {
@@ -250,14 +250,14 @@ export default function ReferenceVerificationPage() {
         }
     };
 
-    const onSubmit = (data: ReferenceVerificationFormData) => {
+    const onSubmit = (data: ReferenceVerification1FormData) => {
       const saveId = profileIdToLoad;
       if (!saveId) {
         toast({ title: 'Error', description: 'Cannot save form without a valid user or candidate ID.', variant: 'destructive'});
         return;
       }
       startSavingTransition(async () => {
-        const result = await saveReferenceVerificationData(saveId, data);
+        const result = await saveReferenceVerification1Data(saveId, data);
         if (result.error) {
           toast({ title: "Save Failed", description: result.error, variant: 'destructive'});
         } else {
@@ -293,7 +293,7 @@ export default function ReferenceVerificationPage() {
         <Card className={cn("max-w-4xl mx-auto", isPrintMode && "border-none shadow-none")}>
             <CardHeader className="text-center">
                 <CardTitle className="text-2xl tracking-wide font-headline">
-                    FIRSTLIGHT HOMECARE REFERENCE VERIFICATION FORM
+                    FIRSTLIGHT HOMECARE REFERENCE VERIFICATION FORM (1)
                 </CardTitle>
                  <CardDescription className="pt-2">
                     PLEASE PRINT
@@ -311,8 +311,8 @@ export default function ReferenceVerificationPage() {
                     </FormItem>
                     <p className="text-sm text-muted-foreground">I hereby give FirstLight HomeCare permission to obtain the employment references necessary to make a hiring decision and hold all persons giving references free from any and all liability resulting from this process. I waive any provision impeding the release of this information and agree to provide any information necessary for the release of this information beyond that provided on the employment application and this reference verification form.</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-                        <SignatureField fieldName="applicantSignature" title="Signature" />
-                        <FormField control={form.control} name="applicantSignatureDate" render={({ field }) => (
+                        <SignatureField fieldName="applicantSignature1" title="Signature" />
+                        <FormField control={form.control} name="applicantSignatureDate1" render={({ field }) => (
                         <FormItem className="flex flex-col"><FormLabel className="bg-yellow-200/70 p-1 rounded inline-block">Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
                        )} />
                     </div>
@@ -323,14 +323,14 @@ export default function ReferenceVerificationPage() {
                 <div className="space-y-4">
                     <h3 className="text-lg font-semibold">FORMER EMPLOYER CONTACT INFORMATION</h3>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField control={form.control} name="company" render={({ field }) => ( <FormItem><FormLabel className="bg-yellow-200/70 p-1 rounded inline-block">Company</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="supervisorName" render={({ field }) => ( <FormItem><FormLabel className="bg-yellow-200/70 p-1 rounded inline-block">Supervisor’s Name and Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="emailOrFax" render={({ field }) => ( <FormItem><FormLabel className="bg-yellow-200/70 p-1 rounded inline-block">Email and/or Fax #</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem><FormLabel className="bg-yellow-200/70 p-1 rounded inline-block">Phone</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                         <FormField control={form.control} name="employmentDates" render={({ field }) => ( <FormItem><FormLabel className="bg-yellow-200/70 p-1 rounded inline-block">Dates of Employment</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="position" render={({ field }) => ( <FormItem><FormLabel className="bg-yellow-200/70 p-1 rounded inline-block">Position</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                         <FormField control={form.control} name="startingSalary" render={({ field }) => ( <FormItem><FormLabel className="bg-yellow-200/70 p-1 rounded inline-block">Starting Salary:</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="endingSalary" render={({ field }) => ( <FormItem><FormLabel className="bg-yellow-200/70 p-1 rounded inline-block">Ending Salary:</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="company1" render={({ field }) => ( <FormItem><FormLabel className="bg-yellow-200/70 p-1 rounded inline-block">Company</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="supervisorName1" render={({ field }) => ( <FormItem><FormLabel className="bg-yellow-200/70 p-1 rounded inline-block">Supervisor’s Name and Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="emailOrFax1" render={({ field }) => ( <FormItem><FormLabel className="bg-yellow-200/70 p-1 rounded inline-block">Email and/or Fax #</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="phone1" render={({ field }) => ( <FormItem><FormLabel className="bg-yellow-200/70 p-1 rounded inline-block">Phone</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                         <FormField control={form.control} name="employmentDates1" render={({ field }) => ( <FormItem><FormLabel className="bg-yellow-200/70 p-1 rounded inline-block">Dates of Employment</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="position1" render={({ field }) => ( <FormItem><FormLabel className="bg-yellow-200/70 p-1 rounded inline-block">Position</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                         <FormField control={form.control} name="startingSalary1" render={({ field }) => ( <FormItem><FormLabel className="bg-yellow-200/70 p-1 rounded inline-block">Starting Salary:</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="endingSalary1" render={({ field }) => ( <FormItem><FormLabel className="bg-yellow-200/70 p-1 rounded inline-block">Ending Salary:</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                     </div>
                 </div>
 
@@ -339,26 +339,26 @@ export default function ReferenceVerificationPage() {
                 <div className="space-y-6">
                     <h3 className="text-lg font-semibold">REFERENCE INFORMATION</h3>
                     <p className="text-sm text-muted-foreground"><span className="bg-yellow-200/70 p-1 rounded">Please rate yourself in the following categories as you feel your former supervisor will rate you:</span></p>
-                    <RatingScale name="teamworkRating" control={form.control} label="TEAMWORK: The degree to which you are willing to work harmoniously with others; the extent to which you conform to the policies of management." />
-                    <RatingScale name="dependabilityRating" control={form.control} label="DEPENDABILITY: The extent to which you can be depended upon to be available for work and do it properly; the degree to which you are reliable and trustworthy; the extent to which you are able to work scheduled days and times, as well as your willingness to work additional hours if needed." />
-                    <RatingScale name="initiativeRating" control={form.control} label="INITIATIVE: The degree to which you act independently in new situations; the extent to which you see what needs to be done and do it without being told; the degree to which you do your best to be an outstanding employee." />
-                    <RatingScale name="qualityRating" control={form.control} label="QUALITY: The degree to which your work is free from errors and mistakes; the extent to which your work is accurate; the quality of your work in general." />
-                    <RatingScale name="customerServiceRating" control={form.control} label="CUSTOMER SERVICE: The degree to which you relate to the customer’s needs and/or concerns." />
-                    <RatingScale name="overallPerformanceRating" control={form.control} label="OVERALL PERFORMANCE: The degree to which your previous employer was satisfied with your efforts and achievements, as well as your eligibility for rehire." />
+                    <RatingScale name="teamworkRating1" control={form.control} label="TEAMWORK: The degree to which you are willing to work harmoniously with others; the extent to which you conform to the policies of management." />
+                    <RatingScale name="dependabilityRating1" control={form.control} label="DEPENDABILITY: The extent to which you can be depended upon to be available for work and do it properly; the degree to which you are reliable and trustworthy; the extent to which you are able to work scheduled days and times, as well as your willingness to work additional hours if needed." />
+                    <RatingScale name="initiativeRating1" control={form.control} label="INITIATIVE: The degree to which you act independently in new situations; the extent to which you see what needs to be done and do it without being told; the degree to which you do your best to be an outstanding employee." />
+                    <RatingScale name="qualityRating1" control={form.control} label="QUALITY: The degree to which your work is free from errors and mistakes; the extent to which your work is accurate; the quality of your work in general." />
+                    <RatingScale name="customerServiceRating1" control={form.control} label="CUSTOMER SERVICE: The degree to which you relate to the customer’s needs and/or concerns." />
+                    <RatingScale name="overallPerformanceRating1" control={form.control} label="OVERALL PERFORMANCE: The degree to which your previous employer was satisfied with your efforts and achievements, as well as your eligibility for rehire." />
                 </div>
 
                 <Separator />
 
                 <div className="space-y-4">
                     <div className="flex flex-wrap gap-8">
-                        <FormField control={form.control} name="resignationStatus" render={({field}) => (<FormItem><FormLabel className="bg-yellow-200/70 p-1 rounded inline-block">Did you resign from this position?</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4 pt-2"><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes" /></FormControl><FormLabel className="font-normal">Yes</FormLabel></FormItem><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No" /></FormControl><FormLabel className="font-normal">No</FormLabel></FormItem></RadioGroup></FormControl><FormMessage/></FormItem>)} />
-                        <FormField control={form.control} name="dischargedStatus" render={({field}) => (<FormItem><FormLabel className="bg-yellow-200/70 p-1 rounded inline-block">Discharged?</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4 pt-2"><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes" /></FormControl><FormLabel className="font-normal">Yes</FormLabel></FormItem><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No" /></FormControl><FormLabel className="font-normal">No</FormLabel></FormItem></RadioGroup></FormControl><FormMessage/></FormItem>)} />
-                        <FormField control={form.control} name="laidOffStatus" render={({field}) => (<FormItem><FormLabel className="bg-yellow-200/70 p-1 rounded inline-block">Laid-Off?</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4 pt-2"><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes" /></FormControl><FormLabel className="font-normal">Yes</FormLabel></FormItem><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No" /></FormControl><FormLabel className="font-normal">No</FormLabel></FormItem></RadioGroup></FormControl><FormMessage/></FormItem>)} />
+                        <FormField control={form.control} name="resignationStatus1" render={({field}) => (<FormItem><FormLabel className="bg-yellow-200/70 p-1 rounded inline-block">Did you resign from this position?</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4 pt-2"><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes" /></FormControl><FormLabel className="font-normal">Yes</FormLabel></FormItem><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No" /></FormControl><FormLabel className="font-normal">No</FormLabel></FormItem></RadioGroup></FormControl><FormMessage/></FormItem>)} />
+                        <FormField control={form.control} name="dischargedStatus1" render={({field}) => (<FormItem><FormLabel className="bg-yellow-200/70 p-1 rounded inline-block">Discharged?</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4 pt-2"><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes" /></FormControl><FormLabel className="font-normal">Yes</FormLabel></FormItem><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No" /></FormControl><FormLabel className="font-normal">No</FormLabel></FormItem></RadioGroup></FormControl><FormMessage/></FormItem>)} />
+                        <FormField control={form.control} name="laidOffStatus1" render={({field}) => (<FormItem><FormLabel className="bg-yellow-200/70 p-1 rounded inline-block">Laid-Off?</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4 pt-2"><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes" /></FormControl><FormLabel className="font-normal">Yes</FormLabel></FormItem><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No" /></FormControl><FormLabel className="font-normal">No</FormLabel></FormItem></RadioGroup></FormControl><FormMessage/></FormItem>)} />
                     </div>
-                     <FormField control={form.control} name="eligibleForRehire" render={({field}) => (<FormItem><FormLabel className="bg-yellow-200/70 p-1 rounded inline-block">Are you eligible for rehire?</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4 pt-2"><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes" /></FormControl><FormLabel className="font-normal">Yes</FormLabel></FormItem><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No" /></FormControl><FormLabel className="font-normal">No</FormLabel></FormItem></RadioGroup></FormControl><FormMessage/></FormItem>)} />
-                    <FormField control={form.control} name="wasDisciplined" render={({field}) => (<FormItem><FormLabel className="bg-yellow-200/70 p-1 rounded inline-block">Were you ever disciplined on the job?</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4 pt-2"><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No" /></FormControl><FormLabel className="font-normal">No</FormLabel></FormItem><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes" /></FormControl><FormLabel className="font-normal">Yes</FormLabel></FormItem></RadioGroup></FormControl><FormMessage/></FormItem>)} />
-                    {form.watch('wasDisciplined') === 'Yes' && (
-                        <FormField control={form.control} name="disciplineExplanation" render={({ field }) => ( <FormItem><FormLabel>Explain:</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl><FormMessage /></FormItem> )} />
+                     <FormField control={form.control} name="eligibleForRehire1" render={({field}) => (<FormItem><FormLabel className="bg-yellow-200/70 p-1 rounded inline-block">Are you eligible for rehire?</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4 pt-2"><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes" /></FormControl><FormLabel className="font-normal">Yes</FormLabel></FormItem><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No" /></FormControl><FormLabel className="font-normal">No</FormLabel></FormItem></RadioGroup></FormControl><FormMessage/></FormItem>)} />
+                    <FormField control={form.control} name="wasDisciplined1" render={({field}) => (<FormItem><FormLabel className="bg-yellow-200/70 p-1 rounded inline-block">Were you ever disciplined on the job?</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4 pt-2"><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="No" /></FormControl><FormLabel className="font-normal">No</FormLabel></FormItem><FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Yes" /></FormControl><FormLabel className="font-normal">Yes</FormLabel></FormItem></RadioGroup></FormControl><FormMessage/></FormItem>)} />
+                    {form.watch('wasDisciplined1') === 'Yes' && (
+                        <FormField control={form.control} name="disciplineExplanation1" render={({ field }) => ( <FormItem><FormLabel>Explain:</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl><FormMessage /></FormItem> )} />
                     )}
                 </div>
 

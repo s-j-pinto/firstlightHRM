@@ -4,7 +4,8 @@
 
 export { generateHcs501Pdf } from './pdf-generators/hcs501';
 export { generateEmergencyContactPdf } from './pdf-generators/emergency-contact';
-export { generateReferenceVerificationPdf } from './pdf-generators/reference-verification';
+export { generateReferenceVerification1Pdf } from './pdf-generators/reference-verification-1';
+export { generateReferenceVerification2Pdf } from './pdf-generators/reference-verification-2';
 export { generateLic508Pdf } from './pdf-generators/lic508';
 export { generateSoc341aPdf } from './pdf-generators/soc341a';
 export { generateHcaJobDescriptionPdf } from './pdf-generators/hca-job-description';
