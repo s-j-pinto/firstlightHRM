@@ -1,5 +1,4 @@
 
-
 import { z } from "zod";
 
 export const initialContactSchema = z.object({
@@ -224,41 +223,77 @@ export const soc341aSchema = z.object({
 });
 export type Soc341aFormData = z.infer<typeof soc341aSchema>;
 
-export const referenceVerificationObject = z.object({
-  applicantSignature: z.string().min(1, "Signature is required."),
-  applicantSignatureDate: z.date({ required_error: "Signature date is required." }),
-  company: z.string().min(1, "Company name is required."),
-  supervisorName: z.string().min(1, "Supervisor's name is required."),
-  emailOrFax: z.string().min(1, "Email or Fax is required."),
-  phone: z.string().min(1, "Phone number is required."),
-  employmentDates: z.string().min(1, "Dates of employment are required."),
-  position: z.string().min(1, "Position is required."),
-  startingSalary: z.string().min(1, "Starting salary is required."),
-  endingSalary: z.string().min(1, "Ending salary is required."),
-  teamworkRating: z.string({ required_error: "Rating is required." }),
-  dependabilityRating: z.string({ required_error: "Rating is required." }),
-  initiativeRating: z.string({ required_error: "Rating is required." }),
-  qualityRating: z.string({ required_error: "Rating is required." }),
-  customerServiceRating: z.string({ required_error: "Rating is required." }),
-  overallPerformanceRating: z.string({ required_error: "Rating is required." }),
-  resignationStatus: z.enum(["Yes", "No"], { required_error: "This selection is required." }),
-  dischargedStatus: z.enum(["Yes", "No"], { required_error: "This selection is required." }),
-  laidOffStatus: z.enum(["Yes", "No"], { required_error: "This selection is required." }),
-  eligibleForRehire: z.enum(["Yes", "No"], { required_error: "This selection is required." }),
-  wasDisciplined: z.enum(["Yes", "No"], { required_error: "This selection is required." }),
-  disciplineExplanation: z.string().optional(),
+export const referenceVerification1Object = z.object({
+  applicantSignature1: z.string().min(1, "Signature is required."),
+  applicantSignatureDate1: z.date({ required_error: "Signature date is required." }),
+  company1: z.string().min(1, "Company name is required."),
+  supervisorName1: z.string().min(1, "Supervisor's name is required."),
+  emailOrFax1: z.string().min(1, "Email or Fax is required."),
+  phone1: z.string().min(1, "Phone number is required."),
+  employmentDates1: z.string().min(1, "Dates of employment are required."),
+  position1: z.string().min(1, "Position is required."),
+  startingSalary1: z.string().min(1, "Starting salary is required."),
+  endingSalary1: z.string().min(1, "Ending salary is required."),
+  teamworkRating1: z.string({ required_error: "Rating is required." }),
+  dependabilityRating1: z.string({ required_error: "Rating is required." }),
+  initiativeRating1: z.string({ required_error: "Rating is required." }),
+  qualityRating1: z.string({ required_error: "Rating is required." }),
+  customerServiceRating1: z.string({ required_error: "Rating is required." }),
+  overallPerformanceRating1: z.string({ required_error: "Rating is required." }),
+  resignationStatus1: z.enum(["Yes", "No"], { required_error: "This selection is required." }),
+  dischargedStatus1: z.enum(["Yes", "No"], { required_error: "This selection is required." }),
+  laidOffStatus1: z.enum(["Yes", "No"], { required_error: "This selection is required." }),
+  eligibleForRehire1: z.enum(["Yes", "No"], { required_error: "This selection is required." }),
+  wasDisciplined1: z.enum(["Yes", "No"], { required_error: "This selection is required." }),
+  disciplineExplanation1: z.string().optional(),
 });
 
-export const referenceVerificationSchema = referenceVerificationObject.refine(data => {
-    if (data.wasDisciplined === 'Yes') {
-        return !!data.disciplineExplanation && data.disciplineExplanation.length > 0;
+export const referenceVerification1Schema = referenceVerification1Object.refine(data => {
+    if (data.wasDisciplined1 === 'Yes') {
+        return !!data.disciplineExplanation1 && data.disciplineExplanation1.length > 0;
     }
     return true;
 }, {
     message: "Explanation is required if you were disciplined.",
-    path: ['disciplineExplanation'],
+    path: ['disciplineExplanation1'],
 });
-export type ReferenceVerificationFormData = z.infer<typeof referenceVerificationSchema>;
+export type ReferenceVerification1FormData = z.infer<typeof referenceVerification1Schema>;
+
+export const referenceVerification2Object = z.object({
+  applicantSignature2: z.string().min(1, "Signature is required."),
+  applicantSignatureDate2: z.date({ required_error: "Signature date is required." }),
+  company2: z.string().min(1, "Company name is required."),
+  supervisorName2: z.string().min(1, "Supervisor's name is required."),
+  emailOrFax2: z.string().min(1, "Email or Fax is required."),
+  phone2: z.string().min(1, "Phone number is required."),
+  employmentDates2: z.string().min(1, "Dates of employment are required."),
+  position2: z.string().min(1, "Position is required."),
+  startingSalary2: z.string().min(1, "Starting salary is required."),
+  endingSalary2: z.string().min(1, "Ending salary is required."),
+  teamworkRating2: z.string({ required_error: "Rating is required." }),
+  dependabilityRating2: z.string({ required_error: "Rating is required." }),
+  initiativeRating2: z.string({ required_error: "Rating is required." }),
+  qualityRating2: z.string({ required_error: "Rating is required." }),
+  customerServiceRating2: z.string({ required_error: "Rating is required." }),
+  overallPerformanceRating2: z.string({ required_error: "Rating is required." }),
+  resignationStatus2: z.enum(["Yes", "No"], { required_error: "This selection is required." }),
+  dischargedStatus2: z.enum(["Yes", "No"], { required_error: "This selection is required." }),
+  laidOffStatus2: z.enum(["Yes", "No"], { required_error: "This selection is required." }),
+  eligibleForRehire2: z.enum(["Yes", "No"], { required_error: "This selection is required." }),
+  wasDisciplined2: z.enum(["Yes", "No"], { required_error: "This selection is required." }),
+  disciplineExplanation2: z.string().optional(),
+});
+
+export const referenceVerification2Schema = referenceVerification2Object.refine(data => {
+    if (data.wasDisciplined2 === 'Yes') {
+        return !!data.disciplineExplanation2 && data.disciplineExplanation2.length > 0;
+    }
+    return true;
+}, {
+    message: "Explanation is required if you were disciplined.",
+    path: ['disciplineExplanation2'],
+});
+export type ReferenceVerification2FormData = z.infer<typeof referenceVerification2Schema>;
 
 export const arbitrationAgreementSchema = z.object({
   applicantPrintedName: z.string().min(1, "Printed name is required."),
@@ -344,7 +379,8 @@ export const caregiverFormSchema = generalInfoSchema
   .merge(emergencyContactSchema.partial())
   .merge(lic508Object.partial())
   .merge(soc341aSchema.partial())
-  .merge(referenceVerificationObject.partial())
+  .merge(referenceVerification1Object.partial())
+  .merge(referenceVerification2Object.partial())
   .merge(arbitrationAgreementSchema.partial())
   .merge(drugAlcoholPolicySchema.partial())
   .merge(hcaJobDescriptionSchema.partial())
@@ -1006,3 +1042,5 @@ export type CaregiverForRecommendation = z.infer<typeof CaregiverForRecommendati
   
 
     
+
+  
