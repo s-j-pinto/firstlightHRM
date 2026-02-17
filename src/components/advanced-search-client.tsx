@@ -97,12 +97,12 @@ const dayAbbreviations: { [key: string]: string } = {
 };
 
 const hiringFormCompletionKeys: (keyof CaregiverProfile)[] = [
-  'hcs501EmployeeSignature',
-  'emergencyContact1_name',
-  'applicantSignature1',
-  'applicantSignature2',
-  'lic508Signature',
-  'soc341aSignature'
+    'hcs501EmployeeSignature',
+    'emergencyContact1_name',
+    'applicantSignature1',
+    'applicantSignature2',
+    'lic508Signature',
+    'soc341aSignature'
 ];
 
 const ConciseAvailability = ({ availability }: { availability: CaregiverProfile['availability'] | undefined }) => {
@@ -463,6 +463,23 @@ export default function AdvancedSearchClient() {
         router.push(`/admin/manage-interviews?search=${encodeURIComponent(candidateName)}`);
     };
 
+    const StatusBadge = ({ status }: { status: CandidateStatus }) => {
+        const defaultRejectedStatuses = [
+            'Phone Screen Failed', 'Final Interview Failed', 'Rejected at Orientation', 'No Show', 'Process Terminated',
+            'Insufficient docs provided.','Pay rate too low','Invalid References provided.','Not a good fit (attitude, soft skills etc)','CG ghosted appointment', 'Candidate withdrew application'
+        ];
+
+        const colorClass = 
+            status === 'Hired' ? 'bg-green-500' :
+            status === 'Orientation Scheduled' ? 'bg-cyan-500' :
+            status === 'Final Interview Passed' ? 'bg-blue-500' :
+            status === 'Final Interview Pending' ? 'bg-yellow-500' :
+            defaultRejectedStatuses.includes(status) ? 'bg-red-500' :
+            'bg-gray-500';
+
+        return <Badge className={cn("text-white whitespace-normal text-center", colorClass)}>{status}</Badge>;
+    };
+
     return (
         <div className="space-y-6">
             <Form {...control}>
@@ -658,7 +675,13 @@ export default function AdvancedSearchClient() {
                                                     {candidate.createdAt ? format((candidate.createdAt as any).toDate(), 'PP') : 'N/A'}
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Badge variant={candidate.status === 'Hired' ? 'default' : 'secondary'}>{candidate.status}</Badge>
+                                                    {candidate.status === 'Hired' ? (
+                                                        <Link href={`/candidate-hiring-forms?candidateId=${candidate.id}`}>
+                                                            <StatusBadge status={candidate.status} />
+                                                        </Link>
+                                                    ) : (
+                                                        <StatusBadge status={candidate.status} />
+                                                    )}
                                                 </TableCell>
                                                 <TableCell>
                                                     <ConciseAvailability availability={candidate.availability} />
@@ -722,3 +745,4 @@ export default function AdvancedSearchClient() {
         </div>
     );
 }
+
