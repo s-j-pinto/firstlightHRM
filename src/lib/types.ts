@@ -163,8 +163,6 @@ export const hcs501Object = z.object({
   tbResults: z.string().min(1, "Results of last TB test are required."),
   additionalTbDates: z.string().optional(),
   alternateNames: z.string().optional(),
-  validLicense: z.enum(["yes", "no"], {required_error: "This selection is required."}),
-  driversLicenseNumber: z.string().optional(),
   titleOfPosition: z.string().min(1, "Title of Position is required."),
   hcs501Notes: z.string().optional(),
   hcs501EmployeeSignature: z.string().min(1, "Signature is required."),
@@ -311,6 +309,15 @@ export const acknowledgmentFormSchema = z.object({
 });
 export type AcknowledgmentFormData = z.infer<typeof acknowledgmentFormSchema>;
 
+export const confidentialityAgreementSchema = z.object({
+  confidentialityAgreementEmployeeSignature: z.string().min(1, "Signature is required."),
+  confidentialityAgreementEmployeeSignatureDate: z.date({required_error: "Signature date is required."}),
+  confidentialityAgreementRepSignature: z.string().optional(),
+  confidentialityAgreementRepDate: z.date().optional(),
+});
+export type ConfidentialityAgreementFormData = z.infer<typeof confidentialityAgreementSchema>;
+
+
 export const caregiverFormSchema = generalInfoSchema
   .merge(experienceSchema)
   .merge(certificationsSchema)
@@ -326,7 +333,8 @@ export const caregiverFormSchema = generalInfoSchema
   .merge(hcaJobDescriptionSchema.partial())
   .merge(clientAbandonmentSchema.partial())
   .merge(employeeOrientationAgreementSchema.partial())
-  .merge(acknowledgmentFormSchema.partial());
+  .merge(acknowledgmentFormSchema.partial())
+  .merge(confidentialityAgreementSchema.partial());
 
 
 export type CaregiverProfile = z.infer<typeof caregiverFormSchema> & { id: string, canWorkWithCovid?: boolean, cna?: boolean, covidVaccine?: boolean };

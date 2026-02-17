@@ -6,8 +6,8 @@ import { revalidatePath } from 'next/cache';
 import { serverDb } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
-import { hcs501Schema, emergencyContactSchema, lic508Object, soc341aSchema, referenceVerificationSchema, arbitrationAgreementSchema, drugAlcoholPolicySchema, hcaJobDescriptionSchema, clientAbandonmentSchema, employeeOrientationAgreementSchema, acknowledgmentFormSchema } from './types';
-import { generateHcs501Pdf, generateEmergencyContactPdf, generateReferenceVerificationPdf, generateLic508Pdf, generateSoc341aPdf, generateHcaJobDescriptionPdf, generateDrugAlcoholPolicyPdf, generateClientAbandonmentPdf, generateArbitrationAgreementPdf, generateEmployeeOrientationAgreementPdf, generateAcknowledgmentFormPdf } from './pdf.actions';
+import { hcs501Schema, emergencyContactSchema, lic508Object, soc341aSchema, referenceVerificationSchema, arbitrationAgreementSchema, drugAlcoholPolicySchema, hcaJobDescriptionSchema, clientAbandonmentSchema, employeeOrientationAgreementSchema, acknowledgmentFormSchema, confidentialityAgreementSchema } from './types';
+import { generateHcs501Pdf, generateEmergencyContactPdf, generateReferenceVerificationPdf, generateLic508Pdf, generateSoc341aPdf, generateHcaJobDescriptionPdf, generateDrugAlcoholPolicyPdf, generateClientAbandonmentPdf, generateArbitrationAgreementPdf, generateEmployeeOrientationAgreementPdf, generateAcknowledgmentFormPdf, generateConfidentialityAgreementPdf } from './pdf.actions';
 
 // Helper to convert date strings to Firestore Timestamps if they are valid dates
 function convertDatesToTimestamps(data: any): any {
@@ -281,6 +281,29 @@ export async function saveAcknowledgmentFormData(profileId: string, data: any) {
   }
 }
 
+export async function saveConfidentialityAgreementData(profileId: string, data: any) {
+  const validatedFields = confidentialityAgreementSchema.safeParse(data);
+
+  if (!validatedFields.success) {
+    console.error("Confidentiality Agreement Save Validation Error:", validatedFields.error.flatten());
+    return { error: 'Invalid data provided.' };
+  }
+
+  try {
+    const dataToSave = convertDatesToTimestamps(validatedFields.data);
+    
+    await serverDb.collection('caregiver_profiles').doc(profileId).set(dataToSave, { merge: true });
+    
+    revalidatePath(`/candidate-hiring-forms/confidentiality-agreement?id=${profileId}`);
+    revalidatePath('/candidate-hiring-forms');
+    
+    return { success: true, message: 'Confidentiality Agreement saved successfully.' };
+  } catch (error: any) {
+    console.error("Error saving Confidentiality Agreement data:", error);
+    return { error: 'Failed to save form data.' };
+  }
+}
+
 
 export async function generateHcs501PdfAction(candidateId: string) {
     if (!candidateId) {
@@ -480,5 +503,24 @@ export async function generateAcknowledgmentFormPdfAction(candidateId: string) {
     }
 }
 
+export async function generateConfidentialityAgreementPdfAction(candidateId: string) {
+    if (!candidateId) {
+        return { error: 'Candidate ID is required.' };
+    }
+    try {
+        const docSnap = await serverDb.collection('caregiver_profiles').doc(candidateId).get();
+        if (!docSnap.exists) {
+            return { error: 'Candidate profile not found.' };
+        }
+        const formData = docSnap.data();
+        const result = await generateConfidentialityAgreementPdf(formData);
+        
+        return result;
+    } catch (error: any) {
+        return { error: `Failed to generate PDF: ${error.message}` };
+    }
+}
+
     
+
 
