@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRef, useEffect, useTransition, useState } from "react";
@@ -172,8 +173,7 @@ export default function OfferLetterPage() {
 
     const rateTrngOrient = settingsData?.caregiver_rate_trng_orient || '16.00';
     const minPayRate = settingsData?.minimum_client_care_pay_rate || '18.00';
-    const hireDate = form.getValues('hireDate');
-
+    
     return (
         <Card className="max-w-4xl mx-auto">
             <CardHeader>
@@ -182,32 +182,6 @@ export default function OfferLetterPage() {
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)}>
                     <CardContent className="space-y-6">
-                        <div className="flex justify-between">
-                            <FormField
-                                control={form.control}
-                                name="hireDate"
-                                render={({ field }) => (
-                                    <FormItem className="flex flex-col">
-                                        <FormLabel>Date</FormLabel>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <FormControl>
-                                                    <Button variant="outline" className={cn("w-[240px] pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={!isAnAdmin}>
-                                                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                    </Button>
-                                                </FormControl>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0" align="start">
-                                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={!isAnAdmin} initialFocus />
-                                            </PopoverContent>
-                                        </Popover>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-
                         <p>Dear {existingData?.fullName},</p>
                         
                         <div className="space-y-4 text-sm text-muted-foreground">
@@ -222,9 +196,32 @@ ${minPayRate}.</p>
 eligible to receive overtime pay if you work more than 9 hours a day and/or 45 hours a week.</p>
                             <p>We have Workers’ Compensation available for our employees in case of injury at work. The carrier is
 Benchmark. Sick days are accumulated up to a maximum of 40 hours a year.</p>
-                            <p>We look forward to you joining us on {hireDate ? format(hireDate, "MMMM d, yyyy") : '____________'}. On your first day with FirstLight Home Care,
-you will need to demonstrate your eligibility to work in the United States by providing the documentation
-required by INS form I-9. A summary of these requirements is enclosed.</p>
+                            <div className="flex items-center flex-wrap">
+                                <p className="mr-2">We look forward to you joining us on</p>
+                                <FormField
+                                    control={form.control}
+                                    name="hireDate"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button variant={"outline"} className={cn("w-[240px] pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={!isAnAdmin}>
+                                                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                        </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-auto p-0" align="start">
+                                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={!isAnAdmin} initialFocus />
+                                                </PopoverContent>
+                                            </Popover>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                            <p>On your first day with FirstLight Home Care, you will need to demonstrate your eligibility to work in the United States by providing the documentation required by INS form I-9. A summary of these requirements is enclosed.</p>
                             <p>This offer of employment is contingent upon FirstLight’s satisfactory verification of the qualifications,
 documents submitted, and background [HCA registration and live scan fingerprints] presented in your
 resume and application, in the course of our conversations, and in correspondence with FirstLight. The
@@ -288,3 +285,4 @@ Confidentiality agreement by fax or email.</p>
         </Card>
     );
 }
+
