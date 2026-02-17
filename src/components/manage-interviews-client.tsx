@@ -112,6 +112,19 @@ const onboardingFormCompletionKeys: (keyof CaregiverProfile)[] = [
     'orientationAgreementSignature'
 ];
 
+const safeToDate = (value: any): Date | undefined => {
+    if (!value) return undefined;
+    if (value.toDate && typeof value.toDate === 'function') {
+        return value.toDate();
+    }
+    const d = new Date(value);
+    if (!isNaN(d.getTime())) {
+        return d;
+    }
+    return undefined;
+};
+
+
 export default function ManageInterviewsClient() {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<CaregiverProfile[]>([]);
@@ -322,12 +335,14 @@ export default function ManageInterviewsClient() {
                 orientationDate = existingInterview.orientationDateTime;
             }
         }
+        
+        const offerLetterHireDate = selectedCaregiver.hireDate ? safeToDate(selectedCaregiver.hireDate) : null;
 
         hiringForm.reset({
             caregiverProfileId: selectedCaregiver.id,
             interviewId: existingInterview.id,
             inPersonInterviewDate: interviewDate,
-            hireDate: existingEmployee ? (existingEmployee.hireDate as any).toDate() : orientationDate || new Date(),
+            hireDate: existingEmployee ? (existingEmployee.hireDate as any).toDate() : offerLetterHireDate || orientationDate || new Date(),
             hiringComments: existingEmployee?.hiringComments || '',
             hiringManager: existingEmployee?.hiringManager || 'Lolita Pinto',
             teletrackPin: existingEmployee?.teletrackPin || '',
@@ -1578,4 +1593,5 @@ function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: strin
     
 
     
+
 
