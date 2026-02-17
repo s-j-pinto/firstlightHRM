@@ -11,7 +11,23 @@ import { useUser, useDoc, useMemoFirebase, firestore, useCollection } from '@/fi
 import { doc, query, where, collection, limit } from 'firebase/firestore';
 import type { CaregiverProfile, Interview } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { generateHcs501PdfAction, generateEmergencyContactPdfAction, generateReferenceVerificationPdfAction, generateLic508PdfAction, generateSoc341aPdfAction, generateHcaJobDescriptionPdfAction, generateDrugAlcoholPolicyPdfAction, generateClientAbandonmentPdfAction, generateArbitrationAgreementPdfAction, generateEmployeeOrientationAgreementPdfAction, generateAcknowledgmentFormPdfAction, generateConfidentialityAgreementPdfAction, generateTrainingAcknowledgementPdfAction, generateOfferLetterPdfAction } from '@/lib/candidate-hiring-forms.actions';
+import { 
+    generateHcs501PdfAction, 
+    generateEmergencyContactPdfAction, 
+    generateLic508PdfAction, 
+    generateSoc341aPdfAction, 
+    generateHcaJobDescriptionPdfAction, 
+    generateDrugAlcoholPolicyPdfAction, 
+    generateClientAbandonmentPdfAction, 
+    generateArbitrationAgreementPdfAction, 
+    generateEmployeeOrientationAgreementPdfAction, 
+    generateAcknowledgmentFormPdfAction, 
+    generateConfidentialityAgreementPdfAction, 
+    generateTrainingAcknowledgementPdfAction, 
+    generateOfferLetterPdfAction,
+    generateReferenceVerification1PdfAction,
+    generateReferenceVerification2PdfAction
+} from '@/lib/candidate-hiring-forms.actions';
 import { useToast } from '@/hooks/use-toast';
 import { HelpDialog } from '@/components/HelpDialog';
 import { cn } from '@/lib/utils';
@@ -20,7 +36,8 @@ import { Badge } from '@/components/ui/badge';
 const hiringForms = [
   { name: "HCS 501 - Personnel Record 2019", href: "/candidate-hiring-forms/hcs501", completionKey: 'hcs501EmployeeSignature', pdfAction: 'hcs501' },
   { name: "Caregiver Emergency Contact Numbers", href: "/candidate-hiring-forms/emergency-contact", completionKey: 'emergencyContact1_name', pdfAction: 'emergencyContact' },
-  { name: "Reference Verification - CG", href: "/candidate-hiring-forms/reference-verification", completionKey: 'applicantSignature', pdfAction: 'referenceVerification' },
+  { name: "Reference Verification 1", href: "/candidate-hiring-forms/reference-verification-1", completionKey: 'applicantSignature1', pdfAction: 'referenceVerification1' },
+  { name: "Reference Verification 2", href: "/candidate-hiring-forms/reference-verification-2", completionKey: 'applicantSignature2', pdfAction: 'referenceVerification2' },
   { name: "LIC 508 - Criminal Record Statement", href: "/candidate-hiring-forms/lic508", completionKey: 'lic508Signature', pdfAction: 'lic508' },
   { name: "SOC 341A - Elder Abuse Reporting Form", href: "/candidate-hiring-forms/soc341a", completionKey: 'soc341aSignature', pdfAction: 'soc341a' },
 ];
@@ -82,8 +99,10 @@ function CandidateHiringFormsContent() {
             result = await generateHcs501PdfAction(candidateId);
         } else if (formAction === 'emergencyContact') {
             result = await generateEmergencyContactPdfAction(candidateId);
-        } else if (formAction === 'referenceVerification') {
-            result = await generateReferenceVerificationPdfAction(candidateId);
+        } else if (formAction === 'referenceVerification1') {
+            result = await generateReferenceVerification1PdfAction(candidateId);
+        } else if (formAction === 'referenceVerification2') {
+            result = await generateReferenceVerification2PdfAction(candidateId);
         } else if (formAction === 'lic508') {
             result = await generateLic508PdfAction(candidateId);
         } else if (formAction === 'soc341a') {
@@ -241,5 +260,3 @@ export default function CandidateHiringFormsPage() {
         </Suspense>
     )
 }
-
-    

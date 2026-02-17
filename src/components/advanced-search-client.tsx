@@ -99,7 +99,8 @@ const dayAbbreviations: { [key: string]: string } = {
 const hiringFormCompletionKeys: (keyof CaregiverProfile)[] = [
   'hcs501EmployeeSignature',
   'emergencyContact1_name',
-  'applicantSignature',
+  'applicantSignature1',
+  'applicantSignature2',
   'lic508Signature',
   'soc341aSignature'
 ];
@@ -721,4 +722,3 @@ export default function AdvancedSearchClient() {
         </div>
     );
 }
-
