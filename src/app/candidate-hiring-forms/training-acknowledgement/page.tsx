@@ -23,6 +23,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
 
@@ -101,6 +102,18 @@ const SignaturePadModal = ({
         </Dialog>
     );
 };
+
+const trainingItems = [
+    "Personal Care",
+    "HIPAA",
+    "Infection Control",
+    "Elder Abuse and Neglect",
+    "Emergency Procedures",
+    "FirstLight Home Care policies",
+    "Body mechanics",
+    "Sexual Harassment",
+    "Mandatory reporting"
+];
 
 export default function TrainingAcknowledgementPage() {
     const router = useRouter();
@@ -246,17 +259,19 @@ export default function TrainingAcknowledgementPage() {
                 <div className="space-y-4 text-sm text-muted-foreground">
                    <p>I acknowledge that I have received the following training on online or video/PowerPoint format.</p>
                    <p>I acknowledge that training is paid only on completion of ALL the training that is assigned to me and completed in a timely manner.</p>
-                   <ul className="list-disc list-inside pl-4 pt-4 space-y-2">
-                    <li>Personal Care</li>
-                    <li>HIPAA</li>
-                    <li>Infection Control</li>
-                    <li>Elder Abuse and Neglect</li>
-                    <li>Emergency Procedures</li>
-                    <li>FirstLight Home Care policies</li>
-                    <li>Body mechanics</li>
-                    <li>Sexual Harassment</li>
-                    <li>Mandatory reporting</li>
-                   </ul>
+                   <div className="space-y-3 pt-4 pl-4">
+                        {trainingItems.map((item) => (
+                            <div key={item} className="flex items-center space-x-3">
+                                <Checkbox id={item} checked={true} disabled={true} />
+                                <label
+                                    htmlFor={item}
+                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                >
+                                    {item}
+                                </label>
+                            </div>
+                        ))}
+                    </div>
                 </div>
 
                 <div className="space-y-6 pt-6">
@@ -302,5 +317,3 @@ export default function TrainingAcknowledgementPage() {
         </Card>
     );
 }
-
-    
