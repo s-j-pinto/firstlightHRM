@@ -169,9 +169,9 @@ function CandidateHiringFormsContent() {
             <div className="flex items-center gap-2">
                 {isAnAdmin && (
                   <Button asChild variant="outline">
-                    <Link href="/admin/advanced-search">
+                    <Link href="/admin">
                       <ArrowLeft className="mr-2" />
-                      Back to Admin Dashboard
+                      Back to Candidates Search
                     </Link>
                   </Button>
                 )}
