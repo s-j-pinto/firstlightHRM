@@ -26,6 +26,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Checkbox } from "@/components/ui/checkbox";
 
 const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
+const extraordinaryPeopleLogoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/ExtraordinaryPeoplelogo.png?alt=media&token=43373a12-f6b5-4460-94a2-7bb8a5ff71b6";
 
 
 const defaultFormValues: TrainingAcknowledgementFormData = {
@@ -307,10 +308,19 @@ export default function TrainingAcknowledgementPage() {
                     Save Form
                     </Button>
                 </div>
-                 <p className="text-xs text-muted-foreground pt-8 text-center">
-                    9650 Business Center Dr. Suite 132, Rancho Cucmaonga, CA 91730<br />
-                    Phone: 909-321-4466 Fax: 909-694-2474
-                </p>
+                 <div className="w-full flex items-end justify-between pt-8 mt-8 border-t">
+                    <Image 
+                        src={extraordinaryPeopleLogoUrl}
+                        alt="Extraordinary People, Exceptional Care"
+                        width={120}
+                        height={40}
+                        className="object-contain"
+                    />
+                    <p className="text-xs text-muted-foreground text-center">
+                        9650 Business Center Dr. Suite 132, Rancho Cucmaonga, CA 91730<br />
+                        Phone: 909-321-4466 Fax: 909-694-2474
+                    </p>
+                </div>
             </CardFooter>
             </form>
             </Form>

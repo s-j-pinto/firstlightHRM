@@ -3,7 +3,7 @@
 
 import { PDFDocument, rgb, StandardFonts, PageSizes } from 'pdf-lib';
 import { format, isDate } from 'date-fns';
-import { drawText, drawSignature, drawWrappedText } from './utils';
+import { drawText, drawSignature, drawWrappedText, drawCheckbox } from './utils';
 
 export async function generateTrainingAcknowledgementPdf(formData: any): Promise<{ pdfData?: string; error?: string }> {
     try {
@@ -17,6 +17,12 @@ export async function generateTrainingAcknowledgementPdf(formData: any): Promise
         const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer());
         const logoImage = await pdfDoc.embedPng(logoImageBytes);
         const logoDims = logoImage.scale(0.3);
+
+        const extraordinaryPeopleLogoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/ExtraordinaryPeoplelogo.png?alt=media&token=43373a12-f6b5-4460-94a2-7bb8a5ff71b6";
+        const extraordinaryPeopleLogoBytes = await fetch(extraordinaryPeopleLogoUrl).then(res => res.arrayBuffer());
+        const extraordinaryPeopleLogoImage = await pdfDoc.embedPng(extraordinaryPeopleLogoBytes);
+        const extraordinaryPeopleLogoDims = extraordinaryPeopleLogoImage.scale(0.15);
+
 
         const leftMargin = 50;
         const contentWidth = width - (leftMargin * 2);
@@ -52,7 +58,10 @@ export async function generateTrainingAcknowledgementPdf(formData: any): Promise
         ];
         
         trainingItems.forEach(item => {
-            y = drawWrappedText(page, `• ${item}`, font, 12, leftMargin + 20, y, contentWidth - 20, 16);
+            const checkboxY = y + 1;
+            drawCheckbox(page, true, leftMargin + 20, checkboxY);
+            drawText(page, item, { font, size: 12, x: leftMargin + 40, y: checkboxY + 2, color: rgb(0, 0, 0) });
+            y -= 20; // Adjust spacing
         });
 
         y -= 60;
@@ -81,6 +90,13 @@ export async function generateTrainingAcknowledgementPdf(formData: any): Promise
         const footerText = "9650 Business Center Dr. Suite 132, Rancho Cucmaonga, CA 91730\nPhone: 909-321-4466 Fax: 909-694-2474";
         const footerWidth = font.widthOfTextAtSize("9650 Business Center Dr. Suite 132, Rancho Cucmaonga, CA 91730", 8);
         drawText(page, footerText, { x: (width / 2) - (footerWidth / 2), y: 40, font, size: 8, lineHeight: 10 });
+        
+        page.drawImage(extraordinaryPeopleLogoImage, {
+            x: leftMargin,
+            y: 40,
+            width: extraordinaryPeopleLogoDims.width,
+            height: extraordinaryPeopleLogoDims.height,
+        });
         
         const pdfBytes = await pdfDoc.save();
         return { pdfData: Buffer.from(pdfBytes).toString('base64') };
