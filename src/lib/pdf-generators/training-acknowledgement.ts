@@ -18,12 +18,6 @@ export async function generateTrainingAcknowledgementPdf(formData: any): Promise
         const logoImage = await pdfDoc.embedPng(logoImageBytes);
         const logoDims = logoImage.scale(0.3);
 
-        const extraordinaryPeopleLogoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/ExtraordinaryPeoplelogo.png?alt=media&token=43373a12-f6b5-4460-94a2-7bb8a5ff71b6";
-        const extraordinaryPeopleLogoBytes = await fetch(extraordinaryPeopleLogoUrl).then(res => res.arrayBuffer());
-        const extraordinaryPeopleLogoImage = await pdfDoc.embedPng(extraordinaryPeopleLogoBytes);
-        const extraordinaryPeopleLogoDims = extraordinaryPeopleLogoImage.scale(0.15);
-
-
         const leftMargin = 50;
         const contentWidth = width - (leftMargin * 2);
         let y = height - 60;
@@ -87,16 +81,25 @@ export async function generateTrainingAcknowledgementPdf(formData: any): Promise
         page.drawLine({ start: { x: leftMargin, y: y - 5 }, end: { x: leftMargin + 300, y: y - 5 }, thickness: 0.5 });
         drawText(page, "Employee Signature", { x: leftMargin, y: y - 15, font, size: 8 });
 
-        const footerText = "9650 Business Center Dr. Suite 132, Rancho Cucmaonga, CA 91730\nPhone: 909-321-4466 Fax: 909-694-2474";
-        const footerWidth = font.widthOfTextAtSize("9650 Business Center Dr. Suite 132, Rancho Cucmaonga, CA 91730", 8);
-        drawText(page, footerText, { x: (width / 2) - (footerWidth / 2), y: 40, font, size: 8, lineHeight: 10 });
-        
+        // Footer Section
+        const footerTextY = 50;
+        const logoFooterY = footerTextY + 30; // Positioned above the footer text
+
+        const extraordinaryPeopleLogoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/ExtraordinaryPeoplelogo.png?alt=media&token=43373a12-f6b5-4460-94a2-7bb8a5ff71b6";
+        const extraordinaryPeopleLogoBytes = await fetch(extraordinaryPeopleLogoUrl).then(res => res.arrayBuffer());
+        const extraordinaryPeopleLogoImage = await pdfDoc.embedPng(extraordinaryPeopleLogoBytes);
+        const extraordinaryPeopleLogoDims = extraordinaryPeopleLogoImage.scale(0.45); // Tripled size from 0.15
+
         page.drawImage(extraordinaryPeopleLogoImage, {
             x: leftMargin,
-            y: 40,
+            y: logoFooterY, 
             width: extraordinaryPeopleLogoDims.width,
             height: extraordinaryPeopleLogoDims.height,
         });
+
+        const footerText = "9650 Business Center Dr. Suite 132, Rancho Cucmaonga, CA 91730\nPhone: 909-321-4466 Fax: 909-694-2474";
+        const footerWidth = font.widthOfTextAtSize("9650 Business Center Dr. Suite 132, Rancho Cucmaonga, CA 91730", 8);
+        drawText(page, footerText, { x: (width / 2) - (footerWidth / 2), y: footerTextY, font, size: 8, lineHeight: 10 });
         
         const pdfBytes = await pdfDoc.save();
         return { pdfData: Buffer.from(pdfBytes).toString('base64') };

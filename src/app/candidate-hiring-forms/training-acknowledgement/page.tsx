@@ -308,14 +308,16 @@ export default function TrainingAcknowledgementPage() {
                     Save Form
                     </Button>
                 </div>
-                 <div className="w-full flex items-end justify-between pt-8 mt-8 border-t">
-                    <Image 
-                        src={extraordinaryPeopleLogoUrl}
-                        alt="Extraordinary People, Exceptional Care"
-                        width={120}
-                        height={40}
-                        className="object-contain"
-                    />
+                 <div className="w-full pt-8 mt-8 border-t">
+                    <div className="mb-4">
+                        <Image 
+                            src={extraordinaryPeopleLogoUrl}
+                            alt="Extraordinary People, Exceptional Care"
+                            width={360}
+                            height={120}
+                            className="object-contain"
+                        />
+                    </div>
                     <p className="text-xs text-muted-foreground text-center">
                         9650 Business Center Dr. Suite 132, Rancho Cucmaonga, CA 91730<br />
                         Phone: 909-321-4466 Fax: 909-694-2474
