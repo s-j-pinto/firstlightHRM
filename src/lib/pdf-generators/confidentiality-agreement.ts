@@ -52,8 +52,8 @@ export async function generateConfidentialityAgreementPdf(formData: any): Promis
             const isListItem = /^\d\./.test(p);
             const indent = isListItem ? 20 : 0;
             
-            y = drawWrappedText(page, p, font, 10, leftMargin + indent, y, contentWidth - indent, 12);
-            y -= 15;
+            y = drawWrappedText(page, p, font, 11, leftMargin + indent, y, contentWidth - indent, 13);
+            y -= 16;
         });
 
         y -= 40;
@@ -63,7 +63,7 @@ export async function generateConfidentialityAgreementPdf(formData: any): Promis
         if (formData.confidentialityAgreementEmployeeSignature) {
             await drawSignature(page, formData.confidentialityAgreementEmployeeSignature, leftMargin, y, 250, 25, pdfDoc);
         }
-        drawText(page, employeeSigDate, {x: leftMargin + 300, y: y+5, font, size: 10});
+        drawText(page, employeeSigDate, {x: leftMargin + 300, y: y+5, font, size: 11});
         page.drawLine({ start: { x: leftMargin, y: y - 5 }, end: { x: leftMargin + 500, y: y - 5 }, thickness: 0.5 });
         drawText(page, "FirstLight HomeCare employee signature                                                                 Date", {x: leftMargin, y: y-15, font, size: 8});
         y-=40;
@@ -72,7 +72,7 @@ export async function generateConfidentialityAgreementPdf(formData: any): Promis
         if (formData.confidentialityAgreementRepSignature) {
             await drawSignature(page, formData.confidentialityAgreementRepSignature, leftMargin, y, 250, 25, pdfDoc);
         }
-        drawText(page, repSigDate, {x: leftMargin + 300, y: y+5, font, size: 10});
+        drawText(page, repSigDate, {x: leftMargin + 300, y: y+5, font, size: 11});
         page.drawLine({ start: { x: leftMargin, y: y - 5 }, end: { x: leftMargin + 500, y: y - 5 }, thickness: 0.5 });
         drawText(page, "FirstLight HomeCare representative signature                                                         Date", {x: leftMargin, y: y-15, font, size: 8});
 
