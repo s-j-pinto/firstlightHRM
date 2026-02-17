@@ -44,13 +44,13 @@ export async function generateAcknowledgmentFormPdf(formData: any): Promise<{ pd
         ];
 
         content.forEach(p => {
-            y = drawWrappedText(page, p, font, 10, leftMargin, y, contentWidth, 12);
-            y -= 15;
+            y = drawWrappedText(page, p, font, 11, leftMargin, y, contentWidth, 13); // Increased font size and line height
+            y -= 16;
         });
 
-        y -= 50;
+        y -= 40;
         
-        drawText(page, formData.acknowledgmentEmployeeName, {x: leftMargin, y, font, size: 12});
+        drawText(page, formData.acknowledgmentEmployeeName, {x: leftMargin, y, font, size: 13}); // Increased font size
         page.drawLine({ start: { x: leftMargin, y: y - 5 }, end: { x: leftMargin + 500, y: y - 5 }, thickness: 0.5 });
         drawText(page, "Employee name (print legibly)", { x: leftMargin, y: y - 15, font, size: 8 });
         y -= 40;
@@ -62,12 +62,27 @@ export async function generateAcknowledgmentFormPdf(formData: any): Promise<{ pd
         drawText(page, "Employee signature", { x: leftMargin, y: y - 15, font, size: 8 });
         
         const sigDate = (formData.acknowledgmentSignatureDate && (formData.acknowledgmentSignatureDate.toDate || isDate(formData.acknowledgmentSignatureDate))) ? format(formData.acknowledgmentSignatureDate.toDate ? formData.acknowledgmentSignatureDate.toDate() : formData.acknowledgmentSignatureDate, "MM/dd/yyyy") : '';
-        if(sigDate) drawText(page, sigDate, {x: leftMargin + 300, y, font, size: 12});
+        if(sigDate) drawText(page, sigDate, {x: leftMargin + 300, y, font, size: 13}); // Increased font size
         page.drawLine({ start: { x: leftMargin + 280, y: y - 5 }, end: { x: leftMargin + 400, y: y - 5 }, thickness: 0.5 });
         drawText(page, "Date", { x: leftMargin + 280, y: y - 15, font, size: 8 });
 
-        const footerText = "9650 Business Center Drive, Suite 132 | Rancho Cucamonga, CA 91730 | Phone 909-321-4466 | Fax http://ranchocucamonga.firstlighthomecare.com | License # 364700059 Fax 909-694-2474";
-        drawText(page, footerText, { x: (width / 2) - (font.widthOfTextAtSize(footerText, 8) / 2), y: 40, font, size: 8 });
+        // Footer
+        const footerY = 55;
+        const footerLine1 = "9650 Business Center Drive, Suite 132 | Rancho Cucamonga, CA 91730 | Phone 909-321-4466";
+        const footerLine2 = "| Fax http://ranchocucamonga.firstlighthomecare.com | License # 364700059 Fax 909-694-2474";
+        
+        drawText(page, footerLine1, { x: (width / 2) - (font.widthOfTextAtSize(footerLine1, 8) / 2), y: footerY, font, size: 8 });
+        drawText(page, footerLine2, { x: (width / 2) - (font.widthOfTextAtSize(footerLine2, 8) / 2), y: footerY - 10, font, size: 8 });
+        
+        // Green band
+        const darkGreen = rgb(0/255, 62/255, 43/255);
+        page.drawRectangle({
+            x: 0,
+            y: 0,
+            width: width,
+            height: 36, // 0.5 inch
+            color: darkGreen,
+        });
 
         const pdfBytes = await pdfDoc.save();
         return { pdfData: Buffer.from(pdfBytes).toString('base64') };
