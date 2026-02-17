@@ -106,17 +106,26 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         drawFieldBox("Area Code/Telephone", formData.phone, leftMargin + 300, y, contentWidth - 300);
         y -= lineSpacing * 1.8;
         
-        drawFieldBox("Address", formData.address, leftMargin, y, contentWidth);
-        y -= lineSpacing * 1.3; 
-
+        // Address and DOB row
+        const addressWidth = contentWidth * 0.7;
+        const dobX = leftMargin + addressWidth + 10;
+        const dobWidth = contentWidth - addressWidth - 10;
+        drawFieldBox("Address", formData.address, leftMargin, y, addressWidth);
         const dobDate = (formData.dob && formData.dob.toDate) ? format(formData.dob.toDate(), "MM/dd/yyyy") : (isDate(formData.dob) ? format(formData.dob, "MM/dd/yyyy") : '');
-        drawFieldBox("Date of Birth", dobDate, leftMargin, y, 200);
-        drawFieldBox("Social Security Number (Voluntary for ID only)", formData.ssn, leftMargin + 220, y, contentWidth-220);
+        drawFieldBox("Date of Birth", dobDate, dobX, y, dobWidth);
         y -= lineSpacing * 1.8;
 
+        drawFieldBox("City", formData.city, leftMargin, y, (contentWidth / 3) - 10);
+        drawFieldBox("State", formData.state, leftMargin + (contentWidth / 3), y, (contentWidth / 3) - 10);
+        drawFieldBox("Zip Code", formData.zip, leftMargin + (contentWidth / 3) * 2, y, (contentWidth / 3));
+        y -= lineSpacing * 1.3; 
+
+        // SSN, TB Date, TB Results row
+        const colWidth = contentWidth / 3;
         const tbDate = (formData.tbDate && formData.tbDate.toDate) ? format(formData.tbDate.toDate(), "MM/dd/yyyy") : (isDate(formData.tbDate) ? format(formData.tbDate, "MM/dd/yyyy") : '');
-        drawFieldBox("Date of TB Test Upon Hire", tbDate, leftMargin, y, 200);
-        drawFieldBox("Results of Last TB Test", formData.tbResults, leftMargin + 220, y, contentWidth - 220);
+        drawFieldBox("Social Security Number (Voluntary for ID only)", formData.ssn, leftMargin, y, colWidth - 10);
+        drawFieldBox("Date of TB Test Upon Hire", tbDate, leftMargin + colWidth, y, colWidth - 10);
+        drawFieldBox("Results of Last TB Test", formData.tbResults, leftMargin + colWidth * 2, y, colWidth);
         y -= lineSpacing * 1.8;
 
         drawFieldBox("Additional TB Test Dates (Please include test results)", formData.additionalTbDates, leftMargin, y, contentWidth);
@@ -127,9 +136,9 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
 
         drawText(page, "Do you possess a valid California driver’s license?", {x: leftMargin, y, font, size: mainFontSize});
         drawCheckbox(page, formData.validLicense === 'yes', leftMargin + 250, y);
-        drawText(page, 'Yes', {x: leftMargin + 265, y, font, size: mainFontSize});
+        drawText(page, 'Yes', {x: leftMargin + 265, y: y+1, font, size: mainFontSize});
         drawCheckbox(page, formData.validLicense === 'no', leftMargin + 300, y);
-        drawText(page, 'No', {x: leftMargin + 315, y, font, size: mainFontSize});
+        drawText(page, 'No', {x: leftMargin + 315, y: y+1, font, size: mainFontSize});
         drawFieldBox("CDL Number:", formData.driversLicenseNumber, leftMargin + 350, y + 12, contentWidth - 350 -10);
         y -= sectionSpacing;
         
