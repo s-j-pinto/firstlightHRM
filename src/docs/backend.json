@@ -249,7 +249,9 @@
         "convictedInCalifornia": { "type": "string", "enum": ["yes", "no"] },
         "convictedOutOfState": { "type": "string", "enum": ["yes", "no"] },
         "livedOutOfStateLast5Years": { "type": "string", "enum": ["yes", "no"] },
-        "outOfStateHistory": { "type": "string" }
+        "outOfStateHistory": { "type": "string" },
+        "offerLetterSignature": { "type": "string", "contentEncoding": "base64" },
+        "offerLetterSignatureDate": { "type": "string", "format": "date-time" }
       },
       "required": [
         "fullName",

@@ -325,6 +325,15 @@ export const trainingAcknowledgementSchema = z.object({
 });
 export type TrainingAcknowledgementFormData = z.infer<typeof trainingAcknowledgementSchema>;
 
+export const offerLetterSchema = z.object({
+  offerLetterSignature: z.string().optional(),
+  offerLetterSignatureDate: z.date().optional(),
+  hireDate: z.date().optional(),
+  caregiver_rate_trng_orient: z.coerce.number().optional(),
+  minimum_client_care_pay_rate: z.coerce.number().optional(),
+});
+export type OfferLetterFormData = z.infer<typeof offerLetterSchema>;
+
 
 export const caregiverFormSchema = generalInfoSchema
   .merge(experienceSchema)
@@ -343,7 +352,8 @@ export const caregiverFormSchema = generalInfoSchema
   .merge(employeeOrientationAgreementSchema.partial())
   .merge(acknowledgmentFormSchema.partial())
   .merge(confidentialityAgreementSchema.partial())
-  .merge(trainingAcknowledgementSchema.partial());
+  .merge(trainingAcknowledgementSchema.partial())
+  .merge(offerLetterSchema.partial());
 
 
 export type CaregiverProfile = z.infer<typeof caregiverFormSchema> & { id: string, canWorkWithCovid?: boolean, cna?: boolean, covidVaccine?: boolean };

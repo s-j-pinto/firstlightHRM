@@ -6,8 +6,8 @@ import { revalidatePath } from 'next/cache';
 import { serverDb } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
-import { hcs501Schema, emergencyContactSchema, lic508Object, soc341aSchema, referenceVerificationSchema, arbitrationAgreementSchema, drugAlcoholPolicySchema, hcaJobDescriptionSchema, clientAbandonmentSchema, employeeOrientationAgreementSchema, acknowledgmentFormSchema, confidentialityAgreementSchema, trainingAcknowledgementSchema } from './types';
-import { generateHcs501Pdf, generateEmergencyContactPdf, generateReferenceVerificationPdf, generateLic508Pdf, generateSoc341aPdf, generateHcaJobDescriptionPdf, generateDrugAlcoholPolicyPdf, generateClientAbandonmentPdf, generateArbitrationAgreementPdf, generateEmployeeOrientationAgreementPdf, generateAcknowledgmentFormPdf, generateConfidentialityAgreementPdf, generateTrainingAcknowledgementPdf } from './pdf.actions';
+import { hcs501Schema, emergencyContactSchema, lic508Object, soc341aSchema, referenceVerificationSchema, arbitrationAgreementSchema, drugAlcoholPolicySchema, hcaJobDescriptionSchema, clientAbandonmentSchema, employeeOrientationAgreementSchema, acknowledgmentFormSchema, confidentialityAgreementSchema, trainingAcknowledgementSchema, offerLetterSchema } from './types';
+import { generateHcs501Pdf, generateEmergencyContactPdf, generateReferenceVerificationPdf, generateLic508Pdf, generateSoc341aPdf, generateHcaJobDescriptionPdf, generateDrugAlcoholPolicyPdf, generateClientAbandonmentPdf, generateArbitrationAgreementPdf, generateEmployeeOrientationAgreementPdf, generateAcknowledgmentFormPdf, generateConfidentialityAgreementPdf, generateTrainingAcknowledgementPdf, generateOfferLetterPdf } from './pdf.actions';
 
 // Helper to convert date strings to Firestore Timestamps if they are valid dates
 function convertDatesToTimestamps(data: any): any {
@@ -327,6 +327,29 @@ export async function saveTrainingAcknowledgementData(profileId: string, data: a
   }
 }
 
+export async function saveOfferLetterData(profileId: string, data: any) {
+  const validatedFields = offerLetterSchema.safeParse(data);
+
+  if (!validatedFields.success) {
+    console.error("Offer Letter Save Validation Error:", validatedFields.error.flatten());
+    return { error: 'Invalid data provided.' };
+  }
+
+  try {
+    const dataToSave = convertDatesToTimestamps(validatedFields.data);
+    
+    await serverDb.collection('caregiver_profiles').doc(profileId).set(dataToSave, { merge: true });
+    
+    revalidatePath(`/candidate-hiring-forms/offer-letter?id=${profileId}`);
+    revalidatePath('/candidate-hiring-forms');
+    
+    return { success: true, message: 'Offer Letter saved successfully.' };
+  } catch (error: any) {
+    console.error("Error saving Offer Letter data:", error);
+    return { error: 'Failed to save form data.' };
+  }
+}
+
 
 export async function generateHcs501PdfAction(candidateId: string) {
     if (!candidateId) {
@@ -565,6 +588,32 @@ export async function generateTrainingAcknowledgementPdfAction(candidateId: stri
         return result;
     } catch (error: any) {
         console.error("Error generating Training Acknowledgement PDF:", error);
+        return { error: `Failed to generate PDF: ${error.message}` };
+    }
+}
+
+export async function generateOfferLetterPdfAction(candidateId: string) {
+    if (!candidateId) {
+        return { error: 'Candidate ID is required.' };
+    }
+    try {
+        const docSnap = await serverDb.collection('caregiver_profiles').doc(candidateId).get();
+        if (!docSnap.exists) {
+            return { error: 'Candidate profile not found.' };
+        }
+        const formData = docSnap.data();
+        
+        // Fetch settings data
+        const settingsSnap = await serverDb.collection('settings').doc('hiring_form_fields').get();
+        const settingsData = settingsSnap.exists ? settingsSnap.data() : {};
+
+        const combinedData = { ...formData, ...settingsData };
+        
+        const result = await generateOfferLetterPdf(combinedData);
+        
+        return result;
+    } catch (error: any) {
+        console.error("Error generating Offer Letter PDF:", error);
         return { error: `Failed to generate PDF: ${error.message}` };
     }
 }

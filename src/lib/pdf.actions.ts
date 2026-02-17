@@ -1,5 +1,3 @@
-
-
 // This file now acts as a barrel, re-exporting the individual PDF generators.
 // This keeps the import paths consistent for the rest of the application
 // while allowing for easier maintenance of the PDF generation logic.
@@ -17,4 +15,5 @@ export { generateEmployeeOrientationAgreementPdf } from './pdf-generators/employ
 export { generateAcknowledgmentFormPdf } from './pdf-generators/acknowledgment-form';
 export { generateConfidentialityAgreementPdf } from './pdf-generators/confidentiality-agreement';
 export { generateTrainingAcknowledgementPdf } from './pdf-generators/training-acknowledgement';
+export { generateOfferLetterPdf } from './pdf-generators/offer-letter';
 export { generateClientIntakePdf } from './pdf-generators/client-intake';
