@@ -69,7 +69,7 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         y -= sectionSpacing + 5;
 
         // Personal Record Pane
-        page.drawRectangle({ x: leftMargin - 10, y: y - 85, width: contentWidth + 20, height: 95, color: lightGray });
+        page.drawRectangle({ x: leftMargin - 10, y: y - 95, width: contentWidth + 20, height: 105, color: lightGray });
 
         const subTitle = '(Form to be kept current at all times) FOR HOME CARE ORGANIZATION (HCO) USE ONLY';
         drawText(page, subTitle, { x: (width / 2) - (font.widthOfTextAtSize(subTitle, subTitleFontSize)/2) , y, font, size: subTitleFontSize });
