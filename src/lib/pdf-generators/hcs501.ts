@@ -110,15 +110,15 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         const addressWidth = contentWidth * 0.7;
         const dobX = leftMargin + addressWidth + 10;
         const dobWidth = contentWidth - addressWidth - 10;
-        drawFieldBox("Address", formData.address, leftMargin, y, addressWidth);
+
+        const fullAddress = [formData.address, formData.city, formData.state, formData.zip]
+          .filter(Boolean)
+          .join(', ');
+
+        drawFieldBox("Address", fullAddress, leftMargin, y, addressWidth);
         const dobDate = (formData.dob && formData.dob.toDate) ? format(formData.dob.toDate(), "MM/dd/yyyy") : (isDate(formData.dob) ? format(formData.dob, "MM/dd/yyyy") : '');
         drawFieldBox("Date of Birth", dobDate, dobX, y, dobWidth);
         y -= lineSpacing * 1.8;
-
-        drawFieldBox("City", formData.city, leftMargin, y, (contentWidth / 3) - 10);
-        drawFieldBox("State", formData.state, leftMargin + (contentWidth / 3), y, (contentWidth / 3) - 10);
-        drawFieldBox("Zip Code", formData.zip, leftMargin + (contentWidth / 3) * 2, y, (contentWidth / 3));
-        y -= lineSpacing * 1.3; 
 
         // SSN, TB Date, TB Results row
         const colWidth = contentWidth / 3;
