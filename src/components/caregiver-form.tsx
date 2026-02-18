@@ -306,7 +306,7 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
                             ))}
                         </div>
                     </div>
-                    <FormField control={form.control} name="otherLanguages" render={({ field }) => ( <FormItem><FormLabel>What languages other than English do you speak?</FormLabel><FormControl><Input placeholder="e.g., Spanish, Tagalog" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="otherLanguages" render={({ field }) => ( <FormItem><FormLabel>What languages other than English do you speak?</FormLabel><FormControl><Input placeholder="e.g., Arabic, Sign Language, Spanish, Hindi, Punjabi, Farsi, Mandarin, Tagalog, English, other" {...field} /></FormControl><FormMessage /></FormItem> )} />
                     <FormField control={form.control} name="otherCertifications" render={({ field }) => ( <FormItem><FormLabel>Other Certifications or Training (optional)</FormLabel><FormControl><Textarea placeholder="List any other relevant certifications not listed above" {...field} /></FormControl><FormMessage /></FormItem> )} />
                 </div>
             )}
