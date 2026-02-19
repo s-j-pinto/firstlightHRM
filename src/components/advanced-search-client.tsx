@@ -82,6 +82,7 @@ type FormData = {
     skills: (typeof skillsAndAttributes)[number]['id'][];
     hiringStatus: CandidateStatus | 'any';
     skillMatching: 'any' | 'all';
+    shiftAvailability: 'any' | 'morning' | 'afternoon' | 'evening' | 'night';
 };
 
 type SortKey = 'fullName' | 'city' | 'createdAt';
@@ -222,7 +223,7 @@ const ProfileDialog = ({ candidate }: { candidate: CaregiverProfile | null }) =>
 
 export default function AdvancedSearchClient() {
     const { handleSubmit, control, reset } = useForm<FormData>({
-        defaultValues: { skills: [], hiringStatus: 'any', skillMatching: 'any' }
+        defaultValues: { skills: [], hiringStatus: 'any', skillMatching: 'any', shiftAvailability: 'any' }
     });
     const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
     const [filteredResults, setFilteredResults] = useState<EnrichedCandidate[]>([]);
@@ -319,6 +320,16 @@ export default function AdvancedSearchClient() {
             if (data.hiringStatus !== 'any') {
                 results = results.filter(candidate => candidate.status === data.hiringStatus);
             }
+            
+            // Filter by shift availability
+            if (data.shiftAvailability && data.shiftAvailability !== 'any') {
+                results = results.filter(candidate => {
+                    if (!candidate.availability) return false;
+                    return Object.values(candidate.availability).some(shifts => 
+                        (shifts as string[]).includes(data.shiftAvailability)
+                    );
+                });
+            }
 
             // Filter by date range
             if (dateRange?.from && dateRange?.to) {
@@ -336,17 +347,17 @@ export default function AdvancedSearchClient() {
     
     useEffect(() => {
         if (candidates.length > 0 && !hasSearched) {
-            onSubmit({ skills: [], hiringStatus: 'any', skillMatching: 'any' });
+            onSubmit({ skills: [], hiringStatus: 'any', skillMatching: 'any', shiftAvailability: 'any' });
         }
     }, [candidates, hasSearched, onSubmit]);
     
     const handleClearFilters = () => {
-        reset({ skills: [], hiringStatus: 'any', skillMatching: 'any' });
+        reset({ skills: [], hiringStatus: 'any', skillMatching: 'any', shiftAvailability: 'any' });
         setDateRange(undefined);
         setFilteredResults([]);
         setHasSearched(false);
         // Rerun the initial search after clearing
-        onSubmit({ skills: [], hiringStatus: 'any', skillMatching: 'any' });
+        onSubmit({ skills: [], hiringStatus: 'any', skillMatching: 'any', shiftAvailability: 'any' });
     }
 
     const sortedResults = useMemo(() => {
@@ -463,7 +474,7 @@ export default function AdvancedSearchClient() {
         router.push(`/admin/manage-interviews?search=${encodeURIComponent(candidateName)}`);
     };
 
-    const StatusBadge = ({ status }: { status: CandidateStatus }) => {
+    const StatusBadge = ({ status, candidateId }: { status: CandidateStatus, candidateId: string }) => {
         const defaultRejectedStatuses = [
             'Phone Screen Failed', 'Final Interview Failed', 'Rejected at Orientation', 'No Show', 'Process Terminated',
             'Insufficient docs provided.','Pay rate too low','Invalid References provided.','Not a good fit (attitude, soft skills etc)','CG ghosted appointment', 'Candidate withdrew application'
@@ -477,7 +488,16 @@ export default function AdvancedSearchClient() {
             defaultRejectedStatuses.includes(status) ? 'bg-red-500' :
             'bg-gray-500';
 
-        return <Badge className={cn("text-white whitespace-normal text-center", colorClass)}>{status}</Badge>;
+        const content = <Badge className={cn("text-white whitespace-normal text-center", colorClass)}>{status}</Badge>;
+
+        if (status === 'Hired') {
+            return (
+                <Link href={`/candidate-hiring-forms?candidateId=${candidateId}`}>
+                    {content}
+                </Link>
+            );
+        }
+        return content;
     };
 
     return (
@@ -489,7 +509,7 @@ export default function AdvancedSearchClient() {
                         <div className="flex flex-wrap items-center justify-between gap-4">
                            <CardTitle className="flex items-center gap-2 flex-shrink-0"><SlidersHorizontal /> Query Builder</CardTitle>
                            <div className="flex flex-wrap items-end gap-4 flex-grow">
-                                <div className="space-y-2 flex-grow min-w-[200px] md:flex-grow-0 md:w-1/3">
+                                <div className="space-y-2 flex-grow min-w-[180px]">
                                     <Label>Hiring Status</Label>
                                     <Controller
                                         name="hiringStatus"
@@ -509,7 +529,7 @@ export default function AdvancedSearchClient() {
                                         )}
                                     />
                                 </div>
-                                <div className="space-y-2 flex-grow min-w-[240px] md:flex-grow-0 md:w-1/3">
+                                <div className="space-y-2 flex-grow min-w-[240px]">
                                     <Label>Application Date Range</Label>
                                     <Popover>
                                         <PopoverTrigger asChild>
@@ -540,6 +560,27 @@ export default function AdvancedSearchClient() {
                                             />
                                         </PopoverContent>
                                     </Popover>
+                                </div>
+                                <div className="space-y-2 flex-grow min-w-[180px]">
+                                    <Label>Shift Availability</Label>
+                                    <Controller
+                                        name="shiftAvailability"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select a shift" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="any">Any Shift</SelectItem>
+                                                    <SelectItem value="morning">Morning</SelectItem>
+                                                    <SelectItem value="afternoon">Afternoon</SelectItem>
+                                                    <SelectItem value="evening">Evening</SelectItem>
+                                                    <SelectItem value="night">Night</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        )}
+                                    />
                                 </div>
                            </div>
                         </div>
@@ -675,13 +716,7 @@ export default function AdvancedSearchClient() {
                                                     {candidate.createdAt ? format((candidate.createdAt as any).toDate(), 'PP') : 'N/A'}
                                                 </TableCell>
                                                 <TableCell>
-                                                    {candidate.status === 'Hired' ? (
-                                                        <Link href={`/candidate-hiring-forms?candidateId=${candidate.id}`}>
-                                                            <StatusBadge status={candidate.status} />
-                                                        </Link>
-                                                    ) : (
-                                                        <StatusBadge status={candidate.status} />
-                                                    )}
+                                                    <StatusBadge status={candidate.status} candidateId={candidate.id} />
                                                 </TableCell>
                                                 <TableCell>
                                                     <ConciseAvailability availability={candidate.availability} />
@@ -745,4 +780,3 @@ export default function AdvancedSearchClient() {
         </div>
     );
 }
-
