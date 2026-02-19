@@ -41,7 +41,7 @@ export async function sendCalendarInvite(appointment: Appointment & { caregiver:
         
         const event = {
             summary: `Phone Interview FirstLight with ${appointment.caregiver?.fullName} call @ ${appointment.caregiver?.phone}`,
-            location: '9650 Business Center Drive, Suite 132, Rancho Cucamonga, CA',
+            location: 'Phone Interview',
             description: `Dear ${appointment.caregiver?.fullName},\nPlease block an hour for phone interview with FirstLightHomeCare Office Administrator. \n\nContact Email: ${appointment.caregiver?.email}\nContact Phone: ${appointment.caregiver?.phone}`,
             start: {
                 dateTime: new Date(appointment.startTime).toISOString(),
