@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
@@ -45,7 +44,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Search, Calendar as CalendarIcon, Sparkles, UserCheck, AlertCircle, ExternalLink, Briefcase, Video, GraduationCap, Phone, Star, MessageSquare, CheckCircle, XCircle, UserX, Save, FileText, FileClock as OnboardingFileClock, File, FileCheck2 } from 'lucide-react';
+import { Loader2, Search, Calendar as CalendarIcon, Sparkles, UserCheck, AlertCircle, ExternalLink, Briefcase, Video, GraduationCap, Phone, Star, MessageSquare, CheckCircle, XCircle, UserX, Save, FileText, FileCheck2 } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { cn } from '@/lib/utils';
@@ -399,7 +398,7 @@ export default function ManageInterviewsClient() {
         return { text: "Completed", icon: FileCheck2, color: "text-green-500" };
     }
     if (completedForms > 0) {
-        return { text: `Started (${completedForms}/${onboardingFormCompletionKeys.length})`, icon: OnboardingFileClock, color: "text-yellow-500" };
+        return { text: `Started (${completedForms}/${onboardingFormCompletionKeys.length})`, icon: File, color: "text-yellow-500" };
     }
     return { text: "Initiated", icon: File, color: "text-blue-500" };
   };
@@ -1395,9 +1394,9 @@ export default function ManageInterviewsClient() {
                             <div className="flex items-center gap-4 pt-2">
                                 <Button
                                     type="button"
-                                    variant="secondary"
                                     onClick={handleInitiateOnboarding}
                                     disabled={isOnboardingInitiating || !existingInterview || existingInterview.onboardingFormsInitiated}
+                                    className="bg-accent hover:bg-accent/90"
                                 >
                                     {isOnboardingInitiating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
                                     {existingInterview?.onboardingFormsInitiated ? 'Onboarding Initiated' : 'Initiate Onboarding Forms'}
@@ -1561,7 +1560,7 @@ function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: strin
     <div className="space-y-4 pt-4">
       <div className="space-y-2">
         <Label>Reason for Rejection</Label>
-        <RadioGroup onValueChange={setReason} value={reason}>
+         <RadioGroup onValueChange={setReason} value={reason}>
           {rejectionReasons.map((r, i) => (
             <div key={i} className="flex items-center space-x-3 space-y-0">
               <RadioGroupItem value={r} id={`reason-${i}`} />
@@ -1589,8 +1588,4 @@ function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: strin
   );
 }
 
-
     
-
-    
-
