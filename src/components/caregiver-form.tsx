@@ -178,11 +178,20 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
       throw new Error("Firestore is not initialized");
     }
     const colRef = collection(db, "caregiver_profiles");
-    const docRef = await addDoc(colRef, { ...data, uid: user?.uid, createdAt: Timestamp.now() }).catch((serverError) => {
+    
+    // Normalize email to lowercase
+    const dataToSave = {
+        ...data,
+        email: data.email.trim().toLowerCase(),
+        uid: user?.uid,
+        createdAt: Timestamp.now()
+    };
+
+    const docRef = await addDoc(colRef, dataToSave).catch((serverError) => {
       const permissionError = new FirestorePermissionError({
         path: colRef.path,
         operation: "create",
-        requestResourceData: data,
+        requestResourceData: data, // log original data
       });
       errorEmitter.emit("permission-error", permissionError);
       throw serverError; // Re-throw to be caught by outer catch
@@ -191,7 +200,7 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
     await submitCaregiverProfile({
       caregiverId: docRef.id,
       caregiverName: data.fullName,
-      caregiverEmail: data.email,
+      caregiverEmail: dataToSave.email, // Use normalized email
       caregiverPhone: data.phone,
     });
     setIsSubmitting(false);

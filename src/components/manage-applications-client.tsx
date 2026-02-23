@@ -100,7 +100,14 @@ export default function ManageApplicationsClient() {
     startSubmitTransition(() => {
       try {
         const profileRef = doc(db, "caregiver_profiles", selectedCaregiver.id);
-        updateDocumentNonBlocking(profileRef, data);
+        
+        // Normalize email to lowercase before updating
+        const normalizedData = {
+            ...data,
+            email: data.email.trim().toLowerCase()
+        };
+
+        updateDocumentNonBlocking(profileRef, normalizedData);
         
         toast({
           title: "Success",
