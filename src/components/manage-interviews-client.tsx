@@ -1348,7 +1348,7 @@ export default function ManageInterviewsClient() {
                             )}
                             {existingInterview?.finalInterviewStatus === 'Pending reference checks' && (
                                 <Alert variant="default" className="bg-yellow-100 border-yellow-300">
-                                    <FileClock className="h-4 w-4 text-yellow-800"/>
+                                    <OnboardingFileClock className="h-4 w-4 text-yellow-800"/>
                                     <AlertTitle className="text-yellow-800">Pending Reference Checks</AlertTitle>
                                     <AlertDescription className="text-yellow-700">
                                         The candidate has been sent the reference check forms.
@@ -1593,5 +1593,4 @@ function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: strin
     
 
     
-
 
