@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
@@ -44,7 +45,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Search, Calendar as CalendarIcon, Sparkles, UserCheck, AlertCircle, ExternalLink, Briefcase, Video, GraduationCap, Phone, Star, MessageSquare, CheckCircle, XCircle, UserX, Save, FileText, FileCheck2 } from 'lucide-react';
+import { Loader2, Search, Calendar as CalendarIcon, Sparkles, UserCheck, AlertCircle, ExternalLink, Briefcase, Video, GraduationCap, Phone, Star, MessageSquare, CheckCircle, XCircle, UserX, Save, FileText, FileCheck2, FileClock } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { cn } from '@/lib/utils';
@@ -398,9 +399,9 @@ export default function ManageInterviewsClient() {
         return { text: "Completed", icon: FileCheck2, color: "text-green-500" };
     }
     if (completedForms > 0) {
-        return { text: `Started (${completedForms}/${onboardingFormCompletionKeys.length})`, icon: File, color: "text-yellow-500" };
+        return { text: `Started (${completedForms}/${onboardingFormCompletionKeys.length})`, icon: FileText, color: "text-yellow-500" };
     }
-    return { text: "Initiated", icon: File, color: "text-blue-500" };
+    return { text: "Initiated", icon: FileText, color: "text-blue-500" };
   };
   const onboardingStatus = getOnboardingStatus();
 
@@ -1347,7 +1348,7 @@ export default function ManageInterviewsClient() {
                             )}
                             {existingInterview?.finalInterviewStatus === 'Pending reference checks' && (
                                 <Alert variant="default" className="bg-yellow-100 border-yellow-300">
-                                    <OnboardingFileClock className="h-4 w-4 text-yellow-800"/>
+                                    <FileClock className="h-4 w-4 text-yellow-800"/>
                                     <AlertTitle className="text-yellow-800">Pending Reference Checks</AlertTitle>
                                     <AlertDescription className="text-yellow-700">
                                         The candidate has been sent the reference check forms.
@@ -1587,5 +1588,3 @@ function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: strin
     </div>
   );
 }
-
-    
