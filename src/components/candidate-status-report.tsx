@@ -3,9 +3,9 @@
 "use client";
 
 import { useMemo, useState } from 'react';
-import { collection } from 'firebase/firestore';
+import { collection, query } from 'firebase/firestore';
 import { firestore, useCollection, useMemoFirebase } from '@/firebase';
-import { CaregiverProfile, Interview, CaregiverEmployee } from '@/lib/types';
+import { CaregiverProfile, Interview, CaregiverEmployee, Appointment } from '@/lib/types';
 import { Loader2, Search, Star } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
@@ -24,6 +24,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 
 type CandidateStatus = 
   | 'Applied' 
+  | 'Phonescreen Scheduled'
   | 'Phone Screen Failed'
   | 'No Show'
   | 'Final Interview Pending'
@@ -39,6 +40,7 @@ interface EnrichedCandidate extends CaregiverProfile {
   status: CandidateStatus;
   interview?: Interview;
   employee?: CaregiverEmployee;
+  appointment?: Appointment;
 }
 
 const ratingOptions = [
@@ -52,7 +54,8 @@ const ratingOptions = [
 const getStatus = (
     profileId: string, 
     interviewsMap: Map<string, Interview>, 
-    employeesMap: Map<string, CaregiverEmployee>
+    employeesMap: Map<string, CaregiverEmployee>,
+    appointmentsMap: Map<string, Appointment>
 ): { status: CandidateStatus, interview?: Interview, employee?: CaregiverEmployee } => {
     
     const employee = employeesMap.get(profileId);
@@ -73,6 +76,10 @@ const getStatus = (
         return { status: 'Final Interview Pending', interview };
     }
 
+    if (appointmentsMap.has(profileId)) {
+        return { status: 'Phonescreen Scheduled', interview };
+    }
+
     return { status: 'Applied', interview };
 };
 
@@ -88,27 +95,38 @@ export default function CandidateStatusReport() {
 
     const employeesRef = useMemoFirebase(() => collection(firestore, 'caregiver_employees'), []);
     const { data: employees, isLoading: employeesLoading } = useCollection<CaregiverEmployee>(employeesRef);
+    
+    const appointmentsRef = useMemoFirebase(() => query(collection(firestore, 'appointments')), []);
+    const { data: appointments, isLoading: appointmentsLoading } = useCollection<Appointment>(appointmentsRef);
 
 
     const candidates = useMemo((): EnrichedCandidate[] => {
-        if (!profiles || !interviews || !employees) {
+        if (!profiles || !interviews || !employees || !appointments) {
             return [];
         }
 
         const interviewsMap = new Map(interviews.map(i => [i.caregiverProfileId, i]));
         const employeesMap = new Map(employees.map(e => [e.caregiverProfileId, e]));
+        const appointmentsMap = new Map<string, Appointment>();
+        appointments.forEach(appt => {
+            if(appt.appointmentStatus !== 'cancelled') {
+                appointmentsMap.set(appt.caregiverId, appt);
+            }
+        });
+
 
         return profiles.map(profile => {
-            const { status, interview, employee } = getStatus(profile.id, interviewsMap, employeesMap);
+            const { status, interview, employee } = getStatus(profile.id, interviewsMap, employeesMap, appointmentsMap);
             return {
                 ...profile,
                 status,
                 interview,
                 employee,
+                appointment: appointmentsMap.get(profile.id),
             };
         }).sort((a, b) => (b.createdAt as any) - (a.createdAt as any)); // Sort by most recent application
 
-    }, [profiles, interviews, employees]);
+    }, [profiles, interviews, employees, appointments]);
 
     const filteredCandidates = useMemo(() => {
         if (!searchTerm) return candidates;
@@ -116,7 +134,7 @@ export default function CandidateStatusReport() {
         return candidates.filter(c => c.fullName.toLowerCase().includes(lowercasedTerm));
     }, [candidates, searchTerm]);
     
-    const isLoading = profilesLoading || interviewsLoading || employeesLoading;
+    const isLoading = profilesLoading || interviewsLoading || employeesLoading || appointmentsLoading;
 
     if (isLoading) {
         return (
@@ -137,6 +155,7 @@ export default function CandidateStatusReport() {
             status === 'Hired' ? 'bg-green-500' :
             status === 'Orientation Scheduled' ? 'bg-cyan-500' :
             status === 'Final Interview Passed' ? 'bg-blue-500' :
+            status === 'Phonescreen Scheduled' ? 'bg-purple-500' :
             status === 'Final Interview Pending' ? 'bg-yellow-500' :
             defaultRejectedStatuses.includes(status) ? 'bg-red-500' :
             'bg-gray-500';
@@ -221,6 +240,9 @@ export default function CandidateStatusReport() {
                                     </TableCell>
                                     <TableCell>
                                         {candidate.status === 'Applied' && 'Needs Phone Screen'}
+                                        {candidate.status === 'Phonescreen Scheduled' && candidate.appointment?.startTime && (
+                                            `PhoneScreen Interview: ${format((candidate.appointment.startTime as any).toDate(), 'PPp')}`
+                                        )}
                                         {(candidate.status === 'Phone Screen Failed' || candidate.status === 'Final Interview Failed' || candidate.status === 'Rejected at Orientation' || candidate.status === 'No Show') && 'Process Ended'}
                                         {candidate.status === 'Final Interview Pending' && candidate.interview?.interviewDateTime && (
                                             `Final Interview: ${format((candidate.interview.interviewDateTime as any).toDate(), 'PPp')}`

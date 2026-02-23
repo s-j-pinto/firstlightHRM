@@ -4,9 +4,9 @@
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, query } from 'firebase/firestore';
 import { firestore, useCollection, useMemoFirebase } from '@/firebase';
-import { CaregiverProfile, Interview, CaregiverEmployee } from '@/lib/types';
+import { CaregiverProfile, Interview, CaregiverEmployee, Appointment } from '@/lib/types';
 import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 import Link from 'next/link';
@@ -22,7 +22,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, CalendarIcon, SlidersHorizontal, FilterX, PersonStanding, Move, Utensils, Bath, ArrowUpFromLine, ShieldCheck, Droplet, Pill, Stethoscope, HeartPulse, Languages, ScanSearch, UserCheck, Briefcase, Car, Check, X, FileText, ArrowUpDown, Mail, Edit2, CheckCircle, BellOff, Bell } from 'lucide-react';
+import { Loader2, Search, CalendarIcon, SlidersHorizontal, FilterX, PersonStanding, Move, Utensils, Bath, ArrowUpFromLine, ShieldCheck, Droplet, Pill, Stethoscope, HeartPulse, Languages, ScanSearch, UserCheck, Briefcase, Car, Check, X, FileText, ArrowUpDown, Mail, Edit2, CheckCircle, BellOff, Bell, FileClock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
@@ -55,6 +55,7 @@ const skillsAndAttributes = [
 
 type CandidateStatus =
   | 'Applied'
+  | 'Phonescreen Scheduled'
   | 'Phone Screen Failed'
   | 'No Show'
   | 'Final Interview Pending'
@@ -72,10 +73,11 @@ interface EnrichedCandidate extends CaregiverProfile {
   status: CandidateStatus;
   docsStatus: DocsStatus;
   interview?: Interview;
+  appointment?: Appointment;
 }
 
 const hiringStatuses: CandidateStatus[] = [
-  'Applied', 'Hired', 'Orientation Scheduled', 'Final Interview Passed', 'Final Interview Pending', 'Final Interview Failed', 'Phone Screen Failed', 'Rejected at Orientation', 'Process Terminated', 'No Show'
+  'Applied', 'Phonescreen Scheduled', 'Hired', 'Orientation Scheduled', 'Final Interview Passed', 'Final Interview Pending', 'Final Interview Failed', 'Phone Screen Failed', 'Rejected at Orientation', 'Process Terminated', 'No Show'
 ];
 
 type FormData = {
@@ -247,12 +249,21 @@ export default function AdvancedSearchClient() {
 
     const employeesRef = useMemoFirebase(() => collection(firestore, 'caregiver_employees'), []);
     const { data: employees, isLoading: employeesLoading } = useCollection<CaregiverEmployee>(employeesRef);
+    
+    const appointmentsRef = useMemoFirebase(() => query(collection(firestore, 'appointments')), []);
+    const { data: appointments, isLoading: appointmentsLoading } = useCollection<Appointment>(appointmentsRef);
 
     const candidates = useMemo((): EnrichedCandidate[] => {
-        if (!profiles || !interviews || !employees) return [];
+        if (!profiles || !interviews || !employees || !appointments) return [];
         
         const interviewsMap = new Map(interviews.map(i => [i.caregiverProfileId, i]));
         const employeesMap = new Map(employees.map(e => [e.caregiverProfileId, e]));
+        const appointmentsMap = new Map<string, Appointment>();
+        appointments.forEach(appt => {
+            if(appt.appointmentStatus !== 'cancelled') {
+                appointmentsMap.set(appt.caregiverId, appt);
+            }
+        });
 
         const getStatus = (profileId: string): { status: CandidateStatus, interview?: Interview } => {
             if (employeesMap.has(profileId)) return { status: 'Hired', interview: interviewsMap.get(profileId) };
@@ -267,6 +278,9 @@ export default function AdvancedSearchClient() {
                 if (interview.finalInterviewStatus === 'Passed') return { status: 'Final Interview Passed', interview };
                 if (interview.finalInterviewStatus === 'Failed') return { status: 'Final Interview Failed', interview };
                 return { status: 'Final Interview Pending', interview };
+            }
+            if (appointmentsMap.has(profileId)) {
+                return { status: 'Phonescreen Scheduled' };
             }
             return { status: 'Applied' };
         };
@@ -289,14 +303,16 @@ export default function AdvancedSearchClient() {
         return profiles.map(profile => {
             const { status, interview } = getStatus(profile.id);
             const docsStatus = getDocsStatus(profile, interview);
+            const appointment = appointmentsMap.get(profile.id);
             return {
                 ...profile,
                 status,
                 docsStatus,
                 interview,
+                appointment,
             };
         });
-    }, [profiles, interviews, employees]);
+    }, [profiles, interviews, employees, appointments]);
 
 
     const onSubmit = useCallback((data: FormData) => {
@@ -449,7 +465,7 @@ export default function AdvancedSearchClient() {
         return content();
     };
     
-    const isLoading = profilesLoading || interviewsLoading || employeesLoading;
+    const isLoading = profilesLoading || interviewsLoading || employeesLoading || appointmentsLoading;
     
     const isActionable = (status: CandidateStatus) => {
         const terminalStatuses: CandidateStatus[] = [
@@ -465,7 +481,6 @@ export default function AdvancedSearchClient() {
             "Not a good fit (attitude, soft skills etc)",
             "CG ghosted appointment",
             "Candidate withdrew application",
-            "Took another Job",
         ];
         return !terminalStatuses.includes(status);
     }
@@ -484,6 +499,7 @@ export default function AdvancedSearchClient() {
             status === 'Hired' ? 'bg-green-500' :
             status === 'Orientation Scheduled' ? 'bg-cyan-500' :
             status === 'Final Interview Passed' ? 'bg-blue-500' :
+            status === 'Phonescreen Scheduled' ? 'bg-purple-500' :
             status === 'Final Interview Pending' ? 'bg-yellow-500' :
             defaultRejectedStatuses.includes(status) ? 'bg-red-500' :
             'bg-gray-500';
