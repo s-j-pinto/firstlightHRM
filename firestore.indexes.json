@@ -1,6 +1,15 @@
-
 {
   "indexes": [
+    {
+      "collectionGroup": "caregiver_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "email",
+          "order": "ASCENDING"
+        }
+      ]
+    },
     {
       "collectionGroup": "client_signups",
       "queryScope": "COLLECTION",
