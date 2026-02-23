@@ -9,17 +9,19 @@ export async function loginCandidate(email: string, password: string) {
 
   try {
     const profilesRef = serverDb.collection('caregiver_profiles');
-    const query = profilesRef.where('email', '==', normalizedEmail).limit(1);
-    const snapshot = await query.get();
+    // Fetch all documents and filter in memory. This is a workaround for potential
+    // Firestore index issues in a local development environment.
+    // For production, a deployed index on the 'email' field is required.
+    const snapshot = await profilesRef.get();
+    const profileDoc = snapshot.docs.find(doc => doc.data().email?.toLowerCase() === normalizedEmail);
 
-    if (snapshot.empty) {
-      console.log(`[Login Action] Firestore Query: No caregiver_profiles document found for email: ${normalizedEmail}`);
+    if (!profileDoc) {
+      console.log(`[Login Action] Firestore Scan: No caregiver_profiles document found for email: ${normalizedEmail}`);
       return { error: "No application found with that email address." };
     }
     
-    console.log(`[Login Action] Firestore Query: Found a matching profile for ${normalizedEmail}.`);
+    console.log(`[Login Action] Firestore Scan: Found a matching profile for ${normalizedEmail}.`);
 
-    const profileDoc = snapshot.docs[0];
     const profileData = profileDoc.data();
     
     const phoneLastFour = (profileData.phone || '').slice(-4);
@@ -44,14 +46,18 @@ export async function loginCandidate(email: string, password: string) {
             console.log(`[Login Action] 'updateUser' failed with code: ${error.code}. Checking if user needs to be created.`);
             if (error.code === 'auth/user-not-found') {
                 console.log(`[Login Action] Auth user not found. Creating new user for UID: ${uid}`);
-                await serverAuth.createUser({
-                    uid: uid,
-                    email: normalizedEmail,
-                    displayName: displayName,
-                });
-                console.log(`[Login Action] Successfully created new Auth user.`);
+                try {
+                    await serverAuth.createUser({
+                        uid: uid,
+                        email: normalizedEmail,
+                        displayName: displayName,
+                    });
+                    console.log(`[Login Action] Successfully created new Auth user.`);
+                } catch (creationError: any) {
+                    console.error(`[Login Action] FAILED to create user:`, creationError);
+                    throw creationError;
+                }
             } else {
-                // Re-throw other errors to be caught by the outer block.
                 console.error(`[Login Action] 'updateUser' threw an unexpected error:`, error);
                 throw error;
             }
