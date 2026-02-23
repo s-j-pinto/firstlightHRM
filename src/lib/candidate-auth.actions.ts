@@ -5,67 +5,49 @@ import { serverAuth, serverDb } from "@/firebase/server-init";
 
 export async function loginCandidate(email: string, password: string) {
   const normalizedEmail = email.trim().toLowerCase();
-  console.log(`[Login Action] Attempting login for email: ${normalizedEmail}`);
 
   try {
     const profilesRef = serverDb.collection('caregiver_profiles');
-    // Fetch all documents and filter in memory. This is a workaround for potential
-    // Firestore index issues in a local development environment.
-    // For production, a deployed index on the 'email' field is required.
-    const snapshot = await profilesRef.get();
-    const profileDoc = snapshot.docs.find(doc => doc.data().email?.toLowerCase() === normalizedEmail);
+    // Reverted to a direct query now that the index is deployed.
+    const query = profilesRef.where('email', '==', normalizedEmail).limit(1);
+    const snapshot = await query.get();
 
-    if (!profileDoc) {
-      console.log(`[Login Action] Firestore Scan: No caregiver_profiles document found for email: ${normalizedEmail}`);
+    if (snapshot.empty) {
       return { error: "No application found with that email address." };
     }
-    
-    console.log(`[Login Action] Firestore Scan: Found a matching profile for ${normalizedEmail}.`);
 
+    const profileDoc = snapshot.docs[0];
     const profileData = profileDoc.data();
     
     const phoneLastFour = (profileData.phone || '').slice(-4);
 
     if (phoneLastFour !== password) {
-      console.warn(`[Login Action] Password check FAILED for ${normalizedEmail}. Provided password (last 4): ${password}, Expected (from phone): ${phoneLastFour}`);
       return { error: "Invalid password. Please use the last 4 digits of your phone number." };
     }
     
-    console.log(`[Login Action] Password check PASSED for ${normalizedEmail}.`);
-
     const uid = profileDoc.id;
     const displayName = profileData.fullName;
-    console.log(`[Login Action] Using UID: ${uid} and DisplayName: ${displayName} for Firebase Auth operations.`);
 
     try {
-        console.log(`[Login Action] Attempting to update or create Firebase Auth user for UID: ${uid}`);
+        // This pattern ensures a user exists in Firebase Auth.
+        // It attempts to update, and if the user doesn't exist, it creates one.
         await serverAuth.updateUser(uid, {
             email: normalizedEmail,
             displayName: displayName,
         }).catch(async (error: any) => {
-            console.log(`[Login Action] 'updateUser' failed with code: ${error.code}. Checking if user needs to be created.`);
             if (error.code === 'auth/user-not-found') {
-                console.log(`[Login Action] Auth user not found. Creating new user for UID: ${uid}`);
-                try {
-                    await serverAuth.createUser({
-                        uid: uid,
-                        email: normalizedEmail,
-                        displayName: displayName,
-                    });
-                    console.log(`[Login Action] Successfully created new Auth user.`);
-                } catch (creationError: any) {
-                    console.error(`[Login Action] FAILED to create user:`, creationError);
-                    throw creationError;
-                }
+                await serverAuth.createUser({
+                    uid: uid,
+                    email: normalizedEmail,
+                    displayName: displayName,
+                });
             } else {
-                console.error(`[Login Action] 'updateUser' threw an unexpected error:`, error);
+                // For other errors (e.g., email already exists with another UID), re-throw.
                 throw error;
             }
         });
 
-        console.log(`[Login Action] Creating custom token for UID: ${uid}`);
         const customToken = await serverAuth.createCustomToken(uid);
-        console.log(`[Login Action] Successfully generated custom token.`);
         return { token: customToken };
 
     } catch (authError: any) {
