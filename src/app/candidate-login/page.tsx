@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useTransition } from "react";
@@ -54,14 +55,7 @@ export default function CandidateLoginPage() {
       }
 
       try {
-        const userCredential = await signInWithCustomToken(auth, result.token);
-        const idToken = await userCredential.user.getIdToken();
-
-        await fetch('/api/auth/session', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ idToken }),
-        });
+        await signInWithCustomToken(auth, result.token);
         
         toast({
           title: "Login Successful",
@@ -71,7 +65,7 @@ export default function CandidateLoginPage() {
         router.push('/candidate-hiring-forms');
 
       } catch (error) {
-        console.error("Custom Token Sign-In or Session Error:", error);
+        console.error("Custom Token Sign-In Error:", error);
         toast({
           variant: "destructive",
           title: "Authentication Failed",
