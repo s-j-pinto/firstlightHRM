@@ -1,3 +1,4 @@
+
 "use server";
 
 import { serverAuth, serverDb } from "@/firebase/server-init";
@@ -27,27 +28,36 @@ export async function loginCandidate(email: string, password: string) {
     const displayName = profileData.fullName;
     
     try {
-        await serverAuth.updateUser(uid, {
-            email: normalizedEmail,
-            displayName: displayName,
-        }).catch(async (error: any) => {
-            if (error.code === 'auth/user-not-found') {
-                await serverAuth.createUser({
-                    uid: uid,
-                    email: normalizedEmail,
-                    displayName: displayName,
-                });
-            } else {
-                throw error;
-            }
-        });
+        // More robust auth user creation/verification
+        const userRecord = await serverAuth.getUserByEmail(normalizedEmail).catch(() => null);
 
+        if (userRecord) {
+            // User with this email exists. Ensure it's the correct user.
+            if (userRecord.uid !== uid) {
+                // This is a critical state error. An auth user exists with this email but a different UID.
+                console.error(`[Candidate Login] Auth conflict for ${normalizedEmail}. UID in Auth: ${userRecord.uid}, expected UID from profile: ${uid}`);
+                return { error: "An account conflict exists for this email. Please contact support." };
+            }
+            // User exists with correct UID, ensure display name is up to date.
+            if (userRecord.displayName !== displayName) {
+                await serverAuth.updateUser(uid, { displayName });
+            }
+        } else {
+            // No user with this email exists. Create one with the correct UID.
+            await serverAuth.createUser({
+                uid: uid,
+                email: normalizedEmail,
+                displayName: displayName,
+            });
+        }
+        
+        // If we've reached here, a user with the correct UID exists.
         const customToken = await serverAuth.createCustomToken(uid);
         return { token: customToken };
 
     } catch (authError: any) {
         console.error("[Candidate Login] Firebase Auth operation failed:", authError);
-        return { error: `A server authentication error occurred.` };
+        return { error: `A server authentication error occurred: ${authError.code}` };
     }
 
   } catch (error: any) {
