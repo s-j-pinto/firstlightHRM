@@ -169,15 +169,16 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         const leftMargin = 60;
         const contentWidth = width - leftMargin * 2;
         const denseLineHeight = 10;
-        const regularLineHeight = 8;
+        const regularLineHeight = 9;
         const mainFontSize = 8;
-        const titleFontSize = 10.5;
+        const titleFontSize = 10;
         const signatureLabelFontSize = 6;
         
-        const drawCenteredText = (text: string, fontToUse: PDFFont, size: number) => {
-            const textWidth = fontToUse.widthOfTextAtSize(text, size);
-            drawText(page, text, { x: (width / 2) - (textWidth / 2), y, font: fontToUse, size });
-            y -= (size * 1.5);
+        const drawCenteredText = (text: string, fontToUse: PDFFont, size: number, lineHeight?: number) => {
+            drawText(page, text, { x: 0, y, font: fontToUse, size, align: 'center', lineHeight: lineHeight || size * 1.2 });
+            const lineCount = text.split('\n').length;
+            y -= (lineCount * (lineHeight || size * 1.2));
+            y -= 5;
         };
         
         drawCenteredText("CLIENT SERVICE AGREEMENT", boldFont, 13);
@@ -215,10 +216,10 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         drawField(page, y, "Contact Work Phone", formData.emergencyContactWorkPhone, font, boldFont, mainFontSize, col2X, col2X + 90);
         y -= denseLineHeight;
         
-        drawField(page, y, "2nd Emergency Contact:", formData.secondEmergencyContactName, font, boldFont, mainFontSize, col1X, col1X + 100);
+        drawField(page, y, "2nd Emergency Contact", formData.secondEmergencyContactName, font, boldFont, mainFontSize, col1X, col1X + 100);
         y -= denseLineHeight;
-        drawField(page, y, "Relationship:", formData.secondEmergencyContactRelationship, font, boldFont, mainFontSize, col1X, col1X + 60);
-        drawField(page, y, "Phone:", formData.secondEmergencyContactPhone, font, boldFont, mainFontSize, col2X, col2X + 30);
+        drawField(page, y, "Relationship", formData.secondEmergencyContactRelationship, font, boldFont, mainFontSize, col1X, col1X + 60);
+        drawField(page, y, "Phone", formData.secondEmergencyContactPhone, font, boldFont, mainFontSize, col2X, col2X + 30);
 
         y -= denseLineHeight;
 
@@ -254,7 +255,7 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         y = drawWrappedText(page, ackText, font, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
         y -= 30;
 
-        const drawSignatureBlock = async (label: string, sigData: string, printedName: string, date: Date, yPos: number) => {
+        const drawSignatureBlock = async (label: string, sigData: string | undefined, printedName: string | undefined, date: Date | undefined, yPos: number) => {
             const dateStr = date ? format(date, "MM/dd/yyyy") : '';
             if (sigData) await drawSignature(page, sigData, leftMargin + 5, yPos, 180, 25, pdfDoc);
             page.drawLine({ start: { x: leftMargin, y: yPos-5 }, end: { x: leftMargin + 250, y: yPos-5 }, thickness: 0.5 });
@@ -275,47 +276,46 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         y -= 40;
         await drawSignatureBlock('FirstLight Home Care Representative', formData.firstLightRepresentativeSignature, formData.firstLightRepresentativeTitle, formData.firstLightRepresentativeSignatureDate, y);
 
-        // --- PAGE 2 ---
+        // --- PAGE 2-4 ---
         pageIndex++;
-        page = pages[pageIndex];
         y = height - 80;
-        drawCenteredText("TERMS AND CONDITIONS", boldFont, titleFontSize);
-        y -= 20;
-        for (let i = 0; i < 10; i++) {
+        
+        for (let i = 0; i < privatePayTerms.length; i++) {
+            page = pages[pageIndex];
+            
+            if (i === 0) {
+                 drawCenteredText("TERMS AND CONDITIONS", boldFont, titleFontSize);
+                 y = height - 100;
+            }
+
             const term = privatePayTerms[i];
+            const termTitleHeight = boldFont.heightAtSize(mainFontSize) + 5; 
+            const termTextHeight = font.heightAtSize(mainFontSize) * Math.ceil(font.widthOfTextAtSize(sanitizeText(term.text), mainFontSize) / contentWidth) + 10;
+            let estimatedHeight = termTitleHeight + termTextHeight;
+            if(term.title === "14. HIRING:" || term.title === "19. INFORMATION AND DOCUMENTS RECEIVED:") estimatedHeight += 40;
+
+            if (y < estimatedHeight + 60) {
+                pageIndex++;
+                if (pageIndex >= pages.length) break;
+                page = pages[pageIndex];
+                y = height - 80;
+            }
+
             y = await drawFormattedWrappedText(page, term.title, boldFont, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
             y = await drawFormattedWrappedText(page, sanitizeText(term.text), font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
-            y -= (regularLineHeight * 1.5);
-        }
+            y -= (regularLineHeight * 0.5);
 
-        // --- PAGE 3 ---
-        pageIndex++;
-        page = pages[pageIndex];
-        y = height - 80;
-        for (let i = 10; i < 17; i++) {
-             const term = privatePayTerms[i];
-             y = await drawFormattedWrappedText(page, term.title, boldFont, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
-             y = await drawFormattedWrappedText(page, sanitizeText(term.text), font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
-             if (term.title === "14. HIRING:") {
+            if (term.title === "14. HIRING:") {
                  y -= 5;
                  drawText(page, `Client Initials: ${formData.clientInitials || '_____'}`, {x: leftMargin + 10, y, font, size: mainFontSize});
                  y -= 15;
-             } else {
-                 y -= (regularLineHeight * 1.5);
-             }
-        }
-        
-        // --- PAGE 4 ---
-        pageIndex++;
-        page = pages[pageIndex];
-        y = height - 80;
-        for (let i = 17; i < privatePayTerms.length; i++) {
-            const term = privatePayTerms[i];
-            y = await drawFormattedWrappedText(page, term.title, boldFont, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
-            y = await drawFormattedWrappedText(page, sanitizeText(term.text), font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
-            y -= (regularLineHeight * 1.5);
-
-            if (term.title === "19. INFORMATION AND DOCUMENTS RECEIVED:") {
+            }
+             if (term.title === "11. INSURANCE:") {
+                y -= 5;
+                drawField(page, y, "Policy Number", formData.policyNumber, font, boldFont, mainFontSize, leftMargin, leftMargin + 70);
+                drawField(page, y, "Policy Period", formData.policyPeriod, font, boldFont, mainFontSize, leftMargin + 250, leftMargin + 320);
+                y -= 15;
+            } else if (term.title === "19. INFORMATION AND DOCUMENTS RECEIVED:") {
                 let checkboxY = y - 5;
                 drawCheckbox(page, formData.receivedPrivacyPractices, leftMargin + 10, checkboxY);
                 drawText(page, "Notice of Privacy Practices", {x: leftMargin + 25, y: checkboxY + 1, font, size: mainFontSize});
@@ -332,15 +332,15 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
                 y = checkboxY - 20;
             }
         }
-
-        // --- PAGE 5 (Conditional) ---
+        
+        // --- Conditional Transportation Waiver Page ---
         if(formData.receivedTransportationWaiver) {
             pageIndex++;
             page = pages[pageIndex];
             y = height - 80;
             
             drawCenteredText("Transportation Waiver", boldFont, 13);
-            y -= 20;
+            y -= 10;
 
             const waiverText = [
                 "FirstLight HomeCare offers transportation as a convenience to our clients, not as a standalone service.",
@@ -353,7 +353,7 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
             
             waiverText.forEach(async p => {
                 y = await drawFormattedWrappedText(page, p, font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight + 4);
-                y -= 18;
+                y -= 10;
             });
             y -= 30;
 
@@ -362,7 +362,7 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
             await drawSignatureBlock('Witness (FirstLight Home Care Representative)', formData.transportationWaiverWitnessSignature, '', formData.transportationWaiverDate, y);
         }
         
-        // --- PAGE 6 ---
+        // --- Conditional Service Plan Page ---
         if (formData.homemakerCompanion || formData.personalCare) {
             pageIndex++;
             page = pages[pageIndex];
@@ -433,11 +433,11 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
             drawText(page, `DATE OF INITIAL CLIENT CONTACT: ${officeDate3}`, {x: leftMargin + 5, y: y - 50, font, size: mainFontSize});
         }
         
-        // --- PAGE 7 ---
+        // --- Agreement Page ---
         pageIndex++;
         page = pages[pageIndex];
         y = height - 80;
-        drawCenteredText("AGREEMENT TO ACCEPT PAYMENT RESPONSIBILITY AND CONSENT FOR USE AND DISCLOSURE OF\nPERSONAL INFORMATION-PRIVATE PAY", boldFont, 8);
+        drawCenteredText("AGREEMENT TO ACCEPT PAYMENT RESPONSIBILITY AND CONSENT FOR USE AND DISCLOSURE OF\nPERSONAL INFORMATION-PRIVATE PAY", boldFont, 8, 10);
         y -= 10;
         
         drawText(page, `Client Name: ${formData.agreementClientName || ''}`, {x: leftMargin, y, font, size: mainFontSize});

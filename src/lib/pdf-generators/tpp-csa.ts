@@ -70,9 +70,19 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         const lineHeight = 11;
         const mainFontSize = 9;
 
+        const drawCenteredText = (text: string, fontToUse: PDFFont, size: number, lineHeightValue?: number) => {
+            const lines = text.split('\n');
+            const calculatedLineHeight = lineHeightValue || size * 1.2;
+            for (const line of lines) {
+                const textWidth = fontToUse.widthOfTextAtSize(line, size);
+                drawText(page, line, { x: (width / 2) - (textWidth / 2), y, font: fontToUse, size });
+                y -= calculatedLineHeight;
+            }
+            y -= 5;
+        };
+
         // Title
-        const title = "THIRD PARTY PAYOR CLIENT SERVICE AGREEMENT";
-        drawText(page, title, { x: width / 2, y, font: boldFont, size: 14, align: 'center' });
+        drawCenteredText("THIRD PARTY PAYOR CLIENT SERVICE AGREEMENT", boldFont, 14);
         y -= 25;
 
         // Intro
@@ -85,7 +95,7 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         y -= 25;
 
         // I. CLIENT INFORMATION
-        drawText(page, "I. CLIENT INFORMATION", { x: width / 2, y, font: boldFont, size: 11, align: 'center' });
+        drawCenteredText("I. CLIENT INFORMATION", boldFont, 11);
         y -= 20;
 
         // Draw Client Info Fields
@@ -134,14 +144,14 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         y -= 20;
         
         // II. PAYMENTS FOR THE SERVICES
-        drawText(page, "II. PAYMENTS FOR THE SERVICES", { x: width / 2, y, font: boldFont, size: 11, align: 'center' });
+        drawCenteredText("II. PAYMENTS FOR THE SERVICES", boldFont, 11);
         y -= 20;
         const payorText = `${formData.payor || '________________'} (“Payor”) will reimburse FirstLight Home Care agreement between FirstLight Home Care and Payor (“Payor Agreement”). FirstLight Home Care will submit claims to Payor in accordance with the provisions of the Payor Agreement and applicable requirements under state or federal law. To the extent Client owes FirstLight Home Care for any cost sharing or other financial obligation for the Services, such amounts shall be determined by Payor in accordance with the Payor Agreement and applicable provisions of state and federal law. Client agrees to notify FirstLight Home Care if Client becomes ineligible to receive the Services under this Agreement. Additional service (payable by Client out of pocket and not covered by Payor) (the “Private Pay Services”) can be arranged upon Client request; provided, however, that FirstLight Home Care’s ability to render Private Pay Services depends on the Payor Agreement and applicable provisions of state and federal law. A separate FirstLight Home Care Private Pay Client Service Agreement must be executed prior to initiation of Private Pay Services.`;
         y = drawWrappedText(page, payorText, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
         y -= 30;
 
         // III. ACKNOWLEDGEMENT & AGREEMENT
-        drawText(page, "III. ACKNOWLEDGEMENT & AGREEMENT", { x: width / 2, y, font: boldFont, size: 11, align: 'center' });
+        drawCenteredText("III. ACKNOWLEDGEMENT & AGREEMENT", boldFont, 11);
         y -= 20;
         const ackText = `The Client, or his or her authorized representative, consents to receive the Services and acknowledges he or she or they have read, accept, and consent to this Agreement, including the "Terms and Conditions" and all other attached documents, all of which are incorporated into this Agreement.`;
         y = drawWrappedText(page, ackText, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
@@ -180,9 +190,22 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         // --- PAGE 2-4: Terms and Conditions etc. ---
         let currentPageIndex = 1;
         y = height - 80;
+        
+        for (let i = 0; i < tppTerms.length; i++) {
+            page = pages[currentPageIndex];
+            
+            if (i === 0) {
+                 drawCenteredText("TERMS AND CONDITIONS", boldFont, 11);
+                 y = height - 100;
+            }
 
-        for (const term of tppTerms) {
-            if (y < 80) { // Check if we need a new page
+            const term = tppTerms[i];
+            const termTitleHeight = boldFont.heightAtSize(mainFontSize) + 5; 
+            const termTextHeight = font.heightAtSize(mainFontSize) * Math.ceil(font.widthOfTextAtSize(sanitizeText(term.text), mainFontSize) / contentWidth) + 10;
+            let estimatedHeight = termTitleHeight + termTextHeight;
+            if(term.title === "HIRING:" || term.title === "INFORMATION AND DOCUMENTS RECEIVED:") estimatedHeight += 40;
+
+            if (y < estimatedHeight + 60) {
                 currentPageIndex++;
                 if (currentPageIndex >= pages.length) break;
                 page = pages[currentPageIndex];
@@ -221,5 +244,3 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         throw new Error(`Failed to generate PDF: ${error.message}`);
     }
 }
-
-    
