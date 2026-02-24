@@ -199,7 +199,7 @@ async function drawServicePlanPageContent(page: PDFPage, formData: ClientSignupF
     drawText(page, `Client Initials: ${formData.servicePlanClientInitials || '_____'}`, { x: leftMargin, y, font, size: mainFontSize });
     
     const boxHeight = 60;
-    const boxY = 80;
+    const boxY = 100;
     page.drawRectangle({ x: leftMargin, y: boxY - 55, width: 250, height: boxHeight, color: rgb(0.95, 0.95, 0.95), borderColor: rgb(0.8, 0.8, 0.8), borderWidth: 0.5 });
     let textY = boxY - 5;
     drawText(page, "For Office Use Only", {x: leftMargin + 5, y: textY, font: boldFont, size: mainFontSize});
@@ -366,62 +366,59 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         y = await drawSignatureBlock(y);
 
         // --- Terms and Conditions ---
-        let currentPage = addNewPage();
-        y = currentPage.getHeight() - 80;
-        y = drawCenteredText(currentPage, "TERMS AND CONDITIONS", boldFont, 11, y);
+        page = addNewPage();
+        y = page.getHeight() - 80;
+        y = drawCenteredText(page, "TERMS AND CONDITIONS", boldFont, 11, y);
         y -= 20;
 
-        for (let i = 0; i < privatePayTerms.length; i++) {
-            const term = privatePayTerms[i];
-            
-            const titleLines = Math.ceil(boldFont.widthOfTextAtSize(term.title, mainFontSize) / contentWidth);
-            const textLines = Math.ceil(font.widthOfTextAtSize(sanitizeText(term.text), mainFontSize) / contentWidth) * 1.5;
-            let estimatedHeight = (titleLines * (lineHeight + 2)) + (textLines * lineHeight) + 20;
-             if (term.title === "11. INSURANCE:") estimatedHeight += 20;
-            if (term.title === "14. HIRING:") estimatedHeight += 20;
+        for (const term of privatePayTerms) {
+            const titleHeight = boldFont.heightAtSize(mainFontSize);
+            const textHeight = (font.heightAtSize(mainFontSize) * Math.ceil(font.widthOfTextAtSize(sanitizeText(term.text), mainFontSize) / contentWidth)) + 15;
+            let estimatedHeight = titleHeight + textHeight + 20;
+            if(term.title === "11. INSURANCE:" || term.title === "14. HIRING:") estimatedHeight += 40;
             if (term.title === "19. INFORMATION AND DOCUMENTS RECEIVED:") estimatedHeight += 60;
 
             if (y < estimatedHeight) {
-                currentPage = addNewPage();
-                y = currentPage.getHeight() - 80;
+                page = addNewPage();
+                y = page.getHeight() - 80;
             }
 
-            y = await drawFormattedWrappedText(currentPage, term.title, boldFont, boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight + 2);
-            y = await drawFormattedWrappedText(currentPage, sanitizeText(term.text), font, boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight);
+            y = await drawFormattedWrappedText(page, term.title, boldFont, boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight + 2);
+            y = await drawFormattedWrappedText(page, sanitizeText(term.text), font, boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight);
             y -= 15;
 
             if (term.title === "11. INSURANCE:") {
                  y -= 5;
-                 drawField(currentPage, y, "Policy Number", formData.policyNumber, font, boldFont, mainFontSize, leftMargin, leftMargin + 70);
-                 drawField(currentPage, y, "Policy Period", formData.policyPeriod, font, boldFont, mainFontSize, leftMargin + 250, leftMargin + 320);
+                 drawField(page, y, "Policy Number", formData.policyNumber, font, boldFont, mainFontSize, leftMargin, leftMargin + 70);
+                 drawField(page, y, "Policy Period", formData.policyPeriod, font, boldFont, mainFontSize, leftMargin + 250, leftMargin + 320);
                  y -= 20;
             } else if (term.title === "14. HIRING:") {
                  y -= 5;
-                 drawText(currentPage, `Client Initials: ${formData.clientInitials || '_____'}`, {x: leftMargin + 10, y, font, size: mainFontSize});
+                 drawText(page, `Client Initials: ${formData.clientInitials || '_____'}`, {x: leftMargin + 10, y, font, size: mainFontSize});
                  y -= 20;
             } else if (term.title === "19. INFORMATION AND DOCUMENTS RECEIVED:") {
                 let checkboxY = y - 5;
-                drawCheckbox(currentPage, formData.receivedPrivacyPractices, leftMargin + 10, checkboxY);
-                drawText(currentPage, "Notice of Privacy Practices", {x: leftMargin + 25, y: checkboxY + 1, font, size: mainFontSize});
-                drawCheckbox(currentPage, formData.receivedClientRights, leftMargin + 250, checkboxY);
-                drawText(currentPage, "Client Rights and Responsibilities", {x: leftMargin + 265, y: checkboxY + 1, font, size: mainFontSize});
+                drawCheckbox(page, formData.receivedPrivacyPractices, leftMargin + 10, checkboxY);
+                drawText(page, "Notice of Privacy Practices", {x: leftMargin + 25, y: checkboxY + 1, font, size: mainFontSize});
+                drawCheckbox(page, formData.receivedClientRights, leftMargin + 250, checkboxY);
+                drawText(page, "Client Rights and Responsibilities", {x: leftMargin + 265, y: checkboxY + 1, font, size: mainFontSize});
                 checkboxY -= 20;
 
-                drawCheckbox(currentPage, formData.receivedTransportationWaiver, leftMargin + 10, checkboxY);
-                drawText(currentPage, "Transportation Waiver", {x: leftMargin + 25, y: checkboxY + 1, font, size: mainFontSize});
+                drawCheckbox(page, formData.receivedTransportationWaiver, leftMargin + 10, checkboxY);
+                drawText(page, "Transportation Waiver", {x: leftMargin + 25, y: checkboxY + 1, font, size: mainFontSize});
                 checkboxY -= 20;
                 
-                drawCheckbox(currentPage, formData.receivedPaymentAgreement, leftMargin + 10, checkboxY + 5);
-                drawWrappedText(currentPage, "Agreement to Accept Payment Responsibility and Consent for Personal Information-Private Pay", font, mainFontSize, leftMargin + 25, checkboxY + 5, contentWidth - 40, lineHeight);
+                drawCheckbox(page, formData.receivedPaymentAgreement, leftMargin + 10, checkboxY + 5);
+                drawWrappedText(page, "Agreement to Accept Payment Responsibility and Consent for Personal Information-Private Pay", font, mainFontSize, leftMargin + 25, checkboxY + 5, contentWidth - 40, lineHeight);
                 y = checkboxY - 20;
             }
         }
         
         // --- Transportation Waiver ---
         if (formData.receivedTransportationWaiver) {
-            const waiverPage = addNewPage();
-            y = waiverPage.getHeight() - 80;
-            y = drawCenteredText(waiverPage, "Transportation Waiver", boldFont, 13, y);
+            page = addNewPage();
+            y = page.getHeight() - 80;
+            y = drawCenteredText(page, "Transportation Waiver", boldFont, 13, y);
             y -= 30;
 
             const waiverText = [
@@ -434,43 +431,43 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
             ];
 
             for(const p of waiverText) {
-                y = await drawFormattedWrappedText(waiverPage, p, font, boldFont, mainFontSize + 1, leftMargin, y, contentWidth, lineHeight + 4);
+                y = await drawFormattedWrappedText(page, p, font, boldFont, mainFontSize + 1, leftMargin, y, contentWidth, lineHeight + 4);
                 y -= 25;
             };
             y -= 30;
             
             const waiverSigY = y;
-            await drawSignature(waiverPage, formData.transportationWaiverClientSignature, leftMargin + 250, waiverSigY, 150, 30, pdfDoc);
-            waiverPage.drawLine({ start: { x: leftMargin + 240, y: waiverSigY - 5 }, end: { x: leftMargin + 420, y: waiverSigY - 5 }, thickness: 0.5 });
-            drawText(waiverPage, "Signed (Client or Responsible Party)", { x: leftMargin + 240, y: waiverSigY - 15, font, size: 8 });
+            await drawSignature(page, formData.transportationWaiverClientSignature, leftMargin + 250, waiverSigY, 150, 30, pdfDoc);
+            page.drawLine({ start: { x: leftMargin + 240, y: waiverSigY - 5 }, end: { x: leftMargin + 420, y: waiverSigY - 5 }, thickness: 0.5 });
+            drawText(page, "Signed (Client or Responsible Party)", { x: leftMargin + 240, y: waiverSigY - 15, font, size: 8 });
             
-            drawText(waiverPage, formData.transportationWaiverClientPrintedName || '', { x: leftMargin, y: waiverSigY, font, size: 10 });
-            waiverPage.drawLine({ start: { x: leftMargin, y: waiverSigY - 5 }, end: { x: leftMargin + 200, y: waiverSigY - 5 }, thickness: 0.5 });
-            drawText(waiverPage, "Printed Name", { x: leftMargin, y: waiverSigY - 15, font, size: 8 });
+            drawText(page, formData.transportationWaiverClientPrintedName || '', { x: leftMargin, y: waiverSigY, font, size: 10 });
+            page.drawLine({ start: { x: leftMargin, y: waiverSigY - 5 }, end: { x: leftMargin + 200, y: waiverSigY - 5 }, thickness: 0.5 });
+            drawText(page, "Printed Name", { x: leftMargin, y: waiverSigY - 15, font, size: 8 });
 
             y -= 50;
             
             const witnessSigY = y;
-            await drawSignature(waiverPage, formData.transportationWaiverWitnessSignature, leftMargin + 250, witnessSigY, 150, 30, pdfDoc);
-            waiverPage.drawLine({ start: { x: leftMargin + 240, y: witnessSigY - 5 }, end: { x: leftMargin + 420, y: witnessSigY - 5 }, thickness: 0.5 });
-            drawText(waiverPage, "Witness (FirstLight Home Care Representative)", { x: leftMargin + 240, y: witnessSigY - 15, font, size: 8 });
+            await drawSignature(page, formData.transportationWaiverWitnessSignature, leftMargin + 250, witnessSigY, 150, 30, pdfDoc);
+            page.drawLine({ start: { x: leftMargin + 240, y: witnessSigY - 5 }, end: { x: leftMargin + 420, y: witnessSigY - 5 }, thickness: 0.5 });
+            drawText(page, "Witness (FirstLight Home Care Representative)", { x: leftMargin + 240, y: witnessSigY - 15, font, size: 8 });
 
             const waiverDate = (formData.transportationWaiverDate && (formData.transportationWaiverDate.toDate || isDate(formData.transportationWaiverDate))) ? format(formData.transportationWaiverDate.toDate ? formData.transportationWaiverDate.toDate() : formData.transportationWaiverDate, "MM/dd/yyyy") : '';
-            drawText(waiverPage, waiverDate, { x: leftMargin, y: witnessSigY, font, size: 10 });
-            waiverPage.drawLine({ start: { x: leftMargin, y: witnessSigY - 5 }, end: { x: leftMargin + 180, y: witnessSigY - 5 }, thickness: 0.5 });
-            drawText(waiverPage, "Date", { x: leftMargin, y: witnessSigY - 15, font, size: 8 });
+            drawText(page, waiverDate, { x: leftMargin, y: witnessSigY, font, size: 10 });
+            page.drawLine({ start: { x: leftMargin, y: witnessSigY - 5 }, end: { x: leftMargin + 180, y: witnessSigY - 5 }, thickness: 0.5 });
+            drawText(page, "Date", { x: leftMargin, y: witnessSigY - 15, font, size: 8 });
         }
         
         // --- Service Plan ---
-        const servicePlanPage = addNewPage();
-        await drawServicePlanPageContent(servicePlanPage, formData, font, boldFont);
+        page = addNewPage();
+        await drawServicePlanPageContent(page, formData, font, boldFont);
         
         // --- Final Agreement ---
-        const finalPage = addNewPage();
-        y = finalPage.getHeight() - 80;
-        y = drawCenteredText(finalPage, "AGREEMENT TO ACCEPT PAYMENT RESPONSIBILITY AND CONSENT FOR USE AND DISCLOSURE OF\nPERSONAL INFORMATION-PRIVATE PAY", boldFont, 8, y, 10);
+        page = addNewPage();
+        y = page.getHeight() - 80;
+        y = drawCenteredText(page, "AGREEMENT TO ACCEPT PAYMENT RESPONSIBILITY AND CONSENT FOR USE AND DISCLOSURE OF\nPERSONAL INFORMATION-PRIVATE PAY", boldFont, 8, y, 10);
         y -= 10;
-        drawText(finalPage, `Client Name: ${formData.agreementClientName || ''}`, {x: leftMargin, y, font, size: mainFontSize});
+        drawText(page, `Client Name: ${formData.agreementClientName || ''}`, {x: leftMargin, y, font, size: mainFontSize});
         y -= 20;
         const agreementText = [
             "I understand that Firstlight Home Care of Rancho Cucamonga may need to use or disclose my personal information to provide services to me, to obtain payment for its services and for all of the other reasons more fully described in Firstlight Home Care of Rancho Cucamonga Notice of Privacy Practices.",
@@ -478,31 +475,31 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
             "My consent will be valid for two (2) years from the date below. I may revoke my consent to share information, in writing, at any time. Revoking my consent does not apply to information that has already been shared or affect my financial responsibility for Services. I understand that some uses and sharing of my information are authorized by law and do not require my consent."
         ];
         for(const p of agreementText) {
-            y = await drawFormattedWrappedText(finalPage, p, font, boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight);
+            y = await drawFormattedWrappedText(page, p, font, boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight);
             y -= 10;
         }
         y -= 20;
         
-        await drawSignature(finalPage, formData.agreementClientSignature, leftMargin, y, 250, 40, pdfDoc);
-        finalPage.drawLine({ start: { x: leftMargin, y: y - 5 }, end: { x: leftMargin + 250, y: y - 5 }, thickness: 0.5 });
-        drawText(finalPage, "Client Signature/Responsible Party", { x: leftMargin, y: y - 15, font, size: 8 });
+        await drawSignature(page, formData.agreementClientSignature, leftMargin, y, 250, 40, pdfDoc);
+        page.drawLine({ start: { x: leftMargin, y: y - 5 }, end: { x: leftMargin + 250, y: y - 5 }, thickness: 0.5 });
+        drawText(page, "Client Signature/Responsible Party", { x: leftMargin, y: y - 15, font, size: 8 });
 
         const agreementDate = (formData.agreementSignatureDate && (formData.agreementSignatureDate.toDate || isDate(formData.agreementSignatureDate))) ? format(formData.agreementSignatureDate.toDate ? formData.agreementSignatureDate.toDate() : formData.agreementSignatureDate, "MM/dd/yyyy") : '';
-        drawField(finalPage, y, "Date", agreementDate, font, boldFont, mainFontSize, leftMargin + 300, leftMargin + 350);
-        finalPage.drawLine({ start: { x: leftMargin + 350, y: y - 5}, end: {x: leftMargin + 500, y: y - 5}, thickness: 0.5 });
+        drawField(page, y, "Date", agreementDate, font, boldFont, mainFontSize, leftMargin + 300, leftMargin + 350);
+        page.drawLine({ start: { x: leftMargin + 350, y: y - 5}, end: {x: leftMargin + 500, y: y - 5}, thickness: 0.5 });
         y -= 40;
         
-        drawField(finalPage, y, "Relationship if not Client", formData.agreementRelationship, font, boldFont, mainFontSize, leftMargin, leftMargin + 120);
-        finalPage.drawLine({ start: { x: leftMargin + 120, y: y - 5 }, end: { x: leftMargin + 300, y: y - 5 }, thickness: 0.5 });
+        drawField(page, y, "Relationship if not Client", formData.agreementRelationship, font, boldFont, mainFontSize, leftMargin, leftMargin + 120);
+        page.drawLine({ start: { x: leftMargin + 120, y: y - 5 }, end: { x: leftMargin + 300, y: y - 5 }, thickness: 0.5 });
         y -= 40;
         
-        await drawSignature(finalPage, formData.agreementRepSignature, leftMargin, y, 250, 40, pdfDoc);
-        finalPage.drawLine({ start: { x: leftMargin, y: y - 5 }, end: { x: leftMargin + 250, y: y - 5 }, thickness: 0.5 });
-        drawText(finalPage, "FirstLight Home Care of Rancho Cucamonga Representative", { x: leftMargin, y: y - 15, font, size: 8 });
+        await drawSignature(page, formData.agreementRepSignature, leftMargin, y, 250, 40, pdfDoc);
+        page.drawLine({ start: { x: leftMargin, y: y - 5 }, end: { x: leftMargin + 250, y: y - 5 }, thickness: 0.5 });
+        drawText(page, "FirstLight Home Care of Rancho Cucamonga Representative", { x: leftMargin, y: y - 15, font, size: 8 });
 
         const agreementRepDate = (formData.agreementRepDate && (formData.agreementRepDate.toDate || isDate(formData.agreementRepDate))) ? format(formData.agreementRepDate.toDate ? formData.agreementRepDate.toDate() : formData.agreementRepDate, "MM/dd/yyyy") : '';
-        drawField(finalPage, y, "Date", agreementRepDate, font, boldFont, mainFontSize, leftMargin + 300, leftMargin + 350);
-        finalPage.drawLine({ start: { x: leftMargin + 350, y: y - 5}, end: {x: leftMargin + 500, y: y - 5}, thickness: 0.5 });
+        drawField(page, y, "Date", agreementRepDate, font, boldFont, mainFontSize, leftMargin + 300, leftMargin + 350);
+        page.drawLine({ start: { x: leftMargin + 350, y: y - 5}, end: {x: leftMargin + 500, y: y - 5}, thickness: 0.5 });
 
         // Add headers and footers to all pages
         allPages.forEach((p, i) => addHeaderAndFooter(p, logoImage, logoDims, i + 1, allPages.length, font));
