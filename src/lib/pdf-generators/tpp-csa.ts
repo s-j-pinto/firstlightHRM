@@ -67,23 +67,23 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         let y = height - 80;
         const leftMargin = 60;
         const contentWidth = width - leftMargin * 2;
-        const lineHeight = 9;
-        const mainFontSize = 7;
-        const titleFontSize = 9;
+        const lineHeight = 8;
+        const mainFontSize = 6;
+        const titleFontSize = 8;
         const signatureLabelFontSize = 6;
 
         // Title
         y = drawCenteredText(page, "THIRD PARTY PAYOR CLIENT SERVICE AGREEMENT", boldFont, 13, y);
-        y -= 25;
+        y -= 15;
 
         // Intro
         const introText = `Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated. This Client Service Agreement (this "Agreement") is entered into between the client, or his or her authorized representative, (the “Client”) and FirstLight Home Care of Rancho Cucamonga (“FirstLight Home Care”).`;
         y = drawWrappedText(page, introText, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
-        y -= 25;
+        y -= 15;
         
         const tppIntro = `FirstLight Home Care will provide non-medical in-hime services (the “services”) specified in the Payor’s authorization and/or Client plan of care as made available by Payor to FirstLight Home Care pursuant to the “Payor Agreement” (as defined below). It is anticipated that Payor will provide Client-specific information to FirstLight Home Care as part of the Payor’s authorization and/or Client plan of care as FirstLight Home Care needs to render the Services and be reimbursed for such Services by the Payor. However Client will cooperate with FirstLight Home Care to the extent FirstLight Home Care requires additional information from Client related to Client in order to provide the Services.`;
         y = drawWrappedText(page, tppIntro, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
-        y -= 25;
+        y -= 15;
 
         // I. CLIENT INFORMATION
         y = drawCenteredText(page, "I. CLIENT INFORMATION", boldFont, titleFontSize, y);
@@ -102,7 +102,7 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         drawField(page, y, "Phone", formData.clientPhone, font, boldFont, mainFontSize, leftMargin, leftMargin + 150);
         const dobFormatted = formData.clientDOB ? (typeof formData.clientDOB === 'string' ? formData.clientDOB : format(new Date(formData.clientDOB), "MM/dd/yyyy")) : '';
         drawField(page, y, "DOB", dobFormatted, font, boldFont, mainFontSize, leftMargin + 300, leftMargin + 350);
-        y -= 30;
+        y -= 20;
 
         drawText(page, "Emergency Contact:", { x: leftMargin, y, font: boldFont, size: titleFontSize });
         y -= 15;
@@ -119,14 +119,14 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         drawField(page, y, "Relationship", formData.secondEmergencyContactRelationship, font, boldFont, mainFontSize, leftMargin + 300, leftMargin + 400);
         y -= 20;
         drawField(page, y, "Phone", formData.secondEmergencyContactPhone, font, boldFont, mainFontSize, leftMargin, leftMargin + 150);
-        y -= 30;
+        y -= 20;
 
         drawCheckbox(page, formData.homemakerCompanion, leftMargin, y);
         drawText(page, "Homemaker/Companion", { x: leftMargin + 20, y, font, size: mainFontSize });
         drawCheckbox(page, formData.personalCare, leftMargin + 200, y);
         drawText(page, "Personal Care", { x: leftMargin + 220, y, font, size: mainFontSize });
-        y -= 30;
-
+        y -= 20;
+        
         drawText(page, "Scheduled Frequency:", {x: leftMargin, y, font: boldFont, size: mainFontSize});
         drawText(page, `Days/Wk: ${formData.daysPerWeek || ''}`, {x: leftMargin + 150, y, font, size: mainFontSize});
         drawText(page, `Hrs/Day: ${formData.hoursPerDay || ''}`, {x: leftMargin + 250, y, font, size: mainFontSize});
@@ -136,14 +136,14 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         
         // II. PAYMENTS FOR THE SERVICES
         y = drawCenteredText(page, "II. PAYMENTS FOR THE SERVICES", boldFont, titleFontSize, y);
-        y -= 20;
+        y -= 10;
         const payorText = `${formData.payor || '________________'} (“Payor”) will reimburse FirstLight Home Care agreement between FirstLight Home Care and Payor (“Payor Agreement”). FirstLight Home Care will submit claims to Payor in accordance with the provisions of the Payor Agreement and applicable requirements under state or federal law. To the extent Client owes FirstLight Home Care for any cost sharing or other financial obligation for the Services, such amounts shall be determined by Payor in accordance with the Payor Agreement and applicable provisions of state and federal law. Client agrees to notify FirstLight Home Care if Client becomes ineligible to receive the Services under this Agreement. Additional service (payable by Client out of pocket and not covered by Payor) (the “Private Pay Services”) can be arranged upon Client request; provided, however, that FirstLight Home Care’s ability to render Private Pay Services depends on the Payor Agreement and applicable provisions of state and federal law. A separate FirstLight Home Care Private Pay Client Service Agreement must be executed prior to initiation of Private Pay Services.`;
         y = drawWrappedText(page, payorText, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
-        y -= 30;
+        y -= 15;
 
         // III. ACKNOWLEDGEMENT & AGREEMENT
         y = drawCenteredText(page, "III. ACKNOWLEDGEMENT & AGREEMENT", boldFont, titleFontSize, y);
-        y -= 20;
+        y -= 10;
         const ackText = `The Client, or his or her authorized representative, consents to receive the Services and acknowledges he or she or they have read, accept, and consent to this Agreement, including the "Terms and Conditions" and all other attached documents, all of which are incorporated into this Agreement.`;
         y = drawWrappedText(page, ackText, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
         y -= 30;
@@ -235,3 +235,5 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         throw new Error(`Failed to generate PDF: ${error.message}`);
     }
 }
+
+    
