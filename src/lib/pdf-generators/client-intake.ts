@@ -87,7 +87,7 @@ async function drawFormattedWrappedText(page: PDFPage, text: string, font: PDFFo
             currentY -= lineHeight;
         }
     }
-    return currentY;
+    return currentY; 
 }
 
 const privatePayTerms = [
@@ -155,20 +155,19 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         const logoImage = await pdfDoc.embedPng(logoImageBytes);
         const logoDims = logoImage.scale(0.2);
 
-        const pages: PDFPage[] = [];
+        let pages: PDFPage[] = [];
         const mainFontSize = 7.5;
         const regularLineHeight = 9;
         const titleFontSize = 10;
         const signatureLabelFontSize = 6;
+        const lightGray = rgb(0.9, 0.9, 0.9);
         
         const addPage = () => {
             const newPage = pdfDoc.addPage(PageSizes.Letter);
             pages.push(newPage);
-            // Placeholder, will be updated at the end
-            addHeaderAndFooter(newPage, logoImage, logoDims, pages.length, 0, font); 
             return newPage;
         };
-
+        
         const drawCenteredText = (page: PDFPage, text: string, fontToUse: PDFFont, size: number, yPos: number, lineHeightValue?: number): number => {
             const lines = text.split('\n');
             const calculatedLineHeight = lineHeightValue || size * 1.2;
@@ -187,7 +186,6 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         let y = height - 80;
         const leftMargin = 60;
         const contentWidth = width - leftMargin * 2;
-        const denseLineHeight = 10;
         
         y = drawCenteredText(page, "CLIENT SERVICE AGREEMENT", boldFont, 14, y);
         
@@ -199,6 +197,7 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         
         const col1X = leftMargin;
         const col2X = leftMargin + 270;
+        const denseLineHeight = 10;
         
         const fullAddress = [formData.clientAddress, formData.clientCity, formData.clientState, formData.clientPostalCode].filter(Boolean).join(', ');
         drawField(page, y, "Client Name", formData.clientName, font, boldFont, mainFontSize, col1X, col1X + 50);
@@ -300,10 +299,10 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
                 y = height - 80;
             }
             
-            y = drawWrappedText(page, term.title, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight); // bolded header
+            y = drawWrappedText(page, term.title, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight + 4);
             y -= 5;
             y = await drawFormattedWrappedText(page, sanitizeText(term.text), font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
-            y -= 20; // Increased spacing
+            y -= 20; 
             
             if (term.title === "11. INSURANCE:") {
                 y -= 5;
@@ -337,7 +336,7 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
             page = addPage();
             y = height - 80;
             y = drawCenteredText(page, "Transportation Waiver", boldFont, 13, y);
-            y -= 30; // Increased spacing
+            y -= 30;
             
             const waiverText = [
                 "FirstLight HomeCare offers transportation as a convenience to our clients, not as a standalone service.",
@@ -361,54 +360,61 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         
         // --- Home Care Service Plan Page ---
         if (formData.homemakerCompanion || formData.personalCare) {
-            page = addPage(); // Create new page
+            page = addPage();
             y = height - 80;
             y = drawCenteredText(page, "HOME CARE SERVICE PLAN AGREEMENT", boldFont, 11, y);
             y -= 15;
-            
+
             drawText(page, `Client Name: ${formData.clientName || ''}`, {x: leftMargin, y, font, size: mainFontSize});
             y -= 15;
-
             y = drawWrappedText(page, "Frequency and duration of Services to be identified on individualized Client Service Plan", font, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
             y -= 20;
-
+            
             drawText(page, "Companion Care Services", {x: leftMargin, y, font: boldFont, size: mainFontSize});
             y -= 15;
 
             let checkboxX = leftMargin;
             let checkboxY = y;
             const colWidth = (contentWidth / 2) - 10;
+            const checkboxFontSize = 6;
+            const checkboxLineHeight = 15;
+
             for (let i = 0; i < companionCareCheckboxes.length; i++) {
                 const item = companionCareCheckboxes[i];
                 drawCheckbox(page, !!formData[item.id as keyof ClientSignupFormData], checkboxX, checkboxY);
-                drawText(page, item.label, {x: checkboxX + 15, y: checkboxY + 1, font, size: 6});
-                if ((i + 1) % 2 === 0) {
+                drawText(page, item.label, {x: checkboxX + 15, y: checkboxY + 1, font, size: checkboxFontSize});
+                
+                if ((i + 1) % 2 === 0) { // Move to next row
                     checkboxX = leftMargin;
-                    checkboxY -= 15;
-                } else {
+                    checkboxY -= checkboxLineHeight;
+                } else { // Move to next column
                     checkboxX += colWidth + 20;
                 }
             }
-            y = checkboxY - (companionCareCheckboxes.length % 2 === 1 ? 15 : 0) - 5;
+            
+            y = checkboxY - (companionCareCheckboxes.length % 2 === 1 ? checkboxLineHeight : 0) - 5;
             drawText(page, `Other: ${formData.companionCare_other || ''}`, {x: leftMargin, y, font, size: mainFontSize});
             y -= 20;
             
             drawText(page, "Personal Care Services", {x: leftMargin, y, font: boldFont, size: mainFontSize});
             y -= 15;
+            
             checkboxX = leftMargin;
             checkboxY = y;
             for (let i = 0; i < personalCareCheckboxes.length; i++) {
                 const item = personalCareCheckboxes[i];
                 drawCheckbox(page, !!formData[item.id as keyof ClientSignupFormData], checkboxX, checkboxY);
-                drawText(page, item.label, {x: checkboxX + 15, y: checkboxY + 1, font, size: 6});
+                drawText(page, item.label, {x: checkboxX + 15, y: checkboxY + 1, font, size: checkboxFontSize});
+
                 if ((i + 1) % 2 === 0) {
                     checkboxX = leftMargin;
-                    checkboxY -= 15;
+                    checkboxY -= checkboxLineHeight;
                 } else {
                     checkboxX += colWidth + 20;
                 }
             }
-             y = checkboxY - (personalCareCheckboxes.length % 2 === 1 ? 15 : 0) - 5;
+            
+            y = checkboxY - (personalCareCheckboxes.length % 2 === 1 ? checkboxLineHeight : 0) - 5;
             drawText(page, `Assist with other: ${formData.personalCare_assistWithOther || ''}`, {x: leftMargin, y, font, size: mainFontSize});
             y -= 20;
 
@@ -416,11 +422,11 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
             y = await drawFormattedWrappedText(page, disclaimer, font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
             y -= 20;
             
-            drawText(page, `Client Initials: ${formData.servicePlanClientInitials || ''}`, { x: leftMargin, y, font, size: mainFontSize });
+            drawText(page, `Client Initials: ${formData.servicePlanClientInitials || '_____'}`, { x: leftMargin, y, font, size: mainFontSize });
             
-            const officeBoxY = 60; // Absolute position from bottom
+            const officeBoxY = 60;
             drawText(page, "For Office Use Only", { x: leftMargin, y: officeBoxY + 12, font: boldFont, size: mainFontSize });
-            page.drawRectangle({ x: leftMargin, y: officeBoxY - 55, width: 250, height: 60, color: rgb(0.9, 0.9, 0.9) });
+            page.drawRectangle({ x: leftMargin, y: officeBoxY - 55, width: 250, height: 60, color: lightGray });
             const officeDate1 = formData.officeTodaysDate ? format(new Date(formData.officeTodaysDate), "MM/dd/yyyy") : '';
             const officeDate2 = formData.officeReferralDate ? format(new Date(formData.officeReferralDate), "MM/dd/yyyy") : '';
             const officeDate3 = formData.officeInitialContactDate ? format(new Date(formData.officeInitialContactDate), "MM/dd/yyyy") : '';
@@ -464,5 +470,3 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         throw new Error(`Failed to generate PDF: ${error.message}`);
     }
 }
-
-    
