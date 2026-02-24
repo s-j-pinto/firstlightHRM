@@ -106,7 +106,7 @@ export async function generateReferenceVerification2Pdf(formData: any): Promise<
             y = drawWrappedText(page, label, boldFont, smallFontSize, leftMargin + 5, y, contentWidth - 10, 8);
             y -= 2;
             if(value) drawText(page, `Rating: ${value}`, {x: leftMargin + 15, y, font, size: smallFontSize});
-            y -= 8;
+            y -= 16;
         };
 
         drawRating("TEAMWORK: The degree to which you are willing to work harmoniously with others; the extent to which you conform to the policies of management.", formData.teamworkRating2);
