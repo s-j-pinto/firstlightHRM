@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont, PDFPage } from 'pdf-lib';
@@ -68,11 +67,13 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         let y = height - 80;
         const leftMargin = 60;
         const contentWidth = width - leftMargin * 2;
-        const lineHeight = 11;
-        const mainFontSize = 9;
+        const lineHeight = 9;
+        const mainFontSize = 7;
+        const titleFontSize = 9;
+        const signatureLabelFontSize = 6;
 
         // Title
-        y = drawCenteredText(page, "THIRD PARTY PAYOR CLIENT SERVICE AGREEMENT", boldFont, 14, y);
+        y = drawCenteredText(page, "THIRD PARTY PAYOR CLIENT SERVICE AGREEMENT", boldFont, 13, y);
         y -= 25;
 
         // Intro
@@ -85,7 +86,7 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         y -= 25;
 
         // I. CLIENT INFORMATION
-        y = drawCenteredText(page, "I. CLIENT INFORMATION", boldFont, 11, y);
+        y = drawCenteredText(page, "I. CLIENT INFORMATION", boldFont, titleFontSize, y);
         y -= 20;
 
         // Draw Client Info Fields
@@ -103,7 +104,7 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         drawField(page, y, "DOB", dobFormatted, font, boldFont, mainFontSize, leftMargin + 300, leftMargin + 350);
         y -= 30;
 
-        drawText(page, "Emergency Contact:", { x: leftMargin, y, font: boldFont, size: 11 });
+        drawText(page, "Emergency Contact:", { x: leftMargin, y, font: boldFont, size: titleFontSize });
         y -= 15;
         drawField(page, y, "Name", formData.emergencyContactName, font, boldFont, mainFontSize, leftMargin, leftMargin + 150);
         drawField(page, y, "Relationship", formData.emergencyContactRelationship, font, boldFont, mainFontSize, leftMargin + 300, leftMargin + 400);
@@ -112,7 +113,7 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         drawField(page, y, "Work Phone", formData.emergencyContactWorkPhone, font, boldFont, mainFontSize, leftMargin + 300, leftMargin + 400);
         y -= 20;
         
-        drawText(page, "2nd Emergency Contact:", { x: leftMargin, y, font: boldFont, size: 11 });
+        drawText(page, "2nd Emergency Contact:", { x: leftMargin, y, font: boldFont, size: titleFontSize });
         y -= 15;
         drawField(page, y, "Name", formData.secondEmergencyContactName, font, boldFont, mainFontSize, leftMargin, leftMargin + 150);
         drawField(page, y, "Relationship", formData.secondEmergencyContactRelationship, font, boldFont, mainFontSize, leftMargin + 300, leftMargin + 400);
@@ -134,14 +135,14 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         y -= 20;
         
         // II. PAYMENTS FOR THE SERVICES
-        y = drawCenteredText(page, "II. PAYMENTS FOR THE SERVICES", boldFont, 11, y);
+        y = drawCenteredText(page, "II. PAYMENTS FOR THE SERVICES", boldFont, titleFontSize, y);
         y -= 20;
         const payorText = `${formData.payor || '________________'} (“Payor”) will reimburse FirstLight Home Care agreement between FirstLight Home Care and Payor (“Payor Agreement”). FirstLight Home Care will submit claims to Payor in accordance with the provisions of the Payor Agreement and applicable requirements under state or federal law. To the extent Client owes FirstLight Home Care for any cost sharing or other financial obligation for the Services, such amounts shall be determined by Payor in accordance with the Payor Agreement and applicable provisions of state and federal law. Client agrees to notify FirstLight Home Care if Client becomes ineligible to receive the Services under this Agreement. Additional service (payable by Client out of pocket and not covered by Payor) (the “Private Pay Services”) can be arranged upon Client request; provided, however, that FirstLight Home Care’s ability to render Private Pay Services depends on the Payor Agreement and applicable provisions of state and federal law. A separate FirstLight Home Care Private Pay Client Service Agreement must be executed prior to initiation of Private Pay Services.`;
         y = drawWrappedText(page, payorText, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
         y -= 30;
 
         // III. ACKNOWLEDGEMENT & AGREEMENT
-        y = drawCenteredText(page, "III. ACKNOWLEDGEMENT & AGREEMENT", boldFont, 11, y);
+        y = drawCenteredText(page, "III. ACKNOWLEDGEMENT & AGREEMENT", boldFont, titleFontSize, y);
         y -= 20;
         const ackText = `The Client, or his or her authorized representative, consents to receive the Services and acknowledges he or she or they have read, accept, and consent to this Agreement, including the "Terms and Conditions" and all other attached documents, all of which are incorporated into this Agreement.`;
         y = drawWrappedText(page, ackText, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
@@ -151,7 +152,7 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         const sigY = y;
         await drawSignature(page, formData.clientSignature, leftMargin, sigY, 250, 40, pdfDoc);
         page.drawLine({ start: { x: leftMargin, y: sigY-5 }, end: { x: leftMargin + 250, y: sigY-5 }, thickness: 0.5 });
-        drawText(page, "Signed (Client)", { x: leftMargin, y: sigY-15, font: font, size: 8 });
+        drawText(page, "Signed (Client)", { x: leftMargin, y: sigY-15, font: font, size: signatureLabelFontSize });
 
         const clientSigDate = formData.clientSignatureDate ? (typeof formData.clientSignatureDate === 'string' ? formData.clientSignatureDate : format(new Date(formData.clientSignatureDate), 'MM/dd/yyyy')) : '';
         drawField(page, sigY, "Date", clientSigDate, font, boldFont, mainFontSize, leftMargin + 300, leftMargin + 350);
@@ -161,7 +162,7 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         const repSigY = y;
         await drawSignature(page, formData.clientRepresentativeSignature, leftMargin, repSigY, 250, 40, pdfDoc);
         page.drawLine({ start: { x: leftMargin, y: repSigY - 5 }, end: { x: leftMargin + 250, y: repSigY - 5 }, thickness: 0.5 });
-        drawText(page, "Signed (Responsible Party)", { x: leftMargin, y: repSigY - 15, font: font, size: 8 });
+        drawText(page, "Signed (Responsible Party)", { x: leftMargin, y: repSigY - 15, font: font, size: signatureLabelFontSize });
 
         const repSigDate = formData.clientRepresentativeSignatureDate ? (typeof formData.clientRepresentativeSignatureDate === 'string' ? formData.clientRepresentativeSignatureDate : format(new Date(formData.clientRepresentativeSignatureDate), 'MM/dd/yyyy')) : '';
         drawField(page, repSigY, "Date", repSigDate, font, boldFont, mainFontSize, leftMargin + 300, leftMargin + 350);
@@ -171,7 +172,7 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         const firstlightSigY = y;
         await drawSignature(page, formData.firstLightRepresentativeSignature, leftMargin, firstlightSigY, 250, 40, pdfDoc);
         page.drawLine({ start: { x: leftMargin, y: firstlightSigY - 5 }, end: { x: leftMargin + 250, y: firstlightSigY - 5 }, thickness: 0.5 });
-        drawText(page, "(FirstLight Home Care of Representative Signature)", { x: leftMargin, y: firstlightSigY - 15, font: font, size: 8 });
+        drawText(page, "(FirstLight Home Care of Representative Signature)", { x: leftMargin, y: firstlightSigY - 15, font: font, size: signatureLabelFontSize });
 
         const firstlightSigDate = formData.firstLightRepresentativeSignatureDate ? (typeof formData.firstLightRepresentativeSignatureDate === 'string' ? formData.firstLightRepresentativeSignatureDate : format(new Date(formData.firstLightRepresentativeSignatureDate), 'MM/dd/yyyy')) : '';
         drawField(page, firstlightSigY, "Date", firstlightSigDate, font, boldFont, mainFontSize, leftMargin + 300, leftMargin + 350);
@@ -185,7 +186,7 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
             page = pages[currentPageIndex];
             
             if (i === 0) {
-                 y = drawCenteredText(page, "TERMS AND CONDITIONS", boldFont, 11, y);
+                 y = drawCenteredText(page, "TERMS AND CONDITIONS", boldFont, titleFontSize, y);
                  y -= 10;
             }
 
