@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont, PDFPage } from 'pdf-lib';
@@ -22,6 +21,13 @@ const addHeaderAndFooter = (page: PDFPage, logoImage: any, logoDims: any, pageNu
 
     const footerRightText = `FIRST-0084-A (10/2018)          Page ${pageNum} of ${totalPages}`;
     drawText(page, footerRightText, { x: width - 50 - font.widthOfTextAtSize(footerRightText, 7), y: 30, font, size: 7 });
+};
+
+const drawField = (page: PDFPage, y: number, label: string, value: string | undefined | null, font: PDFFont, boldFont: PDFFont, size: number, x: number, valueX: number) => {
+    drawText(page, `${label}:`, { x: x, y, font: boldFont, size });
+    if(value) {
+        drawText(page, value, { x: valueX, y, font, size });
+    }
 };
 
 const privatePayTerms = [
@@ -166,13 +172,14 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         pageIndex++;
         page = pages[pageIndex];
         y = height - 80;
+
         drawText(page, "TERMS AND CONDITIONS", { x: width / 2, y, font: boldFont, size: 11, align: 'center' });
         y -= 30;
 
         for (let i = 0; i < 10; i++) {
             const term = privatePayTerms[i];
-            y = drawWrappedText(page, term.title, boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight);
-            y = drawWrappedText(page, sanitizeText(term.text), font, mainFontSize, leftMargin + 10, y, contentWidth-10, lineHeight);
+            y = drawWrappedText(page, term.title, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
+            y = drawWrappedText(page, sanitizeText(term.text), font, mainFontSize, leftMargin + 10, y, contentWidth-10, regularLineHeight);
             y-= 5;
         }
 
@@ -182,8 +189,8 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         y = height - 80;
         for (let i = 10; i < 17; i++) {
              const term = privatePayTerms[i];
-             y = drawWrappedText(page, term.title, boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight);
-             y = drawWrappedText(page, sanitizeText(term.text), font, mainFontSize, leftMargin + 10, y, contentWidth-10, lineHeight);
+             y = drawWrappedText(page, term.title, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
+             y = drawWrappedText(page, sanitizeText(term.text), font, mainFontSize, leftMargin + 10, y, contentWidth-10, regularLineHeight);
              y -= 5;
              if (term.title === "14. HIRING:") {
                  y -= 10;
@@ -198,8 +205,8 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         y = height - 80;
         for (let i = 17; i < privatePayTerms.length; i++) {
             const term = privatePayTerms[i];
-            y = drawWrappedText(page, term.title, boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight);
-            y = drawWrappedText(page, sanitizeText(term.text), font, mainFontSize, leftMargin + 10, y, contentWidth-10, lineHeight);
+            y = drawWrappedText(page, term.title, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
+            y = drawWrappedText(page, sanitizeText(term.text), font, mainFontSize, leftMargin + 10, y, contentWidth-10, regularLineHeight);
             y -= 10;
             if (term.title === "19. INFORMATION AND DOCUMENTS RECEIVED:") {
                 let checkboxY = y - 5;
@@ -238,7 +245,7 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
             ];
             
             waiverText.forEach(p => {
-                y = drawWrappedText(page, p, font, mainFontSize, leftMargin, y, contentWidth, lineHeight + 2);
+                y = drawWrappedText(page, p, font, mainFontSize, leftMargin, y, contentWidth, regularLineHeight + 2);
                 y -= 10;
             });
             y -= 30;
