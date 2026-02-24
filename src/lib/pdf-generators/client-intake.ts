@@ -49,8 +49,8 @@ async function drawFormattedLine(page: PDFPage, text: string, baseFont: PDFFont,
 }
 
 async function drawFormattedWrappedText(page: PDFPage, text: string, font: PDFFont, boldFont: PDFFont, fontSize: number, x: number, y: number, maxWidth: number, lineHeight: number): Promise<number> {
-    text = sanitizeText(text);
-    const paragraphs = text.split('\n');
+    const sanitized = sanitizeText(text);
+    const paragraphs = sanitized.split('\n');
     let currentY = y;
 
     for (const paragraph of paragraphs) {
@@ -169,15 +169,19 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         const leftMargin = 60;
         const contentWidth = width - leftMargin * 2;
         const denseLineHeight = 10;
-        const regularLineHeight = 9;
+        const regularLineHeight = 11;
         const mainFontSize = 8;
         const titleFontSize = 10;
         const signatureLabelFontSize = 6;
         
-        const drawCenteredText = (text: string, fontToUse: PDFFont, size: number, lineHeight?: number) => {
-            drawText(page, text, { x: 0, y, font: fontToUse, size, align: 'center', lineHeight: lineHeight || size * 1.2 });
-            const lineCount = text.split('\n').length;
-            y -= (lineCount * (lineHeight || size * 1.2));
+        const drawCenteredText = (text: string, fontToUse: PDFFont, size: number, lineHeightValue?: number) => {
+            const lines = text.split('\n');
+            const calculatedLineHeight = lineHeightValue || size * 1.2;
+            for (const line of lines) {
+                const textWidth = fontToUse.widthOfTextAtSize(line, size);
+                drawText(page, line, { x: (width / 2) - (textWidth / 2), y, font: fontToUse, size });
+                y -= calculatedLineHeight;
+            }
             y -= 5;
         };
         
@@ -216,12 +220,11 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         drawField(page, y, "Contact Work Phone", formData.emergencyContactWorkPhone, font, boldFont, mainFontSize, col2X, col2X + 90);
         y -= denseLineHeight;
         
-        drawField(page, y, "2nd Emergency Contact", formData.secondEmergencyContactName, font, boldFont, mainFontSize, col1X, col1X + 100);
-        y -= denseLineHeight;
-        drawField(page, y, "Relationship", formData.secondEmergencyContactRelationship, font, boldFont, mainFontSize, col1X, col1X + 60);
-        drawField(page, y, "Phone", formData.secondEmergencyContactPhone, font, boldFont, mainFontSize, col2X, col2X + 30);
+        drawText(page, "2nd Emergency Contact:", { x: leftMargin, y, font: boldFont, size: mainFontSize });
+        drawField(page, y, "Relationship", formData.secondEmergencyContactRelationship, font, boldFont, mainFontSize, col1X + 200, col1X + 260);
+        drawField(page, y, "Phone", formData.secondEmergencyContactPhone, font, boldFont, mainFontSize, col1X + 380, col1X + 410);
 
-        y -= denseLineHeight;
+        y -= denseLineHeight*2;
 
         drawCheckbox(page, formData.homemakerCompanion, col1X, y);
         drawText(page, "Homemaker/Companion", { x: col1X + 15, y: y+1, font, size: mainFontSize });
@@ -280,14 +283,12 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         pageIndex++;
         y = height - 80;
         
+        page = pages[pageIndex];
+        drawCenteredText("TERMS AND CONDITIONS", boldFont, titleFontSize);
+        y = height - 100;
+        
         for (let i = 0; i < privatePayTerms.length; i++) {
-            page = pages[pageIndex];
             
-            if (i === 0) {
-                 drawCenteredText("TERMS AND CONDITIONS", boldFont, titleFontSize);
-                 y = height - 100;
-            }
-
             const term = privatePayTerms[i];
             const termTitleHeight = boldFont.heightAtSize(mainFontSize) + 5; 
             const termTextHeight = font.heightAtSize(mainFontSize) * Math.ceil(font.widthOfTextAtSize(sanitizeText(term.text), mainFontSize) / contentWidth) + 10;
@@ -301,16 +302,15 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
                 y = height - 80;
             }
 
-            y = await drawFormattedWrappedText(page, term.title, boldFont, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
+            y = drawWrappedText(page, term.title, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight * 1.5);
             y = await drawFormattedWrappedText(page, sanitizeText(term.text), font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
-            y -= (regularLineHeight * 0.5);
+            y -= (regularLineHeight * 1.5);
 
             if (term.title === "14. HIRING:") {
                  y -= 5;
                  drawText(page, `Client Initials: ${formData.clientInitials || '_____'}`, {x: leftMargin + 10, y, font, size: mainFontSize});
                  y -= 15;
-            }
-             if (term.title === "11. INSURANCE:") {
+            } else if (term.title === "11. INSURANCE:") {
                 y -= 5;
                 drawField(page, y, "Policy Number", formData.policyNumber, font, boldFont, mainFontSize, leftMargin, leftMargin + 70);
                 drawField(page, y, "Policy Period", formData.policyPeriod, font, boldFont, mainFontSize, leftMargin + 250, leftMargin + 320);
@@ -351,10 +351,10 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
                 "I specifically accept these risks and waive any claim that I might otherwise have against FirstLight HomeCare with respect to bodily injury or property damage sustained by me in connection with said transportation, and hereby expressly release FirstLight HomeCare and their employees from any and all liability therewith."
             ];
             
-            waiverText.forEach(async p => {
+            for(const p of waiverText) {
                 y = await drawFormattedWrappedText(page, p, font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight + 4);
-                y -= 10;
-            });
+                y -= 15;
+            };
             y -= 30;
 
             await drawSignatureBlock('Client or Responsible Party', formData.transportationWaiverClientSignature, formData.transportationWaiverClientPrintedName, formData.transportationWaiverDate, y);
