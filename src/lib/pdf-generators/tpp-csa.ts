@@ -16,7 +16,9 @@ const addHeaderAndFooter = (page: PDFPage, logoImage: any, logoDims: any, pageNu
     });
     drawText(page, `NO. ${'00000'}`, { x: width - 50 - font.widthOfTextAtSize(`NO. 00000`, 10), y: height - 40, font, size: 10, color: rgb(0.8, 0, 0) });
     
-    drawText(page, `Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated.`, { x: 50, y: 30, font, size: 7 });
+    const footerLeftText = `Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated.`;
+    drawText(page, footerLeftText, { x: 50, y: 30, font, size: 7 });
+
     const footerRightText = `FIRST-0084-A (10/2018)          Page ${pageNum} of ${totalPages}`;
     drawText(page, footerRightText, { x: width - 50 - font.widthOfTextAtSize(footerRightText, 7), y: 30, font, size: 7 });
 };
@@ -57,12 +59,20 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         const logoImage = await pdfDoc.embedPng(logoImageBytes);
         const logoDims = logoImage.scale(0.2);
 
-        const totalPages = 4;
-        const pages = Array.from({ length: totalPages }, () => pdfDoc.addPage(PageSizes.Letter));
+        const allPages: PDFPage[] = [];
+        const addNewPage = () => {
+            const newPage = pdfDoc.addPage(PageSizes.Letter);
+            allPages.push(newPage);
+            return newPage;
+        };
+        
+        // Start with the first 3 pages
+        addNewPage();
+        addNewPage();
+        addNewPage();
 
-        pages.forEach((p, i) => addHeaderAndFooter(p, logoImage, logoDims, i + 1, totalPages, font));
-
-        let page = pages[0];
+        // --- Page 1: Client Info & Signatures ---
+        let page = allPages[0];
         let { width, height } = page.getSize();
         let y = height - 80;
         const leftMargin = 60;
@@ -73,15 +83,15 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         const signatureLabelFontSize = 6;
 
         // Title
-        y = drawCenteredText(page, "THIRD PARTY PAYOR CLIENT SERVICE AGREEMENT", boldFont, 13, y);
-        y -= 15;
+        y = drawCenteredText(page, "THIRD PARTY PAYOR CLIENT SERVICE AGREEMENT", boldFont, 11, y);
+        y -= 25;
 
         // Intro
         const introText = `Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated. This Client Service Agreement (this "Agreement") is entered into between the client, or his or her authorized representative, (the “Client”) and FirstLight Home Care of Rancho Cucamonga (“FirstLight Home Care”).`;
         y = drawWrappedText(page, introText, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
         y -= 15;
         
-        const tppIntro = `FirstLight Home Care will provide non-medical in-hime services (the “services”) specified in the Payor’s authorization and/or Client plan of care as made available by Payor to FirstLight Home Care pursuant to the “Payor Agreement” (as defined below). It is anticipated that Payor will provide Client-specific information to FirstLight Home Care as part of the Payor’s authorization and/or Client plan of care as FirstLight Home Care needs to render the Services and be reimbursed for such Services by the Payor. However Client will cooperate with FirstLight Home Care to the extent FirstLight Home Care requires additional information from Client related to Client in order to provide the Services.`;
+        const tppIntro = `FirstLight Home Care will provide non-medical in-hime services (the “services”) specified in the Payor’s authorization and/or Client plan of care as made available by Payor to FirstLight Home Care pursuant to the “Payor Agreement”  (as defined below). It is anticipated that Payor will provide Client-specific information to FirstLight Home Care as part of the Payor’s authorization and/or Client plan of care as FirstLight Home Care needs to render the Services and be reimbursed for such Services by the Payor. However Client will cooperate with FirstLight Home Care to the extent FirstLight Home Care requires additional information from Client related to Client in order to provide the Services.`;
         y = drawWrappedText(page, tppIntro, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
         y -= 15;
 
@@ -178,12 +188,12 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         drawField(page, firstlightSigY, "Date", firstlightSigDate, font, boldFont, mainFontSize, leftMargin + 300, leftMargin + 350);
         page.drawLine({ start: { x: leftMargin + 350, y: firstlightSigY - 5 }, end: { x: leftMargin + 500, y: firstlightSigY - 5 }, thickness: 0.5 });
 
-        // --- PAGE 2-4: Terms and Conditions etc. ---
+        // --- Page 2-3: Terms and Conditions ---
         let currentPageIndex = 1;
         y = height - 80;
         
         for (let i = 0; i < tppTerms.length; i++) {
-            page = pages[currentPageIndex];
+            page = allPages[currentPageIndex];
             
             if (i === 0) {
                  y = drawCenteredText(page, "TERMS AND CONDITIONS", boldFont, titleFontSize, y);
@@ -198,8 +208,12 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
 
             if (y < estimatedHeight + 60) {
                 currentPageIndex++;
-                if (currentPageIndex >= pages.length) break;
-                page = pages[currentPageIndex];
+                if (currentPageIndex >= allPages.length) {
+                    addNewPage(); // Should not happen with 3 pages but as a safeguard.
+                    page = allPages[currentPageIndex];
+                } else {
+                    page = allPages[currentPageIndex];
+                }
                 y = height - 80;
             }
 
@@ -227,6 +241,53 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
             }
         }
         
+        // --- Transportation Waiver (Optional 4th page) ---
+        if (formData.receivedTransportationWaiver) {
+            page = addNewPage();
+            y = page.getHeight() - 80;
+            y = drawCenteredText(page, "Transportation Waiver", boldFont, 11, y);
+            y -= 30;
+
+            const waiverText = [
+                "FirstLight HomeCare offers transportation as a convenience to our clients, not as a standalone service.",
+                "Upon signing of this waiver, I understand I am authorizing an employee of FirstLight HomeCare to furnish transportation for me as a passenger in either their automobile or my own.",
+                "I will follow all applicable laws, including, but not limited to, the wearing of my seatbelt.",
+                "When the FirstLight HomeCare employee drives my vehicle, I certify current insurance for both liability and physical damage.",
+                "Further, I accept responsibility for any deductibles on my personal automobile insurance coverage incurred as a result of this service.",
+                "I specifically accept these risks and waive any claim that I might otherwise have against FirstLight HomeCare with respect to bodily injury or property damage sustained by me in connection with said transportation, and hereby expressly release FirstLight HomeCare and their employees from any and all liability therewith."
+            ];
+
+            for(const p of waiverText) {
+                y = drawWrappedText(page, p, font, mainFontSize + 1, leftMargin, y, contentWidth, lineHeight + 4);
+                y -= 15;
+            };
+            y -= 30;
+            
+            const waiverSigY = y;
+            await drawSignature(page, formData.transportationWaiverClientSignature, leftMargin + 250, waiverSigY, 150, 30, pdfDoc);
+            page.drawLine({ start: { x: leftMargin + 240, y: waiverSigY - 5 }, end: { x: leftMargin + 420, y: waiverSigY - 5 }, thickness: 0.5 });
+            drawText(page, "Signed (Client or Responsible Party)", { x: leftMargin + 240, y: waiverSigY - 15, font, size: 8 });
+            
+            drawText(page, formData.transportationWaiverClientPrintedName || '', { x: leftMargin, y: waiverSigY, font, size: 10 });
+            page.drawLine({ start: { x: leftMargin, y: waiverSigY - 5 }, end: { x: leftMargin + 200, y: waiverSigY - 5 }, thickness: 0.5 });
+            drawText(page, "Printed Name", { x: leftMargin, y: waiverSigY - 15, font, size: 8 });
+
+            y -= 50;
+            
+            const witnessSigY = y;
+            await drawSignature(page, formData.transportationWaiverWitnessSignature, leftMargin + 250, witnessSigY, 150, 30, pdfDoc);
+            page.drawLine({ start: { x: leftMargin + 240, y: witnessSigY - 5 }, end: { x: leftMargin + 420, y: witnessSigY - 5 }, thickness: 0.5 });
+            drawText(page, "Witness (FirstLight Home Care Representative)", { x: leftMargin + 240, y: witnessSigY - 15, font, size: 8 });
+
+            const waiverDate = (formData.transportationWaiverDate && (formData.transportationWaiverDate.toDate || isDate(formData.transportationWaiverDate))) ? format(formData.transportationWaiverDate.toDate ? formData.transportationWaiverDate.toDate() : formData.transportationWaiverDate, "MM/dd/yyyy") : '';
+            drawText(page, waiverDate, { x: leftMargin, y: witnessSigY, font, size: 10 });
+            page.drawLine({ start: { x: leftMargin, y: witnessSigY - 5 }, end: { x: leftMargin + 180, y: witnessSigY - 5 }, thickness: 0.5 });
+            drawText(page, "Date", { x: leftMargin, y: witnessSigY - 15, font, size: 8 });
+        }
+        
+        // Add headers and footers to all pages
+        allPages.forEach((p, i) => addHeaderAndFooter(p, logoImage, logoDims, i + 1, allPages.length, font));
+        
         // Finalize and save
         const pdfBytes = await pdfDoc.save();
         return Buffer.from(pdfBytes);
@@ -235,5 +296,4 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         throw new Error(`Failed to generate PDF: ${error.message}`);
     }
 }
-
-    
+        
