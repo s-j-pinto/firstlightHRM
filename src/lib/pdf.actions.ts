@@ -18,3 +18,6 @@ export { generateConfidentialityAgreementPdf } from './pdf-generators/confidenti
 export { generateTrainingAcknowledgementPdf } from './pdf-generators/training-acknowledgement';
 export { generateOfferLetterPdf } from './pdf-generators/offer-letter';
 export { generateClientIntakePdf } from './pdf-generators/client-intake';
+export { generateTppCsaPdf } from './pdf-generators/tpp-csa';
+
+    

@@ -7,7 +7,7 @@ import { serverDb, serverAuth } from '@/firebase/server-init';
 import { getStorage } from 'firebase-admin/storage';
 import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
-import { generateClientIntakePdf } from './pdf.actions';
+import { generateClientIntakePdf, generateTppCsaPdf } from './pdf.actions';
 import { finalizationSchema, tppFinalizationSchema, clientSignaturePayloadSchema, tppClientSignaturePayloadSchema } from './types';
 
 const clientSignupSchema = z.object({
@@ -420,8 +420,9 @@ export async function finalizeAndSubmit(signupId: string, formData: any) {
         const clientEmail = validation.data.clientEmail;
         const clientName = validation.data.clientName || 'Client';
 
-        // 1. Generate PDF with the latest data
-        const pdfBytes = await generateClientIntakePdf(validation.data, formType);
+        const pdfBytes = formType === 'tpp'
+            ? await generateTppCsaPdf(validation.data)
+            : await generateClientIntakePdf(validation.data);
         
         // 2. Upload to Firebase Storage
         const bucket = getStorage().bucket("gs://firstlighthomecare-hrm.firebasestorage.app");
@@ -512,7 +513,10 @@ export async function finalizeAndSubmit(signupId: string, formData: any) {
 
 export async function previewClientIntakePdf(formData: any, formType: 'private' | 'tpp' = 'private') {
     try {
-        const pdfBytes = await generateClientIntakePdf(formData, formType);
+        const pdfBytes = formType === 'tpp'
+            ? await generateTppCsaPdf(formData)
+            : await generateClientIntakePdf(formData);
+
         const pdfBase64 = Buffer.from(pdfBytes).toString('base64');
         return { pdfData: pdfBase64 };
     } catch (error: any) {
@@ -523,3 +527,6 @@ export async function previewClientIntakePdf(formData: any, formType: 'private' 
 
     
 
+
+
+    
