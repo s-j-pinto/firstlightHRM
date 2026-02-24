@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont, PDFPage } from 'pdf-lib';
@@ -200,7 +201,7 @@ async function drawServicePlanPageContent(page: PDFPage, formData: ClientSignupF
     
     // Position this box higher, relative to the bottom of the content.
     const boxHeight = 60;
-    const boxY = y - 70; // Moved up by changing subtraction from 40 to 70
+    const boxY = y - 90;
     page.drawRectangle({ x: leftMargin, y: boxY - 55, width: 250, height: boxHeight, color: rgb(0.95, 0.95, 0.95), borderColor: rgb(0.8, 0.8, 0.8), borderWidth: 0.5 });
     let textY = boxY - 5;
     drawText(page, "For Office Use Only", {x: leftMargin + 5, y: textY, font: boldFont, size: mainFontSize});
@@ -250,7 +251,6 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         y -= 15;
         const introText = `Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated. This Client Service Agreement (the "Agreement") is entered into between the client, or his or her authorized representative, (the "Client") and FirstLight Home Care of Rancho Cucamonga, address 9650 Business Center drive, Suite 132, Rancho Cucamonga CA 91730 phone number 9093214466 ("FirstLight Home Care")`;
         y = await drawFormattedWrappedText(page, introText, font, boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight);
-        y -= 15;
         
         y = drawCenteredText(page, "I. CLIENT INFORMATION", boldFont, titleFontSize, y);
         y -= 20;
@@ -280,13 +280,13 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         drawField(page, y, "Contact Work Phone", formData.emergencyContactWorkPhone, font, boldFont, mainFontSize, col2X, col2X + 90);
         y -= 15;
         
-        drawText(page, "2nd Emergency Contact:", { x: col1X, y, font: boldFont, size: mainFontSize });
-        y -= 15;
-        drawField(page, y, "Name", formData.secondEmergencyContactName, font, boldFont, mainFontSize, col1X, col1X + 30);
-        drawField(page, y, "Relationship", formData.secondEmergencyContactRelationship, font, boldFont, mainFontSize, leftMargin + 250, leftMargin + 320);
-        y-= 15;
-        drawField(page, y, "Phone", formData.secondEmergencyContactPhone, font, boldFont, mainFontSize, col1X, col1X + 30);
-        y -= 20;
+        const secondContactY = y;
+        drawText(page, "2nd Emergency Contact:", { x: col1X, y: secondContactY + 5, font: boldFont, size: mainFontSize });
+        
+        drawText(page, `Name: ${formData.secondEmergencyContactName || ''}`, {x: leftMargin, y: secondContactY - 10, font, size: mainFontSize});
+        drawText(page, `Relationship: ${formData.secondEmergencyContactRelationship || ''}`, {x: leftMargin + 200, y: secondContactY - 10, font, size: mainFontSize});
+        drawText(page, `Phone: ${formData.secondEmergencyContactPhone || ''}`, {x: leftMargin + 380, y: secondContactY - 10, font, size: mainFontSize});
+        y -= 30;
 
         drawCheckbox(page, formData.homemakerCompanion, leftMargin, y);
         drawText(page, "Homemaker/Companion", { x: leftMargin + 15, y: y+1, font, size: mainFontSize });
@@ -295,7 +295,6 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         y -= 20;
         
         y = await drawFormattedWrappedText(page, `FirstLight Home Care of Rancho Cucamonga will provide non-medical in-home services (the "Services") specified in the attached Service Plan Agreement (the "Service Plan")`, font, boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight);
-        y -= 20;
         
         y = drawCenteredText(page, "II. PAYMENTS FOR THE SERVICES", boldFont, titleFontSize, y);
         y-=10;
@@ -310,7 +309,6 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         const cancellationTextWidth = font.widthOfTextAtSize(cancellationText, mainFontSize);
         page.drawRectangle({ x: (width / 2) - (cancellationTextWidth / 2) - 4 , y: y - lineHeight + 2, width: cancellationTextWidth + 8, height: lineHeight, color: rgb(1, 1, 0.6) });
         y = drawWrappedText(page, cancellationText, font, mainFontSize, (width / 2) - (cancellationTextWidth / 2), y, contentWidth, lineHeight);
-        y -= 15;
         
         y = drawCenteredText(page, "III. ACKNOWLEDGEMENT & AGREEMENT", boldFont, titleFontSize, y);
         y-=10;
@@ -509,5 +507,3 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         throw new Error(`Failed to generate PDF: ${error.message}`);
     }
 }
-
-    
