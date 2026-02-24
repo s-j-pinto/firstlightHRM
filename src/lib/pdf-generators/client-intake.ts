@@ -198,8 +198,9 @@ async function drawServicePlanPageContent(page: PDFPage, formData: ClientSignupF
 
     drawText(page, `Client Initials: ${formData.servicePlanClientInitials || '_____'}`, { x: leftMargin, y, font, size: mainFontSize });
     
+    // Position this box higher, relative to the bottom of the content.
     const boxHeight = 60;
-    const boxY = 100;
+    const boxY = y - 70; // Moved up by changing subtraction from 40 to 70
     page.drawRectangle({ x: leftMargin, y: boxY - 55, width: 250, height: boxHeight, color: rgb(0.95, 0.95, 0.95), borderColor: rgb(0.8, 0.8, 0.8), borderWidth: 0.5 });
     let textY = boxY - 5;
     drawText(page, "For Office Use Only", {x: leftMargin + 5, y: textY, font: boldFont, size: mainFontSize});
@@ -213,6 +214,7 @@ async function drawServicePlanPageContent(page: PDFPage, formData: ClientSignupF
     const officeDate3 = formData.officeInitialContactDate ? format(new Date(formData.officeInitialContactDate), "MM/dd/yyyy") : '';
     drawText(page, `DATE OF INITIAL CLIENT CONTACT: ${officeDate3}`, {x: leftMargin + 5, y: textY, font, size: mainFontSize});
 }
+
 
 export async function generateClientIntakePdf(formData: ClientSignupFormData): Promise<Buffer> {
     try {
@@ -248,10 +250,10 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         y -= 15;
         const introText = `Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated. This Client Service Agreement (the "Agreement") is entered into between the client, or his or her authorized representative, (the "Client") and FirstLight Home Care of Rancho Cucamonga, address 9650 Business Center drive, Suite 132, Rancho Cucamonga CA 91730 phone number 9093214466 ("FirstLight Home Care")`;
         y = await drawFormattedWrappedText(page, introText, font, boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight);
-        y -= 25;
+        y -= 15;
         
         y = drawCenteredText(page, "I. CLIENT INFORMATION", boldFont, titleFontSize, y);
-        y -= 10;
+        y -= 20;
 
         const col1X = leftMargin;
         const col2X = leftMargin + 270;
@@ -292,10 +294,6 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         drawText(page, "Personal Care", { x: col2X + 15, y: y+1, font, size: mainFontSize });
         y -= 20;
         
-        const scheduleText = `Scheduled Frequency:      Days/Wk: ${formData.daysPerWeek || '____'}      Hrs/Day: ${formData.hoursPerDay || '____'}      Contract Start Date: ${formData.contractStartDate ? (typeof formData.contractStartDate === 'string' ? formData.contractStartDate : format(new Date(formData.contractStartDate), 'MM/dd/yyyy')) : '____'}`;
-        y = drawWrappedText(page, scheduleText, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
-        y -= 15;
-
         y = await drawFormattedWrappedText(page, `FirstLight Home Care of Rancho Cucamonga will provide non-medical in-home services (the "Services") specified in the attached Service Plan Agreement (the "Service Plan")`, font, boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight);
         y -= 20;
         
@@ -312,7 +310,7 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         const cancellationTextWidth = font.widthOfTextAtSize(cancellationText, mainFontSize);
         page.drawRectangle({ x: (width / 2) - (cancellationTextWidth / 2) - 4 , y: y - lineHeight + 2, width: cancellationTextWidth + 8, height: lineHeight, color: rgb(1, 1, 0.6) });
         y = drawWrappedText(page, cancellationText, font, mainFontSize, (width / 2) - (cancellationTextWidth / 2), y, contentWidth, lineHeight);
-        y -= 25;
+        y -= 15;
         
         y = drawCenteredText(page, "III. ACKNOWLEDGEMENT & AGREEMENT", boldFont, titleFontSize, y);
         y-=10;
@@ -378,7 +376,7 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
             if(term.title === "11. INSURANCE:" || term.title === "14. HIRING:") estimatedHeight += 40;
             if (term.title === "19. INFORMATION AND DOCUMENTS RECEIVED:") estimatedHeight += 60;
 
-            if (y < estimatedHeight) {
+            if (y < estimatedHeight + 60) {
                 page = addNewPage();
                 y = page.getHeight() - 80;
             }
@@ -511,3 +509,5 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         throw new Error(`Failed to generate PDF: ${error.message}`);
     }
 }
+
+    
