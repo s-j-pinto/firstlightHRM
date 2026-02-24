@@ -78,6 +78,7 @@ export async function generateReferenceVerification2Pdf(formData: any): Promise<
         y -= 28;
 
         const employerBoxStartY = y;
+        y -= 10;
         drawText(page, "FORMER EMPLOYER CONTACT INFORMATION", {x: leftMargin, y, font: boldFont, size: smallFontSize});
         y -= 15;
 
@@ -97,10 +98,11 @@ export async function generateReferenceVerification2Pdf(formData: any): Promise<
         y -= 15;
 
         const referenceBoxStartY = y;
+        y -= 10;
         drawText(page, "REFERENCE INFORMATION", {x: leftMargin, y, font: boldFont, size: smallFontSize});
         y -= 10;
         drawText(page, "Please rate yourself in the following categories as you feel your former supervisor will rate you:", {x: leftMargin, y, font, size: smallFontSize});
-        y -= 6;
+        y -= 16;
 
         const drawRating = (label: string, value: string | undefined) => {
             y = drawWrappedText(page, label, boldFont, smallFontSize, leftMargin + 5, y, contentWidth - 10, 8);
