@@ -1,9 +1,10 @@
 
+
 'use server';
 
 import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont, PDFPage } from 'pdf-lib';
 import { format, isDate } from 'date-fns';
-import { sanitizeText, drawText, drawCheckbox, drawSignature, drawWrappedText } from './utils';
+import { sanitizeText, drawText, drawCheckbox, drawSignature, drawWrappedText, drawCenteredText } from './utils';
 import type { ClientSignupFormData } from '../types';
 
 const addHeaderAndFooter = (page: PDFPage, logoImage: any, logoDims: any, pageNum: number, totalPages: number, font: PDFFont) => {
@@ -70,19 +71,8 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         const lineHeight = 11;
         const mainFontSize = 9;
 
-        const drawCenteredText = (text: string, fontToUse: PDFFont, size: number, lineHeightValue?: number) => {
-            const lines = text.split('\n');
-            const calculatedLineHeight = lineHeightValue || size * 1.2;
-            for (const line of lines) {
-                const textWidth = fontToUse.widthOfTextAtSize(line, size);
-                drawText(page, line, { x: (width / 2) - (textWidth / 2), y, font: fontToUse, size });
-                y -= calculatedLineHeight;
-            }
-            y -= 5;
-        };
-
         // Title
-        drawCenteredText("THIRD PARTY PAYOR CLIENT SERVICE AGREEMENT", boldFont, 14);
+        y = drawCenteredText(page, "THIRD PARTY PAYOR CLIENT SERVICE AGREEMENT", boldFont, 14, y);
         y -= 25;
 
         // Intro
@@ -95,7 +85,7 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         y -= 25;
 
         // I. CLIENT INFORMATION
-        drawCenteredText("I. CLIENT INFORMATION", boldFont, 11);
+        y = drawCenteredText(page, "I. CLIENT INFORMATION", boldFont, 11, y);
         y -= 20;
 
         // Draw Client Info Fields
@@ -144,14 +134,14 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         y -= 20;
         
         // II. PAYMENTS FOR THE SERVICES
-        drawCenteredText("II. PAYMENTS FOR THE SERVICES", boldFont, 11);
+        y = drawCenteredText(page, "II. PAYMENTS FOR THE SERVICES", boldFont, 11, y);
         y -= 20;
         const payorText = `${formData.payor || '________________'} (“Payor”) will reimburse FirstLight Home Care agreement between FirstLight Home Care and Payor (“Payor Agreement”). FirstLight Home Care will submit claims to Payor in accordance with the provisions of the Payor Agreement and applicable requirements under state or federal law. To the extent Client owes FirstLight Home Care for any cost sharing or other financial obligation for the Services, such amounts shall be determined by Payor in accordance with the Payor Agreement and applicable provisions of state and federal law. Client agrees to notify FirstLight Home Care if Client becomes ineligible to receive the Services under this Agreement. Additional service (payable by Client out of pocket and not covered by Payor) (the “Private Pay Services”) can be arranged upon Client request; provided, however, that FirstLight Home Care’s ability to render Private Pay Services depends on the Payor Agreement and applicable provisions of state and federal law. A separate FirstLight Home Care Private Pay Client Service Agreement must be executed prior to initiation of Private Pay Services.`;
         y = drawWrappedText(page, payorText, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
         y -= 30;
 
         // III. ACKNOWLEDGEMENT & AGREEMENT
-        drawCenteredText("III. ACKNOWLEDGEMENT & AGREEMENT", boldFont, 11);
+        y = drawCenteredText(page, "III. ACKNOWLEDGEMENT & AGREEMENT", boldFont, 11, y);
         y -= 20;
         const ackText = `The Client, or his or her authorized representative, consents to receive the Services and acknowledges he or she or they have read, accept, and consent to this Agreement, including the "Terms and Conditions" and all other attached documents, all of which are incorporated into this Agreement.`;
         y = drawWrappedText(page, ackText, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
@@ -195,8 +185,8 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
             page = pages[currentPageIndex];
             
             if (i === 0) {
-                 drawCenteredText("TERMS AND CONDITIONS", boldFont, 11);
-                 y = height - 100;
+                 y = drawCenteredText(page, "TERMS AND CONDITIONS", boldFont, 11, y);
+                 y -= 10;
             }
 
             const term = tppTerms[i];

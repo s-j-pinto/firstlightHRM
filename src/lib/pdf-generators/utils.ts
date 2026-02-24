@@ -28,6 +28,22 @@ export function drawText(page: PDFPage, text: string | undefined, options: { x: 
     }
 }
 
+// Helper to draw centered text, handling multiple lines.
+export function drawCenteredText(page: PDFPage, text: string, font: PDFFont, size: number, y: number, lineHeight?: number): number {
+    const { width } = page.getSize();
+    const lines = text.split('\n');
+    let currentY = y;
+    const lHeight = lineHeight || size * 1.2;
+
+    for (const line of lines) {
+        const textWidth = font.widthOfTextAtSize(line, size);
+        const x = (width / 2) - (textWidth / 2);
+        page.drawText(line, { x, y: currentY, font, size, color: rgb(0, 0, 0) });
+        currentY -= lHeight;
+    }
+    return currentY;
+}
+
 // Helper to draw a checkbox
 export function drawCheckbox(page: PDFPage, checked: boolean | undefined, x: number, y: number) {
     if (checked) {
