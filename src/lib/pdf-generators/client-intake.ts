@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont, PDFPage } from 'pdf-lib';
@@ -31,42 +30,6 @@ const drawField = (page: PDFPage, y: number, label: string, value: string | unde
     }
 };
 
-async function drawFormattedWrappedText(page: PDFPage, text: string, font: PDFFont, boldFont: PDFFont, fontSize: number, x: number, y: number, maxWidth: number, lineHeight: number): Promise<number> {
-    const parts = text.split(/(FirstLight Home Care of Rancho Cucamonga)/g);
-    let currentX = x;
-    let currentY = y;
-    let lineText = '';
-
-    for (const part of parts) {
-        const isBold = part === "FirstLight Home Care of Rancho Cucamonga";
-        const currentFont = isBold ? boldFont : font;
-        const words = part.split(' ');
-
-        for (const word of words) {
-            if (word === '') continue;
-            const wordWithSpace = word + ' ';
-            const testLine = lineText + wordWithSpace;
-            const testLineWidth = font.widthOfTextAtSize(testLine, fontSize); // Use base font for width calculation for simplicity
-
-            if (testLineWidth > maxWidth && lineText !== '') {
-                // Draw the accumulated line before starting a new one
-                await drawFormattedLine(page, lineText, font, boldFont, fontSize, x, currentY);
-                currentY -= lineHeight;
-                lineText = wordWithSpace;
-            } else {
-                lineText += wordWithSpace;
-            }
-        }
-    }
-
-    if (lineText.trim() !== '') {
-        await drawFormattedLine(page, lineText, font, boldFont, fontSize, x, currentY);
-        currentY -= lineHeight;
-    }
-
-    return currentY;
-}
-
 async function drawFormattedLine(page: PDFPage, text: string, baseFont: PDFFont, boldFont: PDFFont, fontSize: number, x: number, y: number) {
     const parts = text.split(/(FirstLight Home Care of Rancho Cucamonga)/g);
     let currentX = x;
@@ -85,6 +48,46 @@ async function drawFormattedLine(page: PDFPage, text: string, baseFont: PDFFont,
     }
 }
 
+async function drawFormattedWrappedText(page: PDFPage, text: string, font: PDFFont, boldFont: PDFFont, fontSize: number, x: number, y: number, maxWidth: number, lineHeight: number): Promise<number> {
+    text = sanitizeText(text);
+    const paragraphs = text.split('\n');
+    let currentY = y;
+
+    for (const paragraph of paragraphs) {
+        if (paragraph.trim() === '') {
+            currentY -= lineHeight;
+            continue;
+        }
+
+        const parts = paragraph.split(/(FirstLight Home Care of Rancho Cucamonga)/g);
+        let lineText = '';
+
+        for (const part of parts) {
+            const words = part.split(' ');
+            for (const word of words) {
+                if (word === '') continue;
+                const wordWithSpace = word + ' ';
+                const testLine = lineText + wordWithSpace;
+                
+                const testLineWidth = font.widthOfTextAtSize(testLine.replace(/FirstLight Home Care of Rancho Cucamonga/g, ''), fontSize) + boldFont.widthOfTextAtSize(testLine.match(/FirstLight Home Care of Rancho Cucamonga/g)?.join('') || '', fontSize);
+
+                if (testLineWidth > maxWidth && lineText !== '') {
+                    await drawFormattedLine(page, lineText, font, boldFont, fontSize, x, currentY);
+                    currentY -= lineHeight;
+                    lineText = wordWithSpace;
+                } else {
+                    lineText += wordWithSpace;
+                }
+            }
+        }
+        
+        if (lineText.trim() !== '') {
+            await drawFormattedLine(page, lineText.trim(), font, boldFont, fontSize, x, currentY);
+            currentY -= lineHeight;
+        }
+    }
+    return currentY;
+}
 
 const privatePayTerms = [
     { title: "1. BUSINESS OPERATIONS:", text: "FirstLight Home Care of Rancho Cucamonga is independently owned and operated as a franchisee of FirstLight Home Care Franchising, LLC. FirstLight Home Care of Rancho Cucamonga is licensed by the California Department of Social Services as a Home Care Organization (as defined in Cal. Health & Safety Code § 1796.12) and is in compliance with California Department of Social Services requirements, including registration and background check requirements for home care aids who work for Home Care Organizations." },
@@ -166,7 +169,7 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         const leftMargin = 60;
         const contentWidth = width - leftMargin * 2;
         const denseLineHeight = 10;
-        const regularLineHeight = 9;
+        const regularLineHeight = 8;
         const mainFontSize = 8;
         const titleFontSize = 10.5;
         const signatureLabelFontSize = 6;
@@ -184,7 +187,7 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         y = await drawFormattedWrappedText(page, introText, font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
         y -= 25;
         
-        drawCenteredText("I. CLIENT INFORMATION", boldFont, 10);
+        drawCenteredText("I. CLIENT INFORMATION", boldFont, titleFontSize);
         y -= 5;
         
         const col1X = leftMargin;
@@ -213,8 +216,10 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         y -= denseLineHeight;
         
         drawField(page, y, "2nd Emergency Contact:", formData.secondEmergencyContactName, font, boldFont, mainFontSize, col1X, col1X + 100);
-        drawField(page, y, "Relationship:", formData.secondEmergencyContactRelationship, font, boldFont, mainFontSize, col2X, col2X + 60);
-        drawField(page, y, "Phone:", formData.secondEmergencyContactPhone, font, boldFont, mainFontSize, col2X + 150, col2X + 180);
+        y -= denseLineHeight;
+        drawField(page, y, "Relationship:", formData.secondEmergencyContactRelationship, font, boldFont, mainFontSize, col1X, col1X + 60);
+        drawField(page, y, "Phone:", formData.secondEmergencyContactPhone, font, boldFont, mainFontSize, col2X, col2X + 30);
+
         y -= denseLineHeight;
 
         drawCheckbox(page, formData.homemakerCompanion, col1X, y);
@@ -227,7 +232,7 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         y = await drawFormattedWrappedText(page, servicePlanIntro, font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
         y -= 20;
         
-        drawCenteredText("II. PAYMENTS FOR THE SERVICES", boldFont, 10);
+        drawCenteredText("II. PAYMENTS FOR THE SERVICES", boldFont, titleFontSize);
         y -= 5;
 
         const rateCardDateFormatted = formData.rateCardDate ? (typeof formData.rateCardDate === 'string' ? formData.rateCardDate : format(new Date(formData.rateCardDate), 'MM/dd/yyyy')) : '____________';
@@ -243,7 +248,7 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         y = drawWrappedText(page, cancellationText, font, mainFontSize, (width / 2) - (cancellationTextWidth / 2), y, cancellationTextWidth, regularLineHeight);
         y -= 25;
         
-        drawCenteredText("III. ACKNOWLEDGEMENT & AGREEMENT", boldFont, 10);
+        drawCenteredText("III. ACKNOWLEDGEMENT & AGREEMENT", boldFont, titleFontSize);
         y -= 5;
         const ackText = `The Client, or his or her authorized representative, consents to receive the Services and acknowledges he or she or they have read, accept, and consent to this Agreement, including the "Terms and Conditions" and all other attached documents, all of which are incorporated into this Agreement.`;
         y = drawWrappedText(page, ackText, font, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
@@ -274,11 +279,11 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         pageIndex++;
         page = pages[pageIndex];
         y = height - 80;
-        drawCenteredText("TERMS AND CONDITIONS", boldFont, 10);
+        drawCenteredText("TERMS AND CONDITIONS", boldFont, titleFontSize);
         y -= 20;
         for (let i = 0; i < 10; i++) {
             const term = privatePayTerms[i];
-            y = drawWrappedText(page, term.title, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
+            y = await drawFormattedWrappedText(page, term.title, boldFont, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
             y = await drawFormattedWrappedText(page, sanitizeText(term.text), font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
             y -= (regularLineHeight * 1.5);
         }
@@ -289,7 +294,7 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         y = height - 80;
         for (let i = 10; i < 17; i++) {
              const term = privatePayTerms[i];
-             y = drawWrappedText(page, term.title, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
+             y = await drawFormattedWrappedText(page, term.title, boldFont, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
              y = await drawFormattedWrappedText(page, sanitizeText(term.text), font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
              if (term.title === "14. HIRING:") {
                  y -= 5;
@@ -306,7 +311,7 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         y = height - 80;
         for (let i = 17; i < privatePayTerms.length; i++) {
             const term = privatePayTerms[i];
-            y = drawWrappedText(page, term.title, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
+            y = await drawFormattedWrappedText(page, term.title, boldFont, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
             y = await drawFormattedWrappedText(page, sanitizeText(term.text), font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
             y -= (regularLineHeight * 1.5);
 
@@ -347,7 +352,7 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
             ];
             
             waiverText.forEach(async p => {
-                y = await drawFormattedWrappedText(page, p, font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
+                y = await drawFormattedWrappedText(page, p, font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight + 4);
                 y -= 18;
             });
             y -= 30;
@@ -367,7 +372,8 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
             y -= 10;
             drawText(page, `Client Name: ${formData.clientName || ''}`, {x: leftMargin, y, font, size: mainFontSize});
             y -= 20;
-            y = drawWrappedText(page, "Frequency and duration of Services to be identified on individualized Client Service Plan", font, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
+            const servicePlanIntro = `Frequency and duration of Services to be identified on individualized Client Service Plan`;
+            y = drawWrappedText(page, servicePlanIntro, font, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
             y -= 20;
 
             drawText(page, "Companion Care Services", {x: leftMargin, y, font: boldFont, size: 8});
@@ -410,7 +416,8 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
             drawText(page, `Assist with other: ${formData.personalCare_assistWithOther || ''}`, {x: leftMargin, y, font, size: mainFontSize});
             y -= 20;
 
-            y = await drawFormattedWrappedText(page, "Firstlight Home Care of Rancho Cucamonga provides Personal Care Services as defined under Cal. Health & Safety Code § 1796.12 and does not provide medical services or function as a home health agency.", font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
+            const personalCareIntro = `FirstLight Home Care of Rancho Cucamonga provides Personal Care Services as defined under Cal. Health & Safety Code § 1796.12 and does not provide medical services or function as a home health agency.`;
+            y = await drawFormattedWrappedText(page, personalCareIntro, font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
             y -= 20;
             
             drawText(page, `Client Initials: ${formData.servicePlanClientInitials || ''}`, {x: leftMargin, y, font, size: mainFontSize});
