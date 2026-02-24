@@ -220,7 +220,7 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         drawField(page, y, "Contact Work Phone", formData.emergencyContactWorkPhone, font, boldFont, mainFontSize, col2X, col2X + 90);
         y -= denseLineHeight;
         
-        drawText(page, "2nd Emergency Contact:", { x: leftMargin, y, font: boldFont, size: mainFontSize });
+        drawField(page, y, "2nd Emergency Contact", formData.secondEmergencyContactName, font, boldFont, mainFontSize, col1X, col1X + 100);
         drawField(page, y, "Relationship", formData.secondEmergencyContactRelationship, font, boldFont, mainFontSize, col1X + 200, col1X + 260);
         drawField(page, y, "Phone", formData.secondEmergencyContactPhone, font, boldFont, mainFontSize, col1X + 380, col1X + 410);
 
@@ -420,17 +420,18 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
             y = await drawFormattedWrappedText(page, personalCareIntro, font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
             y -= 20;
             
-            drawText(page, `Client Initials: ${formData.servicePlanClientInitials || ''}`, {x: leftMargin, y, font, size: mainFontSize});
-            y -= 30;
-
-            drawText(page, "For Office Use Only", {x: leftMargin, y, font: boldFont, size: 9});
-            page.drawRectangle({x: leftMargin, y: y - 80, width: contentWidth, height: 80, color: rgb(0.9, 0.9, 0.9)});
+            y = drawWrappedText(page, `Client Initials: ${formData.servicePlanClientInitials || ''}`, { x: leftMargin, y, font, size: mainFontSize });
+            y -= 20;
+            
+            const officeBoxY = 60;
+            drawText(page, "For Office Use Only", {x: leftMargin, y: officeBoxY + 85, font: boldFont, size: 9});
+            page.drawRectangle({x: leftMargin, y: officeBoxY, width: contentWidth, height: 80, color: rgb(0.9, 0.9, 0.9)});
             const officeDate1 = formData.officeTodaysDate ? format(new Date(formData.officeTodaysDate), "MM/dd/yyyy") : '';
             const officeDate2 = formData.officeReferralDate ? format(new Date(formData.officeReferralDate), "MM/dd/yyyy") : '';
             const officeDate3 = formData.officeInitialContactDate ? format(new Date(formData.officeInitialContactDate), "MM/dd/yyyy") : '';
-            drawText(page, `TODAY'S DATE: ${officeDate1}`, {x: leftMargin + 5, y: y - 30, font, size: mainFontSize});
-            drawText(page, `REFERRAL DATE: ${officeDate2}`, {x: leftMargin + 200, y: y - 30, font, size: mainFontSize});
-            drawText(page, `DATE OF INITIAL CLIENT CONTACT: ${officeDate3}`, {x: leftMargin + 5, y: y - 50, font, size: mainFontSize});
+            drawText(page, `TODAY'S DATE: ${officeDate1}`, {x: leftMargin + 5, y: officeBoxY + 50, font, size: mainFontSize});
+            drawText(page, `REFERRAL DATE: ${officeDate2}`, {x: leftMargin + 200, y: officeBoxY + 50, font, size: mainFontSize});
+            drawText(page, `DATE OF INITIAL CLIENT CONTACT: ${officeDate3}`, {x: leftMargin + 5, y: officeBoxY + 20, font, size: mainFontSize});
         }
         
         // --- Agreement Page ---
@@ -466,3 +467,5 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         throw new Error(`Failed to generate PDF: ${error.message}`);
     }
 }
+
+    
