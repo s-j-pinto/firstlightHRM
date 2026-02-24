@@ -14,14 +14,15 @@ const addHeaderAndFooter = (page: PDFPage, logoImage: any, logoDims: any, pageNu
         width: logoDims.width,
         height: logoDims.height,
     });
-    drawText(page, `NO. ${'00000'}`, { x: width - 50 - font.widthOfTextAtSize(`NO. 00000`, 9), y: height - 40, font, size: 9, color: rgb(0.8, 0, 0) });
+    drawText(page, `NO. ${'00000'}`, { x: width - 50 - font.widthOfTextAtSize(`NO. 00000`, 10), y: height - 40, font, size: 10, color: rgb(0.8, 0, 0) });
     
     const footerLeftText = `Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated.`;
-    drawText(page, footerLeftText, { x: 50, y: 30, font, size: 6 });
+    drawText(page, footerLeftText, { x: 50, y: 30, font, size: 7 });
 
     const footerRightText = `FIRST-0084-A (10/2018)          Page ${pageNum} of ${totalPages}`;
-    drawText(page, footerRightText, { x: width - 50 - font.widthOfTextAtSize(footerRightText, 6), y: 30, font, size: 6 });
+    drawText(page, footerRightText, { x: width - 50 - font.widthOfTextAtSize(footerRightText, 7), y: 30, font, size: 7 });
 };
+
 
 const drawField = (page: PDFPage, y: number, label: string, value: string | undefined | null, font: PDFFont, boldFont: PDFFont, size: number, x: number, valueX: number) => {
     drawText(page, `${label}:`, { x: x, y, font: boldFont, size });
@@ -130,9 +131,9 @@ const companionCareCheckboxes = [
     { id: 'companionCare_stimulateMentalAwareness', label: 'Stimulate mental awareness - read' },
     { id: 'companionCare_assistWithDressingAndGrooming', label: 'Assist with dressing and grooming' },
     { id: 'companionCare_assistWithShavingAndOralCare', label: 'Assist with shaving and oral care' },
-  ] as const;
+] as const;
 
-  const personalCareCheckboxes = [
+const personalCareCheckboxes = [
     { id: 'personalCare_provideAlzheimersCare', label: "Provide Alzheimer's care, cognitive impairment" },
     { id: 'personalCare_provideMedicationReminders', label: 'Provide medication reminders' },
     { id: 'personalCare_assistWithDressingGrooming', label: 'Assist with dressing, grooming' },
@@ -140,7 +141,7 @@ const companionCareCheckboxes = [
     { id: 'personalCare_assistWithFeedingSpecialDiets', label: 'Assist with feeding, special diets' },
     { id: 'personalCare_assistWithMobilityAmbulationTransfer', label: 'Assist with mobility, ambulation and transfer' },
     { id: 'personalCare_assistWithIncontinenceCare', label: 'Assist with incontinence care' },
-  ] as const;
+] as const;
 
 
 export async function generateClientIntakePdf(formData: ClientSignupFormData): Promise<Buffer> {
@@ -154,111 +155,108 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         const logoImage = await pdfDoc.embedPng(logoImageBytes);
         const logoDims = logoImage.scale(0.2);
 
-        let pageCount = 4; // Base pages
-        if (formData.receivedTransportationWaiver) pageCount++;
-        if (formData.homemakerCompanion || formData.personalCare) pageCount++;
-        pageCount++; // Agreement page
+        const pages: PDFPage[] = [];
 
-        const pages = Array.from({ length: pageCount }, () => pdfDoc.addPage(PageSizes.Letter));
-        pages.forEach((p, i) => addHeaderAndFooter(p, logoImage, logoDims, i + 1, pageCount, font));
-        let pageIndex = 0;
+        // --- Reusable Drawing Functions ---
+        const mainFontSize = 8;
+        const regularLineHeight = 11;
 
-        let page = pages[pageIndex];
-        let { width, height } = page.getSize();
+        const drawCenteredText = (page: PDFPage, text: string, fontToUse: PDFFont, size: number, yPos: number, lineHeightValue?: number): number => {
+            const lines = text.split('\n');
+            const calculatedLineHeight = lineHeightValue || size * 1.2;
+            let currentY = yPos;
+            for (const line of lines) {
+                const textWidth = fontToUse.widthOfTextAtSize(line, size);
+                drawText(page, line, { x: (page.getWidth() / 2) - (textWidth / 2), y: currentY, font: fontToUse, size });
+                currentY -= calculatedLineHeight;
+            }
+            return currentY - 5;
+        };
+        
+        // --- PAGE 1: Main Agreement & Signatures ---
+        let currentPage = pdfDoc.addPage(PageSizes.Letter);
+        pages.push(currentPage);
+        let { width, height } = currentPage.getSize();
         let y = height - 80;
         const leftMargin = 60;
         const contentWidth = width - leftMargin * 2;
         const denseLineHeight = 10;
-        const regularLineHeight = 11;
-        const mainFontSize = 8;
-        const titleFontSize = 10;
+        const titleFontSize = 11;
         const signatureLabelFontSize = 6;
         
-        const drawCenteredText = (text: string, fontToUse: PDFFont, size: number, lineHeightValue?: number) => {
-            const lines = text.split('\n');
-            const calculatedLineHeight = lineHeightValue || size * 1.2;
-            for (const line of lines) {
-                const textWidth = fontToUse.widthOfTextAtSize(line, size);
-                drawText(page, line, { x: (width / 2) - (textWidth / 2), y, font: fontToUse, size });
-                y -= calculatedLineHeight;
-            }
-            y -= 5;
-        };
-        
-        drawCenteredText("CLIENT SERVICE AGREEMENT", boldFont, 13);
+        y = drawCenteredText(currentPage, "CLIENT SERVICE AGREEMENT", boldFont, 14, y);
         y -= 5;
         
         const introText = `Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated. This Client Service Agreement (the "Agreement") is entered into between the client, or his or her authorized representative, (the "Client") and FirstLight Home Care of Rancho Cucamonga, address 9650 Business Center drive, Suite 132, Rancho Cucamonga CA 91730 phone number 9093214466 ("FirstLight Home Care")`;
-        y = await drawFormattedWrappedText(page, introText, font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
+        y = await drawFormattedWrappedText(currentPage, introText, font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
         y -= 25;
         
-        drawCenteredText("I. CLIENT INFORMATION", boldFont, titleFontSize);
+        y = drawCenteredText(currentPage, "I. CLIENT INFORMATION", boldFont, titleFontSize, y);
         y -= 5;
         
         const col1X = leftMargin;
         const col2X = leftMargin + 270;
         
         const fullAddress = [formData.clientAddress, formData.clientCity, formData.clientState, formData.clientPostalCode].filter(Boolean).join(', ');
-        drawField(page, y, "Client Name", formData.clientName, font, boldFont, mainFontSize, col1X, col1X + 50);
-        drawField(page, y, "Address", fullAddress, font, boldFont, mainFontSize, col2X, col2X + 40);
+        drawField(currentPage, y, "Client Name", formData.clientName, font, boldFont, mainFontSize, col1X, col1X + 50);
+        drawField(currentPage, y, "Address", fullAddress, font, boldFont, mainFontSize, col2X, col2X + 40);
         y -= denseLineHeight;
         
-        drawField(page, y, "Phone", formData.clientPhone, font, boldFont, mainFontSize, col1X, col1X + 30);
-        drawField(page, y, "Email", formData.clientEmail, font, boldFont, mainFontSize, col2X, col2X + 40);
+        drawField(currentPage, y, "Phone", formData.clientPhone, font, boldFont, mainFontSize, col1X, col1X + 30);
+        drawField(currentPage, y, "Email", formData.clientEmail, font, boldFont, mainFontSize, col2X, col2X + 40);
         y -= denseLineHeight;
 
         const dobFormatted = formData.clientDOB ? (typeof formData.clientDOB === 'string' ? formData.clientDOB : format(new Date(formData.clientDOB), "MM/dd/yyyy")) : '';
-        drawField(page, y, "SSN", formData.clientSSN, font, boldFont, mainFontSize, col1X, col1X + 25);
-        drawField(page, y, "DOB", dobFormatted, font, boldFont, mainFontSize, col2X, col2X + 25);
+        drawField(currentPage, y, "SSN", formData.clientSSN, font, boldFont, mainFontSize, col1X, col1X + 25);
+        drawField(currentPage, y, "DOB", dobFormatted, font, boldFont, mainFontSize, col2X, col2X + 25);
         y -= denseLineHeight;
 
-        drawField(page, y, "Emergency Contact Name", formData.emergencyContactName, font, boldFont, mainFontSize, col1X, col1X + 110);
-        drawField(page, y, "Relationship", formData.emergencyContactRelationship, font, boldFont, mainFontSize, col2X, col2X + 60);
+        drawField(currentPage, y, "Emergency Contact Name", formData.emergencyContactName, font, boldFont, mainFontSize, col1X, col1X + 110);
+        drawField(currentPage, y, "Relationship", formData.emergencyContactRelationship, font, boldFont, mainFontSize, col2X, col2X + 60);
         y -= denseLineHeight;
 
-        drawField(page, y, "Contact Home Phone", formData.emergencyContactHomePhone, font, boldFont, mainFontSize, col1X, col1X + 90);
-        drawField(page, y, "Contact Work Phone", formData.emergencyContactWorkPhone, font, boldFont, mainFontSize, col2X, col2X + 90);
-        y -= denseLineHeight;
-        
-        drawField(page, y, "2nd Emergency Contact", formData.secondEmergencyContactName, font, boldFont, mainFontSize, col1X, col1X + 100);
-        drawField(page, y, "Relationship", formData.secondEmergencyContactRelationship, font, boldFont, mainFontSize, col1X + 200, col1X + 260);
-        drawField(page, y, "Phone", formData.secondEmergencyContactPhone, font, boldFont, mainFontSize, col1X + 380, col1X + 410);
+        drawField(currentPage, y, "Contact Home Phone", formData.emergencyContactHomePhone, font, boldFont, mainFontSize, col1X, col1X + 90);
+        drawField(currentPage, y, "Contact Work Phone", formData.emergencyContactWorkPhone, font, boldFont, mainFontSize, col2X, col2X + 90);
+        y -= denseLineHeight * 1.5;
 
-        y -= denseLineHeight*2;
+        drawText(currentPage, "2nd Emergency Contact:", { x: leftMargin, y, font: boldFont, size: mainFontSize });
+        drawField(currentPage, y, "Relationship:", formData.secondEmergencyContactRelationship, font, boldFont, mainFontSize, leftMargin + 200, leftMargin + 260);
+        drawField(currentPage, y, "Phone:", formData.secondEmergencyContactPhone, font, boldFont, mainFontSize, leftMargin + 380, leftMargin + 415);
+        y -= denseLineHeight * 1.5;
 
-        drawCheckbox(page, formData.homemakerCompanion, col1X, y);
-        drawText(page, "Homemaker/Companion", { x: col1X + 15, y: y+1, font, size: mainFontSize });
-        drawCheckbox(page, formData.personalCare, col2X, y);
-        drawText(page, "Personal Care", { x: col2X + 15, y: y+1, font, size: mainFontSize });
+        drawCheckbox(currentPage, formData.homemakerCompanion, leftMargin, y);
+        drawText(currentPage, "Homemaker/Companion", { x: leftMargin + 15, y: y+1, font, size: mainFontSize });
+        drawCheckbox(currentPage, formData.personalCare, col2X, y);
+        drawText(currentPage, "Personal Care", { x: col2X + 15, y: y+1, font, size: mainFontSize });
         y -= 20;
 
         const servicePlanIntro = `FirstLight Home Care of Rancho Cucamonga will provide non-medical in-home services (the "Services") specified in the attached Service Plan Agreement (the "Service Plan")`;
-        y = await drawFormattedWrappedText(page, servicePlanIntro, font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
+        y = await drawFormattedWrappedText(currentPage, servicePlanIntro, font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
         y -= 20;
         
-        drawCenteredText("II. PAYMENTS FOR THE SERVICES", boldFont, titleFontSize);
+        y = drawCenteredText(currentPage, "II. PAYMENTS FOR THE SERVICES", boldFont, titleFontSize, y);
         y -= 5;
 
         const rateCardDateFormatted = formData.rateCardDate ? (typeof formData.rateCardDate === 'string' ? formData.rateCardDate : format(new Date(formData.rateCardDate), 'MM/dd/yyyy')) : '____________';
         const rateText1 = `The hourly rate for providing the Services is $${formData.hourlyRate || '___'} per hour. The rate is based on the Client utilizing the services of FirstLight Home Care of Rancho Cucamonga for a minimum of ${formData.minimumHoursPerShift || '___'} hours per shift. The rates are provided on a current rate card dated ${rateCardDateFormatted}. Rates are subject to change with two (2) weeks' written notice.`;
-        y = await drawFormattedWrappedText(page, rateText1, font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
+        y = await drawFormattedWrappedText(currentPage, rateText1, font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
         y -= 10;
         const paymentText = "Invoices are to be presented on a regular scheduled basis. Payment is due upon receipt or not more than seven days after an invoice has been received by the Client. The Client should submit payment to the address listed above. Full refunds of any advance deposit fees collected for unused services will occur within ten (10) business days of last date of service. FirstLight Home Care of Rancho Cucamonga does not participate in and is not credentialed with any government or commercial health insurance plans and therefore does not submit bills or claims for Services as in-network, out-of-network or any other status to any government or commercial health plans. Client acknowledges and agrees that Client does not have insurance through any government health insurance plan; that Client requests to pay for Services out-of-pocket; and that because FirstLight Home Care of Rancho Cucamonga does not participate in or accept any form of government or commercial health insurance, FirstLight Home Care of Rancho Cucamonga will bill Client directly for the Services and Client is responsible for paying such charges.";
-        y = await drawFormattedWrappedText(page, paymentText, font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
+        y = await drawFormattedWrappedText(currentPage, paymentText, font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
         y -= 10;
         const cancellationText = "If there is same day cancellation, client will be charged for full scheduled hours, except if there is a medical emergency.";
         const cancellationTextWidth = font.widthOfTextAtSize(cancellationText, mainFontSize);
-        page.drawRectangle({ x: (width / 2) - (cancellationTextWidth / 2) - 4 , y: y - regularLineHeight + 2, width: cancellationTextWidth + 8, height: regularLineHeight, color: rgb(1, 1, 0.6) });
-        y = drawWrappedText(page, cancellationText, font, mainFontSize, (width / 2) - (cancellationTextWidth / 2), y, cancellationTextWidth, regularLineHeight);
+        currentPage.drawRectangle({ x: (width / 2) - (cancellationTextWidth / 2) - 4 , y: y - regularLineHeight + 2, width: cancellationTextWidth + 8, height: regularLineHeight, color: rgb(1, 1, 0.6) });
+        y = drawWrappedText(currentPage, cancellationText, font, mainFontSize, (width / 2) - (cancellationTextWidth / 2), y, cancellationTextWidth, regularLineHeight);
         y -= 25;
         
-        drawCenteredText("III. ACKNOWLEDGEMENT & AGREEMENT", boldFont, titleFontSize);
+        y = drawCenteredText(currentPage, "III. ACKNOWLEDGEMENT & AGREEMENT", boldFont, titleFontSize, y);
         y -= 5;
         const ackText = `The Client, or his or her authorized representative, consents to receive the Services and acknowledges he or she or they have read, accept, and consent to this Agreement, including the "Terms and Conditions" and all other attached documents, all of which are incorporated into this Agreement.`;
-        y = drawWrappedText(page, ackText, font, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
+        y = drawWrappedText(currentPage, ackText, font, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
         y -= 30;
 
-        const drawSignatureBlock = async (label: string, sigData: string | undefined, printedName: string | undefined, date: Date | undefined, yPos: number) => {
+        const drawSignatureBlock = async (page: PDFPage, label: string, sigData: string | undefined, printedName: string | undefined, date: Date | undefined, yPos: number) => {
             const dateStr = date ? format(date, "MM/dd/yyyy") : '';
             if (sigData) await drawSignature(page, sigData, leftMargin + 5, yPos, 180, 25, pdfDoc);
             page.drawLine({ start: { x: leftMargin, y: yPos-5 }, end: { x: leftMargin + 250, y: yPos-5 }, thickness: 0.5 });
@@ -273,75 +271,71 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
             drawText(page, "Date", { x: leftMargin + 440, y: yPos-15, font, size: signatureLabelFontSize});
         };
         
-        await drawSignatureBlock('Client', formData.clientSignature, formData.clientPrintedName, formData.clientSignatureDate, y);
+        await drawSignatureBlock(currentPage, 'Client', formData.clientSignature, formData.clientPrintedName, formData.clientSignatureDate, y);
         y -= 40;
-        await drawSignatureBlock('Responsible Party', formData.clientRepresentativeSignature, formData.clientRepresentativePrintedName, formData.clientRepresentativeSignatureDate, y);
+        await drawSignatureBlock(currentPage, 'Responsible Party', formData.clientRepresentativeSignature, formData.clientRepresentativePrintedName, formData.clientRepresentativeSignatureDate, y);
         y -= 40;
-        await drawSignatureBlock('FirstLight Home Care Representative', formData.firstLightRepresentativeSignature, formData.firstLightRepresentativeTitle, formData.firstLightRepresentativeSignatureDate, y);
+        await drawSignatureBlock(currentPage, 'FirstLight Home Care Representative', formData.firstLightRepresentativeSignature, formData.firstLightRepresentativeTitle, formData.firstLightRepresentativeSignatureDate, y);
 
-        // --- PAGE 2-4 ---
-        pageIndex++;
+        // --- Terms and Conditions Pages ---
+        currentPage = pdfDoc.addPage(PageSizes.Letter);
+        pages.push(currentPage);
         y = height - 80;
+        y = drawCenteredText(currentPage, "TERMS AND CONDITIONS", boldFont, 11, y);
+        y -= 20;
         
-        page = pages[pageIndex];
-        drawCenteredText("TERMS AND CONDITIONS", boldFont, titleFontSize);
-        y = height - 100;
-        
-        for (let i = 0; i < privatePayTerms.length; i++) {
-            
-            const term = privatePayTerms[i];
+        for (const term of privatePayTerms) {
             const termTitleHeight = boldFont.heightAtSize(mainFontSize) + 5; 
-            const termTextHeight = font.heightAtSize(mainFontSize) * Math.ceil(font.widthOfTextAtSize(sanitizeText(term.text), mainFontSize) / contentWidth) + 10;
+            const termTextHeight = font.heightAtSize(sanitizeText(term.text), mainFontSize) * Math.ceil(font.widthOfTextAtSize(sanitizeText(term.text), mainFontSize) / contentWidth) + 10;
             let estimatedHeight = termTitleHeight + termTextHeight;
             if(term.title === "14. HIRING:" || term.title === "19. INFORMATION AND DOCUMENTS RECEIVED:") estimatedHeight += 40;
 
             if (y < estimatedHeight + 60) {
-                pageIndex++;
-                if (pageIndex >= pages.length) break;
-                page = pages[pageIndex];
+                currentPage = pdfDoc.addPage(PageSizes.Letter);
+                pages.push(currentPage);
                 y = height - 80;
             }
 
-            y = drawWrappedText(page, term.title, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight * 1.5);
-            y = await drawFormattedWrappedText(page, sanitizeText(term.text), font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
+            y = drawWrappedText(currentPage, term.title, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight * 1.5);
+            y -= (lineHeight * 0.5);
+            y = await drawFormattedWrappedText(currentPage, sanitizeText(term.text), font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
             y -= (regularLineHeight * 1.5);
 
-            if (term.title === "14. HIRING:") {
-                 y -= 5;
-                 drawText(page, `Client Initials: ${formData.clientInitials || '_____'}`, {x: leftMargin + 10, y, font, size: mainFontSize});
-                 y -= 15;
-            } else if (term.title === "11. INSURANCE:") {
+            if (term.title === "11. INSURANCE:") {
                 y -= 5;
-                drawField(page, y, "Policy Number", formData.policyNumber, font, boldFont, mainFontSize, leftMargin, leftMargin + 70);
-                drawField(page, y, "Policy Period", formData.policyPeriod, font, boldFont, mainFontSize, leftMargin + 250, leftMargin + 320);
+                drawField(currentPage, y, "Policy Number", formData.policyNumber, font, boldFont, mainFontSize, leftMargin, leftMargin + 70);
+                drawField(currentPage, y, "Policy Period", formData.policyPeriod, font, boldFont, mainFontSize, leftMargin + 250, leftMargin + 320);
                 y -= 15;
+            } else if (term.title === "14. HIRING:") {
+                 y -= 5;
+                 drawText(currentPage, `Client Initials: ${formData.clientInitials || '_____'}`, {x: leftMargin + 10, y, font, size: mainFontSize});
+                 y -= 15;
             } else if (term.title === "19. INFORMATION AND DOCUMENTS RECEIVED:") {
                 let checkboxY = y - 5;
-                drawCheckbox(page, formData.receivedPrivacyPractices, leftMargin + 10, checkboxY);
-                drawText(page, "Notice of Privacy Practices", {x: leftMargin + 25, y: checkboxY + 1, font, size: mainFontSize});
-                drawCheckbox(page, formData.receivedClientRights, leftMargin + 250, checkboxY);
-                drawText(page, "Client Rights and Responsibilities", {x: leftMargin + 265, y: checkboxY + 1, font, size: mainFontSize});
+                drawCheckbox(currentPage, formData.receivedPrivacyPractices, leftMargin + 10, checkboxY);
+                drawText(currentPage, "Notice of Privacy Practices", {x: leftMargin + 25, y: checkboxY + 1, font, size: mainFontSize});
+                drawCheckbox(currentPage, formData.receivedClientRights, leftMargin + 250, checkboxY);
+                drawText(currentPage, "Client Rights and Responsibilities", {x: leftMargin + 265, y: checkboxY + 1, font, size: mainFontSize});
                 checkboxY -= 20;
 
-                drawCheckbox(page, formData.receivedTransportationWaiver, leftMargin + 10, checkboxY);
-                drawText(page, "Transportation Waiver", {x: leftMargin + 25, y: checkboxY + 1, font, size: mainFontSize});
+                drawCheckbox(currentPage, formData.receivedTransportationWaiver, leftMargin + 10, checkboxY);
+                drawText(currentPage, "Transportation Waiver", {x: leftMargin + 25, y: checkboxY + 1, font, size: mainFontSize});
                 checkboxY -= 20;
                 
-                drawCheckbox(page, formData.receivedPaymentAgreement, leftMargin + 10, checkboxY + 5);
-                drawWrappedText(page, "Agreement to Accept Payment Responsibility and Consent for Personal Information-Private Pay", font, mainFontSize, leftMargin + 25, checkboxY + 5, contentWidth - 40, regularLineHeight);
+                drawCheckbox(currentPage, formData.receivedPaymentAgreement, leftMargin + 10, checkboxY + 5);
+                drawWrappedText(currentPage, "Agreement to Accept Payment Responsibility and Consent for Personal Information-Private Pay", font, mainFontSize, leftMargin + 25, checkboxY + 5, contentWidth - 40, regularLineHeight);
                 y = checkboxY - 20;
             }
         }
-        
-        // --- Conditional Transportation Waiver Page ---
-        if(formData.receivedTransportationWaiver) {
-            pageIndex++;
-            page = pages[pageIndex];
-            y = height - 80;
-            
-            drawCenteredText("Transportation Waiver", boldFont, 13);
-            y -= 10;
 
+        // --- Transportation Waiver Page (Conditional) ---
+        if(formData.receivedTransportationWaiver) {
+            currentPage = pdfDoc.addPage(PageSizes.Letter);
+            pages.push(currentPage);
+            y = height - 80;
+            y = drawCenteredText(currentPage, "Transportation Waiver", boldFont, 13, y);
+            y -= 10;
+            
             const waiverText = [
                 "FirstLight HomeCare offers transportation as a convenience to our clients, not as a standalone service.",
                 "Upon signing of this waiver, I understand I am authorizing an employee of FirstLight HomeCare to furnish transportation for me as a passenger in either their automobile or my own.",
@@ -352,31 +346,33 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
             ];
             
             for(const p of waiverText) {
-                y = await drawFormattedWrappedText(page, p, font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight + 4);
+                y = await drawFormattedWrappedText(currentPage, p, font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight + 4);
                 y -= 15;
             };
             y -= 30;
 
-            await drawSignatureBlock('Client or Responsible Party', formData.transportationWaiverClientSignature, formData.transportationWaiverClientPrintedName, formData.transportationWaiverDate, y);
+            await drawSignatureBlock(currentPage, 'Client or Responsible Party', formData.transportationWaiverClientSignature, formData.transportationWaiverClientPrintedName, formData.transportationWaiverDate, y);
             y -= 50;
-            await drawSignatureBlock('Witness (FirstLight Home Care Representative)', formData.transportationWaiverWitnessSignature, '', formData.transportationWaiverDate, y);
+            await drawSignatureBlock(currentPage, 'Witness (FirstLight Home Care Representative)', formData.transportationWaiverWitnessSignature, '', formData.transportationWaiverDate, y);
         }
-        
-        // --- Conditional Service Plan Page ---
+
+        // --- Service Plan Page (Conditional) ---
         if (formData.homemakerCompanion || formData.personalCare) {
-            pageIndex++;
-            page = pages[pageIndex];
+            currentPage = pdfDoc.addPage(PageSizes.Letter);
+            pages.push(currentPage);
             y = height - 80;
             
-            drawCenteredText("HOME CARE SERVICE PLAN AGREEMENT", boldFont, 11);
+            y = drawCenteredText(currentPage, "HOME CARE SERVICE PLAN AGREEMENT", boldFont, 11, y);
             y -= 10;
-            drawText(page, `Client Name: ${formData.clientName || ''}`, {x: leftMargin, y, font, size: mainFontSize});
+
+            drawText(currentPage, `Client Name: ${formData.clientName || ''}`, {x: leftMargin, y, font, size: mainFontSize});
             y -= 20;
+            
             const servicePlanIntro = `Frequency and duration of Services to be identified on individualized Client Service Plan`;
-            y = drawWrappedText(page, servicePlanIntro, font, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
+            y = drawWrappedText(currentPage, servicePlanIntro, font, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
             y -= 20;
 
-            drawText(page, "Companion Care Services", {x: leftMargin, y, font: boldFont, size: 8});
+            drawText(currentPage, "Companion Care Services", {x: leftMargin, y, font: boldFont, size: mainFontSize});
             y -= 15;
 
             let checkboxX = leftMargin;
@@ -384,8 +380,8 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
             const colWidth = (contentWidth / 2) - 10;
             for (let i = 0; i < companionCareCheckboxes.length; i++) {
                 const item = companionCareCheckboxes[i];
-                drawCheckbox(page, !!formData[item.id as keyof ClientSignupFormData], checkboxX, checkboxY);
-                drawText(page, item.label, {x: checkboxX + 15, y: checkboxY + 1, font, size: 6});
+                drawCheckbox(currentPage, !!formData[item.id as keyof ClientSignupFormData], checkboxX, checkboxY);
+                drawText(currentPage, item.label, {x: checkboxX + 15, y: checkboxY + 1, font, size: 6});
                 if ((i + 1) % 2 === 0) {
                     checkboxX = leftMargin;
                     checkboxY -= 15;
@@ -394,17 +390,17 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
                 }
             }
             y = checkboxY - (companionCareCheckboxes.length % 2 === 1 ? 15 : 0) - 5;
-            drawText(page, `Other: ${formData.companionCare_other || ''}`, {x: leftMargin, y, font, size: mainFontSize});
+            drawText(currentPage, `Other: ${formData.companionCare_other || ''}`, {x: leftMargin, y, font, size: mainFontSize});
             y -= 20;
             
-            drawText(page, "Personal Care Services", {x: leftMargin, y, font: boldFont, size: 8});
+            drawText(currentPage, "Personal Care Services", {x: leftMargin, y, font: boldFont, size: mainFontSize});
             y -= 15;
             checkboxX = leftMargin;
             checkboxY = y;
             for (let i = 0; i < personalCareCheckboxes.length; i++) {
                 const item = personalCareCheckboxes[i];
-                drawCheckbox(page, !!formData[item.id as keyof ClientSignupFormData], checkboxX, checkboxY);
-                drawText(page, item.label, {x: checkboxX + 15, y: checkboxY + 1, font, size: 6});
+                drawCheckbox(currentPage, !!formData[item.id as keyof ClientSignupFormData], checkboxX, checkboxY);
+                drawText(currentPage, item.label, {x: checkboxX + 15, y: checkboxY + 1, font, size: 6});
                 if ((i + 1) % 2 === 0) {
                     checkboxX = leftMargin;
                     checkboxY -= 15;
@@ -413,35 +409,35 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
                 }
             }
              y = checkboxY - (personalCareCheckboxes.length % 2 === 1 ? 15 : 0) - 5;
-            drawText(page, `Assist with other: ${formData.personalCare_assistWithOther || ''}`, {x: leftMargin, y, font, size: mainFontSize});
+            drawText(currentPage, `Assist with other: ${formData.personalCare_assistWithOther || ''}`, {x: leftMargin, y, font, size: mainFontSize});
             y -= 20;
 
-            const personalCareIntro = `FirstLight Home Care of Rancho Cucamonga provides Personal Care Services as defined under Cal. Health & Safety Code § 1796.12 and does not provide medical services or function as a home health agency.`;
-            y = await drawFormattedWrappedText(page, personalCareIntro, font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
+            const disclaimer = `Firstlight Home Care of Rancho Cucamonga provides Personal Care Services as defined under Cal. Health & Safety Code § 1796.12 and does not provide medical services or function as a home health agency.`;
+            y = await drawFormattedWrappedText(currentPage, disclaimer, font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
             y -= 20;
             
-            y = drawWrappedText(page, `Client Initials: ${formData.servicePlanClientInitials || ''}`, { x: leftMargin, y, font, size: mainFontSize });
-            y -= 20;
+            drawText(currentPage, `Client Initials: ${formData.servicePlanClientInitials || ''}`, { x: leftMargin, y, font, size: mainFontSize });
+            y -= 40;
             
-            const officeBoxY = 60;
-            drawText(page, "For Office Use Only", {x: leftMargin, y: officeBoxY + 85, font: boldFont, size: 9});
-            page.drawRectangle({x: leftMargin, y: officeBoxY, width: contentWidth, height: 80, color: rgb(0.9, 0.9, 0.9)});
+            const officeBoxY = y - 80;
+            drawText(currentPage, "For Office Use Only", {x: leftMargin, y: officeBoxY + 85, font: boldFont, size: mainFontSize});
+            currentPage.drawRectangle({x: leftMargin, y: officeBoxY, width: contentWidth, height: 80, color: rgb(0.9, 0.9, 0.9)});
             const officeDate1 = formData.officeTodaysDate ? format(new Date(formData.officeTodaysDate), "MM/dd/yyyy") : '';
             const officeDate2 = formData.officeReferralDate ? format(new Date(formData.officeReferralDate), "MM/dd/yyyy") : '';
             const officeDate3 = formData.officeInitialContactDate ? format(new Date(formData.officeInitialContactDate), "MM/dd/yyyy") : '';
-            drawText(page, `TODAY'S DATE: ${officeDate1}`, {x: leftMargin + 5, y: officeBoxY + 50, font, size: mainFontSize});
-            drawText(page, `REFERRAL DATE: ${officeDate2}`, {x: leftMargin + 200, y: officeBoxY + 50, font, size: mainFontSize});
-            drawText(page, `DATE OF INITIAL CLIENT CONTACT: ${officeDate3}`, {x: leftMargin + 5, y: officeBoxY + 20, font, size: mainFontSize});
+            drawText(currentPage, `TODAY'S DATE: ${officeDate1}`, {x: leftMargin + 5, y: officeBoxY + 50, font, size: mainFontSize});
+            drawText(currentPage, `REFERRAL DATE: ${officeDate2}`, {x: leftMargin + 200, y: officeBoxY + 50, font, size: mainFontSize});
+            drawText(currentPage, `DATE OF INITIAL CLIENT CONTACT: ${officeDate3}`, {x: leftMargin + 5, y: officeBoxY + 20, font, size: mainFontSize});
         }
         
-        // --- Agreement Page ---
-        pageIndex++;
-        page = pages[pageIndex];
+        // --- Final Agreement Page ---
+        currentPage = pdfDoc.addPage(PageSizes.Letter);
+        pages.push(currentPage);
         y = height - 80;
-        drawCenteredText("AGREEMENT TO ACCEPT PAYMENT RESPONSIBILITY AND CONSENT FOR USE AND DISCLOSURE OF\nPERSONAL INFORMATION-PRIVATE PAY", boldFont, 8, 10);
+        y = drawCenteredText(currentPage, "AGREEMENT TO ACCEPT PAYMENT RESPONSIBILITY AND CONSENT FOR USE AND DISCLOSURE OF\nPERSONAL INFORMATION-PRIVATE PAY", boldFont, 8, y, 10);
         y -= 10;
         
-        drawText(page, `Client Name: ${formData.agreementClientName || ''}`, {x: leftMargin, y, font, size: mainFontSize});
+        drawText(currentPage, `Client Name: ${formData.agreementClientName || ''}`, {x: leftMargin, y, font, size: mainFontSize});
         y -= 20;
         const agreementText = [
             "I understand that Firstlight Home Care of Rancho Cucamonga may need to use or disclose my personal information to provide services to me, to obtain payment for its services and for all of the other reasons more fully described in Firstlight Home Care of Rancho Cucamonga Notice of Privacy Practices.",
@@ -449,16 +445,20 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
             "My consent will be valid for two (2) years from the date below. I may revoke my consent to share information, in writing, at any time. Revoking my consent does not apply to information that has already been shared or affect my financial responsibility for Services. I understand that some uses and sharing of my information are authorized by law and do not require my consent."
         ];
         for(const p of agreementText) {
-            y = await drawFormattedWrappedText(page, p, font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
+            y = await drawFormattedWrappedText(currentPage, p, font, boldFont, mainFontSize, leftMargin, y, contentWidth, regularLineHeight);
             y -= 10;
         }
         y -= 20;
         
-        await drawSignatureBlock('Client Signature/Responsible Party', formData.agreementClientSignature, '', formData.agreementSignatureDate, y);
+        await drawSignatureBlock(currentPage, 'Client Signature/Responsible Party', formData.agreementClientSignature, '', formData.agreementSignatureDate, y);
         y -= 40;
-        drawText(page, `Relationship if not Client: ${formData.agreementRelationship || ''}`, {x: leftMargin, y, font, size: mainFontSize});
+        drawText(currentPage, `Relationship if not Client: ${formData.agreementRelationship || ''}`, {x: leftMargin, y, font, size: mainFontSize});
         y -= 40;
-        await drawSignatureBlock('FirstLight Home Care of Rancho Cucamonga Representative', formData.agreementRepSignature, '', formData.agreementRepDate, y);
+        await drawSignatureBlock(currentPage, 'FirstLight Home Care of Rancho Cucamonga Representative', formData.agreementRepSignature, '', formData.agreementRepDate, y);
+
+        // --- Final Step: Add Headers and Footers ---
+        const totalPages = pages.length;
+        pages.forEach((p, i) => addHeaderAndFooter(p, logoImage, logoDims, i + 1, totalPages, font));
         
         const pdfBytes = await pdfDoc.save();
         return Buffer.from(pdfBytes);
@@ -467,5 +467,3 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         throw new Error(`Failed to generate PDF: ${error.message}`);
     }
 }
-
-    
