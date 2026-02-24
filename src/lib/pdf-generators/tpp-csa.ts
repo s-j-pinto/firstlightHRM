@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont, PDFPage } from 'pdf-lib';
@@ -29,6 +30,52 @@ const drawField = (page: PDFPage, y: number, label: string, value: string | unde
         drawText(page, value, { x: valueX, y, font, size });
     }
 };
+
+async function drawFormattedWrappedText(page: PDFPage, text: string, font: PDFFont, boldFont: PDFFont, fontSize: number, x: number, y: number, maxWidth: number, lineHeight: number): Promise<number> {
+    const sanitized = sanitizeText(text);
+    let currentY = y;
+
+    const paragraphs = sanitized.split('\n').filter(p => p.trim() !== '');
+
+    for (const paragraph of paragraphs) {
+        const words = paragraph.split(' ');
+        let currentLine = '';
+
+        for (const word of words) {
+            const testLine = currentLine.length > 0 ? `${currentLine} ${word}` : word;
+            
+            const testLineWidth = testLine.split(/(FirstLight Home Care of Rancho Cucamonga|FirstLight Home Care)/g).reduce((acc, part) => {
+                const isBold = part === "FirstLight Home Care of Rancho Cucamonga" || part === "FirstLight Home Care";
+                return acc + (isBold ? boldFont : font).widthOfTextAtSize(part, fontSize);
+            }, 0);
+
+            if (testLineWidth > maxWidth && currentLine.length > 0) {
+                let tempX = x;
+                currentLine.split(/(FirstLight Home Care of Rancho Cucamonga|FirstLight Home Care)/g).forEach(part => {
+                    const isBold = part === "FirstLight Home Care of Rancho Cucamonga" || part === "FirstLight Home Care";
+                    page.drawText(part, { x: tempX, y: currentY, font: isBold ? boldFont : font, size: fontSize, color: rgb(0,0,0) });
+                    tempX += (isBold ? boldFont : font).widthOfTextAtSize(part, fontSize);
+                });
+                currentY -= lineHeight;
+                currentLine = word;
+            } else {
+                currentLine = testLine;
+            }
+        }
+
+        if (currentLine.length > 0) {
+            let tempX = x;
+            currentLine.split(/(FirstLight Home Care of Rancho Cucamonga|FirstLight Home Care)/g).forEach(part => {
+                const isBold = part === "FirstLight Home Care of Rancho Cucamonga" || part === "FirstLight Home Care";
+                page.drawText(part, { x: tempX, y: currentY, font: isBold ? boldFont : font, size: fontSize, color: rgb(0,0,0) });
+                tempX += (isBold ? boldFont : font).widthOfTextAtSize(part, fontSize);
+            });
+            currentY -= lineHeight;
+        }
+    }
+    return currentY; 
+}
+
 
 const tppTerms = [
     { title: "BUSINESS OPERATIONS", text: "FirstLight Home Care is independently owned and operated as a franchisee of FirstLight Home Care Franchising, LLC. FirstLight Home Care meets all requirements of the State of California to provide non-medical in-home personal care, companion and homemaker services. Additional information about FirstLight Home Care that is required to be disclosed under the state law can be found in Section 15 of this Agreement." },
@@ -84,20 +131,20 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
 
         // Title
         y = drawCenteredText(page, "THIRD PARTY PAYOR CLIENT SERVICE AGREEMENT", boldFont, 11, y);
-        y -= 25;
+        y -= 15;
 
         // Intro
         const introText = `Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated. This Client Service Agreement (this "Agreement") is entered into between the client, or his or her authorized representative, (the “Client”) and FirstLight Home Care of Rancho Cucamonga (“FirstLight Home Care”).`;
-        y = drawWrappedText(page, introText, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
+        y = await drawFormattedWrappedText(page, introText, font, boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight);
         y -= 15;
         
         const tppIntro = `FirstLight Home Care will provide non-medical in-hime services (the “services”) specified in the Payor’s authorization and/or Client plan of care as made available by Payor to FirstLight Home Care pursuant to the “Payor Agreement”  (as defined below). It is anticipated that Payor will provide Client-specific information to FirstLight Home Care as part of the Payor’s authorization and/or Client plan of care as FirstLight Home Care needs to render the Services and be reimbursed for such Services by the Payor. However Client will cooperate with FirstLight Home Care to the extent FirstLight Home Care requires additional information from Client related to Client in order to provide the Services.`;
-        y = drawWrappedText(page, tppIntro, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
+        y = await drawFormattedWrappedText(page, tppIntro, font, boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight);
         y -= 15;
 
         // I. CLIENT INFORMATION
         y = drawCenteredText(page, "I. CLIENT INFORMATION", boldFont, titleFontSize, y);
-        y -= 20;
+        y -= 10;
 
         // Draw Client Info Fields
         drawField(page, y, "Client Name", formData.clientName, font, boldFont, mainFontSize, leftMargin, leftMargin + 150);
@@ -148,14 +195,14 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         y = drawCenteredText(page, "II. PAYMENTS FOR THE SERVICES", boldFont, titleFontSize, y);
         y -= 10;
         const payorText = `${formData.payor || '________________'} (“Payor”) will reimburse FirstLight Home Care agreement between FirstLight Home Care and Payor (“Payor Agreement”). FirstLight Home Care will submit claims to Payor in accordance with the provisions of the Payor Agreement and applicable requirements under state or federal law. To the extent Client owes FirstLight Home Care for any cost sharing or other financial obligation for the Services, such amounts shall be determined by Payor in accordance with the Payor Agreement and applicable provisions of state and federal law. Client agrees to notify FirstLight Home Care if Client becomes ineligible to receive the Services under this Agreement. Additional service (payable by Client out of pocket and not covered by Payor) (the “Private Pay Services”) can be arranged upon Client request; provided, however, that FirstLight Home Care’s ability to render Private Pay Services depends on the Payor Agreement and applicable provisions of state and federal law. A separate FirstLight Home Care Private Pay Client Service Agreement must be executed prior to initiation of Private Pay Services.`;
-        y = drawWrappedText(page, payorText, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
+        y = await drawFormattedWrappedText(page, payorText, font, boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight);
         y -= 15;
 
         // III. ACKNOWLEDGEMENT & AGREEMENT
         y = drawCenteredText(page, "III. ACKNOWLEDGEMENT & AGREEMENT", boldFont, titleFontSize, y);
         y -= 10;
         const ackText = `The Client, or his or her authorized representative, consents to receive the Services and acknowledges he or she or they have read, accept, and consent to this Agreement, including the "Terms and Conditions" and all other attached documents, all of which are incorporated into this Agreement.`;
-        y = drawWrappedText(page, ackText, font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
+        y = await drawFormattedWrappedText(page, ackText, font, boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight);
         y -= 30;
 
         // Signatures
@@ -204,26 +251,25 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
             const termTitleHeight = boldFont.heightAtSize(mainFontSize) + 5; 
             const termTextHeight = font.heightAtSize(mainFontSize) * Math.ceil(font.widthOfTextAtSize(sanitizeText(term.text), mainFontSize) / contentWidth) + 10;
             let estimatedHeight = termTitleHeight + termTextHeight;
-            if(term.title === "HIRING:" || term.title === "INFORMATION AND DOCUMENTS RECEIVED:") estimatedHeight += 40;
+            if(term.title === "HIRING:") estimatedHeight += 40;
+            if (term.title === "INFORMATION AND DOCUMENTS RECEIVED:") estimatedHeight += 60;
 
             if (y < estimatedHeight + 60) {
                 currentPageIndex++;
                 if (currentPageIndex >= allPages.length) {
                     addNewPage(); // Should not happen with 3 pages but as a safeguard.
-                    page = allPages[currentPageIndex];
-                } else {
-                    page = allPages[currentPageIndex];
-                }
+                } 
+                page = allPages[currentPageIndex];
                 y = height - 80;
             }
 
-            y = drawWrappedText(page, term.title, boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight);
-            y = drawWrappedText(page, sanitizeText(term.text.replace(/FirstLight Home Care of Rancho Cucamonga/g, 'FirstLight Home Care')), font, mainFontSize, leftMargin, y, contentWidth, lineHeight);
+            y = await drawFormattedWrappedText(page, term.title, boldFont, boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight);
+            y = await drawFormattedWrappedText(page, sanitizeText(term.text), font, boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight);
             y -= 10;
             
             if (term.title === "HIRING:") {
                  y-=10;
-                 drawText(page, `Client Initials: ${formData.clientInitials || ''}`, {x: leftMargin, y, font, size: mainFontSize});
+                 drawText(page, `Client Initials: ${formData.clientInitials || '_____'}`, {x: leftMargin, y, font, size: mainFontSize});
                  y -= 20;
             } else if (term.title === "INFORMATION AND DOCUMENTS RECEIVED:") {
                 y -= 5;
@@ -236,7 +282,7 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
                 drawCheckbox(page, formData.receivedAdditionalDisclosures, leftMargin + 10, y);
                 drawText(page, "Additional State Law Disclosures", {x: leftMargin + 25, y, font, size: mainFontSize});
                 y -= 20;
-                drawText(page, `Client Initials: ${formData.clientInitials || ''}`, {x: leftMargin+10, y, font, size: mainFontSize});
+                drawText(page, `Client Initials: ${formData.clientInitials || '_____'}`, {x: leftMargin+10, y, font, size: mainFontSize});
                 y -= 20;
             }
         }
@@ -249,16 +295,16 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
             y -= 30;
 
             const waiverText = [
-                "FirstLight HomeCare offers transportation as a convenience to our clients, not as a standalone service.",
-                "Upon signing of this waiver, I understand I am authorizing an employee of FirstLight HomeCare to furnish transportation for me as a passenger in either their automobile or my own.",
+                "FirstLight Home Care offers transportation as a convenience to our clients, not as a standalone service.",
+                "Upon signing of this waiver, I understand I am authorizing an employee of FirstLight Home Care to furnish transportation for me as a passenger in either their automobile or my own.",
                 "I will follow all applicable laws, including, but not limited to, the wearing of my seatbelt.",
-                "When the FirstLight HomeCare employee drives my vehicle, I certify current insurance for both liability and physical damage.",
+                "When the FirstLight Home Care employee drives my vehicle, I certify current insurance for both liability and physical damage.",
                 "Further, I accept responsibility for any deductibles on my personal automobile insurance coverage incurred as a result of this service.",
-                "I specifically accept these risks and waive any claim that I might otherwise have against FirstLight HomeCare with respect to bodily injury or property damage sustained by me in connection with said transportation, and hereby expressly release FirstLight HomeCare and their employees from any and all liability therewith."
+                "I specifically accept these risks and waive any claim that I might otherwise have against FirstLight Home Care with respect to bodily injury or property damage sustained by me in connection with said transportation, and hereby expressly release FirstLight Home Care and their employees from any and all liability therewith."
             ];
 
             for(const p of waiverText) {
-                y = drawWrappedText(page, p, font, mainFontSize + 1, leftMargin, y, contentWidth, lineHeight + 4);
+                y = await drawFormattedWrappedText(page, p, font, boldFont, mainFontSize + 1, leftMargin, y, contentWidth, lineHeight + 4);
                 y -= 15;
             };
             y -= 30;
