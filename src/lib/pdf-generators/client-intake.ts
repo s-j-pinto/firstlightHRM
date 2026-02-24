@@ -23,13 +23,6 @@ const addHeaderAndFooter = (page: PDFPage, logoImage: any, logoDims: any, pageNu
     drawText(page, footerRightText, { x: width - 50 - font.widthOfTextAtSize(footerRightText, 7), y: 30, font, size: 7 });
 };
 
-const drawField = (page: PDFPage, y: number, label: string, value: string | undefined | null, font: PDFFont, boldFont: PDFFont, size: number, x: number, valueX: number) => {
-    drawText(page, `${label}:`, { x: x, y, font: boldFont, size });
-    if(value) {
-        drawText(page, value, { x: valueX, y, font, size });
-    }
-};
-
 const privatePayTerms = [
     { title: "BUSINESS OPERATIONS:", text: "FirstLight Home Care of Rancho Cucamonga is independently owned and operated as a franchisee of FirstLight Home Care Franchising, LLC. FirstLight Home Care of Rancho Cucamonga is licensed by the California Department of Social Services as a Home Care Organization (as defined in Cal. Health & Safety Code § 1796.12) and is in compliance with California Department of Social Services requirements, including registration and background check requirements for home care aids who work for Home Care Organizations." },
     { title: "FIRSTLIGHT CONTACT INFORMATION:", text: "If you have any questions, problems, needs or concerns, please contact the FirstLight Home Care of Rancho Cucamonga 's designated representative, Lolita Pinto at phone number 9093214466 or by mail sent to the address above." },
@@ -90,35 +83,40 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         drawText(page, "I. CLIENT INFORMATION", { x: width / 2, y, font: boldFont, size: 11, align: 'center' });
         y -= 20;
 
-        // Draw Client Info Fields
-        drawField(page, y, "Client Name", formData.clientName, font, boldFont, mainFontSize, leftMargin, leftMargin + 150);
+        // Draw Client Info Fields with better spacing
+        drawText(page, `Client Name: ${formData.clientName || ''}`, { x: leftMargin, y, font, size: mainFontSize });
         const dobFormatted = formData.clientDOB ? (typeof formData.clientDOB === 'string' ? formData.clientDOB : format(new Date(formData.clientDOB), "MM/dd/yyyy")) : '';
-        drawField(page, y, "DOB", dobFormatted, font, boldFont, mainFontSize, leftMargin + 300, leftMargin + 350);
+        drawText(page, `DOB: ${dobFormatted}`, { x: leftMargin + 300, y, font, size: mainFontSize });
         y -= 20;
-        const fullAddress = [formData.clientAddress, formData.clientCity, formData.clientState, formData.clientPostalCode].filter(Boolean).join(', ');
-        drawField(page, y, "Address", fullAddress, font, boldFont, mainFontSize, leftMargin, leftMargin + 150);
-        y -= 20;
-        drawField(page, y, "Phone", formData.clientPhone, font, boldFont, mainFontSize, leftMargin, leftMargin + 150);
-        drawField(page, y, "Email", formData.clientEmail, font, boldFont, mainFontSize, leftMargin + 300, leftMargin + 350);
-        y -= 20;
-        drawField(page, y, "Social Security #", formData.clientSSN, font, boldFont, mainFontSize, leftMargin, leftMargin + 150);
-        y -= 30;
 
-        drawText(page, "Emergency Contact:", { x: leftMargin, y, font: boldFont, size: 11 });
-        y -= 15;
-        drawField(page, y, "Name", formData.emergencyContactName, font, boldFont, mainFontSize, leftMargin, leftMargin + 150);
-        drawField(page, y, "Relationship", formData.emergencyContactRelationship, font, boldFont, mainFontSize, leftMargin + 300, leftMargin + 400);
-        y -= 20;
-        drawField(page, y, "Home Phone", formData.emergencyContactHomePhone, font, boldFont, mainFontSize, leftMargin, leftMargin + 150);
-        drawField(page, y, "Work Phone", formData.emergencyContactWorkPhone, font, boldFont, mainFontSize, leftMargin + 300, leftMargin + 400);
+        const fullAddress = [formData.clientAddress, formData.clientCity, formData.clientState, formData.clientPostalCode].filter(Boolean).join(', ');
+        drawText(page, `Address: ${fullAddress}`, { x: leftMargin, y, font, size: mainFontSize });
         y -= 20;
         
-        drawText(page, "2nd Emergency Contact:", { x: leftMargin, y, font: boldFont, size: 11 });
-        y -= 15;
-        drawField(page, y, "Name", formData.secondEmergencyContactName, font, boldFont, mainFontSize, leftMargin, leftMargin + 150);
-        drawField(page, y, "Relationship", formData.secondEmergencyContactRelationship, font, boldFont, mainFontSize, leftMargin + 300, leftMargin + 400);
+        drawText(page, `Phone: ${formData.clientPhone || ''}`, { x: leftMargin, y, font, size: mainFontSize });
+        drawText(page, `Email: ${formData.clientEmail || ''}`, { x: leftMargin + 300, y, font, size: mainFontSize });
         y -= 20;
-        drawField(page, y, "Phone", formData.secondEmergencyContactPhone, font, boldFont, mainFontSize, leftMargin, leftMargin + 150);
+
+        drawText(page, `Social Security #: ${formData.clientSSN || ''}`, { x: leftMargin, y, font, size: mainFontSize });
+        y -= 30;
+
+        // Emergency Contact
+        drawText(page, "Emergency Contact:", { x: leftMargin, y, font: boldFont, size: 11 });
+        y -= 20;
+        drawText(page, `Name: ${formData.emergencyContactName || ''}`, { x: leftMargin + 10, y, font, size: mainFontSize });
+        drawText(page, `Relationship: ${formData.emergencyContactRelationship || ''}`, { x: leftMargin + 300, y, font, size: mainFontSize });
+        y -= 20;
+        drawText(page, `Home Phone: ${formData.emergencyContactHomePhone || ''}`, { x: leftMargin + 10, y, font, size: mainFontSize });
+        drawText(page, `Work Phone: ${formData.emergencyContactWorkPhone || ''}`, { x: leftMargin + 300, y, font, size: mainFontSize });
+        y -= 20;
+        
+        // 2nd Emergency Contact
+        drawText(page, "2nd Emergency Contact:", { x: leftMargin, y, font: boldFont, size: 11 });
+        y -= 20;
+        drawText(page, `Name: ${formData.secondEmergencyContactName || ''}`, { x: leftMargin + 10, y, font, size: mainFontSize });
+        drawText(page, `Relationship: ${formData.secondEmergencyContactRelationship || ''}`, { x: leftMargin + 300, y, font, size: mainFontSize });
+        y -= 20;
+        drawText(page, `Phone: ${formData.secondEmergencyContactPhone || ''}`, { x: leftMargin + 10, y, font, size: mainFontSize });
         y -= 30;
 
         drawCheckbox(page, formData.homemakerCompanion, leftMargin, y);
@@ -266,5 +264,3 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         throw new Error(`Failed to generate PDF: ${error.message}`);
     }
 }
-
-    
