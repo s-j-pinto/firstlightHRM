@@ -7,7 +7,26 @@ import { serverDb } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { hcs501Schema, emergencyContactSchema, lic508Object, soc341aSchema, referenceVerification1Schema, referenceVerification2Schema, arbitrationAgreementSchema, drugAlcoholPolicySchema, hcaJobDescriptionSchema, clientAbandonmentSchema, employeeOrientationAgreementSchema, acknowledgmentFormSchema, confidentialityAgreementSchema, trainingAcknowledgementSchema, offerLetterSchema } from './types';
-import { generateHcs501Pdf, generateEmergencyContactPdf, generateReferenceVerification1Pdf, generateReferenceVerification2Pdf, generateLic508Pdf, generateSoc341aPdf, generateHcaJobDescriptionPdf, generateDrugAlcoholPolicyPdf, generateClientAbandonmentPdf, generateArbitrationAgreementPdf, generateEmployeeOrientationAgreementPdf, generateAcknowledgmentFormPdf, generateConfidentialityAgreementPdf, generateTrainingAcknowledgementPdf, generateOfferLetterPdf } from './pdf.actions';
+import { 
+    generateHcs501Pdf, 
+    generateEmergencyContactPdf, 
+    generateReferenceVerification1Pdf, 
+    generateReferenceVerification2Pdf, 
+    generateLic508Pdf, 
+    generateSoc341aPdf, 
+    generateHcaJobDescriptionPdf, 
+    generateDrugAlcoholPolicyPdf, 
+    generateClientAbandonmentPdf, 
+    generateArbitrationAgreementPdf, 
+    generateEmployeeOrientationAgreementPdf, 
+    generateAcknowledgmentFormPdf, 
+    generateConfidentialityAgreementPdf, 
+    generateTrainingAcknowledgementPdf, 
+    generateOfferLetterPdf
+} from './pdf.actions';
+import type { CaregiverProfile } from './types';
+import JSZip from 'jszip';
+
 
 // Helper to convert date strings to Firestore Timestamps if they are valid dates
 function convertDatesToTimestamps(data: any): any {
@@ -572,7 +591,7 @@ export async function generateEmployeeOrientationAgreementPdfAction(candidateId:
         
         return result;
     } catch (error: any) {
-        console.error("Error generating PDF:", error);
+        console.error("Error generating Employee Orientation Agreement PDF:", error);
         return { error: `Failed to generate PDF: ${error.message}` };
     }
 }
@@ -659,12 +678,70 @@ export async function generateOfferLetterPdfAction(candidateId: string) {
         return { error: `Failed to generate PDF: ${error.message}` };
     }
 }
-    
 
+export async function generateAllFormsAsZipAction(candidateId: string) {
+    if (!candidateId) {
+        return { error: 'Candidate ID is required.' };
+    }
 
+    try {
+        const docSnap = await serverDb.collection('caregiver_profiles').doc(candidateId).get();
+        if (!docSnap.exists) {
+            return { error: 'Candidate profile not found.' };
+        }
+        const formData = docSnap.data() as CaregiverProfile;
+        const zip = new JSZip();
 
+        const formGenerators = [
+            { key: 'hcs501EmployeeSignature', name: 'HCS501 - Personnel Record.pdf', generator: generateHcs501Pdf },
+            { key: 'emergencyContact1_name', name: 'Emergency Contact.pdf', generator: generateEmergencyContactPdf },
+            { key: 'applicantSignature1', name: 'Reference Verification 1.pdf', generator: generateReferenceVerification1Pdf },
+            { key: 'applicantSignature2', name: 'Reference Verification 2.pdf', generator: generateReferenceVerification2Pdf },
+            { key: 'lic508Signature', name: 'LIC508 - Criminal Record Statement.pdf', generator: generateLic508Pdf },
+            { key: 'soc341aSignature', name: 'SOC341A - Elder Abuse Reporting.pdf', generator: generateSoc341aPdf },
+            { key: 'arbitrationAgreementSignature', name: 'Mutual Arbitration Agreement.pdf', generator: generateArbitrationAgreementPdf },
+            { key: 'drugAlcoholPolicySignature', name: 'Drug and Alcohol Policy.pdf', generator: generateDrugAlcoholPolicyPdf },
+            { key: 'jobDescriptionSignature', name: 'HCA Job Description.pdf', generator: generateHcaJobDescriptionPdf },
+            { key: 'clientAbandonmentSignature', name: 'Client Abandonment Policy.pdf', generator: generateClientAbandonmentPdf },
+            { key: 'orientationAgreementSignature', name: 'Employee Orientation Agreement.pdf', generator: generateEmployeeOrientationAgreementPdf },
+            { key: 'acknowledgmentSignature', name: 'Acknowledgement Form.pdf', generator: generateAcknowledgmentFormPdf },
+            { key: 'confidentialityAgreementEmployeeSignature', name: 'Confidentiality Agreement.pdf', generator: generateConfidentialityAgreementPdf },
+            { key: 'trainingAcknowledgementSignature', name: 'Training Acknowledgement.pdf', generator: generateTrainingAcknowledgementPdf },
+            { key: 'offerLetterSignature', name: 'Offer Letter.pdf', generator: generateOfferLetterPdf },
+        ];
+        
+        const settingsSnap = await serverDb.collection('settings').doc('hiring_form_fields').get();
+        const settingsData = settingsSnap.exists ? settingsSnap.data() : {};
+        const combinedData = { ...formData, ...settingsData };
+        let generatedFileCount = 0;
 
-    
+        for (const form of formGenerators) {
+            if (formData[form.key as keyof CaregiverProfile]) {
+                try {
+                    const pdfResult = await form.generator(form.key === 'offerLetterSignature' ? combinedData : formData);
+                    if (pdfResult.pdfData) {
+                        zip.file(form.name, pdfResult.pdfData, { base64: true });
+                        generatedFileCount++;
+                    } else {
+                        console.warn(`Could not generate PDF for ${form.name}: ${pdfResult.error}`);
+                        zip.file(`${form.name}.error.txt`, `Failed to generate PDF: ${pdfResult.error}`);
+                    }
+                } catch (pdfError: any) {
+                     console.error(`Critical error generating PDF for ${form.name}:`, pdfError);
+                     zip.file(`${form.name}.error.txt`, `Failed to generate PDF due to a critical error: ${pdfError.message}`);
+                }
+            }
+        }
+        
+        if (generatedFileCount === 0) {
+            return { error: 'No completed forms found to download.' };
+        }
 
-    
+        const zipAsBase64 = await zip.generateAsync({ type: 'base64' });
+        return { zipData: zipAsBase64 };
 
+    } catch (error: any) {
+        console.error("Error generating all forms zip:", error);
+        return { error: `Failed to generate zip file: ${error.message}` };
+    }
+}

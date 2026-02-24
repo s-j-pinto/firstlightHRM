@@ -2,10 +2,10 @@
 
 'use client';
 
-import { Suspense, useTransition } from 'react';
+import { Suspense, useTransition, useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, CheckCircle, Loader2, ArrowLeft, Printer } from "lucide-react";
+import { FileText, CheckCircle, Loader2, ArrowLeft, Printer, Download } from "lucide-react";
 import Link from 'next/link';
 import { useUser, useDoc, useMemoFirebase, firestore, useCollection } from '@/firebase';
 import { doc, query, where, collection, limit } from 'firebase/firestore';
@@ -14,6 +14,8 @@ import { Button } from '@/components/ui/button';
 import { 
     generateHcs501PdfAction, 
     generateEmergencyContactPdfAction, 
+    generateReferenceVerification1PdfAction,
+    generateReferenceVerification2PdfAction,
     generateLic508PdfAction, 
     generateSoc341aPdfAction, 
     generateHcaJobDescriptionPdfAction, 
@@ -25,13 +27,14 @@ import {
     generateConfidentialityAgreementPdfAction, 
     generateTrainingAcknowledgementPdfAction, 
     generateOfferLetterPdfAction,
-    generateReferenceVerification1PdfAction,
-    generateReferenceVerification2PdfAction
+    generateAllFormsAsZipAction
 } from '@/lib/candidate-hiring-forms.actions';
 import { useToast } from '@/hooks/use-toast';
 import { HelpDialog } from '@/components/HelpDialog';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 
 const hiringForms = [
   { name: "HCS 501 - Personnel Record 2019", href: "/candidate-hiring-forms/hcs501", completionKey: 'hcs501EmployeeSignature', pdfAction: 'hcs501' },
@@ -64,6 +67,8 @@ function CandidateHiringFormsContent() {
   const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL || "lpinto@firstlighthomecare.com";
   const staffingAdminEmail = process.env.NEXT_PUBLIC_STAFFING_ADMIN_EMAIL || "admin-rc@firstlighthomecare.com";
   const [isGeneratingPdf, startPdfGeneration] = useTransition();
+  const [isDownloadingAll, startDownloadingAll] = useTransition();
+  const [isVerified, setIsVerified] = useState(false);
 
   const isAnAdmin = user?.email === adminEmail || user?.email === ownerEmail || user?.email === staffingAdminEmail;
   const candidateId = searchParams.get('candidateId');
@@ -85,6 +90,20 @@ function CandidateHiringFormsContent() {
   const interview = interviewData?.[0];
 
   const isLoading = isUserLoading || isProfileLoading || isInterviewLoading;
+  
+  // Combine all forms for checking completion
+  const allAvailableForms = interview?.onboardingFormsInitiated ? [...hiringForms, ...onboardingForms] : hiringForms;
+  
+  // Determine if all forms are completed
+  const areAllFormsComplete = useMemo(() => {
+    if (!profileData || allAvailableForms.length === 0) return false;
+    return allAvailableForms.every(form => !!profileData[form.completionKey as keyof CaregiverProfile]);
+  }, [profileData, allAvailableForms]);
+
+  // Reset verification when switching candidates
+  useEffect(() => {
+    setIsVerified(false);
+  }, [candidateId]);
 
   const formLinkHref = (baseHref: string) => {
     return isAnAdmin && candidateId ? `${baseHref}?candidateId=${candidateId}` : baseHref;
@@ -146,6 +165,30 @@ function CandidateHiringFormsContent() {
     });
   }
 
+  const handleDownloadAll = () => {
+    if (!candidateId) return;
+    
+    startDownloadingAll(async () => {
+        const result = await generateAllFormsAsZipAction(candidateId);
+        
+        if (result.error) {
+            toast({ title: "Download Failed", description: result.error, variant: 'destructive' });
+        } else if (result.zipData) {
+            const fileName = `${profileData?.fullName?.replace(/ /g, '_') || 'candidate'}_hiring_forms.zip`;
+            const blob = new Blob([Buffer.from(result.zipData, 'base64')], { type: 'application/zip' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            toast({ title: "Success", description: "All completed forms have been downloaded." });
+        }
+    });
+  }
+
 
   if (isLoading) {
     return (
@@ -165,6 +208,20 @@ function CandidateHiringFormsContent() {
               <CardDescription>
                 {isAnAdmin ? 'Review the status of the candidate\'s forms below.' : 'Please complete all of the following forms to continue your onboarding process.'}
               </CardDescription>
+               {isAnAdmin && areAllFormsComplete && (
+                  <div className="mt-4 flex items-center space-x-2">
+                    <Checkbox id="verify-forms" checked={isVerified} onCheckedChange={(checked) => setIsVerified(checked as boolean)} />
+                    <Label htmlFor="verify-forms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      I have verified all fields and signatures in the below Forms are in conformance to FLRC standards
+                    </Label>
+                    {isVerified && (
+                        <Button onClick={handleDownloadAll} disabled={isDownloadingAll} size="sm">
+                            {isDownloadingAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                            Download All Forms
+                        </Button>
+                    )}
+                  </div>
+              )}
             </div>
             <div className="flex items-center gap-2">
                 {isAnAdmin && (
