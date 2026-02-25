@@ -1,4 +1,3 @@
-
 'use server';
 
 import { serverAuth, serverDb } from '@/firebase/server-init';
@@ -17,27 +16,26 @@ export async function loginClient(email: string, password: string) {
 
   try {
     const clientsRef = serverDb.collection('Clients');
-    const snapshot = await clientsRef.where('status', '==', 'Active').get();
+    // More efficient query that filters by email on the server
+    const snapshot = await clientsRef.where('Email', '==', normalizedEmail).where('status', '==', 'Active').get();
 
     if (snapshot.empty) {
-      console.log(`[Client Login] No active clients found in the database.`);
-      return { error: 'Invalid credentials or no active clients found.' };
+      console.log(`[Client Login] No active client found for email: ${normalizedEmail}`);
+      return { error: 'Invalid credentials or inactive account.' };
     }
 
     const matchingClients: (Client & { id: string })[] = [];
     snapshot.forEach(doc => {
       const clientData = doc.data() as Client;
-      const clientEmail = (clientData.Email || '').trim().toLowerCase();
-      if (clientEmail === normalizedEmail) {
-        const mobileLastFour = (clientData.Mobile || '').slice(-4);
-        if (mobileLastFour === password) {
-          matchingClients.push({ ...clientData, id: doc.id });
-        }
+      // Use bracket notation for safer property access
+      const mobileLastFour = (clientData['Mobile'] || '').slice(-4);
+      if (mobileLastFour === password) {
+        matchingClients.push({ ...clientData, id: doc.id });
       }
     });
 
     if (matchingClients.length === 0) {
-      console.log(`[Client Login] No active client found with matching email and password for: ${normalizedEmail}`);
+      console.log(`[Client Login] Password mismatch for: ${normalizedEmail}`);
       return { error: 'Invalid credentials. Please check your email and password.' };
     }
     
