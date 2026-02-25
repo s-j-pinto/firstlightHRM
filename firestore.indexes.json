@@ -1,3 +1,4 @@
+
 {
   "indexes": [
     {
@@ -20,6 +21,20 @@
         },
         {
           "fieldPath": "signatureReminderSent",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "Clients",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "Email",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
           "order": "ASCENDING"
         }
       ]
