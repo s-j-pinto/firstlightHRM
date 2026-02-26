@@ -37,7 +37,7 @@ export async function loginNewClient(email: string, password: string) {
         return { error: "Client profile is incomplete. Please contact the office." };
     }
     
-    const phoneLastFour = clientPhone.slice(-4);
+    const phoneLastFour = (clientPhone || '').replace(/\D/g, '').slice(-4);
 
     if (phoneLastFour !== password) {
         console.warn(`[New Client Login] Password mismatch for ${normalizedEmail}.`);
