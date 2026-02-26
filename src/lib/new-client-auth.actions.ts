@@ -30,8 +30,8 @@ export async function loginNewClient(email: string, password: string) {
     const signupDoc = snapshot.docs[0];
     const signupData = signupDoc.data();
     
-    // The form data is nested in the 'formData' field
-    const clientPhone = signupData.formData?.clientPhone;
+    // The clientPhone is stored at the top level of the signup document
+    const clientPhone = signupData.clientPhone;
     if (!clientPhone) {
         console.log(`[New Client Login] Phone number missing for signup doc ID: ${signupDoc.id}`);
         return { error: "Client profile is incomplete. Please contact the office." };
