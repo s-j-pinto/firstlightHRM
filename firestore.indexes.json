@@ -26,6 +26,20 @@
       ]
     },
     {
+      "collectionGroup": "client_signups",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "clientEmail",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "Clients",
       "queryScope": "COLLECTION",
       "fields": [
