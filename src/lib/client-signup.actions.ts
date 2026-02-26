@@ -1,6 +1,6 @@
 
 
-"use server";
+'use server';
 
 import { revalidatePath } from 'next/cache';
 import { serverDb, serverAuth } from '@/firebase/server-init';
@@ -52,7 +52,7 @@ export async function createCsaFromContact(initialContactId: string, type: 'priv
             clientState: contactData.state || 'CA',
             clientPostalCode: contactData.zip || '',
             clientPhone: contactData.clientPhone || '',
-            clientEmail: contactData.clientEmail || '',
+            clientEmail: (contactData.clientEmail || '').trim().toLowerCase(),
             clientDOB: contactData.dateOfBirth ? formatDateForInput(contactData.dateOfBirth) : '',
             companionCare_mealPreparation: contactData.companionCare_mealPreparation || false,
             companionCare_cleanKitchen: contactData.companionCare_cleanKitchen || false,
@@ -79,7 +79,7 @@ export async function createCsaFromContact(initialContactId: string, type: 'priv
         await signupRef.set({
             initialContactId: initialContactId,
             formData: formDataForSignup,
-            clientEmail: contactData.clientEmail,
+            clientEmail: (contactData.clientEmail || '').trim().toLowerCase(),
             clientPhone: contactData.clientPhone,
             status: 'Incomplete',
             formType: type,
@@ -134,9 +134,13 @@ export async function saveClientSignupForm(payload: z.infer<typeof clientSignupS
         const initialContactId = existingSignupDoc.exists ? existingSignupDoc.data()?.initialContactId : null;
         const formType = existingSignupDoc.exists ? existingSignupDoc.data()?.formType : 'private';
 
+        // Normalize email before saving
+        const normalizedClientEmail = (formData.clientEmail || '').trim().toLowerCase();
+        formData.clientEmail = normalizedClientEmail;
+
         const saveData = {
             formData: formData,
-            clientEmail: formData.clientEmail,
+            clientEmail: normalizedClientEmail,
             clientPhone: formData.clientPhone,
             status: status,
             formType: formType,
@@ -162,7 +166,7 @@ export async function saveClientSignupForm(payload: z.infer<typeof clientSignupS
                 city: formData.clientCity || '',
                 zip: formData.clientPostalCode || '',
                 clientPhone: formData.clientPhone || '',
-                clientEmail: formData.clientEmail || '',
+                clientEmail: normalizedClientEmail, // Use normalized email for sync
                 dateOfBirth: formData.clientDOB ? Timestamp.fromDate(new Date(formData.clientDOB)) : null,
                 lastUpdatedAt: now,
             };
@@ -404,7 +408,7 @@ export async function finalizeAndSubmit(signupId: string, formData: any) {
                 city: validation.data.clientCity || '',
                 zip: validation.data.clientPostalCode || '',
                 clientPhone: validation.data.clientPhone || '',
-                clientEmail: validation.data.clientEmail || '',
+                clientEmail: (validation.data.clientEmail || '').trim().toLowerCase(),
                 dateOfBirth: validation.data.clientDOB ? Timestamp.fromDate(new Date(validation.data.clientDOB)) : null,
                 lastUpdatedAt: now,
             };
@@ -528,5 +532,7 @@ export async function previewClientIntakePdf(formData: any, formType: 'private' 
     
 
 
+
+    
 
     

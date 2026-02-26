@@ -1,4 +1,5 @@
 
+
 "use server";
 
 import { revalidatePath } from 'next/cache';
@@ -128,12 +129,19 @@ export async function submitInitialContact(payload: SubmitPayload) {
 
     const { createdAt, ...restOfData } = validation.data;
 
-    const dataToSave = {
+    const dataToSave: { [key: string]: any } = {
         ...restOfData,
         status: status,
         lastUpdatedAt: now,
     };
     
+    if (dataToSave.clientEmail) {
+        dataToSave.clientEmail = dataToSave.clientEmail.trim().toLowerCase();
+    }
+    if (dataToSave.additionalEmail) {
+        dataToSave.additionalEmail = dataToSave.additionalEmail.trim().toLowerCase();
+    }
+
     try {
         let docId = contactId;
         const contactRef = docId ? firestore.collection('initial_contacts').doc(docId) : firestore.collection('initial_contacts').doc();
@@ -284,3 +292,5 @@ export async function sendManualSms(contactId: string, message: string) {
         return { error: `Failed to send SMS: ${error.message}` };
     }
 }
+
+    
