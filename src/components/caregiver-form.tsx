@@ -2,12 +2,11 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useForm, type FieldNames } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
-import { addDoc, collection, Timestamp } from "firebase/firestore";
-import { useFirestore, useUser, errorEmitter, FirestorePermissionError } from "@/firebase";
+import { useUser } from "@/firebase";
 import {
   Briefcase,
   Calendar,
@@ -106,9 +105,8 @@ const certificationCheckboxes = [
 
 export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: string) => void }) {
   const [currentStep, setCurrentStep] = useState(1);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitting, startSubmittingTransition] = useTransition();
   const { toast } = useToast();
-  const firestore = useFirestore();
   const { user } = useUser();
 
   const form = useForm<CaregiverFormData>({
@@ -171,39 +169,25 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
     setCurrentStep((prev) => (prev > 1 ? prev - 1 : prev));
   };
 
-  const onSubmit = async (data: CaregiverFormData) => {
-    setIsSubmitting(true);
-    const db = firestore;
-    if (!db) {
-      throw new Error("Firestore is not initialized");
-    }
-    const colRef = collection(db, "caregiver_profiles");
-    
-    // Normalize email to lowercase
-    const dataToSave = {
+  const onSubmit = (data: CaregiverFormData) => {
+    startSubmittingTransition(async () => {
+      const dataToSubmit = {
         ...data,
-        email: data.email.trim().toLowerCase(),
         uid: user?.uid,
-        createdAt: Timestamp.now()
-    };
+      };
 
-    const docRef = await addDoc(colRef, dataToSave).catch((serverError) => {
-      const permissionError = new FirestorePermissionError({
-        path: colRef.path,
-        operation: "create",
-        requestResourceData: data, // log original data
-      });
-      errorEmitter.emit("permission-error", permissionError);
-      throw serverError; // Re-throw to be caught by outer catch
+      const result = await submitCaregiverProfile(dataToSubmit);
+      
+      if (result?.error) {
+        toast({
+          title: "Application Error",
+          description: result.error,
+          variant: "destructive",
+          duration: 8000,
+        });
+      }
+      // A successful submission results in a redirect, handled by the server action.
     });
-    // This server action is now only for redirection
-    await submitCaregiverProfile({
-      caregiverId: docRef.id,
-      caregiverName: data.fullName,
-      caregiverEmail: dataToSave.email, // Use normalized email
-      caregiverPhone: data.phone,
-    });
-    setIsSubmitting(false);
   };
 
   return (
@@ -248,7 +232,7 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
                 <FormField control={form.control} name="address" render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Input placeholder="123 Main St" {...field} /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="Anytown" {...field} /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="state" render={({ field }) => ( <FormItem><FormLabel>State</FormLabel><FormControl><Input placeholder="CA" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                <FormField control={form.control} name="driversLicenseNumber" render={({ field }) => ( <FormItem><FormLabel>Driver&apos;s License No.</FormLabel><FormControl><Input placeholder="Enter license number" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="driversLicenseNumber" render={({ field }) => ( <FormItem><FormLabel>Driver's License No.</FormLabel><FormControl><Input placeholder="Enter license number" {...field} /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="zip" render={({ field }) => ( <FormItem><FormLabel>Zip Code</FormLabel><FormControl><Input placeholder="12345" {...field} /></FormControl><FormMessage /></FormItem> )} />
               </div>
             )}
@@ -400,7 +384,7 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
                     )} />
                      <FormField control={form.control} name="validLicense" render={({ field }) => (
                         <FormItem className="space-y-3">
-                            <FormLabel>Do you have a valid driver&apos;s license or valid California State ID ?</FormLabel>
+                            <FormLabel>Do you have a valid driver's license or valid California State ID ?</FormLabel>
                             <FormControl>
                                 <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-4">
                                     <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="yes" /></FormControl><FormLabel className="font-normal">Yes</FormLabel></FormItem>
