@@ -35,7 +35,7 @@ function ConfirmationPageContent() {
             </p>
              <p className="flex items-start">
                 <MapPin className="h-5 w-5 mr-3 mt-1 text-accent flex-shrink-0" />
-                <span className="font-semibold">9650 Business Center Drive, Suite 132, Rancho Cucamonga, CA</span>
+                <span className="font-semibold">9650 Business Center Drive, Suite 113, Rancho Cucamonga, CA</span>
             </p>
           </div>
           <p className="text-sm text-center text-muted-foreground">

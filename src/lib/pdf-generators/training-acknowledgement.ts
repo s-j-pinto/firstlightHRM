@@ -97,8 +97,8 @@ export async function generateTrainingAcknowledgementPdf(formData: any): Promise
             height: extraordinaryPeopleLogoDims.height,
         });
 
-        const footerText = "9650 Business Center Dr. Suite 132, Rancho Cucmaonga, CA 91730\nPhone: 909-321-4466 Fax: 909-694-2474";
-        const footerWidth = font.widthOfTextAtSize("9650 Business Center Dr. Suite 132, Rancho Cucmaonga, CA 91730", 8);
+        const footerText = "9650 Business Center Dr. Suite 113, Rancho Cucmaonga, CA 91730\nPhone: 909-321-4466 Fax: 909-694-2474";
+        const footerWidth = font.widthOfTextAtSize("9650 Business Center Dr. Suite 113, Rancho Cucmaonga, CA 91730", 8);
         drawText(page, footerText, { x: (width / 2) - (footerWidth / 2), y: footerTextY, font, size: 8, lineHeight: 10 });
         
         const pdfBytes = await pdfDoc.save();

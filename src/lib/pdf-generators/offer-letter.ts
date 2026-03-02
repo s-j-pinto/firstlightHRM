@@ -75,9 +75,9 @@ export async function generateOfferLetterPdf(formData: any): Promise<{ pdfData?:
         y -= 40;
 
         // Footer
-        const footerText = "FirstLight home Care of Rancho Cucamonga\n9650 Business Center Drive, Suite 132 Rancho Cucamonga, CA 91730\nPhone: 909-321-4466 Fax: 909-694-2474";
+        const footerText = "FirstLight home Care of Rancho Cucamonga\n9650 Business Center Drive, Suite 113 Rancho Cucamonga, CA 91730\nPhone: 909-321-4466 Fax: 909-694-2474";
         drawText(page, footerText, {
-            x: width / 2 - (font.widthOfTextAtSize("9650 Business Center Drive, Suite 132 Rancho Cucamonga, CA 91730", 8) / 2),
+            x: width / 2 - (font.widthOfTextAtSize("9650 Business Center Drive, Suite 113 Rancho Cucamonga, CA 91730", 8) / 2),
             y: 40,
             font,
             size: 8,

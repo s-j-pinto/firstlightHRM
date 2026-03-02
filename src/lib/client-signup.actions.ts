@@ -247,7 +247,7 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
             <br><br>--<br>
             <p>(909)-321-4466 Fax (909)-694-2474</p>
             <p>CALIFORNIA HCO LICENSE # 364700059</p>
-            <p>9650 Business Center Drive, Suite #132 | Rancho Cucamonga, CA 91730</p>
+            <p>9650 Business Center Drive, Suite #113 | Rancho Cucamonga, CA 91730</p>
             <p><a href="mailto:Lpinto@firstlighthomecare.com">Lpinto@firstlighthomecare.com</a><br>
             <a href="http://ranchocucamonga.firstlighthomecare.com">ranchocucamonga.firstlighthomecare.com</a></p>
             <p><a href="https://www.facebook.com/FirstLightHomeCareofRanchoCucamonga">https://www.facebook.com/FirstLightHomeCareofRanchoCucamonga</a></p>
@@ -475,7 +475,7 @@ export async function finalizeAndSubmit(signupId: string, formData: any) {
                 Office (909)-321-4466<br>
                 Fax (909)-694-2474</p>
                 <p>CALIFORNIA HCO LICENSE # 364700059</p>
-                <p>9650 Business Center Drive, Suite #132 | Rancho Cucamonga, CA 91730</p>
+                <p>9650 Business Center Drive, Suite #113 | Rancho Cucamonga, CA 91730</p>
                 <p><a href="mailto:Lpinto@firstlighthomecare.com">Lpinto@firstlighthomecare.com</a><br>
                 <a href="http://ranchocucamonga.firstlighthomecare.com">ranchocucamonga.firstlighthomecare.com</a></p>
                 <p><a href="https://www.facebook.com/FirstLightHomeCareofRanchoCucamonga">https://www.facebook.com/FirstLightHomeCareofRanchoCucamonga</a></p>

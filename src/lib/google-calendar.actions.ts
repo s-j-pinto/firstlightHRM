@@ -202,7 +202,7 @@ export async function sendHomeVisitInvite(payload: HomeVisitPayload) {
                 Fax (909)-694-2474
             </p>
             <p>CALIFORNIA HCO LICENSE # 364700059</p>
-            <p>9650 Business Center Drive, Suite #132 | Rancho Cucamonga, CA 91730</p>
+            <p>9650 Business Center Drive, Suite #113 | Rancho Cucamonga, CA 91730</p>
             <br>
             <img src="${logoUrl}" alt="FirstLight Home Care Logo" style="width: 200px; height: auto;"/>
             <br><br>

@@ -299,7 +299,7 @@ export default function AcknowledgmentFormPage() {
                     </Button>
                 </div>
                  <p className="text-xs text-muted-foreground pt-8 text-center">
-                    9650 Business Center Drive, Suite 132 | Rancho Cucamonga, CA 91730 | Phone 909-321-4466 | Fax <a href="http://ranchocucamonga.firstlighthomecare.com" className="underline">http://ranchocucamonga.firstlighthomecare.com</a> | License # 364700059 Fax 909-694-2474
+                    9650 Business Center Drive, Suite 113 | Rancho Cucamonga, CA 91730 | Phone 909-321-4466 | Fax <a href="http://ranchocucamonga.firstlighthomecare.com" className="underline">http://ranchocucamonga.firstlighthomecare.com</a> | License # 364700059 Fax 909-694-2474
                 </p>
             </CardFooter>
             </form>

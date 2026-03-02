@@ -319,7 +319,7 @@ export default function TrainingAcknowledgementPage() {
                         />
                     </div>
                     <p className="text-xs text-muted-foreground text-center">
-                        9650 Business Center Dr. Suite 132, Rancho Cucmaonga, CA 91730<br />
+                        9650 Business Center Dr. Suite 113, Rancho Cucmaonga, CA 91730<br />
                         Phone: 909-321-4466 Fax: 909-694-2474
                     </p>
                 </div>

@@ -249,7 +249,7 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         
         y = drawCenteredText(page, "CLIENT SERVICE AGREEMENT", boldFont, 14, y);
         y -= 15;
-        const introText = `Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated. This Client Service Agreement (the "Agreement") is entered into between the client, or his or her authorized representative, (the "Client") and FirstLight Home Care of Rancho Cucamonga, address 9650 Business Center drive, Suite 132, Rancho Cucamonga CA 91730 phone number 9093214466 ("FirstLight Home Care")`;
+        const introText = `Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated. This Client Service Agreement (the "Agreement") is entered into between the client, or his or her authorized representative, (the "Client") and FirstLight Home Care of Rancho Cucamonga, address 9650 Business Center drive, Suite 113, Rancho Cucamonga CA 91730 phone number 9093214466 ("FirstLight Home Care")`;
         y = await drawFormattedWrappedText(page, introText, font, boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight);
         
         y = drawCenteredText(page, "I. CLIENT INFORMATION", boldFont, titleFontSize, y);

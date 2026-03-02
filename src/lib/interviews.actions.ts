@@ -110,7 +110,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
           eventRequestBody.description = `${logoHtml}This is a confirmation for your video interview with FirstLight Homecare. Please join using the Google Meet link.`;
           eventRequestBody.conferenceData = { createRequest: { requestId: `interview-${interviewId}`, conferenceSolutionKey: { type: 'hangoutsMeet' } } };
         } else {
-          eventRequestBody.location = '9650 Business Center Drive, Suite #132, Bldg #17, Rancho Cucamonga, CA 92730, PH: 909-321-4466';
+          eventRequestBody.location = '9650 Business Center Drive, Suite #113, Bldg #17, Rancho Cucamonga, CA 92730, PH: 909-321-4466';
           eventRequestBody.description = `${logoHtml}Dear ${caregiverProfile.fullName},\nPlease bring the following documents to in-person Interview with FirstLight Homecare:\n- Driver's License,\n- Car insurance and registration,\n- Social Security card or US passport (to prove your work eligibility, If you are green card holder, bring Green card.)\n- Current negative TB-Test Copy,\n- HCA letter or number,\n- Live scan or Clearance letter if you have it,\n If you have not registered, please register on this link: https://guardian.dss.ca.gov/Applicant/ \n- CPR-First Aide proof card, Any other certification that you have.`;
         }
 
@@ -209,7 +209,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
         <p><strong>Office address:</strong><br>
         FirstLight Home Care<br>
         9650 Business Center Drive, (South West corner of Archibald and Arrow)<br>
-        Bld # 17, Suite #132 (Executive Suites sign out front)<br>
+        Bld # 17, Suite #113 (Executive Suites sign out front)<br>
         Rancho Cucamonga, CA 91730<br>
         PH: 909-321-4466</p>
         <br>
@@ -277,7 +277,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
         Office (909)-321-4466<br>
         Fax (909)-694-2474</p>
         <p>CALIFORNIA HCO LICENSE # 364700059</p>
-        <p>9650 Business Center Drive, Suite #132 | Rancho Cucamonga, CA 91730</p>
+        <p>9650 Business Center Drive, Suite #113 | Rancho Cucamonga, CA 91730</p>
         <p><a href="mailto:care-rc@firstlighthomecare.com">care-rc@firstlighthomecare.com</a><br>
         <a href="http://ranchocucamonga.firstlighthomecare.com">ranchocucamonga.firstlighthomecare.com</a></p>
         <p><a href="https://www.facebook.com/FirstLightHomeCareofRanchoCucamonga">https://www.facebook.com/FirstLightHomeCareofRanchoCucamonga</a></p>
@@ -350,7 +350,7 @@ export async function rejectCandidateAfterOrientation(payload: { interviewId: st
             Office (909)-321-4466<br>
             Fax (909)-694-2474</p>
             <p>CALIFORNIA HCO LICENSE # 364700059</p>
-            <p>9650 Business Center Drive, Suite #132 | Rancho Cucamonga, CA 91730</p>
+            <p>9650 Business Center Drive, Suite #113 | Rancho Cucamonga, CA 91730</p>
             <p><a href="mailto:care-rc@firstlighthomecare.com">care-rc@firstlighthomecare.com</a><br>
             <a href="http://ranchocucamonga.firstlighthomecare.com">ranchocucamonga.firstlighthomecare.com</a></p>
             <p><a href="https://www.facebook.com/FirstLightHomeCareofRanchoCucamonga">https://www.facebook.com/FirstLightHomeCareofRanchoCucamonga</a></p>

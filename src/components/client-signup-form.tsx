@@ -579,7 +579,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
 
                 <h2 className="text-2xl font-bold text-center">CLIENT SERVICE AGREEMENT</h2>
                 <p className="text-sm text-muted-foreground">
-                    Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated. This Client Service Agreement (the "Agreement") is entered into between the client, or his or her authorized representative, (the "Client") and FirstLight Home Care of Rancho Cucamonga CA, address 9650 Business Center drive, Suite 132, Rancho Cucamonga CA 91730 phone number 9093214466 ("FirstLight Home Care")
+                    Each franchise of FirstLight Home Care Franchising, LLC is independently owned and operated. This Client Service Agreement (the "Agreement") is entered into between the client, or his or her authorized representative, (the "Client") and FirstLight Home Care of Rancho Cucamonga CA, address 9650 Business Center drive, Suite 113, Rancho Cucamonga CA 91730 phone number 9093214466 ("FirstLight Home Care")
                 </p>
 
                 <div className="space-y-6">
