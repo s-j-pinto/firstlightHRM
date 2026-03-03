@@ -4,7 +4,7 @@
 import * as React from "react";
 import { useMemo, useState } from "react";
 import { collection, query, orderBy } from "firebase/firestore";
-import { firestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { format } from "date-fns";
 import {
   Loader2,
@@ -55,10 +55,11 @@ export default function NotificationsClient() {
   const [currentPage, setCurrentPage] = useState(1);
   const emailsPerPage = 10;
   const iframeRef = React.useRef<HTMLIFrameElement>(null);
+  const firestore = useFirestore();
 
   const mailQuery = useMemoFirebase(
-    () => query(collection(firestore, "mail"), orderBy("delivery.startTime", "desc")),
-    []
+    () => firestore ? query(collection(firestore, "mail"), orderBy("delivery.startTime", "desc")) : null,
+    [firestore]
   );
   const { data: mailDocs, isLoading } = useCollection<MailDocument>(mailQuery);
   
