@@ -5,11 +5,13 @@
 import { Suspense, useTransition, useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, CheckCircle, Loader2, ArrowLeft, Printer, Download } from "lucide-react";
+import { FileText, CheckCircle, Loader2, ArrowLeft, Printer, Download, XCircle } from "lucide-react";
 import Link from 'next/link';
-import { useUser, useDoc, useMemoFirebase, firestore, useCollection } from '@/firebase';
+import { useUser, useDoc, useMemoFirebase, firestore } from '@/firebase';
 import { doc, query, where, collection, limit } from 'firebase/firestore';
 import type { CaregiverProfile, Interview } from '@/lib/types';
+import { hcs501AdminSchema } from '@/lib/types';
+import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { 
     generateHcs501PdfAction, 
@@ -36,8 +38,8 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 
-const hiringForms = [
-  { name: "HCS 501 - Personnel Record 2019", href: "/candidate-hiring-forms/hcs501", completionKey: 'hcs501EmployeeSignature', pdfAction: 'hcs501' },
+const hiringForms: { name: string; href: string; completionKey: keyof CaregiverProfile; pdfAction: string; adminSchema?: z.ZodObject<any, any, any> }[] = [
+  { name: "HCS 501 - Personnel Record 2019", href: "/candidate-hiring-forms/hcs501", completionKey: 'hcs501EmployeeSignature', pdfAction: 'hcs501', adminSchema: hcs501AdminSchema },
   { name: "Caregiver Emergency Contact Numbers", href: "/candidate-hiring-forms/emergency-contact", completionKey: 'emergencyContact1_name', pdfAction: 'emergencyContact' },
   { name: "Reference Verification 1", href: "/candidate-hiring-forms/reference-verification-1", completionKey: 'applicantSignature1', pdfAction: 'referenceVerification1' },
   { name: "Reference Verification 2", href: "/candidate-hiring-forms/reference-verification-2", completionKey: 'applicantSignature2', pdfAction: 'referenceVerification2' },
@@ -172,7 +174,7 @@ function CandidateHiringFormsContent() {
         const result = await generateAllFormsAsZipAction(candidateId);
         
         if (result.error) {
-            toast({ title: "Download Failed", description: result.error, variant: 'destructive' });
+            toast({ title: "Download Failed", description: result.error, variant: "destructive" });
         } else if (result.zipData) {
             const fileName = `${profileData?.fullName?.replace(/ /g, '_') || 'candidate'}_hiring_forms.zip`;
             const blob = new Blob([Buffer.from(result.zipData, 'base64')], { type: 'application/zip' });
@@ -237,8 +239,14 @@ function CandidateHiringFormsContent() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {hiringForms.map((form) => {
+          {allAvailableForms.map((form) => {
             const isCompleted = profileData && profileData[form.completionKey as keyof CaregiverProfile];
+            let adminFieldsComplete = true;
+            if (isAnAdmin && isCompleted && (form as any).adminSchema && profileData) {
+                const result = (form as any).adminSchema.safeParse(profileData);
+                adminFieldsComplete = result.success;
+            }
+
             return (
               <div key={form.name} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
                 <Link href={formLinkHref(form.href)} className="flex items-center gap-4 flex-grow">
@@ -247,64 +255,28 @@ function CandidateHiringFormsContent() {
                 </Link>
                  <div className="flex items-center gap-2">
                     {isCompleted && <CheckCircle className="h-6 w-6 text-green-500" />}
-                    {isAnAdmin && isCompleted && (
-                       <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleGeneratePdf(form.pdfAction!)}
-                            disabled={isGeneratingPdf || !form.pdfAction}
-                            title={!form.pdfAction ? "PDF generation not available for this form" : "Generate PDF"}
-                        >
-                            {isGeneratingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
-                            <span>Generate PDF</span>
-                        </Button>
-                    )}
+                    {isAnAdmin && isCompleted ? (
+                        adminFieldsComplete ? (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleGeneratePdf(form.pdfAction!)}
+                                disabled={isGeneratingPdf || !form.pdfAction}
+                                title={!form.pdfAction ? "PDF generation not available for this form" : "Generate PDF"}
+                            >
+                                {isGeneratingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
+                                <span>Generate PDF</span>
+                            </Button>
+                        ) : (
+                             <XCircle className="h-6 w-6 text-destructive" title="Admin-mandatory fields are incomplete. Click to edit." />
+                        )
+                    ) : null}
                 </div>
               </div>
             )
           })}
         </CardContent>
       </Card>
-      
-      {interview?.onboardingFormsInitiated && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Onboarding Forms</CardTitle>
-            <CardDescription>
-              Please complete these additional forms as part of your onboarding.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {onboardingForms.map((form) => {
-              const isCompleted = profileData && form.completionKey && profileData[form.completionKey as keyof CaregiverProfile];
-              const isDisabled = form.href === '#';
-              return (
-                <div key={form.name} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                  <Link href={isDisabled ? '#' : formLinkHref(form.href)} className={cn("flex items-center gap-4 flex-grow", isDisabled && "cursor-not-allowed opacity-50")}>
-                    <FileText className="h-6 w-6 text-accent" />
-                    <span className="font-medium">{form.name}</span>
-                  </Link>
-                  <div className="flex items-center gap-2">
-                    {isCompleted && <CheckCircle className="h-6 w-6 text-green-500" />}
-                    {isAnAdmin && isCompleted && (
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleGeneratePdf(form.pdfAction!)}
-                            disabled={isGeneratingPdf || !form.pdfAction}
-                            title={!form.pdfAction ? "PDF generation not available for this form" : "Generate PDF"}
-                        >
-                            {isGeneratingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
-                            <span>Generate PDF</span>
-                        </Button>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
