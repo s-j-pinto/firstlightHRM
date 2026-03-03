@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Suspense, useTransition, useState, useEffect, useMemo } from 'react';
@@ -9,7 +10,13 @@ import Link from 'next/link';
 import { useUser, useDoc, useCollection, useMemoFirebase, firestore } from '@/firebase';
 import { doc, query, where, collection, limit } from 'firebase/firestore';
 import type { CaregiverProfile, Interview } from '@/lib/types';
-import { hcs501AdminSchema } from '@/lib/types';
+import { 
+    hcs501AdminSchema,
+    drugAlcoholPolicyAdminSchema,
+    clientAbandonmentAdminSchema,
+    employeeOrientationAgreementAdminSchema,
+    confidentialityAgreementAdminSchema
+} from '@/lib/types';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { 
@@ -48,12 +55,12 @@ const hiringForms: { name: string; href: string; completionKey: keyof CaregiverP
 
 const onboardingForms = [
   { name: "Mutual Arbitration Agreement", href: "/candidate-hiring-forms/arbitration-agreement", completionKey: 'arbitrationAgreementSignature', pdfAction: 'arbitrationAgreement' },
-  { name: "Drug and/or Alcohol Testing Consent Form", href: "/candidate-hiring-forms/drug-alcohol-policy", completionKey: 'drugAlcoholPolicySignature', pdfAction: 'drugAlcoholPolicy' },
+  { name: "Drug and/or Alcohol Testing Consent Form", href: "/candidate-hiring-forms/drug-alcohol-policy", completionKey: 'drugAlcoholPolicySignature', pdfAction: 'drugAlcoholPolicy', adminSchema: drugAlcoholPolicyAdminSchema },
   { name: "HCA job description-Rancho-Cucamonga", href: "/candidate-hiring-forms/hca-job-description", completionKey: 'jobDescriptionSignature', pdfAction: 'hcaJobDescription' },
-  { name: "Client Abandonment", href: "/candidate-hiring-forms/client-abandonment", completionKey: 'clientAbandonmentSignature', pdfAction: 'clientAbandonment' },
-  { name: "EMPLOYEE ORIENTATION AGREEMENT", href: "/candidate-hiring-forms/employee-orientation-agreement", completionKey: 'orientationAgreementSignature', pdfAction: 'employeeOrientationAgreement' },
+  { name: "Client Abandonment", href: "/candidate-hiring-forms/client-abandonment", completionKey: 'clientAbandonmentSignature', pdfAction: 'clientAbandonment', adminSchema: clientAbandonmentAdminSchema },
+  { name: "EMPLOYEE ORIENTATION AGREEMENT", href: "/candidate-hiring-forms/employee-orientation-agreement", completionKey: 'orientationAgreementSignature', pdfAction: 'employeeOrientationAgreement', adminSchema: employeeOrientationAgreementAdminSchema },
   { name: "FirstLightHomeCare_AcknowledgmentForm", href: "/candidate-hiring-forms/acknowledgment-form", completionKey: 'acknowledgmentSignature', pdfAction: 'acknowledgmentForm' },
-  { name: "FirstLightHomeCare_CONFIDENTIALITY_AGREEMENT", href: "/candidate-hiring-forms/confidentiality-agreement", completionKey: 'confidentialityAgreementEmployeeSignature', pdfAction: 'confidentialityAgreement' },
+  { name: "FirstLightHomeCare_CONFIDENTIALITY_AGREEMENT", href: "/candidate-hiring-forms/confidentiality-agreement", completionKey: 'confidentialityAgreementEmployeeSignature', pdfAction: 'confidentialityAgreement', adminSchema: confidentialityAgreementAdminSchema },
   { name: "FirstLightHomeCareTrainingAcknowledgement", href: "/candidate-hiring-forms/training-acknowledgement", completionKey: 'trainingAcknowledgementSignature', pdfAction: 'trainingAcknowledgement' },
   { name: "MASTER-FLHC Offer Letter revised-2-16-26", href: "/candidate-hiring-forms/offer-letter", completionKey: 'offerLetterSignature', pdfAction: 'offerLetter' },
 ];
@@ -227,9 +234,9 @@ function CandidateHiringFormsContent() {
             <div className="flex items-center gap-2">
                 {isAnAdmin && (
                   <Button asChild variant="outline">
-                    <Link href="/admin">
+                    <Link href="/admin/manage-interviews">
                       <ArrowLeft className="mr-2" />
-                      Back to Candidates Search
+                      Back to Interviews
                     </Link>
                   </Button>
                 )}
@@ -241,8 +248,8 @@ function CandidateHiringFormsContent() {
           {allAvailableForms.map((form) => {
             const isCompleted = profileData && profileData[form.completionKey as keyof CaregiverProfile];
             let adminFieldsComplete = true;
-            if (isAnAdmin && isCompleted && (form as any).adminSchema && profileData) {
-                const result = (form as any).adminSchema.safeParse(profileData);
+            if (isAnAdmin && isCompleted && form.adminSchema && profileData) {
+                const result = form.adminSchema.safeParse(profileData);
                 adminFieldsComplete = result.success;
             }
 

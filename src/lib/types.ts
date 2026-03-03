@@ -159,7 +159,7 @@ export const hcs501Object = z.object({
   state: z.string().nonempty("State is required."),
   zip: z.string().nonempty("Zip code is required."),
   dob: z.date({required_error: "Date of Birth is required."}),
-  ssn: z.string().optional(),
+  ssn: z.string().min(1, "Social Security Number is required."),
   tbDate: z.date().optional().nullable(),
   tbResults: z.string().optional(),
   additionalTbDates: z.string().optional(),
@@ -332,6 +332,11 @@ export const drugAlcoholPolicySchema = z.object({
 });
 export type DrugAlcoholPolicyFormData = z.infer<typeof drugAlcoholPolicySchema>;
 
+export const drugAlcoholPolicyAdminSchema = drugAlcoholPolicySchema.extend({
+    drugAlcoholPolicyRepSignature: z.string().min(1, "Representative signature is required."),
+    drugAlcoholPolicyRepDate: z.date({required_error: "Date is required."}),
+});
+
 export const hcaJobDescriptionSchema = z.object({
   jobDescriptionSignature: z.string().min(1, "Signature is required."),
   jobDescriptionSignatureDate: z.date({required_error: "Signature date is required."}),
@@ -346,6 +351,10 @@ export const clientAbandonmentSchema = z.object({
 });
 export type ClientAbandonmentFormData = z.infer<typeof clientAbandonmentSchema>;
 
+export const clientAbandonmentAdminSchema = clientAbandonmentSchema.extend({
+    clientAbandonmentWitnessSignature: z.string().min(1, "Witness signature is required."),
+});
+
 export const employeeOrientationAgreementSchema = z.object({
   orientationAgreementEmployeeName: z.string().min(1, "Printed name is required."),
   orientationAgreementSignature: z.string().min(1, "Signature is required."),
@@ -354,6 +363,12 @@ export const employeeOrientationAgreementSchema = z.object({
   orientationAgreementWitnessDate: z.date().optional(),
 });
 export type EmployeeOrientationAgreementFormData = z.infer<typeof employeeOrientationAgreementSchema>;
+
+export const employeeOrientationAgreementAdminSchema = employeeOrientationAgreementSchema.extend({
+    orientationAgreementWitnessSignature: z.string().min(1, "Witness signature is required."),
+    orientationAgreementWitnessDate: z.date({required_error: "Witness date is required."}),
+});
+
 
 export const acknowledgmentFormSchema = z.object({
   acknowledgmentEmployeeName: z.string().min(1, "Printed name is required."),
@@ -370,6 +385,11 @@ export const confidentialityAgreementSchema = z.object({
 });
 export type ConfidentialityAgreementFormData = z.infer<typeof confidentialityAgreementSchema>;
 
+export const confidentialityAgreementAdminSchema = confidentialityAgreementSchema.extend({
+    confidentialityAgreementRepSignature: z.string().min(1, "Representative signature is required."),
+    confidentialityAgreementRepDate: z.date({required_error: "Date is required."}),
+});
+
 export const trainingAcknowledgementSchema = z.object({
   trainingAcknowledgementEmployeeName: z.string().min(1, "Printed name is required."),
   trainingAcknowledgementSignature: z.string().min(1, "Signature is required."),
@@ -378,8 +398,8 @@ export const trainingAcknowledgementSchema = z.object({
 export type TrainingAcknowledgementFormData = z.infer<typeof trainingAcknowledgementSchema>;
 
 export const offerLetterSchema = z.object({
-  offerLetterSignature: z.string().optional(),
-  offerLetterSignatureDate: z.date().optional(),
+  offerLetterSignature: z.string().min(1, "Acceptance signature is required."),
+  offerLetterSignatureDate: z.date({ required_error: "Date is required." }),
   hireDate: z.date().optional(),
   caregiver_rate_trng_orient: z.coerce.number().optional(),
   minimum_client_care_pay_rate: z.coerce.number().optional(),
