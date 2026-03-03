@@ -1,11 +1,10 @@
 
-
 "use client";
 
 import * as React from "react";
 import { useMemo, useState, useTransition } from "react";
 import { collection, query, orderBy } from "firebase/firestore";
-import { firestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
@@ -89,8 +88,12 @@ export default function CampaignManagementClient() {
   const [isPending, startTransition] = useTransition();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<CampaignTemplate | null>(null);
+  const firestore = useFirestore();
 
-  const templatesQuery = useMemoFirebase(() => query(collection(firestore, "campaign_templates"), orderBy("intervalDays", "asc")), []);
+  const templatesQuery = useMemoFirebase(() => 
+    firestore ? query(collection(firestore, "campaign_templates"), orderBy("intervalDays", "asc")) : null, 
+    [firestore]
+  );
   const { data: templates, isLoading } = useCollection<CampaignTemplate>(templatesQuery);
 
   const form = useForm<TemplateFormData>({
