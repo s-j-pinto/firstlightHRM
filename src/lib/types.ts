@@ -151,21 +151,23 @@ export const hcs501Object = z.object({
   perId: z.string().optional(),
   hireDate: z.date().optional().nullable(),
   separationDate: z.date().optional().nullable(),
-  fullName: z.string().min(1, "Full name is required."),
-  phone: z.string().min(1, "Phone is required."),
-  address: z.string().min(1, "Address is required."),
-  city: z.string().min(1, "City is required."),
-  state: z.string().min(1, "State is required."),
-  zip: z.string().min(1, "Zip code is required."),
+  fullName: z.string().nonempty("Full name is required."),
+  phone: z.string().nonempty("Phone is required."),
+  address: z.string().nonempty("Address is required."),
+  city: z.string().nonempty("City is required."),
+  state: z.string().nonempty("State is required."),
+  zip: z.string().nonempty("Zip code is required."),
   dob: z.date({required_error: "Date of Birth is required."}),
   ssn: z.string().optional(), // Voluntary for ID only
   tbDate: z.date({required_error: "Date of TB Test is required."}),
-  tbResults: z.string().min(1, "Results of last TB test are required."),
+  tbResults: z.string().nonempty("Results of last TB test are required."),
   additionalTbDates: z.string().optional(),
   alternateNames: z.string().optional(),
-  titleOfPosition: z.string().min(1, "Title of Position is required."),
+  validLicense: z.enum(["yes", "no"], { required_error: "This field is required." }),
+  driversLicenseNumber: z.string().optional(),
+  titleOfPosition: z.string().nonempty("Title of Position is required."),
   hcs501Notes: z.string().optional(),
-  hcs501EmployeeSignature: z.string().min(1, "Signature is required."),
+  hcs501EmployeeSignature: z.string().nonempty("Signature is required."),
   hcs501SignatureDate: z.date({required_error: "Signature date is required."}),
 });
 
@@ -1044,5 +1046,7 @@ export type CaregiverForRecommendation = z.infer<typeof CaregiverForRecommendati
     
 
   
+
+    
 
     
