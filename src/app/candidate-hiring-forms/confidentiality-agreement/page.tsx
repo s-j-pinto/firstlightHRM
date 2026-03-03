@@ -16,7 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { RefreshCw, Save, X, Loader2, CalendarIcon, Edit2 } from "lucide-react";
 import { useUser, useDoc, useMemoFirebase, firestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { confidentialityAgreementAdminSchema, type ConfidentialityAgreementFormData, type CaregiverProfile } from "@/lib/types";
+import { confidentialityAgreementSchema, confidentialityAgreementAdminSchema, type ConfidentialityAgreementFormData, type CaregiverProfile } from "@/lib/types";
 import { saveConfidentialityAgreementData } from "@/lib/candidate-hiring-forms.actions";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -123,7 +123,7 @@ export default function ConfidentialityAgreementPage() {
     );
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
     
-    const settingsRef = useMemoFirebase(() => doc(firestore, 'settings', 'availability'), []);
+    const settingsRef = useMemoFirebase(() => (isAnAdmin ? doc(firestore, 'settings', 'availability') : null), [isAnAdmin]);
     const { data: settingsData, isLoading: isSettingsLoading } = useDoc<any>(settingsRef);
     
     const form = useForm<ConfidentialityAgreementFormData>({
@@ -312,5 +312,7 @@ export default function ConfidentialityAgreementPage() {
         </Card>
     );
 }
+
+    
 
     

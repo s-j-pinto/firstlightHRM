@@ -16,7 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { RefreshCw, Save, X, Loader2, CalendarIcon, Edit2 } from "lucide-react";
 import { useUser, useDoc, useMemoFirebase, firestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { employeeOrientationAgreementAdminSchema, type EmployeeOrientationAgreementFormData, type CaregiverProfile } from "@/lib/types";
+import { employeeOrientationAgreementSchema, employeeOrientationAgreementAdminSchema, type EmployeeOrientationAgreementFormData, type CaregiverProfile } from "@/lib/types";
 import { saveEmployeeOrientationAgreementData } from "@/lib/candidate-hiring-forms.actions";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -137,7 +137,7 @@ export default function EmployeeOrientationAgreementPage() {
     );
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
     
-    const settingsRef = useMemoFirebase(() => doc(firestore, 'settings', 'availability'), []);
+    const settingsRef = useMemoFirebase(() => (isAnAdmin ? doc(firestore, 'settings', 'availability') : null), [isAnAdmin]);
     const { data: settingsData, isLoading: isSettingsLoading } = useDoc<any>(settingsRef);
     
     const form = useForm<EmployeeOrientationAgreementFormData>({
@@ -350,5 +350,7 @@ export default function EmployeeOrientationAgreementPage() {
         </Card>
     );
 }
+
+    
 
     
