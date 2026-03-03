@@ -7,7 +7,7 @@ import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, CheckCircle, Loader2, ArrowLeft, Printer, Download, XCircle } from "lucide-react";
 import Link from 'next/link';
-import { useUser, useDoc, useCollection, useMemoFirebase, firestore } from '@/firebase';
+import { useUser, useDoc, useCollection, useMemoFirebase, useFirestore } from '@/firebase';
 import { doc, query, where, collection, limit } from 'firebase/firestore';
 import type { CaregiverProfile, Interview } from '@/lib/types';
 import { 
@@ -70,6 +70,7 @@ function CandidateHiringFormsContent() {
   const { user, isUserLoading } = useUser();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const firestore = useFirestore();
 
   const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "care-rc@firstlighthomecare.com";
   const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL || "lpinto@firstlighthomecare.com";
@@ -86,13 +87,13 @@ function CandidateHiringFormsContent() {
 
   const caregiverProfileRef = useMemoFirebase(
     () => (profileIdToLoad ? doc(firestore, 'caregiver_profiles', profileIdToLoad) : null),
-    [profileIdToLoad]
+    [profileIdToLoad, firestore]
   );
   const { data: profileData, isLoading: isProfileLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
   
   const interviewQuery = useMemoFirebase(
     () => (profileIdToLoad ? query(collection(firestore, 'interviews'), where('caregiverProfileId', '==', profileIdToLoad), limit(1)) : null),
-    [profileIdToLoad]
+    [profileIdToLoad, firestore]
   );
   const { data: interviewData, isLoading: isInterviewLoading } = useCollection<Interview>(interviewQuery);
   const interview = interviewData?.[0];
@@ -304,3 +305,5 @@ export default function CandidateHiringFormsPage() {
         </Suspense>
     )
 }
+
+    
