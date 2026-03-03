@@ -73,7 +73,7 @@ export default function ClientDashboardPage() {
       }
     };
 
-    if (!isUserLoading) {
+    if (!isUserLoading && firestore) {
       fetchClaimsAndGroupId();
     }
   }, [user, isUserLoading, firestore]);
