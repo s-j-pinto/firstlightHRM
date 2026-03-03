@@ -14,7 +14,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { RefreshCw, Save, X, Loader2, CalendarIcon, Edit2 } from "lucide-react";
-import { useUser, useDoc, useMemoFirebase, firestore } from "@/firebase";
+import { useUser, useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { employeeOrientationAgreementSchema, employeeOrientationAgreementAdminSchema, type EmployeeOrientationAgreementFormData, type CaregiverProfile } from "@/lib/types";
 import { saveEmployeeOrientationAgreementData } from "@/lib/candidate-hiring-forms.actions";
@@ -122,6 +122,7 @@ export default function EmployeeOrientationAgreementPage() {
     const { toast } = useToast();
     const [isSaving, startSavingTransition] = useTransition();
     const [activeSignature, setActiveSignature] = useState<{ fieldName: keyof EmployeeOrientationAgreementFormData; title: string; } | null>(null);
+    const firestore = useFirestore();
 
     const isPrintMode = searchParams.get('print') === 'true';
     const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "care-rc@firstlighthomecare.com";
@@ -208,13 +209,13 @@ export default function EmployeeOrientationAgreementPage() {
     }, [existingData, form]);
     
     useEffect(() => {
-        if (settingsData?.adminSignature && !form.getValues('orientationAgreementWitnessSignature')) {
+        if (isAnAdmin && settingsData?.adminSignature && !form.getValues('orientationAgreementWitnessSignature')) {
             form.setValue('orientationAgreementWitnessSignature', settingsData.adminSignature, { shouldDirty: false });
             if (!form.getValues('orientationAgreementWitnessDate')) {
                 form.setValue('orientationAgreementWitnessDate', new Date(), { shouldDirty: false });
             }
         }
-    }, [settingsData, form, existingData]);
+    }, [settingsData, form, existingData, isAnAdmin]);
 
     const handleSaveSignature = (dataUrl: string) => {
         if (activeSignature) {
@@ -250,7 +251,7 @@ export default function EmployeeOrientationAgreementPage() {
         }
     }
 
-    const isLoading = isUserLoading || isDataLoading || isSettingsLoading;
+    const isLoading = isUserLoading || isDataLoading || (isAnAdmin && isSettingsLoading);
 
     if(isLoading) {
       return (
@@ -350,7 +351,3 @@ export default function EmployeeOrientationAgreementPage() {
         </Card>
     );
 }
-
-    
-
-    

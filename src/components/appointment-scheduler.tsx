@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { getAvailableSlotsAction } from "@/lib/availability.actions";
 import { useToast } from "@/hooks/use-toast";
-import { firestore, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import type { Appointment } from "@/lib/types";
 import { createAppointmentAndSendAdminEmail } from "@/lib/appointments.actions";
 import { collection } from "firebase/firestore";

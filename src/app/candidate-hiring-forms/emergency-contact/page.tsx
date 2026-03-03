@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Save, X, Loader2, UserCircle, ShieldQuestion } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { useUser, useDoc, useMemoFirebase, firestore } from "@/firebase";
+import { useUser, useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { emergencyContactSchema, type EmergencyContactFormData, type CaregiverProfile } from "@/lib/types";
 import { saveEmergencyContactData } from "@/lib/candidate-hiring-forms.actions";
@@ -37,6 +37,7 @@ export default function EmergencyContactPage() {
     const { user, isUserLoading } = useUser();
     const { toast } = useToast();
     const [isSaving, startSavingTransition] = useTransition();
+    const firestore = useFirestore();
 
     const isPrintMode = searchParams.get('print') === 'true';
     const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "care-rc@firstlighthomecare.com";

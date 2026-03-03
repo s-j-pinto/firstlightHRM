@@ -14,7 +14,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { RefreshCw, Save, X, Loader2, CalendarIcon, Edit2 } from "lucide-react";
-import { useUser, useDoc, useMemoFirebase, firestore } from "@/firebase";
+import { useUser, useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { acknowledgmentFormSchema, type AcknowledgmentFormData, type CaregiverProfile } from "@/lib/types";
 import { saveAcknowledgmentFormData } from "@/lib/candidate-hiring-forms.actions";
@@ -120,6 +120,7 @@ export default function AcknowledgmentFormPage() {
     const { toast } = useToast();
     const [isSaving, startSavingTransition] = useTransition();
     const [activeSignature, setActiveSignature] = useState<{ fieldName: keyof AcknowledgmentFormData; title: string; } | null>(null);
+    const firestore = useFirestore();
 
     const isPrintMode = searchParams.get('print') === 'true';
     const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "care-rc@firstlighthomecare.com";

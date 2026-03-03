@@ -14,7 +14,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { RefreshCw, Save, X, Loader2, CalendarIcon, Edit2 } from "lucide-react";
-import { useUser, useDoc, useMemoFirebase, firestore } from "@/firebase";
+import { useUser, useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { confidentialityAgreementSchema, confidentialityAgreementAdminSchema, type ConfidentialityAgreementFormData, type CaregiverProfile } from "@/lib/types";
 import { saveConfidentialityAgreementData } from "@/lib/candidate-hiring-forms.actions";
@@ -108,6 +108,7 @@ export default function ConfidentialityAgreementPage() {
     const { toast } = useToast();
     const [isSaving, startSavingTransition] = useTransition();
     const [activeSignature, setActiveSignature] = useState<{ fieldName: keyof ConfidentialityAgreementFormData; title: string; } | null>(null);
+    const firestore = useFirestore();
 
     const isPrintMode = searchParams.get('print') === 'true';
     const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "care-rc@firstlighthomecare.com";
@@ -188,13 +189,13 @@ export default function ConfidentialityAgreementPage() {
     }, [existingData, form]);
     
     useEffect(() => {
-        if (settingsData?.adminSignature && !form.getValues('confidentialityAgreementRepSignature')) {
+        if (isAnAdmin && settingsData?.adminSignature && !form.getValues('confidentialityAgreementRepSignature')) {
             form.setValue('confidentialityAgreementRepSignature', settingsData.adminSignature, { shouldDirty: false });
             if (!form.getValues('confidentialityAgreementRepDate')) {
                 form.setValue('confidentialityAgreementRepDate', new Date(), { shouldDirty: false });
             }
         }
-    }, [settingsData, form, existingData]);
+    }, [settingsData, form, existingData, isAnAdmin]);
 
     const handleSaveSignature = (dataUrl: string) => {
         if (activeSignature) {
@@ -230,7 +231,7 @@ export default function ConfidentialityAgreementPage() {
         }
     }
 
-    const isLoading = isUserLoading || isDataLoading || isSettingsLoading;
+    const isLoading = isUserLoading || isDataLoading || (isAnAdmin && isSettingsLoading);
 
     if(isLoading) {
       return (
@@ -312,7 +313,3 @@ export default function ConfidentialityAgreementPage() {
         </Card>
     );
 }
-
-    
-
-    

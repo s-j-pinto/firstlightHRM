@@ -4,7 +4,7 @@
 import * as React from "react";
 import { useMemo, useState, useTransition } from "react";
 import { collection, query } from "firebase/firestore";
-import { firestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import {
   Referral,
   Reward,
@@ -98,6 +98,7 @@ export default function ReferralManagementClient() {
   const [selectedReferral, setSelectedReferral] =
     useState<EnrichedReferral | null>(null);
   const [clientToActivate, setClientToActivate] = useState('');
+  const firestore = useFirestore();
 
   const form = useForm<RewardFormData>({
     resolver: zodResolver(rewardSchema),

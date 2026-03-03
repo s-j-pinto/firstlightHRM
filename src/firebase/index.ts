@@ -1,4 +1,3 @@
-
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
@@ -24,17 +23,6 @@ function getSdks(firebaseApp: FirebaseApp) {
     firestore: getFirestore(firebaseApp),
   };
 }
-
-// These exports are for convenience but can cause issues with multiple initializations.
-// It's safer to rely on the provider hooks (useAuth, useFirestore).
-// However, to maintain compatibility with existing code that imports these directly,
-// we initialize it here. This part is sensitive to execution context.
-const { firestore, auth } = getApps().length
-  ? getSdks(getApp())
-  : initializeFirebase();
-
-export { firestore, auth };
-
 
 // Re-export everything from the provider and error handling modules
 export * from './provider';

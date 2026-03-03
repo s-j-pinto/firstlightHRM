@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useMemo, useState } from 'react';
 import { collection, query } from 'firebase/firestore';
-import { firestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import {
   Referral,
   Reward,
@@ -62,6 +63,7 @@ const RewardStatusBadge = ({ status }: { status: string }) => {
 
 export default function ReferralsRewardsReport() {
   const [searchTerm, setSearchTerm] = useState('');
+  const firestore = useFirestore();
 
   // Fetch all necessary data
   const referralsQuery = useMemoFirebase(() => query(collection(firestore, "referrals")), []);

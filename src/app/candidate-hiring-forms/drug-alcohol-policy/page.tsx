@@ -14,7 +14,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription }
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { RefreshCw, Save, X, Loader2, CalendarIcon, Edit2 } from "lucide-react";
-import { useUser, useDoc, useMemoFirebase, firestore } from "@/firebase";
+import { useUser, useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { drugAlcoholPolicySchema, drugAlcoholPolicyAdminSchema, type DrugAlcoholPolicyFormData, type CaregiverProfile } from "@/lib/types";
 import { saveDrugAlcoholPolicyData } from "@/lib/candidate-hiring-forms.actions";
@@ -130,6 +130,7 @@ export default function DrugAlcoholPolicyPage() {
     const { toast } = useToast();
     const [isSaving, startSavingTransition] = useTransition();
     const [activeSignature, setActiveSignature] = useState<{ fieldName: keyof DrugAlcoholPolicyFormData; title: string; } | null>(null);
+    const firestore = useFirestore();
 
 
     const isPrintMode = searchParams.get('print') === 'true';
@@ -211,13 +212,13 @@ export default function DrugAlcoholPolicyPage() {
     }, [existingData, form]);
     
     useEffect(() => {
-        if (settingsData?.adminSignature && !form.getValues('drugAlcoholPolicyRepSignature')) {
+        if (isAnAdmin && settingsData?.adminSignature && !form.getValues('drugAlcoholPolicyRepSignature')) {
             form.setValue('drugAlcoholPolicyRepSignature', settingsData.adminSignature, { shouldDirty: false });
             if (!form.getValues('drugAlcoholPolicyRepDate')) {
                 form.setValue('drugAlcoholPolicyRepDate', new Date(), { shouldDirty: false });
             }
         }
-    }, [settingsData, form, existingData]); // Re-run if existingData causes a form reset
+    }, [settingsData, form, existingData, isAnAdmin]); // Re-run if existingData causes a form reset
 
     const handleSaveSignature = (dataUrl: string) => {
         if (activeSignature) {
@@ -253,7 +254,7 @@ export default function DrugAlcoholPolicyPage() {
         }
     }
 
-    const isLoading = isUserLoading || isDataLoading || isSettingsLoading;
+    const isLoading = isUserLoading || isDataLoading || (isAnAdmin && isSettingsLoading);
 
     if(isLoading) {
       return (
@@ -423,7 +424,3 @@ export default function DrugAlcoholPolicyPage() {
         </Card>
     );
 }
-
-    
-
-    

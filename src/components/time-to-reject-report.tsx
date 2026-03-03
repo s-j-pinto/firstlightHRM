@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useMemo } from 'react';
 import { collection, query } from 'firebase/firestore';
-import { firestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import type { CaregiverProfile, Interview } from '@/lib/types';
 import { Loader2, XCircle } from 'lucide-react';
 import { differenceInDays, isDate } from 'date-fns';
@@ -32,6 +33,7 @@ const safeToDate = (value: any): Date | null => {
 };
 
 export default function TimeToRejectReport() {
+    const firestore = useFirestore();
     const profilesQuery = useMemoFirebase(() => query(collection(firestore, 'caregiver_profiles')), []);
     const { data: profiles, isLoading: profilesLoading } = useCollection<CaregiverProfile>(profilesQuery);
 
