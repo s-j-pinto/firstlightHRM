@@ -4,7 +4,7 @@
 
 import { useMemo, useState } from 'react';
 import { collection, query, orderBy } from 'firebase/firestore';
-import { firestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { format, subDays, isAfter } from 'date-fns';
 import { Loader2, ChevronRight, FileText } from 'lucide-react';
 import Link from 'next/link';
@@ -86,22 +86,23 @@ export default function ClientSignupList() {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [dateFilter, setDateFilter] = useState<DateRangeKey>('last_month');
   const [showClosed, setShowClosed] = useState(false);
+  const firestore = useFirestore();
   
   const contactsQuery = useMemoFirebase(() => 
-    query(collection(firestore, 'initial_contacts'), orderBy('createdAt', 'desc')),
-    []
+    firestore ? query(collection(firestore, 'initial_contacts'), orderBy('createdAt', 'desc')) : null,
+    [firestore]
   );
   const { data: contacts, isLoading: contactsLoading } = useCollection<any>(contactsQuery);
 
   const signupsQuery = useMemoFirebase(() => 
-    query(collection(firestore, 'client_signups')),
-    []
+    firestore ? query(collection(firestore, 'client_signups')) : null,
+    [firestore]
   );
   const { data: signups, isLoading: signupsLoading } = useCollection<any>(signupsQuery);
 
   const templatesQuery = useMemoFirebase(() => 
-    query(collection(firestore, 'campaign_templates')),
-    []
+    firestore ? query(collection(firestore, 'campaign_templates')) : null,
+    [firestore]
   );
   const { data: templates, isLoading: templatesLoading } = useCollection<CampaignTemplate>(templatesQuery);
 
