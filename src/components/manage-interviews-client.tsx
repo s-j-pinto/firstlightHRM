@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from 'zod';
 import Link from 'next/link';
 import { collection, query, where, getDocs, addDoc, doc, updateDoc, Timestamp } from 'firebase/firestore';
-import { firestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import type { CaregiverProfile, Interview, CaregiverEmployee } from '@/lib/types';
 import { caregiverEmployeeSchema } from '@/lib/types';
 import { saveInterviewAndSchedule, rejectCandidateAfterOrientation, initiateOnboardingForms } from '@/lib/interviews.actions';
@@ -146,15 +146,15 @@ export default function ManageInterviewsClient() {
 
 
   const { toast } = useToast();
-  const db = firestore;
+  const db = useFirestore();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const caregiverProfilesRef = useMemoFirebase(() => collection(db, 'caregiver_profiles'), [db]);
+  const caregiverProfilesRef = useMemoFirebase(() => db ? collection(db, "caregiver_profiles") : null, [db]);
   const { data: allCaregivers, isLoading: caregiversLoading } = useCollection<CaregiverProfile>(caregiverProfilesRef);
 
-  const employeesRef = useMemoFirebase(() => collection(db, 'caregiver_employees'), [db]);
+  const employeesRef = useMemoFirebase(() => db ? collection(db, 'caregiver_employees') : null, [db]);
   const { data: allEmployees, isLoading: employeesLoading } = useCollection<CaregiverEmployee>(employeesRef);
   
   const phoneScreenForm = useForm<PhoneScreenFormData>({
@@ -238,6 +238,7 @@ export default function ManageInterviewsClient() {
     setSearchResults([]);
     setSearchTerm('');
     
+    if (!db) return;
     const interviewsRef = collection(db, 'interviews');
     const q = query(interviewsRef, where("caregiverProfileId", "==", caregiver.id));
     
@@ -596,7 +597,7 @@ export default function ManageInterviewsClient() {
   }
 
     const handleUpdateFinalInterviewStatus = async (status: 'Passed' | 'Failed') => {
-        if (!existingInterview) return;
+        if (!existingInterview || !db) return;
 
         startSubmitTransition(async () => {
             const interviewDocRef = doc(db, 'interviews', existingInterview.id);
@@ -741,7 +742,7 @@ export default function ManageInterviewsClient() {
   }
   
   const handleApproveReferences = () => {
-    if (!existingInterview?.id) return;
+    if (!existingInterview?.id || !db) return;
 
     startSubmitTransition(async () => {
         const interviewDocRef = doc(db, 'interviews', existingInterview.id);
