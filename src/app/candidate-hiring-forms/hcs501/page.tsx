@@ -23,7 +23,7 @@ import { RefreshCw, Save, X, Loader2, CalendarIcon, Edit2 } from "lucide-react";
 import { useUser, useDoc, useMemoFirebase, firestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { hcs501Schema, hcs501AdminSchema, type Hcs501FormData, type CaregiverProfile } from "@/lib/types";
+import { hcs501Schema, hcs501AdminSchema, hcs501Object, type Hcs501FormData, type CaregiverProfile } from "@/lib/types";
 import { saveHcs501Data } from "@/lib/candidate-hiring-forms.actions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
