@@ -102,11 +102,26 @@ function CandidateHiringFormsContent() {
   // Combine all forms for checking completion
   const allAvailableForms = interview?.onboardingFormsInitiated ? [...hiringForms, ...onboardingForms] : hiringForms;
   
-  // Determine if all forms are completed
-  const areAllFormsComplete = useMemo(() => {
-    if (!profileData || allAvailableForms.length === 0) return false;
-    return allAvailableForms.every(form => !!profileData[form.completionKey as keyof CaregiverProfile]);
-  }, [profileData, allAvailableForms]);
+  // New logic to calculate all completion states at once
+  const formCompletionStates = useMemo(() => {
+    if (!profileData) {
+      return { allCandidateFormsComplete: false, allAdminFieldsComplete: false, formsToRender: [] };
+    }
+
+    const formsWithStatus = allAvailableForms.map(form => {
+      const isCandidateCompleted = !!profileData[form.completionKey as keyof CaregiverProfile];
+      let isAdminCompleted = true; // Assume complete if no admin schema exists
+      if (isAnAdmin && isCandidateCompleted && form.adminSchema) {
+        isAdminCompleted = form.adminSchema.safeParse(profileData).success;
+      }
+      return { ...form, isCandidateCompleted, isAdminCompleted };
+    });
+    
+    const allCandidateFormsComplete = formsWithStatus.every(f => f.isCandidateCompleted);
+    const allAdminFieldsComplete = formsWithStatus.every(f => f.isAdminCompleted);
+
+    return { allCandidateFormsComplete, allAdminFieldsComplete, formsToRender: formsWithStatus };
+  }, [profileData, allAvailableForms, isAnAdmin]);
 
   // Reset verification when switching candidates
   useEffect(() => {
@@ -216,7 +231,7 @@ function CandidateHiringFormsContent() {
               <CardDescription>
                 {isAnAdmin ? 'Review the status of the candidate\'s forms below.' : 'Please complete all of the following forms to continue your onboarding process.'}
               </CardDescription>
-               {isAnAdmin && areAllFormsComplete && (
+               {isAnAdmin && formCompletionStates.allCandidateFormsComplete && formCompletionStates.allAdminFieldsComplete && (
                   <div className="mt-4 flex items-center space-x-2">
                     <Checkbox id="verify-forms" checked={isVerified} onCheckedChange={(checked) => setIsVerified(checked as boolean)} />
                     <Label htmlFor="verify-forms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
@@ -245,14 +260,8 @@ function CandidateHiringFormsContent() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {allAvailableForms.map((form) => {
-            const isCompleted = profileData && profileData[form.completionKey as keyof CaregiverProfile];
-            let adminFieldsComplete = true;
-            if (isAnAdmin && isCompleted && form.adminSchema && profileData) {
-                const result = form.adminSchema.safeParse(profileData);
-                adminFieldsComplete = result.success;
-            }
-
+          {formCompletionStates.formsToRender.map((form) => {
+            const { isCandidateCompleted, isAdminCompleted } = form;
             return (
               <div key={form.name} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
                 <Link href={formLinkHref(form.href)} className="flex items-center gap-4 flex-grow">
@@ -260,9 +269,9 @@ function CandidateHiringFormsContent() {
                   <span className="font-medium">{form.name}</span>
                 </Link>
                  <div className="flex items-center gap-2">
-                    {isCompleted && <CheckCircle className="h-6 w-6 text-green-500" />}
-                    {isAnAdmin && isCompleted ? (
-                        adminFieldsComplete ? (
+                    {isCandidateCompleted && <CheckCircle className="h-6 w-6 text-green-500" />}
+                    {isAnAdmin && isCandidateCompleted ? (
+                        isAdminCompleted ? (
                             <Button
                                 variant="outline"
                                 size="sm"
