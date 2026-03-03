@@ -2,7 +2,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useDoc, useMemoFirebase, firestore } from '@/firebase';
+import { useDoc, useMemoFirebase, useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,8 +14,9 @@ export default function ClientSigningPage() {
     const params = useParams();
     const router = useRouter();
     const signupId = params.signupId as string;
+    const firestore = useFirestore();
 
-    const signupRef = useMemoFirebase(() => signupId ? doc(firestore, 'client_signups', signupId) : null, [signupId]);
+    const signupRef = useMemoFirebase(() => signupId && firestore ? doc(firestore, 'client_signups', signupId) : null, [signupId, firestore]);
     const { data: signupData, isLoading } = useDoc<any>(signupRef);
 
     if (isLoading) {

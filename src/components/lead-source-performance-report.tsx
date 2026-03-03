@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useMemo } from 'react';
 import { collection, query } from 'firebase/firestore';
-import { firestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { Loader2, BarChart3 } from 'lucide-react';
 import {
   Card,
@@ -22,7 +23,8 @@ import {
 import { Progress } from "@/components/ui/progress";
 
 export default function LeadSourcePerformanceReport() {
-  const contactsQuery = useMemoFirebase(() => query(collection(firestore, 'initial_contacts')), []);
+  const firestore = useFirestore();
+  const contactsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'initial_contacts')) : null, [firestore]);
   const { data: contacts, isLoading } = useCollection<any>(contactsQuery);
 
   const sourcePerformance = useMemo(() => {

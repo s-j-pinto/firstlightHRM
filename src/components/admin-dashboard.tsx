@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import Link from 'next/link';
 import { collection } from "firebase/firestore";
-import { firestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 
 import type { Appointment, CaregiverProfile } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -95,11 +95,12 @@ export default function AdminDashboard() {
   const [pendingInviteId, setPendingInviteId] = useState<string | null>(null);
   const [authUrl, setAuthUrl] = useState<string | null>(null);
   const { toast } = useToast();
+  const firestore = useFirestore();
 
-  const appointmentsRef = useMemoFirebase(() => collection(firestore, 'appointments'), []);
+  const appointmentsRef = useMemoFirebase(() => collection(firestore, 'appointments'), [firestore]);
   const { data: appointmentsData, isLoading: appointmentsLoading } = useCollection<Appointment>(appointmentsRef);
 
-  const caregiverProfilesRef = useMemoFirebase(() => collection(firestore, 'caregiver_profiles'), []);
+  const caregiverProfilesRef = useMemoFirebase(() => collection(firestore, 'caregiver_profiles'), [firestore]);
   const { data: caregiversData, isLoading: caregiversLoading } = useCollection<CaregiverProfile>(caregiverProfilesRef);
   
   const [editingAppointment, setEditingAppointment] = useState<AppointmentWithCaregiver | null>(null);

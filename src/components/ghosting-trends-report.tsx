@@ -2,8 +2,8 @@
 "use client";
 
 import { useMemo } from 'react';
-import { collection, query, where } from 'firebase/firestore';
-import { firestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { Loader2, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
 import {
@@ -26,10 +26,11 @@ import {
 import type { Interview } from '@/lib/types';
 
 export default function GhostingTrendsReport() {
+  const firestore = useFirestore();
   // Query all interviews since we need to check two different fields
   const interviewsQuery = useMemoFirebase(() => 
-    query(collection(firestore, 'interviews')),
-    []
+    firestore ? query(collection(firestore, 'interviews')) : null,
+    [firestore]
   );
   const { data: allInterviews, isLoading } = useCollection<Interview>(interviewsQuery);
 

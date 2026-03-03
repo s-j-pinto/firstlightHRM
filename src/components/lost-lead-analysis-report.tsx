@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useMemo } from 'react';
 import { collection, query, where } from 'firebase/firestore';
-import { firestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { Loader2, BarChart, XCircle } from 'lucide-react';
 import {
   Card,
@@ -22,9 +23,10 @@ import {
 } from 'recharts';
 
 export default function LostLeadAnalysisReport() {
+  const firestore = useFirestore();
   const closedContactsQuery = useMemoFirebase(() => 
-    query(collection(firestore, 'initial_contacts'), where('status', '==', 'Closed')), 
-    []
+    firestore ? query(collection(firestore, 'initial_contacts'), where('status', '==', 'Closed')) : null, 
+    [firestore]
   );
   const { data: closedContacts, isLoading } = useCollection<any>(closedContactsQuery);
 

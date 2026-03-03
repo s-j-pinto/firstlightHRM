@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useUser, firestore } from "@/firebase";
+import { useUser, useFirestore } from "@/firebase";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2, FileText, Video } from "lucide-react";
 import Link from 'next/link';
@@ -30,6 +30,7 @@ type VideoCheckinFormData = z.infer<typeof videoCheckinSchema>;
 
 export default function ClientDashboardPage() {
   const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
   const [canViewReports, setCanViewReports] = useState(false);
   const [clientName, setClientName] = useState<string | null>(null);
   const [isClaimsLoading, setIsClaimsLoading] = useState(true);
@@ -46,7 +47,7 @@ export default function ClientDashboardPage() {
 
   useEffect(() => {
     const fetchClaimsAndGroupId = async () => {
-      if (user) {
+      if (user && firestore) {
         try {
           const tokenResult = await user.getIdTokenResult();
           const claims = tokenResult.claims;
@@ -67,7 +68,7 @@ export default function ClientDashboardPage() {
         } finally {
           setIsClaimsLoading(false);
         }
-      } else {
+      } else if (!isUserLoading) {
         setIsClaimsLoading(false);
       }
     };
@@ -75,7 +76,7 @@ export default function ClientDashboardPage() {
     if (!isUserLoading) {
       fetchClaimsAndGroupId();
     }
-  }, [user, isUserLoading]);
+  }, [user, isUserLoading, firestore]);
   
   useEffect(() => {
     if(clientName) {

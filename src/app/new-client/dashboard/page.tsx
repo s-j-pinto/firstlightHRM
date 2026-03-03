@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useUser, firestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2, FileText, ChevronRight } from "lucide-react";
 import Link from 'next/link';
@@ -11,15 +11,16 @@ import { Badge } from "@/components/ui/badge";
 
 export default function NewClientDashboardPage() {
   const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
 
   const signupsQuery = useMemoFirebase(() => 
-    user?.email 
+    (user?.email && firestore)
       ? query(
           collection(firestore, 'client_signups'), 
           where('clientEmail', '==', user.email)
         )
       : null,
-    [user?.email]
+    [user?.email, firestore]
   );
   
   const { data: documents, isLoading: docsLoading } = useCollection<any>(signupsQuery);

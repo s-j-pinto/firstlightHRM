@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useMemo } from 'react';
 import { collection, query } from 'firebase/firestore';
-import { firestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { Loader2, TrendingUp, Users, Home, FileSignature, FileCheck } from 'lucide-react';
 import {
   Card,
@@ -20,10 +21,11 @@ import {
 } from 'recharts';
 
 export default function LeadConversionFunnelReport() {
-  const contactsQuery = useMemoFirebase(() => query(collection(firestore, 'initial_contacts')), []);
+  const firestore = useFirestore();
+  const contactsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'initial_contacts')) : null, [firestore]);
   const { data: contacts, isLoading: contactsLoading } = useCollection<any>(contactsQuery);
 
-  const signupsQuery = useMemoFirebase(() => query(collection(firestore, 'client_signups')), []);
+  const signupsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'client_signups')) : null, [firestore]);
   const { data: signups, isLoading: signupsLoading } = useCollection<any>(signupsQuery);
 
   const funnelData = useMemo(() => {

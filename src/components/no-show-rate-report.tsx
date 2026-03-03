@@ -3,7 +3,7 @@
 
 import { useMemo } from 'react';
 import { collection, query } from 'firebase/firestore';
-import { firestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import type { Interview } from '@/lib/types';
 import { Loader2, Percent, Users, UserX } from 'lucide-react';
 import {
@@ -15,7 +15,8 @@ import {
 } from '@/components/ui/card';
 
 export default function NoShowRateReport() {
-  const interviewsQuery = useMemoFirebase(() => query(collection(firestore, 'interviews')), []);
+  const firestore = useFirestore();
+  const interviewsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'interviews')) : null, [firestore]);
   const { data: interviews, isLoading } = useCollection<Interview>(interviewsQuery);
 
   const stats = useMemo(() => {

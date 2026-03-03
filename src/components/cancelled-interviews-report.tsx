@@ -3,7 +3,7 @@
 
 import { useMemo } from 'react';
 import { collection, query, where } from 'firebase/firestore';
-import { firestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import type { Appointment, CaregiverProfile } from '@/lib/types';
 import { format } from 'date-fns';
 import { Loader2, User, Calendar, AlertTriangle } from 'lucide-react';
@@ -29,13 +29,15 @@ type CancelledAppointment = Appointment & {
 };
 
 export default function CancelledInterviewsReport() {
+  const firestore = useFirestore();
+
   const appointmentsRef = useMemoFirebase(() => 
-    query(collection(firestore, 'appointments'), where('appointmentStatus', '==', 'cancelled')),
-    []
+    firestore ? query(collection(firestore, 'appointments'), where('appointmentStatus', '==', 'cancelled')) : null,
+    [firestore]
   );
   const { data: appointments, isLoading: appointmentsLoading } = useCollection<Appointment>(appointmentsRef);
 
-  const profilesRef = useMemoFirebase(() => collection(firestore, 'caregiver_profiles'), []);
+  const profilesRef = useMemoFirebase(() => firestore ? collection(firestore, 'caregiver_profiles') : null, [firestore]);
   const { data: profiles, isLoading: profilesLoading } = useCollection<CaregiverProfile>(profilesRef);
 
   const cancelledAppointments = useMemo((): CancelledAppointment[] => {

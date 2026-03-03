@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useMemo } from 'react';
 import { collection, query } from 'firebase/firestore';
-import { firestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { Loader2, Activity } from 'lucide-react';
 import {
   Card,
@@ -42,7 +43,8 @@ const levelOfCareFields = [
 ];
 
 export default function LevelOfCareReport() {
-  const assessmentsQuery = useMemoFirebase(() => query(collection(firestore, 'level_of_care_assessments')), []);
+  const firestore = useFirestore();
+  const assessmentsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'level_of_care_assessments')) : null, [firestore]);
   const { data: assessments, isLoading } = useCollection<LevelOfCareFormData>(assessmentsQuery);
 
   const needsSummary = useMemo(() => {

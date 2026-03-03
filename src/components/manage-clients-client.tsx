@@ -4,7 +4,7 @@
 import { useState, useTransition, ChangeEvent } from 'react';
 import Papa from 'papaparse';
 import { processClientUpload } from '@/lib/clients.actions';
-import { useCollection, useMemoFirebase, firestore } from '@/firebase';
+import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import type { Client } from '@/lib/types';
 
@@ -19,8 +19,9 @@ export default function ManageClientsClient() {
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, startUploadTransition] = useTransition();
   const { toast } = useToast();
+  const firestore = useFirestore();
 
-  const clientsRef = useMemoFirebase(() => collection(firestore, 'Clients'), [firestore]);
+  const clientsRef = useMemoFirebase(() => firestore ? collection(firestore, 'Clients') : null, [firestore]);
   const { data: clientsData, isLoading: clientsLoading } = useCollection<Client>(clientsRef);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {

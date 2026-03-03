@@ -4,7 +4,7 @@
 
 import { useMemo, useState } from 'react';
 import { collection, query } from 'firebase/firestore';
-import { firestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { CaregiverProfile, Interview, CaregiverEmployee, Appointment } from '@/lib/types';
 import { Loader2, Search, Star } from 'lucide-react';
 import { format } from 'date-fns';
@@ -86,17 +86,18 @@ const getStatus = (
 
 export default function CandidateStatusReport() {
     const [searchTerm, setSearchTerm] = useState('');
+    const firestore = useFirestore();
 
-    const profilesRef = useMemoFirebase(() => collection(firestore, 'caregiver_profiles'), []);
+    const profilesRef = useMemoFirebase(() => firestore ? collection(firestore, 'caregiver_profiles') : null, [firestore]);
     const { data: profiles, isLoading: profilesLoading } = useCollection<CaregiverProfile>(profilesRef);
 
-    const interviewsRef = useMemoFirebase(() => collection(firestore, 'interviews'), []);
+    const interviewsRef = useMemoFirebase(() => firestore ? collection(firestore, 'interviews') : null, [firestore]);
     const { data: interviews, isLoading: interviewsLoading } = useCollection<Interview>(interviewsRef);
 
-    const employeesRef = useMemoFirebase(() => collection(firestore, 'caregiver_employees'), []);
+    const employeesRef = useMemoFirebase(() => firestore ? collection(firestore, 'caregiver_employees') : null, [firestore]);
     const { data: employees, isLoading: employeesLoading } = useCollection<CaregiverEmployee>(employeesRef);
     
-    const appointmentsRef = useMemoFirebase(() => query(collection(firestore, 'appointments')), []);
+    const appointmentsRef = useMemoFirebase(() => firestore ? query(collection(firestore, 'appointments')) : null, [firestore]);
     const { data: appointments, isLoading: appointmentsLoading } = useCollection<Appointment>(appointmentsRef);
 
 

@@ -38,13 +38,13 @@ const safeToDate = (value: any): Date | null => {
 
 export default function SpeedToHireReport() {
     const firestore = useFirestore();
-    const profilesQuery = useMemoFirebase(() => query(collection(firestore, 'caregiver_profiles')), []);
+    const profilesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'caregiver_profiles')) : null, [firestore]);
     const { data: profiles, isLoading: profilesLoading } = useCollection<CaregiverProfile>(profilesQuery);
 
-    const interviewsQuery = useMemoFirebase(() => query(collection(firestore, 'interviews')), []);
+    const interviewsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'interviews')) : null, [firestore]);
     const { data: interviews, isLoading: interviewsLoading } = useCollection<Interview>(interviewsQuery);
 
-    const employeesQuery = useMemoFirebase(() => query(collection(firestore, 'caregiver_employees')), []);
+    const employeesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'caregiver_employees')) : null, [firestore]);
     const { data: employees, isLoading: employeesLoading } = useCollection<CaregiverEmployee>(employeesQuery);
 
     const hiringMetrics = useMemo(() => {

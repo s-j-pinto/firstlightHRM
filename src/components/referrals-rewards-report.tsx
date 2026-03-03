@@ -66,13 +66,13 @@ export default function ReferralsRewardsReport() {
   const firestore = useFirestore();
 
   // Fetch all necessary data
-  const referralsQuery = useMemoFirebase(() => query(collection(firestore, "referrals")), []);
+  const referralsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, "referrals")) : null, [firestore]);
   const { data: referrals, isLoading: referralsLoading } = useCollection<Referral>(referralsQuery);
 
-  const rewardsQuery = useMemoFirebase(() => query(collection(firestore, "rewards")), []);
+  const rewardsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, "rewards")) : null, [firestore]);
   const { data: rewards, isLoading: rewardsLoading } = useCollection<Reward>(rewardsQuery);
 
-  const clientsQuery = useMemoFirebase(() => query(collection(firestore, "Clients")), []);
+  const clientsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, "Clients")) : null, [firestore]);
   const { data: clients, isLoading: clientsLoading } = useCollection<Client>(clientsQuery);
   
   const clientsMap = useMemo(() => {
@@ -80,7 +80,7 @@ export default function ReferralsRewardsReport() {
     return new Map(clients.map((c) => [c.id, c]));
   }, [clients]);
 
-  const initialContactsQuery = useMemoFirebase(() => query(collection(firestore, "initial_contacts")), []);
+  const initialContactsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, "initial_contacts")) : null, [firestore]);
   const { data: initialContacts, isLoading: contactsLoading } = useCollection<InitialContact>(initialContactsQuery);
 
   const enrichedReferrals = useMemo((): EnrichedReferral[] => {

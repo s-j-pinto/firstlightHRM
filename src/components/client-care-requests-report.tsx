@@ -3,7 +3,7 @@
 
 import { useMemo, useState } from 'react';
 import { collection } from 'firebase/firestore';
-import { firestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import type { ClientCareRequest } from '@/lib/types';
 import { Loader2, Search, Calendar, User, Clock } from 'lucide-react';
 import { format } from 'date-fns';
@@ -23,8 +23,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 
 export default function ClientCareRequestsReport() {
     const [searchTerm, setSearchTerm] = useState('');
+    const firestore = useFirestore();
 
-    const requestsRef = useMemoFirebase(() => collection(firestore, 'client_additional_care_requests'), []);
+    const requestsRef = useMemoFirebase(() => firestore ? collection(firestore, 'client_additional_care_requests') : null, [firestore]);
     const { data: requests, isLoading } = useCollection<ClientCareRequest>(requestsRef);
 
     const sortedRequests = useMemo(() => {

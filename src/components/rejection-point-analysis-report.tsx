@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useMemo } from 'react';
 import { collection, query } from 'firebase/firestore';
-import { firestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { Loader2, TrendingDown } from 'lucide-react';
 import {
   Card,
@@ -22,13 +23,14 @@ import type { CaregiverProfile, Interview, CaregiverEmployee } from '@/lib/types
 
 
 export default function RejectionPointAnalysisReport() {
-  const profilesQuery = useMemoFirebase(() => query(collection(firestore, 'caregiver_profiles')), []);
+  const firestore = useFirestore();
+  const profilesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'caregiver_profiles')) : null, [firestore]);
   const { data: profiles, isLoading: profilesLoading } = useCollection<CaregiverProfile>(profilesQuery);
 
-  const interviewsQuery = useMemoFirebase(() => query(collection(firestore, 'interviews')), []);
+  const interviewsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'interviews')) : null, [firestore]);
   const { data: interviews, isLoading: interviewsLoading } = useCollection<Interview>(interviewsQuery);
   
-  const employeesQuery = useMemoFirebase(() => query(collection(firestore, 'caregiver_employees')), []);
+  const employeesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'caregiver_employees')) : null, [firestore]);
   const { data: employees, isLoading: employeesLoading } = useCollection<CaregiverEmployee>(employeesQuery);
 
   const funnelData = useMemo(() => {

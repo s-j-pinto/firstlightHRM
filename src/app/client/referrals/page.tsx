@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from 'react';
-import { useUser, firestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { Loader2, ArrowLeft, Gift, Clipboard, Send, Star, Ticket, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -30,6 +30,7 @@ type ReferralInviteFormData = z.infer<typeof referralInviteSchema>;
 
 export default function ReferralsPage() {
   const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
   const { toast } = useToast();
   const [isSending, startSendingTransition] = React.useTransition();
   const [clientId, setClientId] = React.useState<string | null>(null);
@@ -48,14 +49,14 @@ export default function ReferralsPage() {
     }
   }, [user]);
 
-  const profileQuery = useMemoFirebase(() => clientId ? query(collection(firestore, 'referral_profiles'), where('clientId', '==', clientId)) : null, [clientId]);
+  const profileQuery = useMemoFirebase(() => clientId && firestore ? query(collection(firestore, 'referral_profiles'), where('clientId', '==', clientId)) : null, [clientId, firestore]);
   const { data: profileData, isLoading: profileLoading } = useCollection<any>(profileQuery);
   const referralProfile = profileData?.[0];
 
-  const referralsQuery = useMemoFirebase(() => clientId ? query(collection(firestore, 'referrals'), where('referrerClientId', '==', clientId)) : null, [clientId]);
+  const referralsQuery = useMemoFirebase(() => clientId && firestore ? query(collection(firestore, 'referrals'), where('referrerClientId', '==', clientId)) : null, [clientId, firestore]);
   const { data: referrals, isLoading: referralsLoading } = useCollection<any>(referralsQuery);
   
-  const rewardsQuery = useMemoFirebase(() => clientId ? query(collection(firestore, 'rewards'), where('clientId', '==', clientId)) : null, [clientId]);
+  const rewardsQuery = useMemoFirebase(() => clientId && firestore ? query(collection(firestore, 'rewards'), where('clientId', '==', clientId)) : null, [clientId, firestore]);
   const { data: rewards, isLoading: rewardsLoading } = useCollection<any>(rewardsQuery);
 
   const form = useForm<ReferralInviteFormData>({

@@ -4,7 +4,7 @@
 import { useParams } from 'next/navigation';
 import { useMemo } from 'react';
 import { collection, query, where, doc } from 'firebase/firestore';
-import { firestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { CareLog, CareLogGroup } from '@/lib/types';
 import { format } from 'date-fns';
 import { Loader2, FileText, Calendar, Clock, User, Image as ImageIcon, ArrowLeft } from 'lucide-react';
@@ -115,11 +115,12 @@ const FormattedTemplateData = ({ data }: { data: any }) => {
 export default function CareLogReportPage() {
   const params = useParams();
   const groupId = params.groupId as string;
+  const firestore = useFirestore();
 
-  const groupRef = useMemoFirebase(() => groupId ? doc(firestore, 'carelog_groups', groupId) : null, [groupId]);
+  const groupRef = useMemoFirebase(() => groupId && firestore ? doc(firestore, 'carelog_groups', groupId) : null, [groupId, firestore]);
   const { data: groupData, isLoading: groupLoading } = useDoc<CareLogGroup>(groupRef);
   
-  const logsQuery = useMemoFirebase(() => groupId ? query(collection(firestore, 'carelogs'), where('careLogGroupId', '==', groupId)) : null, [groupId]);
+  const logsQuery = useMemoFirebase(() => groupId && firestore ? query(collection(firestore, 'carelogs'), where('careLogGroupId', '==', groupId)) : null, [groupId, firestore]);
   const { data: logsData, isLoading: logsLoading } = useCollection<CareLog>(logsQuery);
 
   const sortedLogs = useMemo(() => {

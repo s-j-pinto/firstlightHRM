@@ -3,7 +3,7 @@
 
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useDoc, useMemoFirebase, firestore } from '@/firebase';
+import { useDoc, useMemoFirebase, useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -12,8 +12,9 @@ import { LeadIntakeForm } from '@/components/lead-intake-form';
 function LeadIntakePageContent() {
   const searchParams = useSearchParams();
   const contactId = searchParams.get('id');
+  const firestore = useFirestore();
 
-  const contactDocRef = useMemoFirebase(() => contactId ? doc(firestore, 'initial_contacts', contactId) : null, [contactId]);
+  const contactDocRef = useMemoFirebase(() => contactId && firestore ? doc(firestore, 'initial_contacts', contactId) : null, [contactId, firestore]);
   const { data: contactData, isLoading } = useDoc<any>(contactDocRef);
 
   if (isLoading) {

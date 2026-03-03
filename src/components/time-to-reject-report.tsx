@@ -34,10 +34,10 @@ const safeToDate = (value: any): Date | null => {
 
 export default function TimeToRejectReport() {
     const firestore = useFirestore();
-    const profilesQuery = useMemoFirebase(() => query(collection(firestore, 'caregiver_profiles')), []);
+    const profilesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'caregiver_profiles')) : null, [firestore]);
     const { data: profiles, isLoading: profilesLoading } = useCollection<CaregiverProfile>(profilesQuery);
 
-    const interviewsQuery = useMemoFirebase(() => query(collection(firestore, 'interviews')), []);
+    const interviewsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'interviews')) : null, [firestore]);
     const { data: interviews, isLoading: interviewsLoading } = useCollection<Interview>(interviewsQuery);
 
     const rejectionData = useMemo(() => {

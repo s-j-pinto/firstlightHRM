@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useTransition } from "react";
@@ -7,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
 import { collection, doc } from "firebase/firestore";
-import { firestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import type { CaregiverProfile } from "@/lib/types";
 import { generalInfoSchema } from "@/lib/types";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -52,7 +51,7 @@ export default function ManageApplicationsClient() {
   const [isSubmitting, startSubmitTransition] = useTransition();
 
   const { toast } = useToast();
-  const db = firestore;
+  const db = useFirestore();
 
   const caregiverProfilesRef = useMemoFirebase(
     () => (db ? collection(db, "caregiver_profiles") : null),
@@ -258,5 +257,3 @@ export default function ManageApplicationsClient() {
     </div>
   );
 }
-
-    

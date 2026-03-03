@@ -4,7 +4,7 @@
 import { useState, useTransition, ChangeEvent } from 'react';
 import Papa from 'papaparse';
 import { processActiveCaregiverProfiles } from '@/lib/active-caregivers.actions';
-import { useCollection, useMemoFirebase, firestore } from '@/firebase';
+import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import type { ActiveCaregiver } from '@/lib/types';
 
@@ -19,8 +19,9 @@ export default function ManageActiveCaregiversClient() {
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, startUploadTransition] = useTransition();
   const { toast } = useToast();
+  const firestore = useFirestore();
 
-  const caregiversRef = useMemoFirebase(() => collection(firestore, 'caregivers_active'), [firestore]);
+  const caregiversRef = useMemoFirebase(() => firestore ? collection(firestore, 'caregivers_active') : null, [firestore]);
   const { data: activeCaregivers, isLoading: caregiversLoading } = useCollection<ActiveCaregiver>(caregiversRef);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
