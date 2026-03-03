@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useTransition, useEffect, useState } from "react";
+import { useTransition, useEffect, useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { saveAdminSettings } from "@/lib/google-calendar.actions";
 import { useToast } from "@/hooks/use-toast";
@@ -15,12 +15,15 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Terminal, Copy, Check, AlertTriangle } from "lucide-react";
+import { Loader2, Terminal, Copy, Check, AlertTriangle, Edit2, RefreshCw } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { doc, setDoc } from "firebase/firestore";
 import { useFirestore, useFirebase, useMemoFirebase } from "@/firebase";
 import { useDoc } from "@/firebase/firestore/use-doc";
 import { CareLogGroupAdmin } from "./carelog-group-admin";
+import SignatureCanvas from 'react-signature-canvas';
+import Image from 'next/image';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 
 type SettingsFormValues = {
   sunday_slots: string;
@@ -31,6 +34,7 @@ type SettingsFormValues = {
   friday_slots: string;
   saturday_slots: string;
   googleAuthCode?: string;
+  adminSignature?: string;
 };
 
 type AssessmentAvailabilityFormValues = {
@@ -43,6 +47,74 @@ type AssessmentAvailabilityFormValues = {
     assessment_saturday_slots: string;
 };
 
+const SignaturePadModal = ({
+    isOpen,
+    onClose,
+    onSave,
+    signatureData,
+    title
+}: {
+    isOpen: boolean;
+    onClose: () => void;
+    onSave: (dataUrl: string) => void;
+    signatureData: string | undefined | null;
+    title: string;
+}) => {
+    const sigPadRef = useRef<SignatureCanvas>(null);
+    const [isSigned, setIsSigned] = useState(false);
+
+    useEffect(() => {
+        if (isOpen && sigPadRef.current) {
+            sigPadRef.current.clear();
+            if (signatureData) {
+                sigPadRef.current.fromDataURL(signatureData);
+                setIsSigned(true);
+            } else {
+                setIsSigned(false);
+            }
+        }
+    }, [isOpen, signatureData]);
+    
+    const handleClear = () => {
+        sigPadRef.current?.clear();
+        setIsSigned(false);
+    }
+    
+    const handleDone = () => {
+        if (sigPadRef.current && !sigPadRef.current.isEmpty()) {
+            onSave(sigPadRef.current.toDataURL());
+        } else {
+             onSave(""); 
+        }
+        onClose();
+    }
+    
+    return (
+        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+            <DialogContent className="sm:max-w-[600px] h-[400px] flex flex-col p-0">
+                <DialogHeader className="p-4 border-b">
+                    <DialogTitle>{title}</DialogTitle>
+                </DialogHeader>
+                <div className="flex-grow p-2">
+                    <SignatureCanvas
+                        ref={sigPadRef}
+                        penColor='black'
+                        canvasProps={{ className: 'w-full h-full bg-muted/50 rounded-md' }}
+                        onEnd={() => setIsSigned(true)}
+                    />
+                </div>
+                <div className="flex justify-between p-4 border-t">
+                    <Button type="button" variant="ghost" onClick={handleClear}>
+                        <RefreshCw className="mr-2"/>
+                        Clear
+                    </Button>
+                    <Button type="button" onClick={handleDone}>Done</Button>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
 export default function AdminSettings() {
   const [isPending, startTransition] = useTransition();
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
@@ -50,6 +122,8 @@ export default function AdminSettings() {
   const { toast } = useToast();
   const firestore = useFirestore();
   const { isUserLoading: isUserAuthLoading } = useFirebase();
+
+  const [activeSignature, setActiveSignature] = useState<{ fieldName: "adminSignature"; title: string; } | null>(null);
 
   const interviewSettingsForm = useForm<SettingsFormValues>();
   const assessmentSettingsForm = useForm<AssessmentAvailabilityFormValues>();
@@ -149,6 +223,37 @@ export default function AdminSettings() {
       setTimeout(() => setHasCopied(false), 2000);
     }
   };
+
+  const handleSaveSignature = (dataUrl: string) => {
+    if (activeSignature) {
+        interviewSettingsForm.setValue(activeSignature.fieldName, dataUrl, { shouldValidate: true, shouldDirty: true });
+    }
+  };
+
+  const SignatureField = ({ fieldName, title }: { fieldName: "adminSignature"; title: string; }) => {
+      const signatureData = interviewSettingsForm.watch(fieldName);
+      return (
+          <div className="space-y-2">
+              <Label>{title}</Label>
+              <div className="relative rounded-md border bg-muted/30 h-32 flex items-center justify-center">
+                  {signatureData ? (
+                      <Image src={signatureData as string} alt="Signature" layout="fill" objectFit="contain" />
+                  ) : (
+                      <span className="text-muted-foreground">Not Signed</span>
+                  )}
+                   <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-1 right-1 h-7 w-7"
+                      onClick={() => setActiveSignature({ fieldName, title })}
+                  >
+                      <Edit2 className="h-4 w-4" />
+                  </Button>
+              </div>
+          </div>
+      );
+  };
   
   if (isUserAuthLoading || isInterviewSettingsLoading || isAssessmentSettingsLoading) {
     return <p>Loading settings...</p>;
@@ -157,6 +262,18 @@ export default function AdminSettings() {
   return (
     <div className="space-y-8">
       <form onSubmit={(e) => { e.preventDefault(); handleFormSubmit(); }} className="space-y-8">
+        <Card>
+            <CardHeader>
+                <CardTitle>Administrator Signature</CardTitle>
+                <CardDescription>
+                    Provide a signature to be used on official documents.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <SignatureField fieldName="adminSignature" title="Administrator Signature" />
+            </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Interview Availability</CardTitle>
@@ -292,6 +409,15 @@ export default function AdminSettings() {
           </Button>
         </div>
       </form>
+      {activeSignature && (
+          <SignaturePadModal
+              isOpen={!!activeSignature}
+              onClose={() => setActiveSignature(null)}
+              onSave={handleSaveSignature}
+              signatureData={interviewSettingsForm.getValues(activeSignature.fieldName)}
+              title={activeSignature.title}
+          />
+      )}
     </div>
   );
 }
