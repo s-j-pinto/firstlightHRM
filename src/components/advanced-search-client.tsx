@@ -1,11 +1,10 @@
 
-
 "use client";
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { collection, doc, query } from 'firebase/firestore';
-import { firestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
 import { CaregiverProfile, Interview, CaregiverEmployee, Appointment } from '@/lib/types';
 import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { DateRange } from 'react-day-picker';
@@ -237,20 +236,21 @@ export default function AdvancedSearchClient() {
     const rowsPerPage = 20;
     const router = useRouter();
     const { toast } = useToast();
+    const firestore = useFirestore();
 
     const [sortKey, setSortKey] = useState<SortKey>('createdAt');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
-    const profilesRef = useMemoFirebase(() => collection(firestore, 'caregiver_profiles'), []);
+    const profilesRef = useMemoFirebase(() => collection(firestore, 'caregiver_profiles'), [firestore]);
     const { data: profiles, isLoading: profilesLoading } = useCollection<CaregiverProfile>(profilesRef);
 
-    const interviewsRef = useMemoFirebase(() => collection(firestore, 'interviews'), []);
+    const interviewsRef = useMemoFirebase(() => collection(firestore, 'interviews'), [firestore]);
     const { data: interviews, isLoading: interviewsLoading } = useCollection<Interview>(interviewsRef);
 
-    const employeesRef = useMemoFirebase(() => collection(firestore, 'caregiver_employees'), []);
+    const employeesRef = useMemoFirebase(() => collection(firestore, 'caregiver_employees'), [firestore]);
     const { data: employees, isLoading: employeesLoading } = useCollection<CaregiverEmployee>(employeesRef);
     
-    const appointmentsRef = useMemoFirebase(() => query(collection(firestore, 'appointments')), []);
+    const appointmentsRef = useMemoFirebase(() => query(collection(firestore, 'appointments')), [firestore]);
     const { data: appointments, isLoading: appointmentsLoading } = useCollection<Appointment>(appointmentsRef);
 
     const candidates = useMemo((): EnrichedCandidate[] => {
