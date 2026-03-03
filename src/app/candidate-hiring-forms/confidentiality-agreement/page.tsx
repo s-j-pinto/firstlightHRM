@@ -16,7 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { RefreshCw, Save, X, Loader2, CalendarIcon, Edit2 } from "lucide-react";
 import { useUser, useDoc, useMemoFirebase, firestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { confidentialityAgreementSchema, type ConfidentialityAgreementFormData, type CaregiverProfile } from "@/lib/types";
+import { confidentialityAgreementAdminSchema, type ConfidentialityAgreementFormData, type CaregiverProfile } from "@/lib/types";
 import { saveConfidentialityAgreementData } from "@/lib/candidate-hiring-forms.actions";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -123,14 +123,17 @@ export default function ConfidentialityAgreementPage() {
     );
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
     
+    const settingsRef = useMemoFirebase(() => doc(firestore, 'settings', 'availability'), []);
+    const { data: settingsData, isLoading: isSettingsLoading } = useDoc<any>(settingsRef);
+    
     const form = useForm<ConfidentialityAgreementFormData>({
-      resolver: zodResolver(confidentialityAgreementSchema),
+      resolver: zodResolver(confidentialityAgreementAdminSchema),
       defaultValues: defaultFormValues,
     });
     
-    const SignatureField = ({ fieldName, title, adminOnly = false }: { fieldName: keyof ConfidentialityAgreementFormData; title: string; adminOnly?: boolean; }) => {
+    const SignatureField = ({ fieldName, title, adminOnly = false, isReadOnly = false }: { fieldName: keyof ConfidentialityAgreementFormData; title: string; adminOnly?: boolean; isReadOnly?: boolean }) => {
         const signatureData = form.watch(fieldName);
-        const disabled = isPrintMode || (adminOnly && !isAnAdmin);
+        const buttonDisabled = isPrintMode || (adminOnly && !isAnAdmin) || isReadOnly;
         
         return (
             <div className="space-y-2">
@@ -141,7 +144,7 @@ export default function ConfidentialityAgreementPage() {
                     ) : (
                         <span className="text-muted-foreground">Not Signed</span>
                     )}
-                     {!disabled && (
+                     {!buttonDisabled && (
                          <Button
                             type="button"
                             variant="ghost"
@@ -167,7 +170,7 @@ export default function ConfidentialityAgreementPage() {
     useEffect(() => {
         if (existingData) {
             const formData:Partial<ConfidentialityAgreementFormData> = {};
-            const formSchemaKeys = Object.keys(confidentialityAgreementSchema.shape) as Array<keyof ConfidentialityAgreementFormData>;
+            const formSchemaKeys = Object.keys(confidentialityAgreementAdminSchema.shape) as Array<keyof ConfidentialityAgreementFormData>;
             
             formSchemaKeys.forEach(key => {
                 if (Object.prototype.hasOwnProperty.call(existingData, key)) {
@@ -184,6 +187,15 @@ export default function ConfidentialityAgreementPage() {
         }
     }, [existingData, form]);
     
+    useEffect(() => {
+        if (settingsData?.adminSignature && !form.getValues('confidentialityAgreementRepSignature')) {
+            form.setValue('confidentialityAgreementRepSignature', settingsData.adminSignature, { shouldDirty: false });
+            if (!form.getValues('confidentialityAgreementRepDate')) {
+                form.setValue('confidentialityAgreementRepDate', new Date(), { shouldDirty: false });
+            }
+        }
+    }, [settingsData, form, existingData]);
+
     const handleSaveSignature = (dataUrl: string) => {
         if (activeSignature) {
             form.setValue(activeSignature.fieldName, dataUrl, { shouldValidate: true, shouldDirty: true });
@@ -218,7 +230,7 @@ export default function ConfidentialityAgreementPage() {
         }
     }
 
-    const isLoading = isUserLoading || isDataLoading;
+    const isLoading = isUserLoading || isDataLoading || isSettingsLoading;
 
     if(isLoading) {
       return (
@@ -268,9 +280,9 @@ export default function ConfidentialityAgreementPage() {
                         )} />
                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
-                        <SignatureField fieldName="confidentialityAgreementRepSignature" title="FirstLight HomeCare representative signature" adminOnly={true} />
+                        <SignatureField fieldName="confidentialityAgreementRepSignature" title="FirstLight HomeCare representative signature" adminOnly={true} isReadOnly={true} />
                         <FormField control={form.control} name="confidentialityAgreementRepDate" render={({ field }) => (
-                            <FormItem className="flex flex-col"><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} disabled={!isAnAdmin} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={!isAnAdmin} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
+                            <FormItem className="flex flex-col"><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} disabled={true} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={true} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
                         )} />
                     </div>
                 </div>
@@ -300,3 +312,5 @@ export default function ConfidentialityAgreementPage() {
         </Card>
     );
 }
+
+    

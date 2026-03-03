@@ -16,7 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { RefreshCw, Save, X, Loader2, CalendarIcon, Edit2 } from "lucide-react";
 import { useUser, useDoc, useMemoFirebase, firestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { employeeOrientationAgreementSchema, type EmployeeOrientationAgreementFormData, type CaregiverProfile } from "@/lib/types";
+import { employeeOrientationAgreementAdminSchema, type EmployeeOrientationAgreementFormData, type CaregiverProfile } from "@/lib/types";
 import { saveEmployeeOrientationAgreementData } from "@/lib/candidate-hiring-forms.actions";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -137,14 +137,17 @@ export default function EmployeeOrientationAgreementPage() {
     );
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
     
+    const settingsRef = useMemoFirebase(() => doc(firestore, 'settings', 'availability'), []);
+    const { data: settingsData, isLoading: isSettingsLoading } = useDoc<any>(settingsRef);
+    
     const form = useForm<EmployeeOrientationAgreementFormData>({
-      resolver: zodResolver(employeeOrientationAgreementSchema),
+      resolver: zodResolver(employeeOrientationAgreementAdminSchema),
       defaultValues: defaultFormValues,
     });
     
-    const SignatureField = ({ fieldName, title, adminOnly = false }: { fieldName: keyof EmployeeOrientationAgreementFormData; title: string; adminOnly?: boolean; }) => {
+    const SignatureField = ({ fieldName, title, adminOnly = false, isReadOnly = false }: { fieldName: keyof EmployeeOrientationAgreementFormData; title: string; adminOnly?: boolean; isReadOnly?: boolean; }) => {
         const signatureData = form.watch(fieldName);
-        const disabled = isPrintMode || (adminOnly && !isAnAdmin);
+        const buttonDisabled = isPrintMode || (adminOnly && !isAnAdmin) || isReadOnly;
         
         return (
             <div className="space-y-2">
@@ -155,7 +158,7 @@ export default function EmployeeOrientationAgreementPage() {
                     ) : (
                         <span className="text-muted-foreground">Not Signed</span>
                     )}
-                     {!disabled && (
+                     {!buttonDisabled && (
                          <Button
                             type="button"
                             variant="ghost"
@@ -187,7 +190,7 @@ export default function EmployeeOrientationAgreementPage() {
     useEffect(() => {
         if (existingData) {
             const formData:Partial<EmployeeOrientationAgreementFormData> = {};
-            const formSchemaKeys = Object.keys(employeeOrientationAgreementSchema.shape) as Array<keyof EmployeeOrientationAgreementFormData>;
+            const formSchemaKeys = Object.keys(employeeOrientationAgreementAdminSchema.shape) as Array<keyof EmployeeOrientationAgreementFormData>;
             
             formSchemaKeys.forEach(key => {
                 if (Object.prototype.hasOwnProperty.call(existingData, key)) {
@@ -204,6 +207,15 @@ export default function EmployeeOrientationAgreementPage() {
         }
     }, [existingData, form]);
     
+    useEffect(() => {
+        if (settingsData?.adminSignature && !form.getValues('orientationAgreementWitnessSignature')) {
+            form.setValue('orientationAgreementWitnessSignature', settingsData.adminSignature, { shouldDirty: false });
+            if (!form.getValues('orientationAgreementWitnessDate')) {
+                form.setValue('orientationAgreementWitnessDate', new Date(), { shouldDirty: false });
+            }
+        }
+    }, [settingsData, form, existingData]);
+
     const handleSaveSignature = (dataUrl: string) => {
         if (activeSignature) {
             form.setValue(activeSignature.fieldName, dataUrl, { shouldValidate: true, shouldDirty: true });
@@ -238,7 +250,7 @@ export default function EmployeeOrientationAgreementPage() {
         }
     }
 
-    const isLoading = isUserLoading || isDataLoading;
+    const isLoading = isUserLoading || isDataLoading || isSettingsLoading;
 
     if(isLoading) {
       return (
@@ -307,9 +319,9 @@ export default function EmployeeOrientationAgreementPage() {
                         )} />
                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-                        <SignatureField fieldName="orientationAgreementWitnessSignature" title="FirstLight Home Care Witness" adminOnly={true} />
+                        <SignatureField fieldName="orientationAgreementWitnessSignature" title="FirstLight Home Care Witness" adminOnly={true} isReadOnly={true} />
                          <FormField control={form.control} name="orientationAgreementWitnessDate" render={({ field }) => (
-                        <FormItem className="flex flex-col"><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} disabled={!isAnAdmin} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={!isAnAdmin} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
+                        <FormItem className="flex flex-col"><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} disabled={true} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={true} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
                         )} />
                     </div>
                 </div>
@@ -338,3 +350,5 @@ export default function EmployeeOrientationAgreementPage() {
         </Card>
     );
 }
+
+    

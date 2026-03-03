@@ -16,7 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { RefreshCw, Save, X, Loader2, CalendarIcon, Edit2 } from "lucide-react";
 import { useUser, useDoc, useMemoFirebase, firestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { clientAbandonmentSchema, type ClientAbandonmentFormData, type CaregiverProfile } from "@/lib/types";
+import { clientAbandonmentAdminSchema, type ClientAbandonmentFormData, type CaregiverProfile } from "@/lib/types";
 import { saveClientAbandonmentData } from "@/lib/candidate-hiring-forms.actions";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -138,14 +138,17 @@ export default function ClientAbandonmentPage() {
     );
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
     
+    const settingsRef = useMemoFirebase(() => doc(firestore, 'settings', 'availability'), []);
+    const { data: settingsData, isLoading: isSettingsLoading } = useDoc<any>(settingsRef);
+    
     const form = useForm<ClientAbandonmentFormData>({
-      resolver: zodResolver(clientAbandonmentSchema),
+      resolver: zodResolver(clientAbandonmentAdminSchema),
       defaultValues: defaultFormValues,
     });
     
-    const SignatureField = ({ fieldName, title, adminOnly = false }: { fieldName: keyof ClientAbandonmentFormData; title: string; adminOnly?: boolean; }) => {
+    const SignatureField = ({ fieldName, title, adminOnly = false, isReadOnly = false }: { fieldName: keyof ClientAbandonmentFormData; title: string; adminOnly?: boolean; isReadOnly?: boolean; }) => {
         const signatureData = form.watch(fieldName);
-        const disabled = isPrintMode || (adminOnly && !isAnAdmin);
+        const buttonDisabled = isPrintMode || (adminOnly && !isAnAdmin) || isReadOnly;
         
         return (
             <div className="space-y-2 flex-1">
@@ -156,7 +159,7 @@ export default function ClientAbandonmentPage() {
                     ) : (
                         <span className="text-muted-foreground">Not Signed</span>
                     )}
-                     {!disabled && (
+                     {!buttonDisabled && (
                          <Button
                             type="button"
                             variant="ghost"
@@ -182,7 +185,7 @@ export default function ClientAbandonmentPage() {
     useEffect(() => {
         if (existingData) {
             const formData:Partial<ClientAbandonmentFormData> = {};
-            const formSchemaKeys = Object.keys(clientAbandonmentSchema.shape) as Array<keyof ClientAbandonmentFormData>;
+            const formSchemaKeys = Object.keys(clientAbandonmentAdminSchema.shape) as Array<keyof ClientAbandonmentFormData>;
             
             formSchemaKeys.forEach(key => {
                 if (Object.prototype.hasOwnProperty.call(existingData, key)) {
@@ -198,6 +201,12 @@ export default function ClientAbandonmentPage() {
             form.reset(formData);
         }
     }, [existingData, form]);
+
+    useEffect(() => {
+        if (settingsData?.adminSignature && !form.getValues('clientAbandonmentWitnessSignature')) {
+            form.setValue('clientAbandonmentWitnessSignature', settingsData.adminSignature, { shouldDirty: false });
+        }
+    }, [settingsData, form, existingData]);
 
     const handleSaveSignature = (dataUrl: string) => {
         if (activeSignature) {
@@ -233,7 +242,7 @@ export default function ClientAbandonmentPage() {
         }
     }
 
-    const isLoading = isUserLoading || isDataLoading;
+    const isLoading = isUserLoading || isDataLoading || isSettingsLoading;
 
     if(isLoading) {
       return (
@@ -293,7 +302,7 @@ export default function ClientAbandonmentPage() {
                     </p>
                     <div className="flex flex-col md:flex-row gap-6 items-start">
                         <SignatureField fieldName="clientAbandonmentSignature" title="Signature" />
-                        <SignatureField fieldName="clientAbandonmentWitnessSignature" title="Witness Signature" adminOnly={true} />
+                        <SignatureField fieldName="clientAbandonmentWitnessSignature" title="Witness Signature" adminOnly={true} isReadOnly={true} />
                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end pt-8">
                         <FormField control={form.control} name="clientAbandonmentPrintedName" render={({ field }) => (
