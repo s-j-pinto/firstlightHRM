@@ -5,10 +5,9 @@ import { useRef, useEffect, useTransition, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import SignatureCanvas from 'react-signature-canvas';
 import { doc } from "firebase/firestore";
+import SignatureCanvas from 'react-signature-canvas';
 import { format } from "date-fns";
-import { z } from "zod";
 import Image from "next/image";
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
@@ -24,7 +23,7 @@ import { RefreshCw, Save, X, Loader2, CalendarIcon, Edit2 } from "lucide-react";
 import { useUser, useDoc, useMemoFirebase, firestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { hcs501Schema, hcs501Object, type Hcs501FormData, type CaregiverProfile } from "@/lib/types";
+import { hcs501Schema, hcs501AdminSchema, type Hcs501FormData, type CaregiverProfile } from "@/lib/types";
 import { saveHcs501Data } from "@/lib/candidate-hiring-forms.actions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -162,8 +161,10 @@ export default function HCS501Page() {
     );
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
 
+    const validationSchema = isAnAdmin ? hcs501AdminSchema : hcs501Schema;
+
     const form = useForm<Hcs501FormData>({
-      resolver: zodResolver(hcs501Schema),
+      resolver: zodResolver(validationSchema),
       defaultValues: defaultFormValues,
     });
     
@@ -311,10 +312,10 @@ export default function HCS501Page() {
                             <Input id="hcoNumber" value="364700059" readOnly />
                         </div>
                         <FormField control={form.control} name="perId" render={({ field }) => (
-                          <FormItem><FormLabel>Employee’s PER ID</FormLabel><FormControl><Input {...field} disabled={!isAnAdmin} /></FormControl><FormMessage /></FormItem>
+                          <FormItem><FormLabel>Employee’s PER ID {isAnAdmin && <span className="text-destructive">*</span>}</FormLabel><FormControl><Input {...field} disabled={!isAnAdmin} /></FormControl><FormMessage /></FormItem>
                         )} />
                         <FormField control={form.control} name="hireDate" render={({ field }) => (
-                            <FormItem className="flex flex-col"><FormLabel>Hire Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={!isAnAdmin}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={!isAnAdmin} /></PopoverContent></Popover><FormMessage /></FormItem>
+                            <FormItem className="flex flex-col"><FormLabel>Hire Date {isAnAdmin && <span className="text-destructive">*</span>}</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={!isAnAdmin}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={!isAnAdmin} /></PopoverContent></Popover><FormMessage /></FormItem>
                         )} />
                          <FormField control={form.control} name="separationDate" render={({ field }) => (
                             <FormItem className="flex flex-col"><FormLabel>Date of Separation</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={!isAnAdmin}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={!isAnAdmin} /></PopoverContent></Popover><FormMessage /></FormItem>
@@ -379,7 +380,7 @@ export default function HCS501Page() {
                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <FormField control={form.control} name="tbDate" render={({ field }) => (
-                            <FormItem className="flex flex-col"><FormLabel>Date of TB Test Upon Hire</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start">
+                            <FormItem className="flex flex-col"><FormLabel>Date of TB Test Upon Hire {isAnAdmin && <span className="text-destructive">*</span>}</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start">
                                 <Calendar
                                     mode="single"
                                     selected={field.value}
@@ -392,7 +393,7 @@ export default function HCS501Page() {
                             </PopoverContent></Popover><FormMessage /></FormItem>
                         )} />
                          <FormField control={form.control} name="tbResults" render={({ field }) => (
-                            <FormItem><FormLabel>Results of Last TB Test</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                            <FormItem><FormLabel>Results of Last TB Test {isAnAdmin && <span className="text-destructive">*</span>}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                           )} />
                     </div>
                      <FormField control={form.control} name="additionalTbDates" render={({ field }) => (

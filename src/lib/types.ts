@@ -1,4 +1,5 @@
 
+
 import { z } from "zod";
 
 export const initialContactSchema = z.object({
@@ -158,9 +159,9 @@ export const hcs501Object = z.object({
   state: z.string().nonempty("State is required."),
   zip: z.string().nonempty("Zip code is required."),
   dob: z.date({required_error: "Date of Birth is required."}),
-  ssn: z.string().optional(), // Voluntary for ID only
-  tbDate: z.date({required_error: "Date of TB Test is required."}),
-  tbResults: z.string().nonempty("Results of last TB test are required."),
+  ssn: z.string().optional(),
+  tbDate: z.date().optional().nullable(),
+  tbResults: z.string().optional(),
   additionalTbDates: z.string().optional(),
   alternateNames: z.string().optional(),
   validLicense: z.enum(["yes", "no"], { required_error: "This field is required." }),
@@ -171,17 +172,31 @@ export const hcs501Object = z.object({
   hcs501SignatureDate: z.date({required_error: "Signature date is required."}),
 });
 
-export const hcs501Schema = hcs501Object.refine(data => {
+// Common refinement logic for CDL
+const cdlRefinement = (data: { validLicense?: "yes" | "no"; driversLicenseNumber?: string; }) => {
     if (data.validLicense === 'yes') {
         return !!data.driversLicenseNumber && data.driversLicenseNumber.length > 0;
     }
     return true;
-}, {
+};
+const cdlRefinementParams = {
     message: "Driver's license number is required if you have a valid license.",
     path: ['driversLicenseNumber'],
-});
+};
 
-export type Hcs501FormData = z.infer<typeof hcs501Schema>;
+// Candidate-facing schema (less strict)
+export const hcs501Schema = hcs501Object.refine(cdlRefinement, cdlRefinementParams);
+
+// Admin-facing schema (more strict)
+export const hcs501AdminSchema = hcs501Object.extend({
+    perId: z.string().min(1, "Employee's PER ID is required."),
+    hireDate: z.date({ required_error: "Hire Date is required." }),
+    tbDate: z.date({ required_error: "Date of TB Test is required." }),
+    tbResults: z.string().nonempty("Results of last TB test are required."),
+}).refine(cdlRefinement, cdlRefinementParams);
+
+
+export type Hcs501FormData = z.infer<typeof hcs501AdminSchema>;
 
 export const emergencyContactSchema = z.object({
   emergencyContact1_name: z.string().min(1, "Name for first contact is required."),
@@ -1046,7 +1061,5 @@ export type CaregiverForRecommendation = z.infer<typeof CaregiverForRecommendati
     
 
   
-
-    
 
     
