@@ -1,5 +1,4 @@
-
-"use client";
+'use client';
 
 import { useState, useTransition, useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
@@ -30,11 +29,11 @@ import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { submitInitialContact, closeInitialContact, sendManualSms } from "@/lib/initial-contact.actions";
-import { useDoc, useCollection, useMemoFirebase, firestore } from "@/firebase";
+import { useDoc, useCollection, useMemoFirebase, useFirestore } from "@/firebase";
 import { doc, query, collection, where, getDocs, orderBy } from 'firebase/firestore';
 import { createCsaFromContact } from "@/lib/client-signup.actions";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Textarea } from "@/components/ui/textarea";
+import { Textarea } from "./ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
@@ -189,12 +188,13 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
   const [closureReason, setClosureReason] = useState("");
   const [isClosing, startClosingTransition] = useTransition();
   const [isSmsOpen, setIsSmsOpen] = useState(false);
+  const firestore = useFirestore();
 
 
-  const contactDocRef = useMemoFirebase(() => contactId ? doc(firestore, 'initial_contacts', contactId) : null, [contactId]);
+  const contactDocRef = useMemoFirebase(() => contactId && firestore ? doc(firestore, 'initial_contacts', contactId) : null, [contactId, firestore]);
   const { data: existingData, isLoading } = useDoc<any>(contactDocRef);
   
-  const smsHistoryQuery = useMemoFirebase(() => contactId ? query(collection(firestore, `initial_contacts/${contactId}/sms_history`), orderBy('timestamp', 'asc')) : null, [contactId]);
+  const smsHistoryQuery = useMemoFirebase(() => contactId && firestore ? query(collection(firestore, `initial_contacts/${contactId}/sms_history`), orderBy('timestamp', 'asc')) : null, [contactId, firestore]);
   const { data: smsHistory } = useCollection<SmsMessage>(smsHistoryQuery);
 
   const isCsaCreated = !!signupDocId;
@@ -203,7 +203,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
 
   useEffect(() => {
     const findAssociatedDocs = async () => {
-      if (contactId) {
+      if (contactId && firestore) {
         // Find signup doc
         const signupQuery = query(collection(firestore, 'client_signups'), where('initialContactId', '==', contactId));
         const signupSnapshot = await getDocs(signupQuery);
@@ -223,7 +223,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
       }
     };
     findAssociatedDocs();
-  }, [contactId]);
+  }, [contactId, firestore]);
 
   const form = useForm<InitialContactFormData>({
     resolver: zodResolver(initialContactSchema),
@@ -909,10 +909,11 @@ function SmsChatInterface({ contactId }: { contactId: string | null }) {
     const [isSending, startSendingTransition] = useTransition();
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const { toast } = useToast();
+    const firestore = useFirestore();
 
     const smsHistoryQuery = useMemoFirebase(() => 
-        contactId ? query(collection(firestore, `initial_contacts/${contactId}/sms_history`), orderBy('timestamp', 'asc')) : null, 
-        [contactId]
+        contactId && firestore ? query(collection(firestore, `initial_contacts/${contactId}/sms_history`), orderBy('timestamp', 'asc')) : null, 
+        [contactId, firestore]
     );
     const { data: smsHistory, isLoading } = useCollection<SmsMessage>(smsHistoryQuery);
     
