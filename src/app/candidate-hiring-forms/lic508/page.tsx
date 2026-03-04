@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useTransition, useRef, useState } from "react";
+import { useRef, useEffect, useTransition, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,7 +17,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Save, X, Loader2, RefreshCw, CalendarIcon, Edit2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { useUser, useDoc, useMemoFirebase, firestore } from "@/firebase";
+import { useUser, useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { lic508Object, type CaregiverProfile } from "@/lib/types";
 import { saveLic508Data } from "@/lib/candidate-hiring-forms.actions";
@@ -150,6 +150,7 @@ export default function LIC508Page() {
     const { toast } = useToast();
     const [isSaving, startSavingTransition] = useTransition();
     const [activeSignature, setActiveSignature] = useState<{ fieldName: keyof Lic508PageFormData; title: string; } | null>(null);
+    const firestore = useFirestore();
 
     const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "care-rc@firstlighthomecare.com";
     const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL || "lpinto@firstlighthomecare.com";
@@ -161,7 +162,7 @@ export default function LIC508Page() {
     
     const caregiverProfileRef = useMemoFirebase(
       () => (profileIdToLoad ? doc(firestore, 'caregiver_profiles', profileIdToLoad) : null),
-      [profileIdToLoad]
+      [profileIdToLoad, firestore]
     );
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
 

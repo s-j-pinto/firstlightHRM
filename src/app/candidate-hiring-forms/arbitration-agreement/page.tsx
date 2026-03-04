@@ -130,7 +130,7 @@ export default function ArbitrationAgreementPage() {
 
     const caregiverProfileRef = useMemoFirebase(
       () => (profileIdToLoad ? doc(firestore, 'caregiver_profiles', profileIdToLoad) : null),
-      [profileIdToLoad]
+      [profileIdToLoad, firestore]
     );
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
     

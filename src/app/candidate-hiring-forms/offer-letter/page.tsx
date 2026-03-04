@@ -14,7 +14,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription }
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { RefreshCw, Save, X, Loader2, CalendarIcon, Edit2 } from "lucide-react";
-import { useUser, useDoc, useMemoFirebase, firestore } from "@/firebase";
+import { useUser, useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { offerLetterSchema, type OfferLetterFormData, type CaregiverProfile } from "@/lib/types";
 import { saveOfferLetterData } from "@/lib/candidate-hiring-forms.actions";
@@ -104,16 +104,17 @@ export default function OfferLetterPage() {
     const { toast } = useToast();
     const [isSaving, startSavingTransition] = useTransition();
     const [activeSignature, setActiveSignature] = useState<{ fieldName: keyof OfferLetterFormData; title: string } | null>(null);
+    const firestore = useFirestore();
 
     const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "care-rc@firstlighthomecare.com";
     const isAnAdmin = user?.email === adminEmail;
     const candidateId = searchParams.get('candidateId');
     const profileIdToLoad = isAnAdmin && candidateId ? candidateId : user?.uid;
 
-    const caregiverProfileRef = useMemoFirebase(() => (profileIdToLoad ? doc(firestore, 'caregiver_profiles', profileIdToLoad) : null), [profileIdToLoad]);
+    const caregiverProfileRef = useMemoFirebase(() => (profileIdToLoad ? doc(firestore, 'caregiver_profiles', profileIdToLoad) : null), [profileIdToLoad, firestore]);
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
 
-    const settingsRef = useMemoFirebase(() => doc(firestore, 'settings', 'hiring_form_fields'), []);
+    const settingsRef = useMemoFirebase(() => doc(firestore, 'settings', 'hiring_form_fields'), [firestore]);
     const { data: settingsData, isLoading: isSettingsLoading } = useDoc<HiringFields>(settingsRef);
     
     const form = useForm<OfferLetterFormData>({

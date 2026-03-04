@@ -20,7 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { RefreshCw, Save, X, Loader2, CalendarIcon, Edit2 } from "lucide-react";
-import { useUser, useDoc, useMemoFirebase, firestore } from "@/firebase";
+import { useUser, useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { hcs501Schema, hcs501AdminSchema, hcs501Object, type Hcs501FormData, type CaregiverProfile } from "@/lib/types";
@@ -145,6 +145,7 @@ export default function HCS501Page() {
     const { toast } = useToast();
     const [isSaving, startSavingTransition] = useTransition();
     const [activeSignature, setActiveSignature] = useState<{ fieldName: keyof Hcs501FormData; title: string; } | null>(null);
+    const firestore = useFirestore();
 
     const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "care-rc@firstlighthomecare.com";
     const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL || "lpinto@firstlighthomecare.com";
@@ -157,7 +158,7 @@ export default function HCS501Page() {
     
     const caregiverProfileRef = useMemoFirebase(
       () => (profileIdToLoad ? doc(firestore, 'caregiver_profiles', profileIdToLoad) : null),
-      [profileIdToLoad]
+      [profileIdToLoad, firestore]
     );
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
 

@@ -120,11 +120,11 @@ export default function ConfidentialityAgreementPage() {
 
     const caregiverProfileRef = useMemoFirebase(
       () => (profileIdToLoad ? doc(firestore, 'caregiver_profiles', profileIdToLoad) : null),
-      [profileIdToLoad]
+      [profileIdToLoad, firestore]
     );
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
     
-    const settingsRef = useMemoFirebase(() => (isAnAdmin ? doc(firestore, 'settings', 'availability') : null), [isAnAdmin]);
+    const settingsRef = useMemoFirebase(() => (isAnAdmin ? doc(firestore, 'settings', 'availability') : null), [isAnAdmin, firestore]);
     const { data: settingsData, isLoading: isSettingsLoading } = useDoc<any>(settingsRef);
     
     const form = useForm<ConfidentialityAgreementFormData>({

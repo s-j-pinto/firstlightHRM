@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Save, X, Loader2, RefreshCw, CalendarIcon, User, Edit2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { useUser, useDoc, useMemoFirebase, firestore } from "@/firebase";
+import { useUser, useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { referenceVerification1Schema, referenceVerification1Object, type ReferenceVerification1FormData, type CaregiverProfile } from "@/lib/types";
 import { saveReferenceVerification1Data } from "@/lib/candidate-hiring-forms.actions";
@@ -166,6 +166,7 @@ export default function ReferenceVerification1Page() {
     const { toast } = useToast();
     const [isSaving, startSavingTransition] = useTransition();
     const [activeSignature, setActiveSignature] = useState<{ fieldName: keyof ReferenceVerification1FormData; title: string; } | null>(null);
+    const firestore = useFirestore();
 
     const isPrintMode = searchParams.get('print') === 'true';
     const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "care-rc@firstlighthomecare.com";
@@ -178,7 +179,7 @@ export default function ReferenceVerification1Page() {
 
     const caregiverProfileRef = useMemoFirebase(
       () => (profileIdToLoad ? doc(firestore, 'caregiver_profiles', profileIdToLoad) : null),
-      [profileIdToLoad]
+      [profileIdToLoad, firestore]
     );
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
 
