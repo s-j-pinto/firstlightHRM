@@ -82,17 +82,16 @@ function CandidateHiringFormsContent() {
   const isAnAdmin = user?.email === adminEmail || user?.email === ownerEmail || user?.email === staffingAdminEmail;
   const candidateId = searchParams.get('candidateId');
   
-  // Correctly determine which profile to load
   const profileIdToLoad = isAnAdmin && candidateId ? candidateId : user?.uid;
 
   const caregiverProfileRef = useMemoFirebase(
-    () => (profileIdToLoad ? doc(firestore, 'caregiver_profiles', profileIdToLoad) : null),
+    () => (profileIdToLoad && firestore ? doc(firestore, 'caregiver_profiles', profileIdToLoad) : null),
     [profileIdToLoad, firestore]
   );
   const { data: profileData, isLoading: isProfileLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
   
   const interviewQuery = useMemoFirebase(
-    () => (profileIdToLoad ? query(collection(firestore, 'interviews'), where('caregiverProfileId', '==', profileIdToLoad), limit(1)) : null),
+    () => (profileIdToLoad && firestore ? query(collection(firestore, 'interviews'), where('caregiverProfileId', '==', profileIdToLoad), limit(1)) : null),
     [profileIdToLoad, firestore]
   );
   const { data: interviewData, isLoading: isInterviewLoading } = useCollection<Interview>(interviewQuery);
@@ -100,20 +99,38 @@ function CandidateHiringFormsContent() {
 
   const isLoading = isUserLoading || isProfileLoading || isInterviewLoading;
   
-  // Combine all forms for checking completion
   const allAvailableForms = interview?.onboardingFormsInitiated ? [...hiringForms, ...onboardingForms] : hiringForms;
+
+  const safeToDate = (value: any): Date | undefined => {
+    if (!value) return undefined;
+    if (value.toDate && typeof value.toDate === 'function') {
+      return value.toDate();
+    }
+    const d = new Date(value);
+    if (!isNaN(d.getTime())) {
+      return d;
+    }
+    return undefined;
+  };
   
-  // New logic to calculate all completion states at once
   const formCompletionStates = useMemo(() => {
     if (!profileData) {
       return { allCandidateFormsComplete: false, allAdminFieldsComplete: false, formsToRender: [] };
+    }
+
+    const sanitizedProfileData = { ...profileData };
+    for (const key in sanitizedProfileData) {
+        const lowerKey = key.toLowerCase();
+        if (lowerKey.includes('date') || lowerKey.endsWith('at')) {
+             (sanitizedProfileData as any)[key] = safeToDate((sanitizedProfileData as any)[key]);
+        }
     }
 
     const formsWithStatus = allAvailableForms.map(form => {
       const isCandidateCompleted = !!profileData[form.completionKey as keyof CaregiverProfile];
       let isAdminCompleted = true; // Assume complete if no admin schema exists
       if (isAnAdmin && isCandidateCompleted && form.adminSchema) {
-        isAdminCompleted = form.adminSchema.safeParse(profileData).success;
+        isAdminCompleted = form.adminSchema.safeParse(sanitizedProfileData).success;
       }
       return { ...form, isCandidateCompleted, isAdminCompleted };
     });
@@ -122,9 +139,8 @@ function CandidateHiringFormsContent() {
     const allAdminFieldsComplete = formsWithStatus.every(f => f.isAdminCompleted);
 
     return { allCandidateFormsComplete, allAdminFieldsComplete, formsToRender: formsWithStatus };
-  }, [profileData, allAvailableForms, isAnAdmin]);
+  }, [profileData, allAvailableForms, isAnAdmin, interview?.onboardingFormsInitiated]);
 
-  // Reset verification when switching candidates
   useEffect(() => {
     setIsVerified(false);
   }, [candidateId]);
@@ -305,5 +321,3 @@ export default function CandidateHiringFormsPage() {
         </Suspense>
     )
 }
-
-    

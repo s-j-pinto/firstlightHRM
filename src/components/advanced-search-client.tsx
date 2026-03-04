@@ -244,6 +244,18 @@ const ProfileDialog = ({ candidate }: { candidate: CaregiverProfile | null }) =>
     );
 };
 
+const safeToDateForStatus = (value: any): Date | undefined => {
+    if (!value) return undefined;
+    if (value.toDate && typeof value.toDate === 'function') {
+      return value.toDate();
+    }
+    const d = new Date(value);
+    if (!isNaN(d.getTime())) {
+      return d;
+    }
+    return undefined;
+};
+
 
 export default function AdvancedSearchClient() {
     const { handleSubmit, control, reset } = useForm<FormData>({
@@ -264,16 +276,16 @@ export default function AdvancedSearchClient() {
     const [sortKey, setSortKey] = useState<SortKey>('createdAt');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
-    const profilesRef = useMemoFirebase(() => collection(firestore, 'caregiver_profiles'), [firestore]);
+    const profilesRef = useMemoFirebase(() => firestore ? collection(firestore, 'caregiver_profiles') : null, [firestore]);
     const { data: profiles, isLoading: profilesLoading } = useCollection<CaregiverProfile>(profilesRef);
 
-    const interviewsRef = useMemoFirebase(() => collection(firestore, 'interviews'), [firestore]);
+    const interviewsRef = useMemoFirebase(() => firestore ? collection(firestore, 'interviews') : null, [firestore]);
     const { data: interviews, isLoading: interviewsLoading } = useCollection<Interview>(interviewsRef);
 
-    const employeesRef = useMemoFirebase(() => collection(firestore, 'caregiver_employees'), [firestore]);
+    const employeesRef = useMemoFirebase(() => firestore ? collection(firestore, 'caregiver_employees') : null, [firestore]);
     const { data: employees, isLoading: employeesLoading } = useCollection<CaregiverEmployee>(employeesRef);
     
-    const appointmentsRef = useMemoFirebase(() => query(collection(firestore, 'appointments')), [firestore]);
+    const appointmentsRef = useMemoFirebase(() => firestore ? query(collection(firestore, 'appointments')) : null, [firestore]);
     const { data: appointments, isLoading: appointmentsLoading } = useCollection<Appointment>(appointmentsRef);
 
     const getDocsStatus = useCallback((profile: CaregiverProfile, interview?: Interview): DocsStatus => {
@@ -282,9 +294,17 @@ export default function AdvancedSearchClient() {
         const allCandidateFormsComplete = allAvailableForms.every(form => !!profile[form.completionKey as keyof CaregiverProfile]);
 
         if (allCandidateFormsComplete) {
+            const sanitizedProfileData = { ...profile };
+            for (const key in sanitizedProfileData) {
+                const lowerKey = key.toLowerCase();
+                if (lowerKey.includes('date') || lowerKey.endsWith('at')) {
+                    (sanitizedProfileData as any)[key] = safeToDateForStatus((sanitizedProfileData as any)[key]);
+                }
+            }
+
             const allAdminFieldsComplete = allAvailableForms.every(form => {
                 if (form.adminSchema) {
-                    return form.adminSchema.safeParse(profile).success;
+                    return form.adminSchema.safeParse(sanitizedProfileData).success;
                 }
                 return true;
             });
