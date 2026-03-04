@@ -159,7 +159,7 @@ export const hcs501Object = z.object({
   state: z.string().nonempty("State is required."),
   zip: z.string().nonempty("Zip code is required."),
   dob: z.date({required_error: "Date of Birth is required."}),
-  ssn: z.string().min(1, "Social Security Number is required."),
+  ssn: z.string().optional(),
   tbDate: z.date().optional().nullable(),
   tbResults: z.string().optional(),
   additionalTbDates: z.string().optional(),
