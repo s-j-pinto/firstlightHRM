@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
@@ -246,12 +247,14 @@ const ProfileDialog = ({ candidate }: { candidate: CaregiverProfile | null }) =>
 
 const safeToDateForStatus = (value: any): Date | undefined => {
     if (!value) return undefined;
+    // Check for Firestore Timestamp
     if (value.toDate && typeof value.toDate === 'function') {
-      return value.toDate();
+        return value.toDate();
     }
+    // Handle ISO date strings or numbers (milliseconds)
     const d = new Date(value);
     if (!isNaN(d.getTime())) {
-      return d;
+        return d;
     }
     return undefined;
 };
@@ -290,41 +293,49 @@ export default function AdvancedSearchClient() {
 
     const getDocsStatus = useCallback((profile: CaregiverProfile, interview?: Interview): DocsStatus => {
         const allAvailableForms = interview?.onboardingFormsInitiated ? [...hiringForms, ...onboardingForms] : hiringForms;
-
+    
         const allCandidateFormsComplete = allAvailableForms.every(form => !!profile[form.completionKey as keyof CaregiverProfile]);
-
+    
         if (allCandidateFormsComplete) {
-            const sanitizedProfileData = { ...profile };
-            for (const key in sanitizedProfileData) {
-                const lowerKey = key.toLowerCase();
-                if (lowerKey.includes('date') || lowerKey.endsWith('at')) {
-                    (sanitizedProfileData as any)[key] = safeToDateForStatus((sanitizedProfileData as any)[key]);
+            // Create a mutable copy of the profile data for sanitization.
+            const sanitizedProfileData: { [key: string]: any } = { ...profile };
+    
+            // Explicitly sanitize all known date fields from all admin schemas before validation.
+            allAvailableForms.forEach(form => {
+                if (form.adminSchema) {
+                    Object.keys(form.adminSchema.shape).forEach(key => {
+                        // Check if the key exists in the profile data and is a potential date field
+                        if (sanitizedProfileData.hasOwnProperty(key) && (key.toLowerCase().includes('date') || key.toLowerCase().endsWith('at'))) {
+                            sanitizedProfileData[key] = safeToDateForStatus(sanitizedProfileData[key]);
+                        }
+                    });
                 }
-            }
-
+            });
+    
             const allAdminFieldsComplete = allAvailableForms.every(form => {
                 if (form.adminSchema) {
-                    return form.adminSchema.safeParse(sanitizedProfileData).success;
+                    const result = form.adminSchema.safeParse(sanitizedProfileData);
+                    if (!result.success) {
+                        // This log is helpful for debugging but should be removed or conditional in production
+                        console.log(`Admin validation failed for ${form.name}:`, result.error.flatten());
+                    }
+                    return result.success;
                 }
                 return true;
             });
-
-            if (allAdminFieldsComplete) {
-                return 'admin-signoff';
-            } else {
-                return 'awaiting-admin';
-            }
+    
+            return allAdminFieldsComplete ? 'admin-signoff' : 'awaiting-admin';
         }
         
         const completedSomeForms = allAvailableForms.some(form => !!profile[form.completionKey as keyof CaregiverProfile]);
         if (completedSomeForms) {
             return 'started';
         }
-
+    
         if (interview?.hiringDocsNotificationSentAt) {
             return 'notified';
         }
-
+    
         return 'not-notified';
     }, []);
 
