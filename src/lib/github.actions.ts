@@ -1,8 +1,8 @@
 
+
 'use server';
 
-// The full CaregiverProfile type is not imported to avoid passing complex objects from client to server.
-// import type { CaregiverProfile } from './types';
+import { format, isDate } from 'date-fns';
 
 // A plain object interface for just the data needed by this action.
 interface TeletrackApplicantPayload {
@@ -14,7 +14,18 @@ interface TeletrackApplicantPayload {
   phone?: string;
   driversLicenseNumber?: string;
   email?: string;
+  dob?: Date | string;
+  ssn?: string;
 }
+
+const safeToDate = (value: any): Date | null => {
+    if (!value) return null;
+    if (value.toDate) return value.toDate();
+    if (isDate(value)) return value;
+    const d = new Date(value);
+    if (!isNaN(d.getTime())) return d;
+    return null;
+};
 
 export async function triggerTeletrackImport(caregiver: TeletrackApplicantPayload, teletrackPin: string) {
   const GITHUB_PAT = process.env.GITHUB_PAT;
@@ -29,6 +40,9 @@ export async function triggerTeletrackImport(caregiver: TeletrackApplicantPayloa
   const nameParts = caregiver.fullName.split(' ');
   const firstName = nameParts[0];
   const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+  const dob = caregiver.dob ? safeToDate(caregiver.dob) : null;
+  const formattedDob = dob ? format(dob, 'MM/dd/yyyy') : '';
+
 
   // This payload matches the `inputs` of the `workflow_dispatch` trigger.
   const payload = {
@@ -39,13 +53,14 @@ export async function triggerTeletrackImport(caregiver: TeletrackApplicantPayloa
       address: caregiver.address || '',
       city: caregiver.city || '',
       state: caregiver.state || '',
-      dateOfBirth: '', // This field is not collected in the application form
+      dateOfBirth: formattedDob,
       zipCode: caregiver.zip || '',
       phoneNumber: caregiver.phone || '',
       driversLicenseNo: caregiver.driversLicenseNumber || '',
       email: caregiver.email || '',
       gpsAppUserName: caregiver.email || '',
       ttId: teletrackPin || '',
+      ssn: caregiver.ssn || '',
     }
   };
 
@@ -76,3 +91,5 @@ export async function triggerTeletrackImport(caregiver: TeletrackApplicantPayloa
     return { error: errorMsg };
   }
 }
+
+    

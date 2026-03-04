@@ -54,6 +54,7 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Dialog, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogContent, DialogDescription } from './ui/dialog';
 import { Label } from './ui/label';
 import { Checkbox } from './ui/checkbox';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 const phoneScreenSchema = z.object({
@@ -485,33 +486,8 @@ export default function ManageInterviewsClient() {
         }
 
         setExistingInterview({ ...interviewPayload, id: interviewId } as Interview);
-        let toastMessage = 'Phone interview results saved.';
         
-        if (data.phoneScreenPassed === 'Yes') {
-          const teletrackPin = hiringForm.getValues('teletrackPin');
-          
-          if (!selectedCaregiver) return;
-
-          const applicantData = {
-              fullName: selectedCaregiver.fullName,
-              address: selectedCaregiver.address,
-              city: selectedCaregiver.city,
-              state: selectedCaregiver.state,
-              zip: selectedCaregiver.zip,
-              phone: selectedCaregiver.phone,
-              driversLicenseNumber: selectedCaregiver.driversLicenseNumber,
-              email: selectedCaregiver.email,
-          };
-  
-          const githubResult = await triggerTeletrackImport(applicantData, teletrackPin);
-          if (githubResult.success) {
-            toastMessage += " and TeleTrack new applicant created successfully";
-          } else {
-            toastMessage += ` but failed to create TeleTrack applicant: ${githubResult.error}`;
-          }
-        }
-
-        toast({ title: 'Success', description: toastMessage });
+        toast({ title: 'Success', description: "Phone interview results saved." });
 
         if (data.phoneScreenPassed === 'No') {
           handleCancel();
@@ -685,8 +661,25 @@ export default function ManageInterviewsClient() {
           if (existingEmployee?.id) {
             const employeeDocRef = doc(db, 'caregiver_employees', existingEmployee.id);
             updateDoc(employeeDocRef, employeeData)
-              .then(() => {
-                toast({ title: 'Success', description: 'Employee record has been updated.' });
+              .then(async () => {
+                const applicantData = {
+                    fullName: selectedCaregiver.fullName,
+                    address: selectedCaregiver.address,
+                    city: selectedCaregiver.city,
+                    state: selectedCaregiver.state,
+                    zip: selectedCaregiver.zip,
+                    phone: selectedCaregiver.phone,
+                    driversLicenseNumber: selectedCaregiver.driversLicenseNumber,
+                    email: selectedCaregiver.email,
+                    dob: selectedCaregiver.dob,
+                    ssn: selectedCaregiver.ssn,
+                };
+                const githubResult = await triggerTeletrackImport(applicantData, data.teletrackPin);
+                if (githubResult.success) {
+                    toast({ title: 'Success', description: 'Employee record updated and TeleTrack import re-triggered.' });
+                } else {
+                    toast({ title: 'Update Partially Successful', description: `Employee record updated, but failed to re-trigger TeleTrack import: ${githubResult.error}`, variant: 'destructive' });
+                }
               })
               .catch(serverError => {
                 const permissionError = new FirestorePermissionError({
@@ -699,9 +692,26 @@ export default function ManageInterviewsClient() {
           } else {
             const employeesCollection = collection(db, 'caregiver_employees');
             addDoc(employeesCollection, employeeData)
-              .then(docRef => {
+              .then(async (docRef) => {
+                const applicantData = {
+                    fullName: selectedCaregiver.fullName,
+                    address: selectedCaregiver.address,
+                    city: selectedCaregiver.city,
+                    state: selectedCaregiver.state,
+                    zip: selectedCaregiver.zip,
+                    phone: selectedCaregiver.phone,
+                    driversLicenseNumber: selectedCaregiver.driversLicenseNumber,
+                    email: selectedCaregiver.email,
+                    dob: selectedCaregiver.dob,
+                    ssn: selectedCaregiver.ssn,
+                };
+                const githubResult = await triggerTeletrackImport(applicantData, data.teletrackPin);
+                if (githubResult.success) {
+                    toast({ title: 'Success', description: 'Caregiver has been successfully hired and TeleTrack applicant created.' });
+                } else {
+                    toast({ title: 'Hiring Partially Successful', description: `Caregiver hired, but failed to create TeleTrack applicant: ${githubResult.error}`, variant: 'destructive' });
+                }
                 setExistingEmployee({ id: docRef.id, ...employeeData } as CaregiverEmployee);
-                toast({ title: 'Success', description: 'Caregiver has been successfully marked as hired.' });
               })
               .catch(serverError => {
                 const permissionError = new FirestorePermissionError({
@@ -1524,10 +1534,23 @@ export default function ManageInterviewsClient() {
                                                 Launch Google Meet
                                             </Button>
                                         )}
-                                        <Button type="submit" disabled={isSubmitting}>
-                                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
-                                            {existingEmployee ? 'Update Record' : 'Complete Hiring'}
-                                        </Button>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <div tabIndex={0}> {/* Wrapper for disabled button */}
+                                                        <Button type="submit" disabled={isSubmitting || !selectedCaregiver?.lic508Signature}>
+                                                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
+                                                            {existingEmployee ? 'Update Record' : 'Complete Hiring'}
+                                                        </Button>
+                                                    </div>
+                                                </TooltipTrigger>
+                                                {!selectedCaregiver?.lic508Signature && (
+                                                    <TooltipContent>
+                                                        <p>Candidate must complete the LIC 508 form before hiring.</p>
+                                                    </TooltipContent>
+                                                )}
+                                            </Tooltip>
+                                        </TooltipProvider>
                                     </div>
                                 </form>
                             </Form>
@@ -1589,3 +1612,5 @@ function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: strin
     </div>
   );
 }
+
+    
