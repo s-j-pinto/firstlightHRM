@@ -141,8 +141,10 @@ export default function EmployeeOrientationAgreementPage() {
     const settingsRef = useMemoFirebase(() => (isAnAdmin ? doc(firestore, 'settings', 'availability') : null), [isAnAdmin, firestore]);
     const { data: settingsData, isLoading: isSettingsLoading } = useDoc<any>(settingsRef);
     
+    const validationSchema = isAnAdmin ? employeeOrientationAgreementAdminSchema : employeeOrientationAgreementSchema;
+    
     const form = useForm<EmployeeOrientationAgreementFormData>({
-      resolver: zodResolver(employeeOrientationAgreementAdminSchema),
+      resolver: zodResolver(validationSchema),
       defaultValues: defaultFormValues,
     });
     

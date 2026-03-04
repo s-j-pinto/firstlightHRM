@@ -142,8 +142,10 @@ export default function ClientAbandonmentPage() {
     const settingsRef = useMemoFirebase(() => (isAnAdmin ? doc(firestore, 'settings', 'availability') : null), [isAnAdmin, firestore]);
     const { data: settingsData, isLoading: isSettingsLoading } = useDoc<any>(settingsRef);
     
+    const validationSchema = isAnAdmin ? clientAbandonmentAdminSchema : clientAbandonmentSchema;
+    
     const form = useForm<ClientAbandonmentFormData>({
-      resolver: zodResolver(clientAbandonmentAdminSchema),
+      resolver: zodResolver(validationSchema),
       defaultValues: defaultFormValues,
     });
     

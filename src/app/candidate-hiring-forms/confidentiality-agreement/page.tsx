@@ -127,8 +127,10 @@ export default function ConfidentialityAgreementPage() {
     const settingsRef = useMemoFirebase(() => (isAnAdmin ? doc(firestore, 'settings', 'availability') : null), [isAnAdmin, firestore]);
     const { data: settingsData, isLoading: isSettingsLoading } = useDoc<any>(settingsRef);
     
+    const validationSchema = isAnAdmin ? confidentialityAgreementAdminSchema : confidentialityAgreementSchema;
+
     const form = useForm<ConfidentialityAgreementFormData>({
-      resolver: zodResolver(confidentialityAgreementAdminSchema),
+      resolver: zodResolver(validationSchema),
       defaultValues: defaultFormValues,
     });
     

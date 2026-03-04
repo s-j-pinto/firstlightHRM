@@ -150,8 +150,10 @@ export default function DrugAlcoholPolicyPage() {
     const settingsRef = useMemoFirebase(() => (isAnAdmin ? doc(firestore, 'settings', 'availability') : null), [isAnAdmin, firestore]);
     const { data: settingsData, isLoading: isSettingsLoading } = useDoc<any>(settingsRef);
     
+    const validationSchema = isAnAdmin ? drugAlcoholPolicyAdminSchema : drugAlcoholPolicySchema;
+
     const form = useForm<DrugAlcoholPolicyFormData>({
-      resolver: zodResolver(drugAlcoholPolicyAdminSchema),
+      resolver: zodResolver(validationSchema),
       defaultValues: defaultFormValues,
     });
     
