@@ -4,8 +4,19 @@
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { collection, doc, query } from 'firebase/firestore';
-import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
-import { CaregiverProfile, Interview, CaregiverEmployee, Appointment } from '@/lib/types';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { 
+    CaregiverProfile, 
+    Interview, 
+    CaregiverEmployee, 
+    Appointment,
+    hcs501AdminSchema,
+    drugAlcoholPolicyAdminSchema,
+    clientAbandonmentAdminSchema,
+    employeeOrientationAgreementAdminSchema,
+    confidentialityAgreementAdminSchema
+} from '@/lib/types';
+import { z } from 'zod';
 import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 import Link from 'next/link';
@@ -21,13 +32,34 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, CalendarIcon, SlidersHorizontal, FilterX, PersonStanding, Move, Utensils, Bath, ArrowUpFromLine, ShieldCheck, Droplet, Pill, Stethoscope, HeartPulse, Languages, ScanSearch, UserCheck, Briefcase, Car, Check, X, FileText, ArrowUpDown, Mail, Edit2, CheckCircle, BellOff, Bell, FileClock } from 'lucide-react';
+import { Loader2, Search, CalendarIcon, SlidersHorizontal, FilterX, PersonStanding, Move, Utensils, Bath, ArrowUpFromLine, ShieldCheck, Droplet, Pill, Stethoscope, HeartPulse, Languages, ScanSearch, UserCheck, Briefcase, Car, Check, X, FileText, ArrowUpDown, Mail, Edit2, CheckCircle, BellOff, Bell, FileClock, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Form, FormControl, FormItem } from '@/components/ui/form';
 import { sendHiringDocsNotification } from '@/lib/communication.actions';
+
+const hiringForms: { name: string; href: string; completionKey: keyof CaregiverProfile; pdfAction: string; adminSchema?: z.ZodObject<any, any, any> }[] = [
+  { name: "HCS 501 - Personnel Record 2019", href: "/candidate-hiring-forms/hcs501", completionKey: 'hcs501EmployeeSignature', pdfAction: 'hcs501', adminSchema: hcs501AdminSchema },
+  { name: "Caregiver Emergency Contact Numbers", href: "/candidate-hiring-forms/emergency-contact", completionKey: 'emergencyContact1_name', pdfAction: 'emergencyContact' },
+  { name: "Reference Verification 1", href: "/candidate-hiring-forms/reference-verification-1", completionKey: 'applicantSignature1', pdfAction: 'referenceVerification1' },
+  { name: "Reference Verification 2", href: "/candidate-hiring-forms/reference-verification-2", completionKey: 'applicantSignature2', pdfAction: 'referenceVerification2' },
+  { name: "LIC 508 - Criminal Record Statement", href: "/candidate-hiring-forms/lic508", completionKey: 'lic508Signature', pdfAction: 'lic508' },
+  { name: "SOC 341A - Elder Abuse Reporting Form", href: "/candidate-hiring-forms/soc341a", completionKey: 'soc341aSignature', pdfAction: 'soc341a' },
+];
+
+const onboardingForms = [
+  { name: "Mutual Arbitration Agreement", href: "/candidate-hiring-forms/arbitration-agreement", completionKey: 'arbitrationAgreementSignature', pdfAction: 'arbitrationAgreement' },
+  { name: "Drug and/or Alcohol Testing Consent Form", href: "/candidate-hiring-forms/drug-alcohol-policy", completionKey: 'drugAlcoholPolicySignature', pdfAction: 'drugAlcoholPolicy', adminSchema: drugAlcoholPolicyAdminSchema },
+  { name: "HCA job description-Rancho-Cucamonga", href: "/candidate-hiring-forms/hca-job-description", completionKey: 'jobDescriptionSignature', pdfAction: 'hcaJobDescription' },
+  { name: "Client Abandonment", href: "/candidate-hiring-forms/client-abandonment", completionKey: 'clientAbandonmentSignature', pdfAction: 'clientAbandonment', adminSchema: clientAbandonmentAdminSchema },
+  { name: "EMPLOYEE ORIENTATION AGREEMENT", href: "/candidate-hiring-forms/employee-orientation-agreement", completionKey: 'orientationAgreementSignature', pdfAction: 'employeeOrientationAgreement', adminSchema: employeeOrientationAgreementAdminSchema },
+  { name: "FirstLightHomeCare_AcknowledgmentForm", href: "/candidate-hiring-forms/acknowledgment-form", completionKey: 'acknowledgmentSignature', pdfAction: 'acknowledgmentForm' },
+  { name: "FirstLightHomeCare_CONFIDENTIALITY_AGREEMENT", href: "/candidate-hiring-forms/confidentiality-agreement", completionKey: 'confidentialityAgreementEmployeeSignature', pdfAction: 'confidentialityAgreement', adminSchema: confidentialityAgreementAdminSchema },
+  { name: "FirstLightHomeCareTrainingAcknowledgement", href: "/candidate-hiring-forms/training-acknowledgement", completionKey: 'trainingAcknowledgementSignature', pdfAction: 'trainingAcknowledgement' },
+  { name: "MASTER-FLHC Offer Letter revised-2-16-26", href: "/candidate-hiring-forms/offer-letter", completionKey: 'offerLetterSignature', pdfAction: 'offerLetter' },
+];
 
 
 const skillsAndAttributes = [
@@ -66,7 +98,7 @@ type CandidateStatus =
   | 'Hired'
   | string; 
 
-type DocsStatus = 'not-notified' | 'notified' | 'started' | 'completed';
+type DocsStatus = 'not-notified' | 'notified' | 'started' | 'awaiting-admin' | 'admin-signoff';
 
 interface EnrichedCandidate extends CaregiverProfile {
   status: CandidateStatus;
@@ -97,15 +129,6 @@ const dayAbbreviations: { [key: string]: string } = {
     saturday: 'Sa',
     sunday: 'Su',
 };
-
-const hiringFormCompletionKeys: (keyof CaregiverProfile)[] = [
-    'hcs501EmployeeSignature',
-    'emergencyContact1_name',
-    'applicantSignature1',
-    'applicantSignature2',
-    'lic508Signature',
-    'soc341aSignature'
-];
 
 const ConciseAvailability = ({ availability }: { availability: CaregiverProfile['availability'] | undefined }) => {
     if (!availability) {
@@ -253,6 +276,38 @@ export default function AdvancedSearchClient() {
     const appointmentsRef = useMemoFirebase(() => query(collection(firestore, 'appointments')), [firestore]);
     const { data: appointments, isLoading: appointmentsLoading } = useCollection<Appointment>(appointmentsRef);
 
+    const getDocsStatus = useCallback((profile: CaregiverProfile, interview?: Interview): DocsStatus => {
+        const allAvailableForms = interview?.onboardingFormsInitiated ? [...hiringForms, ...onboardingForms] : hiringForms;
+
+        const allCandidateFormsComplete = allAvailableForms.every(form => !!profile[form.completionKey as keyof CaregiverProfile]);
+
+        if (allCandidateFormsComplete) {
+            const allAdminFieldsComplete = allAvailableForms.every(form => {
+                if (form.adminSchema) {
+                    return form.adminSchema.safeParse(profile).success;
+                }
+                return true;
+            });
+
+            if (allAdminFieldsComplete) {
+                return 'admin-signoff';
+            } else {
+                return 'awaiting-admin';
+            }
+        }
+        
+        const completedSomeForms = allAvailableForms.some(form => !!profile[form.completionKey as keyof CaregiverProfile]);
+        if (completedSomeForms) {
+            return 'started';
+        }
+
+        if (interview?.hiringDocsNotificationSentAt) {
+            return 'notified';
+        }
+
+        return 'not-notified';
+    }, []);
+
     const candidates = useMemo((): EnrichedCandidate[] => {
         if (!profiles || !interviews || !employees || !appointments) return [];
         
@@ -285,21 +340,6 @@ export default function AdvancedSearchClient() {
             return { status: 'Applied' };
         };
 
-        const getDocsStatus = (profile: CaregiverProfile, interview?: Interview): DocsStatus => {
-            const completedForms = hiringFormCompletionKeys.filter(key => !!(profile as any)[key]).length;
-
-            if (completedForms === hiringFormCompletionKeys.length) {
-                return 'completed';
-            }
-            if (completedForms > 0) {
-                return 'started';
-            }
-            if (interview?.hiringDocsNotificationSentAt) {
-                return 'notified';
-            }
-            return 'not-notified';
-        };
-
         return profiles.map(profile => {
             const { status, interview } = getStatus(profile.id);
             const docsStatus = getDocsStatus(profile, interview);
@@ -312,7 +352,7 @@ export default function AdvancedSearchClient() {
                 appointment,
             };
         });
-    }, [profiles, interviews, employees, appointments]);
+    }, [profiles, interviews, employees, appointments, getDocsStatus]);
 
 
     const onSubmit = useCallback((data: FormData) => {
@@ -443,13 +483,14 @@ export default function AdvancedSearchClient() {
     );
     
     const DocsStatusIcon = ({ status, candidateId }: { status: DocsStatus, candidateId: string }) => {
-        const isClickable = status === 'started' || status === 'completed';
+        const isClickable = status === 'started' || status === 'awaiting-admin' || status === 'admin-signoff';
         const content = () => {
             switch (status) {
                 case 'not-notified': return <BellOff className="h-5 w-5 text-muted-foreground" title="Not Notified" />;
                 case 'notified': return <Bell className="h-5 w-5 text-blue-500" title="Notified" />;
-                case 'started': return <Edit2 className="h-5 w-5 text-yellow-500" title="Started" />;
-                case 'completed': return <CheckCircle className="h-5 w-5 text-green-500" title="Completed" />;
+                case 'started': return <Edit2 className="h-5 w-5 text-yellow-500" title="Started by Candidate" />;
+                case 'awaiting-admin': return <XCircle className="h-5 w-5 text-red-500" title="Awaiting Admin Completion" />;
+                case 'admin-signoff': return <CheckCircle className="h-5 w-5 text-blue-500" title="Admin Signoff Complete" />;
                 default: return null;
             }
         };
@@ -682,13 +723,14 @@ export default function AdvancedSearchClient() {
                                     {isSearching ? 'Applying filters...' : `Found ${sortedResults.length} candidates matching your criteria.`}
                                 </CardDescription>
                             </div>
-                             <div className="border rounded-lg p-3 text-xs bg-muted/50 max-w-xs">
+                             <div className="border rounded-lg p-3 text-xs bg-muted/50 max-w-sm">
                                 <h4 className="font-semibold mb-2 text-center">Docs Status Legend</h4>
                                 <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                                     <div className="flex items-center gap-1.5"><BellOff className="h-4 w-4 text-muted-foreground" /> Not Notified</div>
                                     <div className="flex items-center gap-1.5"><Bell className="h-4 w-4 text-blue-500" /> Notified</div>
                                     <div className="flex items-center gap-1.5"><Edit2 className="h-4 w-4 text-yellow-500" /> Started</div>
-                                    <div className="flex items-center gap-1.5"><CheckCircle className="h-4 w-4 text-green-500" /> Completed</div>
+                                    <div className="flex items-center gap-1.5"><XCircle className="h-4 w-4 text-red-500" /> Awaiting Admin</div>
+                                    <div className="flex items-center gap-1.5"><CheckCircle className="h-4 w-4 text-blue-500" /> Admin Signoff</div>
                                 </div>
                             </div>
                         </div>
