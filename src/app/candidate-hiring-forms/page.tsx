@@ -118,19 +118,27 @@ function CandidateHiringFormsContent() {
       return { allCandidateFormsComplete: false, allAdminFieldsComplete: false, formsToRender: [] };
     }
 
-    const sanitizedProfileData = { ...profileData };
-    for (const key in sanitizedProfileData) {
-        const lowerKey = key.toLowerCase();
-        if (lowerKey.includes('date') || lowerKey.endsWith('at')) {
-             (sanitizedProfileData as any)[key] = safeToDate((sanitizedProfileData as any)[key]);
+    const sanitizedProfileData: { [key: string]: any } = { ...profileData };
+    
+    allAvailableForms.forEach(form => {
+        if (form.adminSchema) {
+            Object.keys(form.adminSchema.shape).forEach(key => {
+                if (sanitizedProfileData.hasOwnProperty(key) && (key.toLowerCase().includes('date') || key.toLowerCase().endsWith('at'))) {
+                    sanitizedProfileData[key] = safeToDate(sanitizedProfileData[key]);
+                }
+            });
         }
-    }
+    });
 
     const formsWithStatus = allAvailableForms.map(form => {
       const isCandidateCompleted = !!profileData[form.completionKey as keyof CaregiverProfile];
       let isAdminCompleted = true; // Assume complete if no admin schema exists
       if (isAnAdmin && isCandidateCompleted && form.adminSchema) {
-        isAdminCompleted = form.adminSchema.safeParse(sanitizedProfileData).success;
+        const result = form.adminSchema.safeParse(sanitizedProfileData);
+         if (!result.success) {
+            console.log(`Admin validation failed for ${form.name}:`, result.error.flatten());
+        }
+        isAdminCompleted = result.success;
       }
       return { ...form, isCandidateCompleted, isAdminCompleted };
     });
