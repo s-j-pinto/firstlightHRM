@@ -1,6 +1,6 @@
 
 
-"use client";
+'use client';
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
 import { useForm, Controller } from 'react-hook-form';
@@ -247,11 +247,9 @@ const ProfileDialog = ({ candidate }: { candidate: CaregiverProfile | null }) =>
 
 const safeToDateForStatus = (value: any): Date | undefined => {
     if (!value) return undefined;
-    // Check for Firestore Timestamp
     if (value.toDate && typeof value.toDate === 'function') {
         return value.toDate();
     }
-    // Handle ISO date strings or numbers (milliseconds)
     const d = new Date(value);
     if (!isNaN(d.getTime())) {
         return d;
@@ -303,11 +301,12 @@ export default function AdvancedSearchClient() {
                 if (form.adminSchema) {
                     const baseSchema = (form.adminSchema as any).shape 
                         ? (form.adminSchema as z.ZodObject<any, any, any>)
-                        : (form.adminSchema as z.ZodEffects<any, any, any>).schema;
+                        : (form.adminSchema as z.ZodEffects<any, any, any>)._def.schema;
     
                     if (baseSchema && baseSchema.shape) {
                         Object.keys(baseSchema.shape).forEach(key => {
-                            if (sanitizedProfileData.hasOwnProperty(key) && (key.toLowerCase().includes('date') || key.toLowerCase().endsWith('at'))) {
+                            const lowerKey = key.toLowerCase();
+                            if (sanitizedProfileData.hasOwnProperty(key) && (lowerKey.includes('date') || lowerKey.endsWith('at') || lowerKey === 'dob')) {
                                 sanitizedProfileData[key] = safeToDateForStatus(sanitizedProfileData[key]);
                             }
                         });
@@ -318,6 +317,9 @@ export default function AdvancedSearchClient() {
             const allAdminFieldsComplete = allAvailableForms.every(form => {
                 if (form.adminSchema) {
                     const result = form.adminSchema.safeParse(sanitizedProfileData);
+                    if (!result.success) {
+                        console.log(`Admin validation failed for ${form.name}:`, result.error.flatten());
+                    }
                     return result.success;
                 }
                 return true;

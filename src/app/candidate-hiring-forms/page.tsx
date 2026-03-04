@@ -122,14 +122,14 @@ function CandidateHiringFormsContent() {
     
     allAvailableForms.forEach(form => {
         if (form.adminSchema) {
-            // A ZodEffects schema from .refine() won't have a .shape, but it has a .schema getter for the inner type.
             const baseSchema = (form.adminSchema as any).shape
-            ? (form.adminSchema as z.ZodObject<any, any, any>)
-            : (form.adminSchema as z.ZodEffects<any, any, any>).schema;
+                ? (form.adminSchema as z.ZodObject<any, any, any>)
+                : (form.adminSchema as z.ZodEffects<any, any, any>)._def.schema;
 
             if (baseSchema && baseSchema.shape) {
                 Object.keys(baseSchema.shape).forEach(key => {
-                    if (sanitizedProfileData.hasOwnProperty(key) && (key.toLowerCase().includes('date') || key.toLowerCase().endsWith('at'))) {
+                    const lowerKey = key.toLowerCase();
+                    if (sanitizedProfileData.hasOwnProperty(key) && (lowerKey.includes('date') || lowerKey.endsWith('at') || lowerKey === 'dob')) {
                         sanitizedProfileData[key] = safeToDate(sanitizedProfileData[key]);
                     }
                 });
