@@ -14,12 +14,16 @@ import {
     referenceVerification1Schema, 
     referenceVerification2Schema, 
     arbitrationAgreementSchema, 
-    drugAlcoholPolicyAdminSchema, // Use Admin Schema
+    drugAlcoholPolicySchema,
+    drugAlcoholPolicyAdminSchema,
     hcaJobDescriptionSchema, 
-    clientAbandonmentAdminSchema, // Use Admin Schema
-    employeeOrientationAgreementAdminSchema, // Use Admin Schema
+    clientAbandonmentSchema,
+    clientAbandonmentAdminSchema,
+    employeeOrientationAgreementSchema,
+    employeeOrientationAgreementAdminSchema,
     acknowledgmentFormSchema, 
-    confidentialityAgreementAdminSchema, // Use Admin Schema
+    confidentialityAgreementSchema,
+    confidentialityAgreementAdminSchema,
     trainingAcknowledgementSchema, 
     offerLetterSchema 
 } from './types';
@@ -225,7 +229,12 @@ export async function saveArbitrationAgreementData(profileId: string, data: any)
 }
 
 export async function saveDrugAlcoholPolicyData(profileId: string, data: any) {
-  const validatedFields = drugAlcoholPolicyAdminSchema.safeParse(data);
+  // If admin fields are present (i.e., being saved by an admin), use the stricter schema. Otherwise, use the base schema for candidate saves.
+  const schemaToUse = data.drugAlcoholPolicyRepSignature || data.drugAlcoholPolicyRepDate
+    ? drugAlcoholPolicyAdminSchema
+    : drugAlcoholPolicySchema;
+  
+  const validatedFields = schemaToUse.safeParse(data);
 
   if (!validatedFields.success) {
     console.error("Drug Alcohol Policy Save Validation Error:", validatedFields.error.flatten());
@@ -271,7 +280,12 @@ export async function saveHcaJobDescriptionData(profileId: string, data: any) {
 }
 
 export async function saveClientAbandonmentData(profileId: string, data: any) {
-  const validatedFields = clientAbandonmentAdminSchema.safeParse(data);
+  // If admin fields are present, use the stricter schema.
+  const schemaToUse = data.clientAbandonmentWitnessSignature
+    ? clientAbandonmentAdminSchema
+    : clientAbandonmentSchema;
+
+  const validatedFields = schemaToUse.safeParse(data);
 
   if (!validatedFields.success) {
     console.error("Client Abandonment Save Validation Error:", validatedFields.error.flatten());
@@ -294,7 +308,12 @@ export async function saveClientAbandonmentData(profileId: string, data: any) {
 }
 
 export async function saveEmployeeOrientationAgreementData(profileId: string, data: any) {
-  const validatedFields = employeeOrientationAgreementAdminSchema.safeParse(data);
+  // If admin fields are present, use the stricter schema.
+  const schemaToUse = data.orientationAgreementWitnessSignature || data.orientationAgreementWitnessDate
+    ? employeeOrientationAgreementAdminSchema
+    : employeeOrientationAgreementSchema;
+
+  const validatedFields = schemaToUse.safeParse(data);
 
   if (!validatedFields.success) {
     console.error("Employee Orientation Agreement Save Validation Error:", validatedFields.error.flatten());
@@ -340,7 +359,12 @@ export async function saveAcknowledgmentFormData(profileId: string, data: any) {
 }
 
 export async function saveConfidentialityAgreementData(profileId: string, data: any) {
-  const validatedFields = confidentialityAgreementAdminSchema.safeParse(data);
+  // If admin fields are present, use the stricter schema.
+  const schemaToUse = data.confidentialityAgreementRepSignature || data.confidentialityAgreementRepDate
+    ? confidentialityAgreementAdminSchema
+    : confidentialityAgreementSchema;
+
+  const validatedFields = schemaToUse.safeParse(data);
 
   if (!validatedFields.success) {
     console.error("Confidentiality Agreement Save Validation Error:", validatedFields.error.flatten());
