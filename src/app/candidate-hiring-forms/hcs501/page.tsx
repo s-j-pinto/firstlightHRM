@@ -375,9 +375,38 @@ export default function HCS501Page() {
                                 />
                             </PopoverContent></Popover><FormMessage /></FormItem>
                         )} />
-                         <FormField control={form.control} name="ssn" render={({ field }) => (
-                            <FormItem><FormLabel>Social Security Number <span className="text-muted-foreground">(Voluntary for ID only)</span></FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                          )} />
+                         <FormField 
+                            control={form.control} 
+                            name="ssn" 
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Social Security Number <span className="text-muted-foreground">(Voluntary for ID only)</span></FormLabel>
+                                <FormControl>
+                                <Input 
+                                    {...field}
+                                    onChange={(e) => {
+                                        const rawValue = e.target.value.replace(/\D/g, "");
+                                        let formattedValue = "";
+                                        if (rawValue.length > 0) {
+                                            formattedValue = rawValue.substring(0, 3);
+                                        }
+                                        if (rawValue.length > 3) {
+                                            formattedValue += "-" + rawValue.substring(3, 5);
+                                        }
+                                        if (rawValue.length > 5) {
+                                            formattedValue += "-" + rawValue.substring(5, 9);
+                                        }
+                                        field.onChange(formattedValue);
+                                    }}
+                                    maxLength={11}
+                                    placeholder="XXX-XX-XXXX"
+                                    value={field.value || ''}
+                                />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <FormField control={form.control} name="tbDate" render={({ field }) => (

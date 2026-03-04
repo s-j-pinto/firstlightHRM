@@ -1,5 +1,4 @@
 
-
 import { z } from "zod";
 
 export const initialContactSchema = z.object({
@@ -159,7 +158,14 @@ export const hcs501Object = z.object({
   state: z.string().nonempty("State is required."),
   zip: z.string().nonempty("Zip code is required."),
   dob: z.date({required_error: "Date of Birth is required."}),
-  ssn: z.string().optional(),
+  ssn: z.string().optional().refine((val) => {
+    // If the value is undefined, null, or an empty string, it's valid.
+    if (!val) return true; 
+    // If it has a value, it must match the format.
+    return /^\d{3}-\d{2}-\d{4}$/.test(val);
+  }, {
+    message: "Invalid Social Security Number format. Expected XXX-XX-XXXX.",
+  }),
   tbDate: z.date().optional().nullable(),
   tbResults: z.string().optional(),
   additionalTbDates: z.string().optional(),
