@@ -1,6 +1,6 @@
 
 
-"use client";
+'use client';
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
@@ -673,6 +673,7 @@ export default function ManageInterviewsClient() {
                     email: selectedCaregiver.email,
                     dob: selectedCaregiver.dob,
                     ssn: selectedCaregiver.ssn,
+                    hireDate: data.hireDate,
                 };
                 const githubResult = await triggerTeletrackImport(applicantData, data.teletrackPin);
                 if (githubResult.success) {
@@ -704,6 +705,7 @@ export default function ManageInterviewsClient() {
                     email: selectedCaregiver.email,
                     dob: selectedCaregiver.dob,
                     ssn: selectedCaregiver.ssn,
+                    hireDate: data.hireDate,
                 };
                 const githubResult = await triggerTeletrackImport(applicantData, data.teletrackPin);
                 if (githubResult.success) {
@@ -1538,15 +1540,15 @@ export default function ManageInterviewsClient() {
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
                                                     <div tabIndex={0}> {/* Wrapper for disabled button */}
-                                                        <Button type="submit" disabled={isSubmitting || !selectedCaregiver?.lic508Signature}>
+                                                        <Button type="submit" disabled={isSubmitting || !selectedCaregiver?.hcs501EmployeeSignature}>
                                                             {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
                                                             {existingEmployee ? 'Update Record' : 'Complete Hiring'}
                                                         </Button>
                                                     </div>
                                                 </TooltipTrigger>
-                                                {!selectedCaregiver?.lic508Signature && (
+                                                {!selectedCaregiver?.hcs501EmployeeSignature && (
                                                     <TooltipContent>
-                                                        <p>Candidate must complete the LIC 508 form before hiring.</p>
+                                                        <p>Candidate must complete the HCS 501 form before hiring.</p>
                                                     </TooltipContent>
                                                 )}
                                             </Tooltip>

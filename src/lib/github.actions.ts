@@ -16,6 +16,7 @@ interface TeletrackApplicantPayload {
   email?: string;
   dob?: Date | string;
   ssn?: string;
+  hireDate?: Date | string;
 }
 
 const safeToDate = (value: any): Date | null => {
@@ -42,6 +43,8 @@ export async function triggerTeletrackImport(caregiver: TeletrackApplicantPayloa
   const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
   const dob = caregiver.dob ? safeToDate(caregiver.dob) : null;
   const formattedDob = dob ? format(dob, 'MM/dd/yyyy') : '';
+  const hireDate = caregiver.hireDate ? safeToDate(caregiver.hireDate) : null;
+  const formattedHireDate = hireDate ? format(hireDate, 'MM/dd/yyyy') : '';
 
 
   // This payload matches the `inputs` of the `workflow_dispatch` trigger.
@@ -54,6 +57,7 @@ export async function triggerTeletrackImport(caregiver: TeletrackApplicantPayloa
       city: caregiver.city || '',
       state: caregiver.state || '',
       dateOfBirth: formattedDob,
+      hireDate: formattedHireDate,
       zipCode: caregiver.zip || '',
       phoneNumber: caregiver.phone || '',
       driversLicenseNo: caregiver.driversLicenseNumber || '',
