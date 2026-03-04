@@ -6,7 +6,23 @@ import { revalidatePath } from 'next/cache';
 import { serverDb } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
-import { hcs501Schema, emergencyContactSchema, lic508Object, soc341aSchema, referenceVerification1Schema, referenceVerification2Schema, arbitrationAgreementSchema, drugAlcoholPolicySchema, hcaJobDescriptionSchema, clientAbandonmentSchema, employeeOrientationAgreementSchema, acknowledgmentFormSchema, confidentialityAgreementSchema, trainingAcknowledgementSchema, offerLetterSchema } from './types';
+import { 
+    hcs501Schema, 
+    emergencyContactSchema, 
+    lic508Object, 
+    soc341aSchema, 
+    referenceVerification1Schema, 
+    referenceVerification2Schema, 
+    arbitrationAgreementSchema, 
+    drugAlcoholPolicyAdminSchema, // Use Admin Schema
+    hcaJobDescriptionSchema, 
+    clientAbandonmentAdminSchema, // Use Admin Schema
+    employeeOrientationAgreementAdminSchema, // Use Admin Schema
+    acknowledgmentFormSchema, 
+    confidentialityAgreementAdminSchema, // Use Admin Schema
+    trainingAcknowledgementSchema, 
+    offerLetterSchema 
+} from './types';
 import { 
     generateHcs501Pdf, 
     generateEmergencyContactPdf, 
@@ -209,7 +225,7 @@ export async function saveArbitrationAgreementData(profileId: string, data: any)
 }
 
 export async function saveDrugAlcoholPolicyData(profileId: string, data: any) {
-  const validatedFields = drugAlcoholPolicySchema.safeParse(data);
+  const validatedFields = drugAlcoholPolicyAdminSchema.safeParse(data);
 
   if (!validatedFields.success) {
     console.error("Drug Alcohol Policy Save Validation Error:", validatedFields.error.flatten());
@@ -255,7 +271,7 @@ export async function saveHcaJobDescriptionData(profileId: string, data: any) {
 }
 
 export async function saveClientAbandonmentData(profileId: string, data: any) {
-  const validatedFields = clientAbandonmentSchema.safeParse(data);
+  const validatedFields = clientAbandonmentAdminSchema.safeParse(data);
 
   if (!validatedFields.success) {
     console.error("Client Abandonment Save Validation Error:", validatedFields.error.flatten());
@@ -278,7 +294,7 @@ export async function saveClientAbandonmentData(profileId: string, data: any) {
 }
 
 export async function saveEmployeeOrientationAgreementData(profileId: string, data: any) {
-  const validatedFields = employeeOrientationAgreementSchema.safeParse(data);
+  const validatedFields = employeeOrientationAgreementAdminSchema.safeParse(data);
 
   if (!validatedFields.success) {
     console.error("Employee Orientation Agreement Save Validation Error:", validatedFields.error.flatten());
@@ -324,7 +340,7 @@ export async function saveAcknowledgmentFormData(profileId: string, data: any) {
 }
 
 export async function saveConfidentialityAgreementData(profileId: string, data: any) {
-  const validatedFields = confidentialityAgreementSchema.safeParse(data);
+  const validatedFields = confidentialityAgreementAdminSchema.safeParse(data);
 
   if (!validatedFields.success) {
     console.error("Confidentiality Agreement Save Validation Error:", validatedFields.error.flatten());
