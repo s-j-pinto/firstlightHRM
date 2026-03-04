@@ -44,7 +44,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 
-const hiringForms: { name: string; href: string; completionKey: keyof CaregiverProfile; pdfAction: string; adminSchema?: z.ZodObject<any, any, any> }[] = [
+const hiringForms: { name: string; href: string; completionKey: keyof CaregiverProfile; pdfAction: string; adminSchema?: z.ZodObject<any, any, any> | z.ZodEffects<any,any,any> }[] = [
   { name: "HCS 501 - Personnel Record 2019", href: "/candidate-hiring-forms/hcs501", completionKey: 'hcs501EmployeeSignature', pdfAction: 'hcs501', adminSchema: hcs501AdminSchema },
   { name: "Caregiver Emergency Contact Numbers", href: "/candidate-hiring-forms/emergency-contact", completionKey: 'emergencyContact1_name', pdfAction: 'emergencyContact' },
   { name: "Reference Verification 1", href: "/candidate-hiring-forms/reference-verification-1", completionKey: 'applicantSignature1', pdfAction: 'referenceVerification1' },
@@ -53,7 +53,7 @@ const hiringForms: { name: string; href: string; completionKey: keyof CaregiverP
   { name: "SOC 341A - Elder Abuse Reporting Form", href: "/candidate-hiring-forms/soc341a", completionKey: 'soc341aSignature', pdfAction: 'soc341a' },
 ];
 
-const onboardingForms = [
+const onboardingForms: { name: string; href: string; completionKey: keyof CaregiverProfile; pdfAction: string; adminSchema?: z.ZodObject<any, any, any> | z.ZodEffects<any,any,any> }[] = [
   { name: "Mutual Arbitration Agreement", href: "/candidate-hiring-forms/arbitration-agreement", completionKey: 'arbitrationAgreementSignature', pdfAction: 'arbitrationAgreement' },
   { name: "Drug and/or Alcohol Testing Consent Form", href: "/candidate-hiring-forms/drug-alcohol-policy", completionKey: 'drugAlcoholPolicySignature', pdfAction: 'drugAlcoholPolicy', adminSchema: drugAlcoholPolicyAdminSchema },
   { name: "HCA job description-Rancho-Cucamonga", href: "/candidate-hiring-forms/hca-job-description", completionKey: 'jobDescriptionSignature', pdfAction: 'hcaJobDescription' },
@@ -122,11 +122,18 @@ function CandidateHiringFormsContent() {
     
     allAvailableForms.forEach(form => {
         if (form.adminSchema) {
-            Object.keys(form.adminSchema.shape).forEach(key => {
-                if (sanitizedProfileData.hasOwnProperty(key) && (key.toLowerCase().includes('date') || key.toLowerCase().endsWith('at'))) {
-                    sanitizedProfileData[key] = safeToDate(sanitizedProfileData[key]);
-                }
-            });
+            // A ZodEffects schema from .refine() won't have a .shape, but it has a .schema getter for the inner type.
+            const baseSchema = (form.adminSchema as any).shape
+            ? (form.adminSchema as z.ZodObject<any, any, any>)
+            : (form.adminSchema as z.ZodEffects<any, any, any>).schema;
+
+            if (baseSchema && baseSchema.shape) {
+                Object.keys(baseSchema.shape).forEach(key => {
+                    if (sanitizedProfileData.hasOwnProperty(key) && (key.toLowerCase().includes('date') || key.toLowerCase().endsWith('at'))) {
+                        sanitizedProfileData[key] = safeToDate(sanitizedProfileData[key]);
+                    }
+                });
+            }
         }
     });
 
@@ -147,7 +154,7 @@ function CandidateHiringFormsContent() {
     const allAdminFieldsComplete = formsWithStatus.every(f => f.isAdminCompleted);
 
     return { allCandidateFormsComplete, allAdminFieldsComplete, formsToRender: formsWithStatus };
-  }, [profileData, allAvailableForms, isAnAdmin, interview?.onboardingFormsInitiated]);
+  }, [profileData, isAnAdmin, interview?.onboardingFormsInitiated, allAvailableForms]);
 
   useEffect(() => {
     setIsVerified(false);
@@ -297,20 +304,23 @@ function CandidateHiringFormsContent() {
                     {isCandidateCompleted && <CheckCircle className="h-6 w-6 text-green-500" />}
                     {isAnAdmin && isCandidateCompleted ? (
                         isAdminCompleted ? (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleGeneratePdf(form.pdfAction!)}
-                                disabled={isGeneratingPdf || !form.pdfAction}
-                                title={!form.pdfAction ? "PDF generation not available for this form" : "Generate PDF"}
-                            >
-                                {isGeneratingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
-                                <span>Generate PDF</span>
-                            </Button>
+                             <CheckCircle className="h-6 w-6 text-blue-500" title="Admin Signoff Complete" />
                         ) : (
-                             <XCircle className="h-6 w-6 text-destructive" title="Admin-mandatory fields are incomplete. Click to edit." />
+                             <XCircle className="h-6 w-6 text-destructive" title="Awaiting Admin Completion" />
                         )
                     ) : null}
+                    {isAnAdmin && formCompletionStates.allCandidateFormsComplete && formCompletionStates.allAdminFieldsComplete && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleGeneratePdf(form.pdfAction!)}
+                            disabled={isGeneratingPdf || !form.pdfAction}
+                            title={!form.pdfAction ? "PDF generation not available for this form" : "Generate PDF"}
+                        >
+                            {isGeneratingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
+                            <span>Generate PDF</span>
+                        </Button>
+                    )}
                 </div>
               </div>
             )
