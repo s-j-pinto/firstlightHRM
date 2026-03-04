@@ -41,7 +41,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Form, FormControl, FormItem } from '@/components/ui/form';
 import { sendHiringDocsNotification } from '@/lib/communication.actions';
 
-const hiringForms: { name: string; href: string; completionKey: keyof CaregiverProfile; pdfAction: string; adminSchema?: z.ZodObject<any, any, any> }[] = [
+const hiringForms: { name: string; href: string; completionKey: keyof CaregiverProfile; pdfAction: string; adminSchema?: z.ZodObject<any, any, any> | z.ZodEffects<any,any,any> }[] = [
   { name: "HCS 501 - Personnel Record 2019", href: "/candidate-hiring-forms/hcs501", completionKey: 'hcs501EmployeeSignature', pdfAction: 'hcs501', adminSchema: hcs501AdminSchema },
   { name: "Caregiver Emergency Contact Numbers", href: "/candidate-hiring-forms/emergency-contact", completionKey: 'emergencyContact1_name', pdfAction: 'emergencyContact' },
   { name: "Reference Verification 1", href: "/candidate-hiring-forms/reference-verification-1", completionKey: 'applicantSignature1', pdfAction: 'referenceVerification1' },
@@ -297,28 +297,27 @@ export default function AdvancedSearchClient() {
         const allCandidateFormsComplete = allAvailableForms.every(form => !!profile[form.completionKey as keyof CaregiverProfile]);
     
         if (allCandidateFormsComplete) {
-            // Create a mutable copy of the profile data for sanitization.
             const sanitizedProfileData: { [key: string]: any } = { ...profile };
     
-            // Explicitly sanitize all known date fields from all admin schemas before validation.
             allAvailableForms.forEach(form => {
                 if (form.adminSchema) {
-                    Object.keys(form.adminSchema.shape).forEach(key => {
-                        // Check if the key exists in the profile data and is a potential date field
-                        if (sanitizedProfileData.hasOwnProperty(key) && (key.toLowerCase().includes('date') || key.toLowerCase().endsWith('at'))) {
-                            sanitizedProfileData[key] = safeToDateForStatus(sanitizedProfileData[key]);
-                        }
-                    });
+                    const baseSchema = (form.adminSchema as any).shape 
+                        ? (form.adminSchema as z.ZodObject<any, any, any>)
+                        : (form.adminSchema as z.ZodEffects<any, any, any>).schema;
+    
+                    if (baseSchema && baseSchema.shape) {
+                        Object.keys(baseSchema.shape).forEach(key => {
+                            if (sanitizedProfileData.hasOwnProperty(key) && (key.toLowerCase().includes('date') || key.toLowerCase().endsWith('at'))) {
+                                sanitizedProfileData[key] = safeToDateForStatus(sanitizedProfileData[key]);
+                            }
+                        });
+                    }
                 }
             });
     
             const allAdminFieldsComplete = allAvailableForms.every(form => {
                 if (form.adminSchema) {
                     const result = form.adminSchema.safeParse(sanitizedProfileData);
-                    if (!result.success) {
-                        // This log is helpful for debugging but should be removed or conditional in production
-                        console.log(`Admin validation failed for ${form.name}:`, result.error.flatten());
-                    }
                     return result.success;
                 }
                 return true;
@@ -869,3 +868,5 @@ export default function AdvancedSearchClient() {
         </div>
     );
 }
+
+    
