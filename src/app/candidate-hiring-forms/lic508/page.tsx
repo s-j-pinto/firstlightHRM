@@ -464,7 +464,38 @@ export default function LIC508Page() {
                     </div>
 
                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <FormField control={form.control} name="ssn" render={({ field }) => ( <FormItem><FormLabel>SOCIAL SECURITY NUMBER:</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField
+                          control={form.control}
+                          name="ssn"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>SOCIAL SECURITY NUMBER:</FormLabel>
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  onChange={(e) => {
+                                    const rawValue = e.target.value.replace(/\D/g, "");
+                                    let formattedValue = "";
+                                    if (rawValue.length > 0) {
+                                        formattedValue = rawValue.substring(0, 3);
+                                    }
+                                    if (rawValue.length > 3) {
+                                        formattedValue += "-" + rawValue.substring(3, 5);
+                                    }
+                                    if (rawValue.length > 5) {
+                                        formattedValue += "-" + rawValue.substring(5, 9);
+                                    }
+                                    field.onChange(formattedValue);
+                                  }}
+                                  maxLength={11}
+                                  placeholder="XXX-XX-XXXX"
+                                  value={field.value || ''}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                         <FormField control={form.control} name="driversLicenseNumber" render={({ field }) => ( <FormItem><FormLabel>DRIVER’S LICENSE NUMBER/STATE:</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                          <FormField
                             control={form.control}

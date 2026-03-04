@@ -223,7 +223,9 @@ export const lic508Object = z.object({
   outOfStateHistory: z.string().optional(),
   lic508Signature: z.string().min(1, "Signature is required."),
   lic508SignatureDate: z.date({ required_error: "Signature date is required." }),
-  ssn: z.string().min(1, "Social Security Number is required."),
+  ssn: z.string()
+    .min(1, "Social Security Number is required.")
+    .regex(/^\d{3}-\d{2}-\d{4}$/, "Invalid Social Security Number format. Expected XXX-XX-XXXX."),
   driversLicenseNumber: z.string().min(1, "Driver's License is required."),
   dob: z.date({ required_error: "Date of Birth is required." }),
 });
