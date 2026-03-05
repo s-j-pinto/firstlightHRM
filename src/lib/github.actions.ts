@@ -64,7 +64,7 @@ export async function triggerTeletrackImport(caregiver: TeletrackApplicantPayloa
       email: caregiver.email || '',
       gpsAppUserName: caregiver.email || '',
       ttId: teletrackPin || '',
-      ssn: caregiver.ssn || '',
+      ssn: (caregiver.ssn || '').replace(/\D/g, ''),
     }
   };
 
