@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { format, isDate } from 'date-fns';
@@ -95,5 +94,3 @@ export async function triggerTeletrackImport(caregiver: TeletrackApplicantPayloa
     return { error: errorMsg };
   }
 }
-
-    
