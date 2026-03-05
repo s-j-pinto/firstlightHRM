@@ -1,4 +1,3 @@
-
 'use server';
 
 import { format, isDate } from 'date-fns';
@@ -13,19 +12,47 @@ interface TeletrackApplicantPayload {
   phone?: string;
   driversLicenseNumber?: string;
   email?: string;
-  dob?: Date | string;
+  dob?: Date | string | { seconds: number; nanoseconds: number };
   ssn?: string;
   hireDate?: Date | string;
 }
 
 const safeToDate = (value: any): Date | null => {
     if (!value) return null;
-    if (value.toDate) return value.toDate();
-    if (isDate(value)) return value;
+
+    // Handle server-side Firestore Timestamps with a toDate method
+    if (value.toDate && typeof value.toDate === 'function') {
+        return value.toDate();
+    }
+
+    // Handle client-side serialized Firestore Timestamps (plain objects)
+    if (typeof value === 'object' && typeof value.seconds === 'number' && typeof value.nanoseconds === 'number') {
+        return new Date(value.seconds * 1000 + value.nanoseconds / 1000000);
+    }
+
+    // Handle standard Date objects
+    if (isDate(value)) {
+        return value;
+    }
+    
+    // Handle ISO date strings and other string formats that new Date() can parse, including the custom "$D" prefix
+    if (typeof value === 'string') {
+        const cleanValue = value.startsWith('$D') ? value.substring(2) : value;
+        const d = new Date(cleanValue);
+        if (!isNaN(d.getTime())) {
+            return d;
+        }
+    }
+    
+    // Fallback attempt for any other format
     const d = new Date(value);
-    if (!isNaN(d.getTime())) return d;
+    if (!isNaN(d.getTime())) {
+        return d;
+    }
+
     return null;
 };
+
 
 export async function triggerTeletrackImport(caregiver: TeletrackApplicantPayload, teletrackPin: string) {
   const GITHUB_PAT = process.env.GITHUB_PAT;
@@ -66,7 +93,9 @@ export async function triggerTeletrackImport(caregiver: TeletrackApplicantPayloa
       ssn: caregiver.ssn || '',
     }
   };
-
+  
+  console.log("Data sent to Teletrack:", payload.inputs);
+  
   try {
     const response = await fetch(GITHUB_TELETRACK_EXPIMP_API, {
       method: 'POST',

@@ -672,44 +672,6 @@ export default function ManageInterviewsClient() {
             hireDate: data.hireDate,
         };
 
-        // --- Debugging Logic ---
-        const nameParts = selectedCaregiver.fullName.split(' ');
-        const firstName = nameParts[0];
-        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
-        const dobDate = applicantData.dob ? safeToDate(applicantData.dob) : null;
-        const formattedDob = dobDate ? format(dobDate, 'MM/dd/yyyy') : '';
-        const hireDate = applicantData.hireDate ? safeToDate(applicantData.hireDate) : null;
-        const formattedHireDate = hireDate ? format(hireDate, 'MM/dd/yyyy') : '';
-
-        const teletrackPayload = {
-            firstName: firstName,
-            lastName: lastName,
-            address: applicantData.address || '',
-            city: applicantData.city || '',
-            state: applicantData.state || '',
-            dateOfBirth: formattedDob,
-            hireDate: formattedHireDate,
-            zipCode: applicantData.zip || '',
-            phoneNumber: applicantData.phone || '',
-            driversLicenseNo: applicantData.driversLicenseNumber || '',
-            email: applicantData.email || '',
-            gpsAppUserName: applicantData.email || '',
-            ttId: data.teletrackPin || '',
-            ssn: applicantData.ssn || '',
-        };
-
-        console.log("Data sent to Teletrack:", teletrackPayload);
-        toast({
-            title: "Debugging: Teletrack Payload",
-            description: (
-            <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-                <code className="text-white">{JSON.stringify(teletrackPayload, null, 2)}</code>
-            </pre>
-            ),
-            duration: 10000,
-        });
-        // --- End of Debugging Logic ---
-
         if (existingEmployee?.id) {
             const employeeDocRef = doc(db, 'caregiver_employees', existingEmployee.id);
             updateDoc(employeeDocRef, employeeData)
