@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from 'zod';
 import Link from 'next/link';
@@ -46,7 +46,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Search, Calendar as CalendarIcon, Sparkles, UserCheck, AlertCircle, ExternalLink, Briefcase, Video, GraduationCap, Phone, Star, MessageSquare, CheckCircle, XCircle, UserX, Save, FileText, FileCheck2, FileClock } from 'lucide-react';
-import { format, addDays } from 'date-fns';
+import { format, addDays, isDate } from 'date-fns';
 import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
@@ -644,7 +644,7 @@ export default function ManageInterviewsClient() {
         if (!selectedCaregiver || !existingInterview || !db) return;
 
         startSubmitTransition(async () => {
-          const employeeData: { [key: string]: any } = {
+        const employeeData: { [key: string]: any } = {
             caregiverProfileId: selectedCaregiver.id,
             interviewId: existingInterview.id,
             hiringManager: data.hiringManager,
@@ -652,61 +652,87 @@ export default function ManageInterviewsClient() {
             hireDate: Timestamp.fromDate(data.hireDate),
             teletrackPin: data.teletrackPin,
             createdAt: existingEmployee?.id ? undefined : Timestamp.now(),
-          };
+        };
 
-          if (data.inPersonInterviewDate) {
+        if (data.inPersonInterviewDate) {
             employeeData.inPersonInterviewDate = Timestamp.fromDate(data.inPersonInterviewDate);
-          }
+        }
+        
+        const applicantData = {
+            fullName: selectedCaregiver.fullName,
+            address: selectedCaregiver.address,
+            city: selectedCaregiver.city,
+            state: selectedCaregiver.state,
+            zip: selectedCaregiver.zip,
+            phone: selectedCaregiver.phone,
+            driversLicenseNumber: selectedCaregiver.driversLicenseNumber,
+            email: selectedCaregiver.email,
+            dob: selectedCaregiver.dob,
+            ssn: selectedCaregiver.ssn,
+            hireDate: data.hireDate,
+        };
 
-          if (existingEmployee?.id) {
+        // --- Debugging Logic ---
+        const nameParts = selectedCaregiver.fullName.split(' ');
+        const firstName = nameParts[0];
+        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+        const dobDate = applicantData.dob ? safeToDate(applicantData.dob) : null;
+        const formattedDob = dobDate ? format(dobDate, 'MM/dd/yyyy') : '';
+        const hireDate = applicantData.hireDate ? safeToDate(applicantData.hireDate) : null;
+        const formattedHireDate = hireDate ? format(hireDate, 'MM/dd/yyyy') : '';
+
+        const teletrackPayload = {
+            firstName: firstName,
+            lastName: lastName,
+            address: applicantData.address || '',
+            city: applicantData.city || '',
+            state: applicantData.state || '',
+            dateOfBirth: formattedDob,
+            hireDate: formattedHireDate,
+            zipCode: applicantData.zip || '',
+            phoneNumber: applicantData.phone || '',
+            driversLicenseNo: applicantData.driversLicenseNumber || '',
+            email: applicantData.email || '',
+            gpsAppUserName: applicantData.email || '',
+            ttId: data.teletrackPin || '',
+            ssn: applicantData.ssn || '',
+        };
+
+        console.log("Data sent to Teletrack:", teletrackPayload);
+        toast({
+            title: "Debugging: Teletrack Payload",
+            description: (
+            <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
+                <code className="text-white">{JSON.stringify(teletrackPayload, null, 2)}</code>
+            </pre>
+            ),
+            duration: 10000,
+        });
+        // --- End of Debugging Logic ---
+
+        if (existingEmployee?.id) {
             const employeeDocRef = doc(db, 'caregiver_employees', existingEmployee.id);
             updateDoc(employeeDocRef, employeeData)
-              .then(async () => {
-                const applicantData = {
-                    fullName: selectedCaregiver.fullName,
-                    address: selectedCaregiver.address,
-                    city: selectedCaregiver.city,
-                    state: selectedCaregiver.state,
-                    zip: selectedCaregiver.zip,
-                    phone: selectedCaregiver.phone,
-                    driversLicenseNumber: selectedCaregiver.driversLicenseNumber,
-                    email: selectedCaregiver.email,
-                    dob: selectedCaregiver.dob,
-                    ssn: selectedCaregiver.ssn,
-                    hireDate: data.hireDate,
-                };
+            .then(async () => {
                 const githubResult = await triggerTeletrackImport(applicantData, data.teletrackPin);
                 if (githubResult.success) {
                     toast({ title: 'Success', description: 'Employee record updated and TeleTrack import re-triggered.' });
                 } else {
                     toast({ title: 'Update Partially Successful', description: `Employee record updated, but failed to re-trigger TeleTrack import: ${githubResult.error}`, variant: 'destructive' });
                 }
-              })
-              .catch(serverError => {
+            })
+            .catch(serverError => {
                 const permissionError = new FirestorePermissionError({
-                  path: employeeDocRef.path,
-                  operation: "update",
-                  requestResourceData: employeeData,
+                path: employeeDocRef.path,
+                operation: "update",
+                requestResourceData: employeeData,
                 });
                 errorEmitter.emit("permission-error", permissionError);
-              });
-          } else {
+            });
+        } else {
             const employeesCollection = collection(db, 'caregiver_employees');
             addDoc(employeesCollection, employeeData)
-              .then(async (docRef) => {
-                const applicantData = {
-                    fullName: selectedCaregiver.fullName,
-                    address: selectedCaregiver.address,
-                    city: selectedCaregiver.city,
-                    state: selectedCaregiver.state,
-                    zip: selectedCaregiver.zip,
-                    phone: selectedCaregiver.phone,
-                    driversLicenseNumber: selectedCaregiver.driversLicenseNumber,
-                    email: selectedCaregiver.email,
-                    dob: selectedCaregiver.dob,
-                    ssn: selectedCaregiver.ssn,
-                    hireDate: data.hireDate,
-                };
+            .then(async (docRef) => {
                 const githubResult = await triggerTeletrackImport(applicantData, data.teletrackPin);
                 if (githubResult.success) {
                     toast({ title: 'Success', description: 'Caregiver has been successfully hired and TeleTrack applicant created.' });
@@ -714,16 +740,16 @@ export default function ManageInterviewsClient() {
                     toast({ title: 'Hiring Partially Successful', description: `Caregiver hired, but failed to create TeleTrack applicant: ${githubResult.error}`, variant: 'destructive' });
                 }
                 setExistingEmployee({ id: docRef.id, ...employeeData } as CaregiverEmployee);
-              })
-              .catch(serverError => {
+            })
+            .catch(serverError => {
                 const permissionError = new FirestorePermissionError({
-                  path: employeesCollection.path,
-                  operation: "create",
-                  requestResourceData: employeeData,
+                path: employeesCollection.path,
+                operation: "create",
+                requestResourceData: employeeData,
                 });
                 errorEmitter.emit("permission-error", permissionError);
-              });
-          }
+            });
+        }
         });
     };
     
