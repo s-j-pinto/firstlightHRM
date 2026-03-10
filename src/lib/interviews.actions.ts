@@ -1,6 +1,5 @@
 
-
-"use server";
+'use server';
 
 import { revalidatePath } from 'next/cache';
 import { serverDb } from '@/firebase/server-init';
@@ -72,7 +71,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
     let eventTitle: string;
 
     if (interviewType === 'Orientation') {
-        durationHours = 1.5;
+        durationHours = 2;
         eventTitle = `Orientation: ${caregiverProfile.fullName}`;
     } else if (pathway === 'combined') {
         durationHours = 3;
@@ -187,7 +186,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
     const formattedEndTime = formatInTimeZone(endTime, pacificTimeZone, 'h:mm a zzz');
 
     let emailHtml = '';
-    const inPersonDuration = (interviewType === 'Orientation') ? 1.5 : (pathway === 'combined' ? 3 : 1);
+    const inPersonDuration = (interviewType === 'Orientation') ? 2 : (pathway === 'combined' ? 3 : 1);
 
     let referenceFormHtml = '';
     if (includeReferenceForm) {
@@ -406,7 +405,5 @@ export async function initiateOnboardingForms(interviewId: string) {
 
 
 
-
-    
 
     
