@@ -315,6 +315,10 @@ export default function AdvancedSearchClient() {
             });
     
             const allAdminFieldsComplete = allAvailableForms.every(form => {
+                // Special case for Confidentiality Agreement: If candidate has signed, admin part is considered done.
+                if (form.name === "FirstLightHomeCare_CONFIDENTIALITY_AGREEMENT") {
+                    return true;
+                }
                 if (form.adminSchema) {
                     const result = form.adminSchema.safeParse(sanitizedProfileData);
                     if (!result.success) {
