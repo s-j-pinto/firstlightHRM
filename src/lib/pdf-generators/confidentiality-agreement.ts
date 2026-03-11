@@ -1,9 +1,11 @@
 
+
 'use server';
 
 import { PDFDocument, rgb, StandardFonts, PageSizes } from 'pdf-lib';
 import { format, isDate } from 'date-fns';
 import { drawText, drawSignature, drawWrappedText } from './utils';
+import { serverDb } from '@/firebase/server-init';
 
 export async function generateConfidentialityAgreementPdf(formData: any): Promise<{ pdfData?: string; error?: string }> {
     try {
@@ -12,6 +14,11 @@ export async function generateConfidentialityAgreementPdf(formData: any): Promis
         const { width, height } = page.getSize();
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
         const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+        // Fetch Admin Signature from settings
+        const settingsSnap = await serverDb.collection('settings').doc('availability').get();
+        const settingsData = settingsSnap.exists ? settingsSnap.data() : {};
+        const adminSignature = settingsData?.adminSignature;
 
         const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
         const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer());
@@ -68,9 +75,9 @@ export async function generateConfidentialityAgreementPdf(formData: any): Promis
         drawText(page, "FirstLight HomeCare employee signature                                                                 Date", {x: leftMargin, y: y-15, font, size: 8});
         y-=40;
         
-        const repSigDate = (formData.confidentialityAgreementRepDate && (formData.confidentialityAgreementRepDate.toDate || isDate(formData.confidentialityAgreementRepDate))) ? format(formData.confidentialityAgreementRepDate.toDate ? formData.confidentialityAgreementRepDate.toDate() : formData.confidentialityAgreementRepDate, "MM/dd/yyyy") : '';
-        if (formData.confidentialityAgreementRepSignature) {
-            await drawSignature(page, formData.confidentialityAgreementRepSignature, leftMargin, y, 250, 25, pdfDoc);
+        const repSigDate = format(new Date(), "MM/dd/yyyy");
+        if (adminSignature) {
+            await drawSignature(page, adminSignature, leftMargin, y, 250, 25, pdfDoc);
         }
         drawText(page, repSigDate, {x: leftMargin + 300, y: y+5, font, size: 11});
         page.drawLine({ start: { x: leftMargin, y: y - 5 }, end: { x: leftMargin + 500, y: y - 5 }, thickness: 0.5 });

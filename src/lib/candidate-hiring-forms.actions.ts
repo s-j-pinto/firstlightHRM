@@ -359,12 +359,8 @@ export async function saveAcknowledgmentFormData(profileId: string, data: any) {
 }
 
 export async function saveConfidentialityAgreementData(profileId: string, data: any) {
-  // If admin fields are present, use the stricter schema.
-  const schemaToUse = data.confidentialityAgreementRepSignature || data.confidentialityAgreementRepDate
-    ? confidentialityAgreementAdminSchema
-    : confidentialityAgreementSchema;
-
-  const validatedFields = schemaToUse.safeParse(data);
+  // The user only needs to sign. Admin validation happens at a different stage.
+  const validatedFields = confidentialityAgreementSchema.safeParse(data);
 
   if (!validatedFields.success) {
     console.error("Confidentiality Agreement Save Validation Error:", validatedFields.error.flatten());
@@ -372,7 +368,13 @@ export async function saveConfidentialityAgreementData(profileId: string, data: 
   }
 
   try {
-    const dataToSave = convertDatesToTimestamps(validatedFields.data);
+    // Only save the fields the candidate is responsible for.
+    const candidateData = {
+      confidentialityAgreementEmployeeSignature: validatedFields.data.confidentialityAgreementEmployeeSignature,
+      confidentialityAgreementEmployeeSignatureDate: validatedFields.data.confidentialityAgreementEmployeeSignatureDate,
+    };
+    
+    const dataToSave = convertDatesToTimestamps(candidateData);
     
     await serverDb.collection('caregiver_profiles').doc(profileId).set(dataToSave, { merge: true });
     
@@ -382,7 +384,7 @@ export async function saveConfidentialityAgreementData(profileId: string, data: 
     return { success: true, message: 'Confidentiality Agreement saved successfully.' };
   } catch (error: any) {
     console.error("Error saving Confidentiality Agreement data:", error);
-    return { error: 'Failed to save form data.' };
+    return { error: `An unexpected server error occurred: ${error.message}` };
   }
 }
 
@@ -785,3 +787,4 @@ export async function generateAllFormsAsZipAction(candidateId: string) {
         return { error: `Failed to generate zip file: ${error.message}` };
     }
 }
+
