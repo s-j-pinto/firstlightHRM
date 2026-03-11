@@ -165,7 +165,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
         updateData.interviewDateTime = Timestamp.fromDate(startTime);
         updateData.interviewType = interviewType;
         updateData.googleMeetLink = conferenceLink || null;
-        updateData.finalInterviewStatus = finalInterviewStatus || (pathway === 'combined' ? 'Passed' : 'Pending');
+        updateData.finalInterviewStatus = (pathway === 'combined' ? 'Passed' : 'Pending');
         updateData.orientationScheduled = pathway === 'combined';
         if (pathway === 'combined') {
             updateData.orientationDateTime = Timestamp.fromDate(startTime);
