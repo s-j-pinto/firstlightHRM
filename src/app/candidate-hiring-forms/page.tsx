@@ -140,7 +140,11 @@ function CandidateHiringFormsContent() {
     const formsWithStatus = allAvailableForms.map(form => {
       const isCandidateCompleted = !!profileData[form.completionKey as keyof CaregiverProfile];
       let isAdminCompleted = true; // Assume complete if no admin schema exists
-      if (isAnAdmin && isCandidateCompleted && form.adminSchema) {
+
+      // Special case for Confidentiality Agreement: If candidate has signed, admin part is considered done.
+      if (form.name === "FirstLightHomeCare_CONFIDENTIALITY_AGREEMENT") {
+        isAdminCompleted = isCandidateCompleted;
+      } else if (isAnAdmin && isCandidateCompleted && form.adminSchema) {
         const result = form.adminSchema.safeParse(sanitizedProfileData);
          if (!result.success) {
             console.log(`Admin validation failed for ${form.name}:`, result.error.flatten());
@@ -339,3 +343,5 @@ export default function CandidateHiringFormsPage() {
         </Suspense>
     )
 }
+
+    
