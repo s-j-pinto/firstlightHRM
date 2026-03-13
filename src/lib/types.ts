@@ -210,12 +210,16 @@ export const emergencyContactSchema = z.object({
   emergencyContact1_relation: z.string().min(1, "Relation for first contact is required."),
   emergencyContact1_phone: z.string().min(1, "Phone for first contact is required."),
   emergencyContact1_address: z.string().min(1, "Address for first contact is required."),
-  emergencyContact1_cityStateZip: z.string().min(1, "City/State/Zip for first contact is required."),
+  emergencyContact1_city: z.string().min(1, "City for first contact is required."),
+  emergencyContact1_state: z.string().min(1, "State for first contact is required."),
+  emergencyContact1_zip: z.string().min(1, "Zip for first contact is required."),
   emergencyContact2_name: z.string().optional(),
   emergencyContact2_relation: z.string().optional(),
   emergencyContact2_phone: z.string().optional(),
   emergencyContact2_address: z.string().optional(),
-  emergencyContact2_cityStateZip: z.string().optional(),
+  emergencyContact2_city: z.string().optional(),
+  emergencyContact2_state: z.string().optional(),
+  emergencyContact2_zip: z.string().optional(),
 });
 export type EmergencyContactFormData = z.infer<typeof emergencyContactSchema>;
 

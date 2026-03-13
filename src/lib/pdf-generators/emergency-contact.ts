@@ -83,7 +83,9 @@ export async function generateEmergencyContactPdf(formData: any): Promise<{ pdfD
             "Name": formData.fullName,
             "Phone/Cell": formData.phone,
             "Address": formData.address,
-            "City/State/Zip": `${formData.city || ''}, ${formData.state || ''} ${formData.zip || ''}`,
+            "City": formData.city,
+            "State": formData.state,
+            "Zip": formData.zip
         };
         drawSection("Your Information", yourInfo, true, "General Information");
         
@@ -93,7 +95,9 @@ export async function generateEmergencyContactPdf(formData: any): Promise<{ pdfD
                 "Relation": formData.emergencyContact1_relation,
                 "Phone/Cell": formData.emergencyContact1_phone,
                 "Address": formData.emergencyContact1_address,
-                "City/State/Zip": formData.emergencyContact1_cityStateZip,
+                "City": formData.emergencyContact1_city,
+                "State": formData.emergencyContact1_state,
+                "Zip": formData.emergencyContact1_zip,
             };
             drawSection("In Case of Emergency please notify: (First Person)", firstPersonInfo);
         }
@@ -104,7 +108,9 @@ export async function generateEmergencyContactPdf(formData: any): Promise<{ pdfD
                 "Relation": formData.emergencyContact2_relation,
                 "Phone/Cell": formData.emergencyContact2_phone,
                 "Address": formData.emergencyContact2_address,
-                "City/State/Zip": formData.emergencyContact2_cityStateZip,
+                "City": formData.emergencyContact2_city,
+                "State": formData.emergencyContact2_state,
+                "Zip": formData.emergencyContact2_zip,
             };
             drawSection("Second Person", secondPersonInfo);
         }

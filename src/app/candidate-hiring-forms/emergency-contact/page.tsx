@@ -26,12 +26,16 @@ const defaultFormValues: EmergencyContactFormData = {
   emergencyContact1_relation: '',
   emergencyContact1_phone: '',
   emergencyContact1_address: '',
-  emergencyContact1_cityStateZip: '',
+  emergencyContact1_city: '',
+  emergencyContact1_state: '',
+  emergencyContact1_zip: '',
   emergencyContact2_name: '',
   emergencyContact2_relation: '',
   emergencyContact2_phone: '',
   emergencyContact2_address: '',
-  emergencyContact2_cityStateZip: '',
+  emergencyContact2_city: '',
+  emergencyContact2_state: '',
+  emergencyContact2_zip: '',
 };
 
 export default function EmergencyContactPage() {
@@ -140,14 +144,24 @@ export default function EmergencyContactPage() {
                             <Label>Phone/Cell</Label>
                             <Input value={existingData?.phone || ''} readOnly disabled />
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-1 md:col-span-2">
                             <Label>Address</Label>
                             <Input value={existingData?.address || ''} readOnly disabled />
                         </div>
-                         <div className="space-y-1">
-                            <Label>City/State/Zip</Label>
-                            <Input value={`${existingData?.city || ''}, ${existingData?.state || ''} ${existingData?.zip || ''}`} readOnly disabled />
-                        </div>
+                         <div className="grid grid-cols-3 gap-2 md:col-span-2">
+                           <div className="space-y-1">
+                            <Label>City</Label>
+                            <Input value={existingData?.city || ''} readOnly disabled />
+                           </div>
+                           <div className="space-y-1">
+                             <Label>State</Label>
+                             <Input value={existingData?.state || ''} readOnly disabled />
+                           </div>
+                           <div className="space-y-1">
+                             <Label>Zip</Label>
+                             <Input value={existingData?.zip || ''} readOnly disabled />
+                           </div>
+                         </div>
                     </div>
                 </div>
 
@@ -164,7 +178,11 @@ export default function EmergencyContactPage() {
                               <FormField control={form.control} name="emergencyContact1_relation" render={({ field }) => ( <FormItem><FormLabel>Relation</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                              <FormField control={form.control} name="emergencyContact1_phone" render={({ field }) => ( <FormItem><FormLabel>Phone/Cell</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                              <FormField control={form.control} name="emergencyContact1_address" render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                             <FormField control={form.control} name="emergencyContact1_cityStateZip" render={({ field }) => ( <FormItem className="md:col-span-2"><FormLabel>City/State/Zip</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        </div>
+                        <div className="grid grid-cols-3 gap-4">
+                          <FormField control={form.control} name="emergencyContact1_city" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                          <FormField control={form.control} name="emergencyContact1_state" render={({ field }) => ( <FormItem><FormLabel>State</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                          <FormField control={form.control} name="emergencyContact1_zip" render={({ field }) => ( <FormItem><FormLabel>Zip</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                         </div>
                      </div>
                       {/* Second Person */}
@@ -175,7 +193,11 @@ export default function EmergencyContactPage() {
                              <FormField control={form.control} name="emergencyContact2_relation" render={({ field }) => ( <FormItem><FormLabel>Relation</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                              <FormField control={form.control} name="emergencyContact2_phone" render={({ field }) => ( <FormItem><FormLabel>Phone/Cell</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                              <FormField control={form.control} name="emergencyContact2_address" render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                             <FormField control={form.control} name="emergencyContact2_cityStateZip" render={({ field }) => ( <FormItem className="md:col-span-2"><FormLabel>City/State/Zip</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        </div>
+                         <div className="grid grid-cols-3 gap-4">
+                          <FormField control={form.control} name="emergencyContact2_city" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                          <FormField control={form.control} name="emergencyContact2_state" render={({ field }) => ( <FormItem><FormLabel>State</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                          <FormField control={form.control} name="emergencyContact2_zip" render={({ field }) => ( <FormItem><FormLabel>Zip</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                         </div>
                      </div>
                 </div>
