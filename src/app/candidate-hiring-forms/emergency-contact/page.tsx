@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useEffect, useTransition } from "react";
@@ -22,10 +23,12 @@ import { cn } from "@/lib/utils";
 
 const defaultFormValues: EmergencyContactFormData = {
   emergencyContact1_name: '',
+  emergencyContact1_relation: '',
   emergencyContact1_phone: '',
   emergencyContact1_address: '',
   emergencyContact1_cityStateZip: '',
   emergencyContact2_name: '',
+  emergencyContact2_relation: '',
   emergencyContact2_phone: '',
   emergencyContact2_address: '',
   emergencyContact2_cityStateZip: '',
@@ -158,9 +161,10 @@ export default function EmergencyContactPage() {
                         <h4 className="font-medium">First Person</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                              <FormField control={form.control} name="emergencyContact1_name" render={({ field }) => ( <FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                              <FormField control={form.control} name="emergencyContact1_relation" render={({ field }) => ( <FormItem><FormLabel>Relation</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                              <FormField control={form.control} name="emergencyContact1_phone" render={({ field }) => ( <FormItem><FormLabel>Phone/Cell</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                              <FormField control={form.control} name="emergencyContact1_address" render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                             <FormField control={form.control} name="emergencyContact1_cityStateZip" render={({ field }) => ( <FormItem><FormLabel>City/State/Zip</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                             <FormField control={form.control} name="emergencyContact1_cityStateZip" render={({ field }) => ( <FormItem className="md:col-span-2"><FormLabel>City/State/Zip</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                         </div>
                      </div>
                       {/* Second Person */}
@@ -168,9 +172,10 @@ export default function EmergencyContactPage() {
                         <h4 className="font-medium">Second Person</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                              <FormField control={form.control} name="emergencyContact2_name" render={({ field }) => ( <FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                             <FormField control={form.control} name="emergencyContact2_relation" render={({ field }) => ( <FormItem><FormLabel>Relation</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                              <FormField control={form.control} name="emergencyContact2_phone" render={({ field }) => ( <FormItem><FormLabel>Phone/Cell</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                              <FormField control={form.control} name="emergencyContact2_address" render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                             <FormField control={form.control} name="emergencyContact2_cityStateZip" render={({ field }) => ( <FormItem><FormLabel>City/State/Zip</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                             <FormField control={form.control} name="emergencyContact2_cityStateZip" render={({ field }) => ( <FormItem className="md:col-span-2"><FormLabel>City/State/Zip</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                         </div>
                      </div>
                 </div>

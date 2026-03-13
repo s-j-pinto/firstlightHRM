@@ -1,4 +1,5 @@
 
+
 import { z } from "zod";
 
 export const initialContactSchema = z.object({
@@ -206,10 +207,12 @@ export type Hcs501FormData = z.infer<typeof hcs501AdminSchema>;
 
 export const emergencyContactSchema = z.object({
   emergencyContact1_name: z.string().min(1, "Name for first contact is required."),
+  emergencyContact1_relation: z.string().min(1, "Relation for first contact is required."),
   emergencyContact1_phone: z.string().min(1, "Phone for first contact is required."),
   emergencyContact1_address: z.string().min(1, "Address for first contact is required."),
   emergencyContact1_cityStateZip: z.string().min(1, "City/State/Zip for first contact is required."),
   emergencyContact2_name: z.string().optional(),
+  emergencyContact2_relation: z.string().optional(),
   emergencyContact2_phone: z.string().optional(),
   emergencyContact2_address: z.string().optional(),
   emergencyContact2_cityStateZip: z.string().optional(),

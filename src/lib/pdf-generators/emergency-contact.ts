@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { PDFDocument, rgb, StandardFonts, PageSizes } from 'pdf-lib';
@@ -89,6 +90,7 @@ export async function generateEmergencyContactPdf(formData: any): Promise<{ pdfD
         if (formData.emergencyContact1_name) {
             const firstPersonInfo = {
                 "Name": formData.emergencyContact1_name,
+                "Relation": formData.emergencyContact1_relation,
                 "Phone/Cell": formData.emergencyContact1_phone,
                 "Address": formData.emergencyContact1_address,
                 "City/State/Zip": formData.emergencyContact1_cityStateZip,
@@ -99,6 +101,7 @@ export async function generateEmergencyContactPdf(formData: any): Promise<{ pdfD
         if (formData.emergencyContact2_name) {
             const secondPersonInfo = {
                 "Name": formData.emergencyContact2_name,
+                "Relation": formData.emergencyContact2_relation,
                 "Phone/Cell": formData.emergencyContact2_phone,
                 "Address": formData.emergencyContact2_address,
                 "City/State/Zip": formData.emergencyContact2_cityStateZip,

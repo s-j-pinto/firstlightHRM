@@ -1,3 +1,5 @@
+
+
 {
   "entities": {
     "InitialContact": {
@@ -9,7 +11,8 @@
             "clientName": { "type": "string" },
             "clientAddress": { "type": "string" },
             "dateOfBirth": { "type": "string", "format": "date" },
-            "rateOffered": { "type": "number" },
+            "rateOffered": { "type": "number", "minimum": 0 },
+            "milageOffered": { "type": "number", "minimum": 0 },
             "city": { "type": "string" },
             "zip": { "type": "string" },
             "clientPhone": { "type": "string" },
@@ -24,11 +27,14 @@
             "promptedCall": { "type": "string" },
             "personalCareNotes": { "type": "string" },
             "estimatedHours": { "type": "string" },
+            "clientDepositAmount": { "type": "number" },
             "estimatedStartDate": { "type": "string", "format": "date-time" },
             "inHomeVisitSet": { "type": "string", "enum": ["Yes", "No"] },
             "inHomeVisitSetNoReason": { "type": "string" },
             "sendFollowUpCampaigns": { "type": "boolean", "description": "Whether to enroll the lead in automated follow-up email campaigns." },
-            "status": { "type": "string", "enum": ["Initial Phone Contact Completed", "In-Home Visit Scheduled", "App Referral Received", "Google Ads Lead Received", "Closed"] },
+            "smsFollowUpSent": { "type": "boolean", "description": "Whether a 1-hour SMS follow-up has been sent." },
+            "source": { "type": "string", "description": "The original source of the lead." },
+            "status": { "type": "string", "enum": ["New", "In-Home Visit Scheduled", "Assessment Complete", "Closed"], "description": "The current stage of the lead in the pipeline." },
             "closureReason": { "type": "string", "description": "The reason why a contact was closed." },
             "createdAt": { "type": "string", "format": "date-time" },
             "createdBy": { "type": "string", "format": "email" },
@@ -44,6 +50,9 @@
             "additionalEmail": { "type": "string", "format": "email" },
             "googleAdsLeadId": { "type": "string" },
             "googleAdsCampaignId": { "type": "string" },
+            "clientIsBedridden": { "type": "string", "enum": ["Yes", "No"] },
+            "clientUsesHoyerLift": { "type": "string", "enum": ["Yes", "No"] },
+            "smokingEnvironment": { "type": "string", "enum": ["Yes", "No"] },
             "companionCare_mealPreparation": { "type": "boolean" },
             "companionCare_cleanKitchen": { "type": "boolean" },
             "companionCare_assistWithLaundry": { "type": "boolean" },
@@ -66,8 +75,81 @@
         },
         "required": [
             "clientName", "clientAddress", "clientPhone", 
-            "clientEmail", "promptedCall", "status", "createdAt", "lastUpdatedAt"
+            "clientEmail", "promptedCall", "source", "status", "createdAt", "lastUpdatedAt"
         ]
+    },
+    "LevelOfCareAssessment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "LevelOfCareAssessment",
+      "type": "object",
+      "description": "Stores the results of a Level of Care assessment for a client.",
+      "properties": {
+        "initialContactId": { "type": "string", "description": "The ID of the initial contact document." },
+        "level_0_independent_in_emergency": { "type": "boolean" },
+        "level_0_able_to_negotiate_stairs": { "type": "boolean" },
+        "level_0_able_to_bathe": { "type": "boolean" },
+        "level_0_able_to_dress": { "type": "boolean" },
+        "level_0_able_to_groom": { "type": "boolean" },
+        "level_0_able_to_transfer_and_ambulate": { "type": "boolean" },
+        "level_0_able_to_use_toilet": { "type": "boolean" },
+        "level_0_take_medications": { "type": "boolean" },
+        "level_0_able_to_prepare_and_eat_meals": { "type": "boolean" },
+        "level_0_light_housekeeping": { "type": "boolean" },
+        "level_0_able_to_plan_social_activities": { "type": "boolean" },
+        "level_0_little_to_no_family_concern": { "type": "boolean" },
+        "level_1_able_to_respond_in_emergency": { "type": "boolean" },
+        "level_1_ambulates_independently": { "type": "boolean" },
+        "level_1_infrequent_falls": { "type": "boolean" },
+        "level_1_independent_to_verbal_reminders": { "type": "boolean" },
+        "level_1_continent_bladder_bowel": { "type": "boolean" },
+        "level_1_independent_baths": { "type": "boolean" },
+        "level_1_meal_prep_assistance_helpful": { "type": "boolean" },
+        "level_1_housekeeping_assistance_helpful": { "type": "boolean" },
+        "level_1_some_encouragement_for_social_activities": { "type": "boolean" },
+        "level_1_oriented_to_self": { "type": "boolean" },
+        "level_1_little_memory_impairment": { "type": "boolean" },
+        "level_1_family_slightly_concerned": { "type": "boolean" },
+        "level_2_may_need_assistance_in_emergency": { "type": "boolean" },
+        "level_2_transfer_stand_by_assist": { "type": "boolean" },
+        "level_2_needs_reminders_for_adls": { "type": "boolean" },
+        "level_2_medication_management_helpful": { "type": "boolean" },
+        "level_2_some_incontinence_assistance": { "type": "boolean" },
+        "level_2_some_bathing_assistance": { "type": "boolean" },
+        "level_2_some_meal_prep_planning_assistance": { "type": "boolean" },
+        "level_2_some_housekeeping_assistance": { "type": "boolean" },
+        "level_2_reminders_encourage_participation": { "type": "boolean" },
+        "level_2_mild_memory_impairment": { "type": "boolean" },
+        "level_2_sometimes_disoriented": { "type": "boolean" },
+        "level_2_family_concerned": { "type": "boolean" },
+        "level_3_needs_assistance_in_emergency": { "type": "boolean" },
+        "level_3_transfer_one_person_assist": { "type": "boolean" },
+        "level_3_verbal_cues_to_hands_on_assist": { "type": "boolean" },
+        "level_3_medication_management": { "type": "boolean" },
+        "level_3_incontinence_management": { "type": "boolean" },
+        "level_3_needs_bathing_assistance": { "type": "boolean" },
+        "level_3_meal_prep_assistance_needed": { "type": "boolean" },
+        "level_3_housekeeping_assistance_needed": { "type": "boolean" },
+        "level_3_encouragement_escort_to_social_activities": { "type": "boolean" },
+        "level_3_impaired_memory": { "type": "boolean" },
+        "level_3_poor_orientation": { "type": "boolean" },
+        "level_3_mild_confusion": { "type": "boolean" },
+        "level_3_family_very_concerned": { "type": "boolean" },
+        "level_4_needs_supervision_in_emergency": { "type": "boolean" },
+        "level_4_transfer_two_person_or_mechanical_lift": { "type": "boolean" },
+        "level_4_hands_on_assistance_with_adls": { "type": "boolean" },
+        "level_4_medication_management": { "type": "boolean" },
+        "level_4_behavior_management": { "type": "boolean" },
+        "level_4_bathing_assistance": { "type": "boolean" },
+        "level_4_verbal_cues_hands_on_assistance_to_eat": { "type": "boolean" },
+        "level_4_needs_housekeeping": { "type": "boolean" },
+        "level_4_encouragement_escort_or_one_on_one": { "type": "boolean" },
+        "level_4_needs_24_hour_supervision": { "type": "boolean" },
+        "level_4_needs_skilled_services": { "type": "boolean" },
+        "level_4_severe_cognitive_and_memory_impairment": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastUpdatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["initialContactId", "createdAt", "lastUpdatedAt"]
     },
     "CampaignTemplate": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -78,10 +160,11 @@
         "name": { "type": "string", "description": "The internal name of the template." },
         "description": { "type": "string", "description": "A brief description of the template's purpose." },
         "type": { "type": "string", "enum": ["email", "sms"], "description": "The type of message to send." },
-        "intervalDays": { "type": "number", "description": "Number of days after initial contact to send this message. 0 for immediate." },
+        "intervalDays": { "type": "number", "description": "Number of days after initial contact to send this message." },
+        "intervalHours": { "type": "number", "description": "Number of hours after initial contact to send this message (used if intervalDays is 0)." },
         "sendImmediatelyFor": { "type": "array", "items": {"type": "string"}, "description": "An array of lead source statuses that should trigger this template immediately."},
-        "subject": { "type": "string", "description": "The subject line for email templates." },
-        "body": { "type": "string", "description": "The message body. Can contain HTML for emails and placeholders like {{clientName}} and {{assessmentLink}}." },
+        "subject": { "type": "string", "description": "The subject line for email templates (not used for SMS)." },
+        "body": { "type": "string", "description": "The message body. Can contain placeholders like {{clientName}}." },
         "createdAt": { "type": "string", "format": "date-time" },
         "lastUpdatedAt": { "type": "string", "format": "date-time" }
       },
@@ -142,7 +225,36 @@
           }
         },
         "hasCar": { "type": "string", "enum": ["yes", "no"] },
-        "validLicense": { "type": "string", "enum": ["yes", "no"] }
+        "validLicense": { "type": "string", "enum": ["yes", "no"] },
+        "emergencyContact1_name": { "type": "string" },
+        "emergencyContact1_relation": { "type": "string" },
+        "emergencyContact1_phone": { "type": "string" },
+        "emergencyContact1_address": { "type": "string" },
+        "emergencyContact1_cityStateZip": { "type": "string" },
+        "emergencyContact2_name": { "type": "string" },
+        "emergencyContact2_relation": { "type": "string" },
+        "emergencyContact2_phone": { "type": "string" },
+        "emergencyContact2_address": { "type": "string" },
+        "emergencyContact2_cityStateZip": { "type": "string" },
+        "perId": { "type": "string", "description": "Employee’s PER ID" },
+        "hireDate": { "type": "string", "format": "date-time" },
+        "separationDate": { "type": "string", "format": "date-time" },
+        "dob": { "type": "string", "format": "date" },
+        "ssn": { "type": "string", "description": "Social Security Number (voluntary)" },
+        "tbDate": { "type": "string", "format": "date-time", "description": "Date of TB Test Upon Hire" },
+        "tbResults": { "type": "string", "description": "Results of Last TB Test" },
+        "additionalTbDates": { "type": "string" },
+        "alternateNames": { "type": "string" },
+        "titleOfPosition": { "type": "string" },
+        "hcs501Notes": { "type": "string" },
+        "hcs501EmployeeSignature": { "type": "string", "contentEncoding": "base64" },
+        "hcs501SignatureDate": { "type": "string", "format": "date-time" },
+        "convictedInCalifornia": { "type": "string", "enum": ["yes", "no"] },
+        "convictedOutOfState": { "type": "string", "enum": ["yes", "no"] },
+        "livedOutOfStateLast5Years": { "type": "string", "enum": ["yes", "no"] },
+        "outOfStateHistory": { "type": "string" },
+        "offerLetterSignature": { "type": "string", "contentEncoding": "base64" },
+        "offerLetterSignatureDate": { "type": "string", "format": "date-time" }
       },
       "required": [
         "fullName",
@@ -189,20 +301,18 @@
         "candidateRating": { "type": "string" },
         "phoneScreenPassed": { "type": "string", "enum": ["Yes", "No", "N/A"] },
         "aiGeneratedInsight": { "type": "string" },
+        "googleEventId": { "type": "string", "description": "The unique ID for the Google Calendar event." },
         "finalInterviewStatus": {
           "type": "string",
-          "enum": ["Passed", "Failed", "Pending"],
+          "enum": ["Passed", "Failed", "Pending", "Pending reference checks", "Rejected at Orientation", "No Show", "Process Terminated"],
           "description": "The status of the final interview, if applicable."
         },
-        "orientationScheduled": {
-          "type": "boolean",
-          "description": "Indicates if an orientation has been scheduled."
-        },
-        "orientationDateTime": {
-            "type": "string",
-            "format": "date-time",
-            "description": "The date and time of the scheduled orientation."
-        }
+        "finalInterviewNotes": { "type": "string", "description": "Notes from the final in-person or video interview." },
+        "orientationScheduled": { "type": "boolean", "description": "Indicates if an orientation has been scheduled." },
+        "orientationDateTime": { "type": "string", "format": "date-time", "description": "The date and time of the scheduled orientation." },
+        "rejectionReason": { "type": "string", "description": "The reason a candidate was rejected after passing interviews." },
+        "rejectionNotes": { "type": "string", "description": "Custom notes detailing the rejection reason." },
+        "rejectionDate": { "type": "string", "format": "date-time", "description": "The date the candidate was rejected." }
       },
       "required": [
         "caregiverProfileId",
@@ -257,6 +367,40 @@
         "lastUpdatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["Name", "Email", "status"]
+    },
+    "CaregiverAvailability": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "CaregiverAvailability",
+        "type": "object",
+        "description": "Represents a single week of availability for a caregiver, aggregated from daily schedules.",
+        "properties": {
+            "caregiverId": { "type": "string", "description": "The ID of the caregiver in the caregivers_active collection." },
+            "caregiverName": { "type": "string", "description": "The name of the caregiver for easy reference." },
+            "monday": { "type": "object", "properties": { "schedule": { "type": "string" }, "nonOvertimeHours": { "type": "number" } } },
+            "tuesday": { "type": "object", "properties": { "schedule": { "type": "string" }, "nonOvertimeHours": { "type": "number" } } },
+            "wednesday": { "type": "object", "properties": { "schedule": { "type": "string" }, "nonOvertimeHours": { "type": "number" } } },
+            "thursday": { "type": "object", "properties": { "schedule": { "type": "string" }, "nonOvertimeHours": { "type": "number" } } },
+            "friday": { "type": "object", "properties": { "schedule": { "type": "string" }, "nonOvertimeHours": { "type": "number" } } },
+            "saturday": { "type": "object", "properties": { "schedule": { "type": "string" }, "nonOvertimeHours": { "type": "number" } } },
+            "sunday": { "type": "object", "properties": { "schedule": { "type": "string" }, "nonOvertimeHours": { "type": "number" } } },
+            "createdAt": { "type": "string", "format": "date-time" },
+            "lastUpdatedAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["caregiverId", "caregiverName", "createdAt", "lastUpdatedAt"]
+    },
+    "CaregiverPreferences": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CaregiverPreferences",
+      "type": "object",
+      "description": "Stores preferences and additional skills for a caregiver.",
+      "properties": {
+        "caregiverId": { "type": "string" },
+        "worksWithPets": { "type": "string", "enum": ["Yes", "No"] },
+        "hasAllergies": { "type": "string", "enum": ["Yes", "No"] },
+        "smokingPreference": { "type": "string", "enum": ["Smoker", "Non-smoker"] },
+        "lastUpdatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["caregiverId", "lastUpdatedAt"]
     },
     "Client": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -347,6 +491,7 @@
         "status": { "type": "string", "enum": ["Initial Phone Contact Completed", "Incomplete", "Pending Client Signatures", "Client Signatures Completed", "Signed and Published", "Archived"], "description": "The current status of the signup process." },
         "formTemplateId": { "type": "string", "description": "The ID of the form template used for this signup." },
         "completedPdfUrl": { "type": "string", "format": "uri", "description": "The URL to the final, signed PDF in Google Cloud Storage." },
+        "signatureReminderSent": { "type": "boolean", "description": "Indicates if a follow-up email has been sent for a pending signature." },
         "createdAt": { "type": "string", "format": "date-time" },
         "lastUpdatedAt": { "type": "string", "format": "date-time" }
       },
@@ -427,6 +572,10 @@
         "schema": { "$ref": "#/entities/InitialContact" },
         "description": "Stores initial client inquiry information."
     },
+     "/level_of_care_assessments/{assessmentId}": {
+        "schema": { "$ref": "#/entities/LevelOfCareAssessment" },
+        "description": "Stores Level of Care assessment details for a client."
+    },
     "/campaign_templates/{templateId}": {
         "schema": { "$ref": "#/entities/CampaignTemplate" },
         "description": "Stores templates for automated follow-up campaigns."
@@ -450,6 +599,14 @@
     "/caregivers_active/{caregiverId}": {
       "schema": { "$ref": "#/entities/ActiveCaregiver" },
       "description": "Stores active caregiver information from an external system."
+    },
+    "/caregivers_active/{caregiverId}/availability/{weekId}": {
+        "schema": { "$ref": "#/entities/CaregiverAvailability" },
+        "description": "Stores a caregiver's availability for a specific week, aggregated from daily schedules."
+    },
+    "/caregivers_active/{caregiverId}/preferences/{docId}": {
+        "schema": { "$ref": "#/entities/CaregiverPreferences" },
+        "description": "Stores preferences and additional skills for a caregiver."
     },
     "/Clients/{clientId}": {
       "schema": { "$ref": "#/entities/Client" },
