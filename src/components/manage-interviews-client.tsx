@@ -548,7 +548,7 @@ export default function ManageInterviewsClient() {
          interviewNotes: phoneScreenForm.getValues('interviewNotes'),
          candidateRating: assessmentForm.getValues('candidateRating'),
          pathway: data.interviewPathway,
-         finalInterviewStatus: existingInterview.finalInterviewStatus,
+         finalInterviewStatus: 'Pending',
          googleEventId: existingInterview.googleEventId,
          previousPathway: existingInterview.interviewPathway,
          includeReferenceForm: data.includeReferenceForm,
@@ -670,6 +670,20 @@ export default function ManageInterviewsClient() {
             dob: selectedCaregiver.dob,
             ssn: selectedCaregiver.ssn,
             hireDate: data.hireDate,
+            emergencyContact1_name: selectedCaregiver.emergencyContact1_name,
+            emergencyContact1_relation: selectedCaregiver.emergencyContact1_relation,
+            emergencyContact1_phone: selectedCaregiver.emergencyContact1_phone,
+            emergencyContact1_address: selectedCaregiver.emergencyContact1_address,
+            emergencyContact1_city: selectedCaregiver.emergencyContact1_city,
+            emergencyContact1_state: selectedCaregiver.emergencyContact1_state,
+            emergencyContact1_zip: selectedCaregiver.emergencyContact1_zip,
+            emergencyContact2_name: selectedCaregiver.emergencyContact2_name,
+            emergencyContact2_relation: selectedCaregiver.emergencyContact2_relation,
+            emergencyContact2_phone: selectedCaregiver.emergencyContact2_phone,
+            emergencyContact2_address: selectedCaregiver.emergencyContact2_address,
+            emergencyContact2_city: selectedCaregiver.emergencyContact2_city,
+            emergencyContact2_state: selectedCaregiver.emergencyContact2_state,
+            emergencyContact2_zip: selectedCaregiver.emergencyContact2_zip,
         };
 
         if (existingEmployee?.id) {
@@ -1602,5 +1616,7 @@ function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: strin
     </div>
   );
 }
+
+    
 
     

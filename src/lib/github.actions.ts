@@ -1,3 +1,4 @@
+
 'use server';
 
 import { format, isDate } from 'date-fns';
@@ -15,6 +16,20 @@ interface TeletrackApplicantPayload {
   dob?: Date | string | { seconds: number; nanoseconds: number };
   ssn?: string;
   hireDate?: Date | string;
+  emergencyContact1_name?: string;
+  emergencyContact1_relation?: string;
+  emergencyContact1_phone?: string;
+  emergencyContact1_address?: string;
+  emergencyContact1_city?: string;
+  emergencyContact1_state?: string;
+  emergencyContact1_zip?: string;
+  emergencyContact2_name?: string;
+  emergencyContact2_relation?: string;
+  emergencyContact2_phone?: string;
+  emergencyContact2_address?: string;
+  emergencyContact2_city?: string;
+  emergencyContact2_state?: string;
+  emergencyContact2_zip?: string;
 }
 
 const safeToDate = (value: any): Date | null => {
@@ -72,6 +87,26 @@ export async function triggerTeletrackImport(caregiver: TeletrackApplicantPayloa
   const hireDate = caregiver.hireDate ? safeToDate(caregiver.hireDate) : null;
   const formattedHireDate = hireDate ? format(hireDate, 'MM/dd/yyyy') : '';
 
+  const emergencyContact1String = [
+    caregiver.emergencyContact1_name || '',
+    caregiver.emergencyContact1_address || '',
+    caregiver.emergencyContact1_city || '',
+    caregiver.emergencyContact1_state || '',
+    caregiver.emergencyContact1_zip || '',
+    caregiver.emergencyContact1_phone || '',
+    caregiver.emergencyContact1_relation || '',
+  ].join('|');
+
+  const emergencyContact2String = [
+    caregiver.emergencyContact2_name || '',
+    caregiver.emergencyContact2_address || '',
+    caregiver.emergencyContact2_city || '',
+    caregiver.emergencyContact2_state || '',
+    caregiver.emergencyContact2_zip || '',
+    caregiver.emergencyContact2_phone || '',
+    caregiver.emergencyContact2_relation || '',
+  ].join('|');
+
 
   // This payload matches the `inputs` of the `workflow_dispatch` trigger.
   const payload = {
@@ -91,6 +126,8 @@ export async function triggerTeletrackImport(caregiver: TeletrackApplicantPayloa
       gpsAppUserName: caregiver.email || '',
       ttId: teletrackPin || '',
       ssn: caregiver.ssn || '',
+      emergencyContact1: emergencyContact1String,
+      emergencyContact2: emergencyContact2String,
     }
   };
   
@@ -123,3 +160,5 @@ export async function triggerTeletrackImport(caregiver: TeletrackApplicantPayloa
     return { error: errorMsg };
   }
 }
+
+    
