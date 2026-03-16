@@ -23,7 +23,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 type CandidateStatus = 
-  | 'Applied' 
+  | 'Applied'
+  | 'Phonescreen Invite Needed'
   | 'Phonescreen Scheduled'
   | 'Phone Screen Failed'
   | 'No Show'
@@ -77,7 +78,12 @@ const getStatus = (
     }
 
     if (appointmentsMap.has(profileId)) {
-        return { status: 'Phonescreen Scheduled', interview };
+        const appointment = appointmentsMap.get(profileId);
+        if (appointment?.inviteSent) {
+            return { status: 'Phonescreen Scheduled', interview };
+        } else {
+            return { status: 'Phonescreen Invite Needed', interview };
+        }
     }
 
     return { status: 'Applied', interview };
@@ -157,6 +163,7 @@ export default function CandidateStatusReport() {
             status === 'Orientation Scheduled' ? 'bg-cyan-500' :
             status === 'Final Interview Passed' ? 'bg-blue-500' :
             status === 'Phonescreen Scheduled' ? 'bg-purple-500' :
+            status === 'Phonescreen Invite Needed' ? 'bg-orange-500' :
             status === 'Final Interview Pending' ? 'bg-yellow-500' :
             defaultRejectedStatuses.includes(status) ? 'bg-red-500' :
             'bg-gray-500';
@@ -244,6 +251,7 @@ export default function CandidateStatusReport() {
                                         {candidate.status === 'Phonescreen Scheduled' && candidate.appointment?.startTime && (
                                             `PhoneScreen Interview: ${format((candidate.appointment.startTime as any).toDate(), 'PPp')}`
                                         )}
+                                        {candidate.status === 'Phonescreen Invite Needed' && 'Needs calendar invite'}
                                         {(candidate.status === 'Phone Screen Failed' || candidate.status === 'Final Interview Failed' || candidate.status === 'Rejected at Orientation' || candidate.status === 'No Show') && 'Process Ended'}
                                         {candidate.status === 'Final Interview Pending' && candidate.interview?.interviewDateTime && (
                                             `Final Interview: ${format((candidate.interview.interviewDateTime as any).toDate(), 'PPp')}`

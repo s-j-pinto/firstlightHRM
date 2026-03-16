@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useMemo } from 'react';
@@ -19,7 +20,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import type { CaregiverProfile, Interview, CaregiverEmployee } from '@/lib/types';
+import type { CaregiverProfile, Interview, CaregiverEmployee, Appointment } from '@/lib/types';
 
 
 export default function RejectionPointAnalysisReport() {
@@ -33,10 +34,21 @@ export default function RejectionPointAnalysisReport() {
   const employeesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'caregiver_employees')) : null, [firestore]);
   const { data: employees, isLoading: employeesLoading } = useCollection<CaregiverEmployee>(employeesQuery);
 
+  const appointmentsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'appointments')) : null, [firestore]);
+  const { data: appointments, isLoading: appointmentsLoading } = useCollection<Appointment>(appointmentsQuery);
+
   const funnelData = useMemo(() => {
-    if (!profiles || !interviews || !employees) return [];
+    if (!profiles || !interviews || !employees || !appointments) return [];
+    
+    const appointmentsMap = new Map();
+    appointments.forEach(appt => {
+        if(appt.appointmentStatus !== 'cancelled') {
+            appointmentsMap.set(appt.caregiverId, appt);
+        }
+    });
 
     const totalApplications = profiles.length;
+    const appointmentScheduled = profiles.filter(p => appointmentsMap.has(p.id)).length;
     const phoneScreened = interviews.length;
     const passedPhoneScreen = interviews.filter(i => i.phoneScreenPassed === 'Yes').length;
     const passedFinalInterview = interviews.filter(i => i.finalInterviewStatus === 'Passed').length;
@@ -44,14 +56,15 @@ export default function RejectionPointAnalysisReport() {
 
     return [
       { name: 'Total Applications', value: totalApplications, fill: '#8884d8' },
-      { name: 'Phone Screened', value: phoneScreened, fill: '#83a6ed' },
-      { name: 'Passed Phone Screen', value: passedPhoneScreen, fill: '#8dd1e1' },
-      { name: 'Passed Final Interview', value: passedFinalInterview, fill: '#82ca9d' },
-      { name: 'Hired', value: hired, fill: '#a4de6c' },
+      { name: 'Appointment Scheduled', value: appointmentScheduled, fill: '#83a6ed' },
+      { name: 'Phone Screened', value: phoneScreened, fill: '#8dd1e1' },
+      { name: 'Passed Phone Screen', value: passedPhoneScreen, fill: '#82ca9d' },
+      { name: 'Passed Final Interview', value: passedFinalInterview, fill: '#a4de6c' },
+      { name: 'Hired', value: hired, fill: '#d0ed57' },
     ];
-  }, [profiles, interviews, employees]);
+  }, [profiles, interviews, employees, appointments]);
 
-  const isLoading = profilesLoading || interviewsLoading || employeesLoading;
+  const isLoading = profilesLoading || interviewsLoading || employeesLoading || appointmentsLoading;
 
   if (isLoading) {
     return (
