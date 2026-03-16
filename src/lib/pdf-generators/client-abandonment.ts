@@ -4,6 +4,7 @@
 import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont, PDFPage } from 'pdf-lib';
 import { format, isDate } from 'date-fns';
 import { drawText, drawSignature, drawWrappedText } from './utils';
+import { serverDb } from '@/firebase/server-init';
 
 export async function generateClientAbandonmentPdf(formData: any): Promise<{ pdfData?: string; error?: string }> {
     try {
@@ -15,6 +16,11 @@ export async function generateClientAbandonmentPdf(formData: any): Promise<{ pdf
         const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer());
         const logoImage = await pdfDoc.embedPng(logoImageBytes);
         const logoDims = logoImage.scale(0.2); 
+
+        // Fetch Admin Signature from settings
+        const settingsSnap = await serverDb.collection('settings').doc('availability').get();
+        const settingsData = settingsSnap.exists ? settingsSnap.data() : {};
+        const adminSignature = settingsData?.adminSignature;
 
         // --- Page 1 ---
         const page1 = pdfDoc.addPage(PageSizes.Letter);
@@ -102,9 +108,9 @@ export async function generateClientAbandonmentPdf(formData: any): Promise<{ pdf
         page2.drawLine({ start: { x: leftMargin, y: signatureY - 15 }, end: { x: leftMargin + 250, y: signatureY - 15 }, thickness: 0.5 });
         drawText(page2, "Signature", { x: leftMargin, y: signatureY - 25, font, size: 8 });
 
-        // Witness Signature
-        if (formData.clientAbandonmentWitnessSignature) {
-            await drawSignature(page2, formData.clientAbandonmentWitnessSignature, leftMargin + 280, signatureY - 10, 250, 25, pdfDoc);
+        // Witness Signature (from settings)
+        if (adminSignature) {
+            await drawSignature(page2, adminSignature, leftMargin + 280, signatureY - 10, 250, 25, pdfDoc);
         }
         page2.drawLine({ start: { x: leftMargin + 280, y: signatureY - 15 }, end: { x: leftMargin + 530, y: signatureY - 15 }, thickness: 0.5 });
         drawText(page2, "Witness Signature", { x: leftMargin + 280, y: signatureY - 25, font, size: 8 });
