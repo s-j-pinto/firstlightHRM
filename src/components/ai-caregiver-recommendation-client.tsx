@@ -4,7 +4,7 @@
 import * as React from "react";
 import { useState, useEffect, useTransition } from "react";
 import { Loader2, UserCheck, Sparkles, Star, CalendarDays, Check, ChevronsUpDown, Mail } from "lucide-react";
-import { useDoc, firestore, useMemoFirebase } from "@/firebase";
+import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { doc, getDocs, collection, query, getDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { getAiCaregiverRecommendations } from "@/lib/ai.actions";
@@ -159,11 +159,12 @@ export function AiCaregiverRecommendationClient({ contactId }: { contactId: stri
   const [isGenerating, startGeneratingTransition] = useTransition();
   const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
   const { toast } = useToast();
+  const firestore = useFirestore();
 
-  const contactDocRef = useMemoFirebase(() => doc(firestore, 'initial_contacts', contactId), [contactId]);
+  const contactDocRef = useMemoFirebase(() => doc(firestore, 'initial_contacts', contactId), [contactId, firestore]);
   const { data: contactData, isLoading: contactLoading } = useDoc<InitialContact>(contactDocRef);
   
-  const locDocRef = useMemoFirebase(() => doc(firestore, 'level_of_care_assessments', contactId), [contactId]);
+  const locDocRef = useMemoFirebase(() => doc(firestore, 'level_of_care_assessments', contactId), [contactId, firestore]);
   const { data: locData, isLoading: locLoading } = useDoc<LevelOfCareFormData>(locDocRef);
 
   const [caregiversData, setCaregiversData] = useState<ActiveCaregiver[]>([]);
@@ -187,7 +188,7 @@ export function AiCaregiverRecommendationClient({ contactId }: { contactId: stri
         setCaregiversLoading(false);
     }
     fetchCaregivers();
-  }, []);
+  }, [firestore]);
 
   useEffect(() => {
     async function fetchSubcollections() {
@@ -226,7 +227,7 @@ export function AiCaregiverRecommendationClient({ contactId }: { contactId: stri
     if (!caregiversLoading) {
       fetchSubcollections();
     }
-  }, [caregiversData, caregiversLoading]);
+  }, [caregiversData, caregiversLoading, firestore]);
 
   // A caregiver's supported level of care would ideally be stored in their profile.
   // Here we'll infer it based on skills.
