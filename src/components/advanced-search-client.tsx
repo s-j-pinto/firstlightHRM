@@ -87,6 +87,7 @@ const skillsAndAttributes = [
 
 type CandidateStatus =
   | 'Applied'
+  | 'Phonescreen Invite Needed'
   | 'Phonescreen Scheduled'
   | 'Phone Screen Failed'
   | 'No Show'
@@ -109,7 +110,7 @@ interface EnrichedCandidate extends CaregiverProfile {
 }
 
 const hiringStatuses: CandidateStatus[] = [
-  'Applied', 'Phonescreen Scheduled', 'Hired', 'Orientation Scheduled', 'Final Interview Passed', 'Final Interview Pending', 'Final Interview Failed', 'Phone Screen Failed', 'Rejected at Orientation', 'Process Terminated', 'No Show'
+  'Applied', 'Phonescreen Invite Needed', 'Phonescreen Scheduled', 'Hired', 'Orientation Scheduled', 'Final Interview Passed', 'Final Interview Pending', 'Final Interview Failed', 'Phone Screen Failed', 'Rejected at Orientation', 'Process Terminated', 'No Show'
 ];
 
 type FormData = {
@@ -371,7 +372,12 @@ export default function AdvancedSearchClient() {
                 return { status: 'Final Interview Pending', interview };
             }
             if (appointmentsMap.has(profileId)) {
-                return { status: 'Phonescreen Scheduled' };
+                const appointment = appointmentsMap.get(profileId);
+                if (appointment?.inviteSent) {
+                    return { status: 'Phonescreen Scheduled' };
+                } else {
+                    return { status: 'Phonescreen Invite Needed' };
+                }
             }
             return { status: 'Applied' };
         };
@@ -577,6 +583,7 @@ export default function AdvancedSearchClient() {
             status === 'Orientation Scheduled' ? 'bg-cyan-500' :
             status === 'Final Interview Passed' ? 'bg-blue-500' :
             status === 'Phonescreen Scheduled' ? 'bg-purple-500' :
+            status === 'Phonescreen Invite Needed' ? 'bg-orange-500' :
             status === 'Final Interview Pending' ? 'bg-yellow-500' :
             defaultRejectedStatuses.includes(status) ? 'bg-red-500' :
             'bg-gray-500';
@@ -874,5 +881,7 @@ export default function AdvancedSearchClient() {
         </div>
     );
 }
+
+    
 
     
