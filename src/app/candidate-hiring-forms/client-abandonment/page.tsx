@@ -67,7 +67,10 @@ const SignaturePadModal = ({
         if (isOpen && sigPadRef.current) {
             sigPadRef.current.clear();
             if (signatureData) {
-                sigPadRef.current.fromDataURL(signatureData);
+                // Only load if it's PNG data to avoid issues with JPEG
+                if (signatureData.startsWith('data:image/png')) {
+                    sigPadRef.current.fromDataURL(signatureData);
+                }
             }
         }
     }, [isOpen, signatureData]);
@@ -76,7 +79,7 @@ const SignaturePadModal = ({
     
     const handleDone = () => {
         if (sigPadRef.current && !sigPadRef.current.isEmpty()) {
-            onSave(sigPadRef.current.toDataURL('image/jpeg', 0.8));
+            onSave(sigPadRef.current.toDataURL());
         } else {
              onSave(""); 
         }
@@ -93,7 +96,7 @@ const SignaturePadModal = ({
                     <SignatureCanvas
                         ref={sigPadRef}
                         penColor='black'
-                        canvasProps={{ className: 'w-full h-full rounded-md bg-white' }}
+                        canvasProps={{ className: 'w-full h-full rounded-md', style: {backgroundColor: 'white'} }}
                     />
                 </div>
                 <div className="flex justify-between p-4 border-t">
@@ -341,7 +344,6 @@ export default function ClientAbandonmentPage() {
             </Form>
         </Card>
     );
-
 }
 
     
