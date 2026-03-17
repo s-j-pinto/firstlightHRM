@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useTransition, useState, useEffect } from "react";
@@ -16,8 +15,7 @@ import { type CaregiverProfile, type CaregiverEmployee } from "@/lib/types";
 import { saveTelephonyInstructionsData } from "@/lib/candidate-hiring-forms.actions";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
-import { FormLabel } from "@/components/ui/form";
-
+import { Label } from "@/components/ui/label";
 
 const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/TeleTrackLogo.png?alt=media&token=bb364313-385d-46da-9252-87074edda322";
 
@@ -55,7 +53,7 @@ export default function CaregiverTelephonyInstructionsPage() {
         return;
       }
       startSavingTransition(async () => {
-        const result = await saveTelephonyInstructionsData(profileIdToLoad, { telephonyInstructionsAcknowledged: true });
+        const result = await saveTelephonyInstructionsData(profileIdToLoad);
         if (result.error) {
           toast({ title: "Save Failed", description: result.error, variant: 'destructive'});
         } else {
@@ -113,7 +111,7 @@ export default function CaregiverTelephonyInstructionsPage() {
                 <div className="space-y-6 pt-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                        <div className="space-y-2">
-                            <FormLabel>Employee's Name</FormLabel>
+                            <Label>Employee's Name</Label>
                             <Input value={profileData?.fullName || ''} readOnly disabled />
                        </div>
                     </div>
@@ -132,5 +130,3 @@ export default function CaregiverTelephonyInstructionsPage() {
         </Card>
     );
 }
-
-    
