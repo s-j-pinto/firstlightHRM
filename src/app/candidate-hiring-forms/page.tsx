@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Suspense, useTransition, useState, useEffect, useMemo } from 'react';
@@ -66,7 +67,7 @@ const onboardingForms: { name: string; href: string; completionKey: keyof Caregi
   { name: "MASTER-FLHC Offer Letter revised-2-16-26", href: "/candidate-hiring-forms/offer-letter", completionKey: 'offerLetterSignature', pdfAction: 'offerLetter' },
   { name: "Caregiver Responsibilities", href: "/candidate-hiring-forms/caregiver-responsibilities", completionKey: 'caregiverResponsibilitiesSignature', pdfAction: 'caregiverResponsibilities' },
   { name: "Light Housekeeping", href: "/candidate-hiring-forms/light-housekeeping", completionKey: 'lightHousekeepingAcknowledged', pdfAction: 'lightHousekeeping' },
-  { name: "Caregiver Telephony Instructions", href: "/candidate-hiring-forms/caregiver-telephony-instructions", completionKey: 'telephonyEmployeeSignature', pdfAction: 'caregiverTelephonyInstructions' },
+  { name: "Caregiver Telephony Instructions", href: "/candidate-hiring-forms/caregiver-telephony-instructions", completionKey: 'telephonyInstructionsAcknowledged', pdfAction: 'caregiverTelephonyInstructions' },
 ];
 
 
@@ -207,7 +208,7 @@ function CandidateHiringFormsContent() {
         } else if (formAction === 'caregiverResponsibilities') {
             result = await generateCaregiverResponsibilitiesPdfAction(candidateId);
         } else if (formAction === 'lightHousekeeping') {
-            result = await generateLightHousekeepingPdfAction(candidateId);
+            result = await generateLightHousekeepingPdfAction();
         } else if (formAction === 'caregiverTelephonyInstructions') {
             result = await generateCaregiverTelephonyInstructionsPdfAction(candidateId);
         } else {

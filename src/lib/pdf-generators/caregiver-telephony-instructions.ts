@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { PDFDocument, rgb, StandardFonts, PageSizes } from 'pdf-lib';
@@ -52,19 +53,7 @@ export async function generateCaregiverTelephonyInstructionsPdf(formData: any): 
 
         drawText(page, `Employee’s Name: ${formData.fullName || ''}`, {x: leftMargin, y, font, size: 11});
         page.drawLine({ start: { x: leftMargin + 100, y: y - 2 }, end: { x: leftMargin + 400, y: y - 2 }, thickness: 0.5 });
-        y -= 40;
-
-        if (formData.telephonyEmployeeSignature) {
-            await drawSignature(page, formData.telephonyEmployeeSignature, leftMargin, y, 200, 40, pdfDoc);
-        }
-        page.drawLine({ start: { x: leftMargin, y: y - 5 }, end: { x: leftMargin + 250, y: y - 5 }, thickness: 0.5 });
-        drawText(page, "Employee Signature", { x: leftMargin, y: y - 15, font, size: 8 });
-
-        const sigDate = (formData.telephonyEmployeeSignatureDate && (formData.telephonyEmployeeSignatureDate.toDate || isDate(formData.telephonyEmployeeSignatureDate))) ? format(formData.telephonyEmployeeSignatureDate.toDate ? formData.telephonyEmployeeSignatureDate.toDate() : formData.telephonyEmployeeSignatureDate, "MM/dd/yyyy") : '';
-        if (sigDate) {
-            drawText(page, `Date: ${sigDate}`, { x: leftMargin + 300, y, font, size: 11 });
-        }
-
+        
         const pdfBytes = await pdfDoc.save();
         return { pdfData: Buffer.from(pdfBytes).toString('base64') };
     } catch (error: any) {

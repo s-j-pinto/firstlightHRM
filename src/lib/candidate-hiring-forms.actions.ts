@@ -26,8 +26,7 @@ import {
     confidentialityAgreementAdminSchema,
     trainingAcknowledgementSchema, 
     offerLetterSchema,
-    caregiverResponsibilitiesSchema,
-    telephonyInstructionsSchema
+    caregiverResponsibilitiesSchema
 } from './types';
 import { 
     generateHcs501Pdf, 
@@ -112,7 +111,7 @@ export async function saveEmergencyContactData(profileId: string, data: any) {
     revalidatePath(`/candidate-hiring-forms/emergency-contact?id=${profileId}`);
     revalidatePath('/candidate-hiring-forms');
     
-    return { success: true, message: 'Emergency Contact form saved successfully.' };
+    return { success: true, message: 'Emergency Contacts have been saved.' };
   } catch (error: any) {
     console.error("Error saving Emergency Contact data:", error);
     return { error: 'Failed to save form data.' };
@@ -445,15 +444,13 @@ export async function saveLightHousekeepingAcknowledgement(profileId: string) {
     } catch (e: any) { return { error: `Failed to save: ${e.message}` }; }
 }
 
-export async function saveTelephonyInstructionsData(profileId: string, data: any) {
-    const validatedFields = telephonyInstructionsSchema.safeParse(data);
-    if (!validatedFields.success) {
-        return { error: 'Invalid data provided.' };
+export async function saveTelephonyInstructionsData(profileId: string) {
+    if (!profileId) {
+        return { error: 'Profile ID is required.' };
     }
     try {
-        const dataToSave = convertDatesToTimestamps(validatedFields.data);
-        await serverDb.collection('caregiver_profiles').doc(profileId).set(dataToSave, { merge: true });
-        revalidatePath(`/candidate-hiring-forms/caregiver-telephony-instructions?id=${profileId}`);
+        await serverDb.collection('caregiver_profiles').doc(profileId).set({ telephonyInstructionsAcknowledged: true }, { merge: true });
+        revalidatePath(`/candidate-hiring-forms/caregiver-telephony-instructions`);
         revalidatePath('/candidate-hiring-forms');
         return { success: true, message: 'Telephony instructions acknowledged.' };
     } catch (e: any) { return { error: `Failed to save: ${e.message}` }; }
@@ -810,7 +807,7 @@ export async function generateAllFormsAsZipAction(candidateId: string) {
             { key: 'offerLetterSignature', name: 'Offer Letter.pdf', generator: generateOfferLetterPdf },
             { key: 'caregiverResponsibilitiesSignature', name: 'Caregiver Responsibilities.pdf', generator: generateCaregiverResponsibilitiesPdf },
             { key: 'lightHousekeepingAcknowledged', name: 'Light Housekeeping.pdf', generator: generateLightHousekeepingPdf },
-            { key: 'telephonyEmployeeSignature', name: 'Caregiver Telephony Instructions.pdf', generator: generateCaregiverTelephonyInstructionsPdf },
+            { key: 'telephonyInstructionsAcknowledged', name: 'Caregiver Telephony Instructions.pdf', generator: generateCaregiverTelephonyInstructionsPdf },
         ];
         
         const settingsSnap = await serverDb.collection('settings').doc('hiring_form_fields').get();
@@ -824,7 +821,7 @@ export async function generateAllFormsAsZipAction(candidateId: string) {
                     let dataForGenerator = formData;
                      if (form.key === 'offerLetterSignature') {
                         dataForGenerator = combinedData;
-                    } else if (form.key === 'telephonyEmployeeSignature') {
+                    } else if (form.key === 'telephonyInstructionsAcknowledged') {
                         const employeeSnap = await serverDb.collection('caregiver_employees').doc(candidateId).get();
                         dataForGenerator = { ...formData, ...employeeSnap.data() };
                     }
@@ -856,4 +853,3 @@ export async function generateAllFormsAsZipAction(candidateId: string) {
         return { error: `Failed to generate zip file: ${error.message}` };
     }
 }
-
