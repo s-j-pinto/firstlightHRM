@@ -346,7 +346,6 @@ export const drugAlcoholPolicySchema = z.object({
 });
 export type DrugAlcoholPolicyFormData = z.infer<typeof drugAlcoholPolicySchema>;
 
-// Admin validation no longer requires rep signature as it's by reference.
 export const drugAlcoholPolicyAdminSchema = drugAlcoholPolicySchema;
 
 export const hcaJobDescriptionSchema = z.object({
@@ -363,7 +362,6 @@ export const clientAbandonmentSchema = z.object({
 });
 export type ClientAbandonmentFormData = z.infer<typeof clientAbandonmentSchema>;
 
-// Admin validation no longer requires witness signature as it's by reference.
 export const clientAbandonmentAdminSchema = clientAbandonmentSchema;
 
 export const employeeOrientationAgreementSchema = z.object({
@@ -375,10 +373,7 @@ export const employeeOrientationAgreementSchema = z.object({
 });
 export type EmployeeOrientationAgreementFormData = z.infer<typeof employeeOrientationAgreementSchema>;
 
-export const employeeOrientationAgreementAdminSchema = employeeOrientationAgreementSchema.extend({
-    orientationAgreementWitnessSignature: z.string().min(1, "Witness signature is required."),
-    orientationAgreementWitnessDate: z.date({required_error: "Witness date is required."}),
-});
+export const employeeOrientationAgreementAdminSchema = employeeOrientationAgreementSchema;
 
 
 export const acknowledgmentFormSchema = z.object({
@@ -1094,4 +1089,5 @@ export type CaregiverForRecommendation = z.infer<typeof CaregiverForRecommendati
   
 
     
+
 

@@ -99,7 +99,7 @@ const SignaturePadModal = ({
                     <SignatureCanvas
                         ref={sigPadRef}
                         penColor='black'
-                        canvasProps={{ className: 'w-full h-full bg-muted/50 rounded-md' }}
+                        canvasProps={{ className: 'w-full h-full bg-white rounded-md' }}
                         onEnd={() => setIsSigned(true)}
                     />
                 </div>
@@ -193,9 +193,14 @@ export default function EmployeeOrientationAgreementPage() {
     useEffect(() => {
         if (existingData) {
             const formData:Partial<EmployeeOrientationAgreementFormData> = {};
-            const formSchemaKeys = Object.keys(employeeOrientationAgreementAdminSchema.shape) as Array<keyof EmployeeOrientationAgreementFormData>;
-            
-            formSchemaKeys.forEach(key => {
+             // Only populate fields that are the candidate's responsibility.
+            const candidateFields: (keyof EmployeeOrientationAgreementFormData)[] = [
+                'orientationAgreementEmployeeName', 
+                'orientationAgreementSignature', 
+                'orientationAgreementSignatureDate'
+            ];
+
+            candidateFields.forEach(key => {
                 if (Object.prototype.hasOwnProperty.call(existingData, key)) {
                     const value = (existingData as any)[key];
                     if (key.toLowerCase().includes('date') && value) {
@@ -205,19 +210,18 @@ export default function EmployeeOrientationAgreementPage() {
                     }
                 }
             });
-
             form.reset(formData);
         }
     }, [existingData, form]);
     
     useEffect(() => {
-        if (isAnAdmin && settingsData?.adminSignature && !form.getValues('orientationAgreementWitnessSignature')) {
+        if (settingsData?.adminSignature) {
             form.setValue('orientationAgreementWitnessSignature', settingsData.adminSignature, { shouldDirty: false });
             if (!form.getValues('orientationAgreementWitnessDate')) {
                 form.setValue('orientationAgreementWitnessDate', new Date(), { shouldDirty: false });
             }
         }
-    }, [settingsData, form, existingData, isAnAdmin]);
+    }, [settingsData, form]);
 
     const handleSaveSignature = (dataUrl: string) => {
         if (activeSignature) {
@@ -231,7 +235,9 @@ export default function EmployeeOrientationAgreementPage() {
         return;
       }
       startSavingTransition(async () => {
-        const result = await saveEmployeeOrientationAgreementData(profileIdToLoad, data);
+        // Exclude the witness signature from the data payload being saved.
+        const { orientationAgreementWitnessSignature, orientationAgreementWitnessDate, ...dataToSave } = data;
+        const result = await saveEmployeeOrientationAgreementData(profileIdToLoad, dataToSave);
         if (result.error) {
           toast({ title: "Save Failed", description: result.error, variant: 'destructive'});
         } else {

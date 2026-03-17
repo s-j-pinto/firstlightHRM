@@ -4,6 +4,7 @@
 import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont, PDFPage } from 'pdf-lib';
 import { format, isDate } from 'date-fns';
 import { drawText, drawSignature, drawWrappedText } from './utils';
+import { serverDb } from '@/firebase/server-init';
 
 export async function generateEmployeeOrientationAgreementPdf(formData: any): Promise<{ pdfData?: string; error?: string }> {
     try {
@@ -15,6 +16,11 @@ export async function generateEmployeeOrientationAgreementPdf(formData: any): Pr
         const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer());
         const logoImage = await pdfDoc.embedPng(logoImageBytes);
         const logoDims = logoImage.scale(0.3);
+        
+        // Fetch Admin Signature from settings
+        const settingsSnap = await serverDb.collection('settings').doc('availability').get();
+        const settingsData = settingsSnap.exists ? settingsSnap.data() : {};
+        const adminSignature = settingsData?.adminSignature;
 
         const addPageContent = async (page: PDFPage, content: { text: string; isBold?: boolean; isList?: boolean }[], startY: number, leftMargin: number, contentWidth: number, lineHeight: number, mainFontSize: number) => {
             let y = startY;
@@ -110,12 +116,12 @@ export async function generateEmployeeOrientationAgreementPdf(formData: any): Pr
         drawText(page2, `Date: ${empSigDate}`, {x: leftMargin + 350, y, font, size: mainFontSize});
         y -= 40;
         
-        const witnessSigDate = (formData.orientationAgreementWitnessDate && (formData.orientationAgreementWitnessDate.toDate || isDate(formData.orientationAgreementWitnessDate))) ? format(formData.orientationAgreementWitnessDate.toDate ? formData.orientationAgreementWitnessDate.toDate() : formData.orientationAgreementWitnessDate, "MM/dd/yyyy") : '';
-        drawSigLine("FirstLight Home Care Witness", undefined, formData.orientationAgreementWitnessSignature, y);
+        const witnessSigDate = adminSignature ? format(new Date(), "MM/dd/yyyy") : '';
+        drawSigLine("FirstLight Home Care Witness", undefined, adminSignature, y);
         drawText(page2, `Date: ${witnessSigDate}`, {x: leftMargin + 350, y, font, size: mainFontSize});
 
         const pdfBytes = await pdfDoc.save();
-        return { success: true, pdfData: Buffer.from(pdfBytes).toString('base64') };
+        return { pdfData: Buffer.from(pdfBytes).toString('base64') };
 
     } catch (error: any) {
         console.error("Error generating Employee Orientation Agreement PDF:", error);

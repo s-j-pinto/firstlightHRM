@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -229,12 +228,7 @@ export async function saveArbitrationAgreementData(profileId: string, data: any)
 }
 
 export async function saveDrugAlcoholPolicyData(profileId: string, data: any) {
-  // If admin fields are present (i.e., being saved by an admin), use the stricter schema. Otherwise, use the base schema for candidate saves.
-  const schemaToUse = data.drugAlcoholPolicyRepSignature || data.drugAlcoholPolicyRepDate
-    ? drugAlcoholPolicyAdminSchema
-    : drugAlcoholPolicySchema;
-  
-  const validatedFields = schemaToUse.safeParse(data);
+  const validatedFields = drugAlcoholPolicySchema.safeParse(data);
 
   if (!validatedFields.success) {
     console.error("Drug Alcohol Policy Save Validation Error:", validatedFields.error.flatten());
@@ -280,12 +274,7 @@ export async function saveHcaJobDescriptionData(profileId: string, data: any) {
 }
 
 export async function saveClientAbandonmentData(profileId: string, data: any) {
-  // If admin fields are present, use the stricter schema.
-  const schemaToUse = data.clientAbandonmentWitnessSignature
-    ? clientAbandonmentAdminSchema
-    : clientAbandonmentSchema;
-
-  const validatedFields = schemaToUse.safeParse(data);
+  const validatedFields = clientAbandonmentSchema.safeParse(data);
 
   if (!validatedFields.success) {
     console.error("Client Abandonment Save Validation Error:", validatedFields.error.flatten());
@@ -308,12 +297,7 @@ export async function saveClientAbandonmentData(profileId: string, data: any) {
 }
 
 export async function saveEmployeeOrientationAgreementData(profileId: string, data: any) {
-  // If admin fields are present, use the stricter schema.
-  const schemaToUse = data.orientationAgreementWitnessSignature || data.orientationAgreementWitnessDate
-    ? employeeOrientationAgreementAdminSchema
-    : employeeOrientationAgreementSchema;
-
-  const validatedFields = schemaToUse.safeParse(data);
+  const validatedFields = employeeOrientationAgreementSchema.safeParse(data);
 
   if (!validatedFields.success) {
     console.error("Employee Orientation Agreement Save Validation Error:", validatedFields.error.flatten());
@@ -359,7 +343,6 @@ export async function saveAcknowledgmentFormData(profileId: string, data: any) {
 }
 
 export async function saveConfidentialityAgreementData(profileId: string, data: any) {
-  // The user only needs to sign. Admin validation happens at a different stage.
   const validatedFields = confidentialityAgreementSchema.safeParse(data);
 
   if (!validatedFields.success) {
@@ -368,7 +351,6 @@ export async function saveConfidentialityAgreementData(profileId: string, data: 
   }
 
   try {
-    // Only save the fields the candidate is responsible for.
     const candidateData = {
       confidentialityAgreementEmployeeSignature: validatedFields.data.confidentialityAgreementEmployeeSignature,
       confidentialityAgreementEmployeeSignatureDate: validatedFields.data.confidentialityAgreementEmployeeSignatureDate,
@@ -787,4 +769,3 @@ export async function generateAllFormsAsZipAction(candidateId: string) {
         return { error: `Failed to generate zip file: ${error.message}` };
     }
 }
-
