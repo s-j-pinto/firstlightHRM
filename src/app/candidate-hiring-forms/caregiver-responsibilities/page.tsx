@@ -23,6 +23,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+
 
 const defaultFormValues: CaregiverResponsibilitiesFormData = {
   caregiverResponsibilitiesSignature: '',
@@ -60,7 +62,10 @@ const SignaturePadModal = ({
         if (isOpen && sigPadRef.current) {
             sigPadRef.current.clear();
             if (signatureData) {
-                sigPadRef.current.fromDataURL(signatureData);
+                // Only load if it's PNG data to avoid issues with JPEG
+                if (signatureData.startsWith('data:image/png')) {
+                    sigPadRef.current.fromDataURL(signatureData);
+                }
             }
         }
     }, [isOpen, signatureData]);
@@ -86,7 +91,7 @@ const SignaturePadModal = ({
                     <SignatureCanvas
                         ref={sigPadRef}
                         penColor='black'
-                        canvasProps={{ className: 'w-full h-full rounded-md bg-white' }}
+                        canvasProps={{ className: 'w-full h-full rounded-md', style: {backgroundColor: 'white'} }}
                     />
                 </div>
                 <div className="flex justify-between p-4 border-t">
@@ -138,7 +143,7 @@ export default function CaregiverResponsibilitiesPage() {
         
         return (
             <div className="space-y-2 flex-1">
-                <FormLabel>{title}</FormLabel>
+                <Label>{title}</Label>
                 <div className="relative rounded-md border bg-muted/30 h-28 flex items-center justify-center">
                     {signatureData ? (
                         <Image src={signatureData as string} alt="Signature" layout="fill" objectFit="contain" />
@@ -318,9 +323,13 @@ export default function CaregiverResponsibilitiesPage() {
                 <div className="space-y-6 pt-6">
                     <h3 className="font-semibold">Acknowledgement:</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-                        <SignatureField fieldName="caregiverResponsibilitiesSignature" title="Employee Signature" />
+                        <FormField
+                            control={form.control}
+                            name="caregiverResponsibilitiesSignature"
+                            render={() => <SignatureField fieldName="caregiverResponsibilitiesSignature" title="Employee Signature" />}
+                        />
                          <FormField control={form.control} name="caregiverResponsibilitiesSignatureDate" render={({ field }) => (
-                            <FormItem className="flex flex-col"><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
+                            <FormItem className="flex flex-col"><Label>Date</Label><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
                         )} />
                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
@@ -366,5 +375,3 @@ export default function CaregiverResponsibilitiesPage() {
         </Card>
     );
 }
-
-    
