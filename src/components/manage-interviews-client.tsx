@@ -7,7 +7,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from 'zod';
 import Link from 'next/link';
-import { collection, query, where, getDocs, addDoc, doc, updateDoc, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, setDoc, doc, updateDoc, Timestamp } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import type { CaregiverProfile, Interview, CaregiverEmployee } from '@/lib/types';
 import { caregiverEmployeeSchema } from '@/lib/types';
@@ -641,93 +641,90 @@ export default function ManageInterviewsClient() {
     }
 
     const onHiringSubmit = (data: HiringFormData) => {
-        if (!selectedCaregiver || !existingInterview || !db) return;
+    if (!selectedCaregiver || !existingInterview || !db) return;
 
-        startSubmitTransition(async () => {
-        const employeeData: { [key: string]: any } = {
-            caregiverProfileId: selectedCaregiver.id,
-            interviewId: existingInterview.id,
-            hiringManager: data.hiringManager,
-            hiringComments: data.hiringComments,
-            hireDate: Timestamp.fromDate(data.hireDate),
-            teletrackPin: data.teletrackPin,
-            createdAt: existingEmployee?.id ? undefined : Timestamp.now(),
-        };
+    startSubmitTransition(async () => {
+      const employeeData: { [key: string]: any } = {
+        caregiverProfileId: selectedCaregiver.id,
+        interviewId: existingInterview.id,
+        hiringManager: data.hiringManager,
+        hiringComments: data.hiringComments,
+        hireDate: Timestamp.fromDate(data.hireDate),
+        teletrackPin: data.teletrackPin,
+      };
 
-        if (data.inPersonInterviewDate) {
-            employeeData.inPersonInterviewDate = Timestamp.fromDate(data.inPersonInterviewDate);
-        }
-        
-        const applicantData = {
-            fullName: selectedCaregiver.fullName,
-            address: selectedCaregiver.address,
-            city: selectedCaregiver.city,
-            state: selectedCaregiver.state,
-            zip: selectedCaregiver.zip,
-            phone: selectedCaregiver.phone,
-            driversLicenseNumber: selectedCaregiver.driversLicenseNumber,
-            email: selectedCaregiver.email,
-            dob: selectedCaregiver.dob,
-            ssn: selectedCaregiver.ssn,
-            hireDate: data.hireDate,
-            emergencyContact1_name: selectedCaregiver.emergencyContact1_name,
-            emergencyContact1_relation: selectedCaregiver.emergencyContact1_relation,
-            emergencyContact1_phone: selectedCaregiver.emergencyContact1_phone,
-            emergencyContact1_address: selectedCaregiver.emergencyContact1_address,
-            emergencyContact1_city: selectedCaregiver.emergencyContact1_city,
-            emergencyContact1_state: selectedCaregiver.emergencyContact1_state,
-            emergencyContact1_zip: selectedCaregiver.emergencyContact1_zip,
-            emergencyContact2_name: selectedCaregiver.emergencyContact2_name,
-            emergencyContact2_relation: selectedCaregiver.emergencyContact2_relation,
-            emergencyContact2_phone: selectedCaregiver.emergencyContact2_phone,
-            emergencyContact2_address: selectedCaregiver.emergencyContact2_address,
-            emergencyContact2_city: selectedCaregiver.emergencyContact2_city,
-            emergencyContact2_state: selectedCaregiver.emergencyContact2_state,
-            emergencyContact2_zip: selectedCaregiver.emergencyContact2_zip,
-        };
+      const applicantData = {
+        fullName: selectedCaregiver.fullName,
+        address: selectedCaregiver.address,
+        city: selectedCaregiver.city,
+        state: selectedCaregiver.state,
+        zip: selectedCaregiver.zip,
+        phone: selectedCaregiver.phone,
+        driversLicenseNumber: selectedCaregiver.driversLicenseNumber,
+        email: selectedCaregiver.email,
+        dob: selectedCaregiver.dob,
+        ssn: selectedCaregiver.ssn,
+        hireDate: data.hireDate,
+        emergencyContact1_name: selectedCaregiver.emergencyContact1_name,
+        emergencyContact1_relation: selectedCaregiver.emergencyContact1_relation,
+        emergencyContact1_phone: selectedCaregiver.emergencyContact1_phone,
+        emergencyContact1_address: selectedCaregiver.emergencyContact1_address,
+        emergencyContact1_city: selectedCaregiver.emergencyContact1_city,
+        emergencyContact1_state: selectedCaregiver.emergencyContact1_state,
+        emergencyContact1_zip: selectedCaregiver.emergencyContact1_zip,
+        emergencyContact2_name: selectedCaregiver.emergencyContact2_name,
+        emergencyContact2_relation: selectedCaregiver.emergencyContact2_relation,
+        emergencyContact2_phone: selectedCaregiver.emergencyContact2_phone,
+        emergencyContact2_address: selectedCaregiver.emergencyContact2_address,
+        emergencyContact2_city: selectedCaregiver.emergencyContact2_city,
+        emergencyContact2_state: selectedCaregiver.emergencyContact2_state,
+        emergencyContact2_zip: selectedCaregiver.emergencyContact2_zip,
+      };
 
-        if (existingEmployee?.id) {
-            const employeeDocRef = doc(db, 'caregiver_employees', existingEmployee.id);
-            updateDoc(employeeDocRef, employeeData)
-            .then(async () => {
-                const githubResult = await triggerTeletrackImport(applicantData, data.teletrackPin);
-                if (githubResult.success) {
-                    toast({ title: 'Success', description: 'Employee record updated and TeleTrack import re-triggered.' });
-                } else {
-                    toast({ title: 'Update Partially Successful', description: `Employee record updated, but failed to re-trigger TeleTrack import: ${githubResult.error}`, variant: 'destructive' });
-                }
-            })
-            .catch(serverError => {
-                const permissionError = new FirestorePermissionError({
-                path: employeeDocRef.path,
-                operation: "update",
-                requestResourceData: employeeData,
-                });
-                errorEmitter.emit("permission-error", permissionError);
-            });
-        } else {
-            const employeesCollection = collection(db, 'caregiver_employees');
-            addDoc(employeesCollection, employeeData)
-            .then(async (docRef) => {
-                const githubResult = await triggerTeletrackImport(applicantData, data.teletrackPin);
-                if (githubResult.success) {
-                    toast({ title: 'Success', description: 'Caregiver has been successfully hired and TeleTrack applicant created.' });
-                } else {
-                    toast({ title: 'Hiring Partially Successful', description: `Caregiver hired, but failed to create TeleTrack applicant: ${githubResult.error}`, variant: 'destructive' });
-                }
-                setExistingEmployee({ id: docRef.id, ...employeeData } as CaregiverEmployee);
-            })
-            .catch(serverError => {
-                const permissionError = new FirestorePermissionError({
-                path: employeesCollection.path,
-                operation: "create",
-                requestResourceData: employeeData,
-                });
-                errorEmitter.emit("permission-error", permissionError);
-            });
-        }
+      if (data.inPersonInterviewDate) {
+        employeeData.inPersonInterviewDate = Timestamp.fromDate(data.inPersonInterviewDate);
+      }
+
+      if (existingEmployee?.id) {
+        const employeeDocRef = doc(db, 'caregiver_employees', existingEmployee.id);
+        updateDoc(employeeDocRef, employeeData).then(async () => {
+          const githubResult = await triggerTeletrackImport(applicantData, data.teletrackPin);
+          if (githubResult.success) {
+              toast({ title: 'Success', description: 'Employee record updated and TeleTrack import re-triggered.' });
+          } else {
+              toast({ title: 'Update Partially Successful', description: `Employee record updated, but failed to re-trigger TeleTrack import: ${githubResult.error}`, variant: 'destructive' });
+          }
+        }).catch(serverError => {
+          const permissionError = new FirestorePermissionError({
+              path: employeeDocRef.path,
+              operation: "update",
+              requestResourceData: employeeData,
+          });
+          errorEmitter.emit("permission-error", permissionError);
         });
-    };
+      } else {
+        const employeeDocRef = doc(db, 'caregiver_employees', selectedCaregiver.id);
+        const finalEmployeeData = { ...employeeData, createdAt: Timestamp.now() };
+        
+        setDoc(employeeDocRef, finalEmployeeData).then(async () => {
+          const githubResult = await triggerTeletrackImport(applicantData, data.teletrackPin);
+          if (githubResult.success) {
+              toast({ title: 'Success', description: 'Caregiver has been successfully hired and TeleTrack applicant created.' });
+          } else {
+              toast({ title: 'Hiring Partially Successful', description: `Caregiver hired, but failed to create TeleTrack applicant: ${githubResult.error}`, variant: 'destructive' });
+          }
+          setExistingEmployee({ id: selectedCaregiver.id, ...finalEmployeeData } as CaregiverEmployee);
+        }).catch(serverError => {
+          const permissionError = new FirestorePermissionError({
+              path: employeeDocRef.path,
+              operation: "create",
+              requestResourceData: finalEmployeeData,
+          });
+          errorEmitter.emit("permission-error", permissionError);
+        });
+      }
+    });
+  };
     
     const handleRejection = (reason: string, notes: string) => {
         if (!existingInterview?.id || !selectedCaregiver) return;
