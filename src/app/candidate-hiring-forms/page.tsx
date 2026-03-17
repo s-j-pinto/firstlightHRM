@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { Suspense, useTransition, useState, useEffect, useMemo } from 'react';
@@ -35,6 +33,9 @@ import {
     generateConfidentialityAgreementPdfAction, 
     generateTrainingAcknowledgementPdfAction, 
     generateOfferLetterPdfAction,
+    generateCaregiverResponsibilitiesPdfAction,
+    generateLightHousekeepingPdfAction,
+    generateCaregiverTelephonyInstructionsPdfAction,
     generateAllFormsAsZipAction
 } from '@/lib/candidate-hiring-forms.actions';
 import { useToast } from '@/hooks/use-toast';
@@ -63,6 +64,9 @@ const onboardingForms: { name: string; href: string; completionKey: keyof Caregi
   { name: "FirstLightHomeCare_CONFIDENTIALITY_AGREEMENT", href: "/candidate-hiring-forms/confidentiality-agreement", completionKey: 'confidentialityAgreementEmployeeSignature', pdfAction: 'confidentialityAgreement', adminSchema: confidentialityAgreementAdminSchema },
   { name: "FirstLightHomeCareTrainingAcknowledgement", href: "/candidate-hiring-forms/training-acknowledgement", completionKey: 'trainingAcknowledgementSignature', pdfAction: 'trainingAcknowledgement' },
   { name: "MASTER-FLHC Offer Letter revised-2-16-26", href: "/candidate-hiring-forms/offer-letter", completionKey: 'offerLetterSignature', pdfAction: 'offerLetter' },
+  { name: "Caregiver Responsibilities", href: "/candidate-hiring-forms/caregiver-responsibilities", completionKey: 'caregiverResponsibilitiesSignature', pdfAction: 'caregiverResponsibilities' },
+  { name: "Light Housekeeping", href: "/candidate-hiring-forms/light-housekeeping", completionKey: 'lightHousekeepingAcknowledged', pdfAction: 'lightHousekeeping' },
+  { name: "Caregiver Telephony Instructions", href: "/candidate-hiring-forms/caregiver-telephony-instructions", completionKey: 'telephonyEmployeeSignature', pdfAction: 'caregiverTelephonyInstructions' },
 ];
 
 
@@ -200,6 +204,12 @@ function CandidateHiringFormsContent() {
             result = await generateTrainingAcknowledgementPdfAction(candidateId);
         } else if (formAction === 'offerLetter') {
             result = await generateOfferLetterPdfAction(candidateId);
+        } else if (formAction === 'caregiverResponsibilities') {
+            result = await generateCaregiverResponsibilitiesPdfAction(candidateId);
+        } else if (formAction === 'lightHousekeeping') {
+            result = await generateLightHousekeepingPdfAction(candidateId);
+        } else if (formAction === 'caregiverTelephonyInstructions') {
+            result = await generateCaregiverTelephonyInstructionsPdfAction(candidateId);
         } else {
              toast({ title: 'PDF Generation Not Implemented', description: `No PDF generator exists for this form yet.`, variant: 'destructive' });
              return;
@@ -340,7 +350,3 @@ export default function CandidateHiringFormsPage() {
         </Suspense>
     )
 }
-
-    
-
-    

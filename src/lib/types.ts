@@ -410,6 +410,18 @@ export const offerLetterSchema = z.object({
 });
 export type OfferLetterFormData = z.infer<typeof offerLetterSchema>;
 
+export const caregiverResponsibilitiesSchema = z.object({
+    caregiverResponsibilitiesSignature: z.string().min(1, 'Signature is required.'),
+    caregiverResponsibilitiesSignatureDate: z.date({required_error: "Signature date is required."}),
+});
+export type CaregiverResponsibilitiesFormData = z.infer<typeof caregiverResponsibilitiesSchema>;
+
+export const telephonyInstructionsSchema = z.object({
+    telephonyEmployeeSignature: z.string().min(1, 'Signature is required.'),
+    telephonyEmployeeSignatureDate: z.date().optional(),
+});
+export type TelephonyInstructionsFormData = z.infer<typeof telephonyInstructionsSchema>;
+
 
 export const caregiverFormSchema = generalInfoSchema
   .merge(experienceSchema)
@@ -430,7 +442,10 @@ export const caregiverFormSchema = generalInfoSchema
   .merge(acknowledgmentFormSchema.partial())
   .merge(confidentialityAgreementSchema.partial())
   .merge(trainingAcknowledgementSchema.partial())
-  .merge(offerLetterSchema.partial());
+  .merge(offerLetterSchema.partial())
+  .merge(caregiverResponsibilitiesSchema.partial())
+  .merge(telephonyInstructionsSchema.partial())
+  .extend({ lightHousekeepingAcknowledged: z.boolean().optional() });
 
 
 export type CaregiverProfile = z.infer<typeof caregiverFormSchema> & { id: string, canWorkWithCovid?: boolean, cna?: boolean, covidVaccine?: boolean };
@@ -1087,6 +1102,7 @@ export type CaregiverForRecommendation = z.infer<typeof CaregiverForRecommendati
   
 
     
+
 
 
 
