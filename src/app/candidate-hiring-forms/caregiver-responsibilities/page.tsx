@@ -137,20 +137,20 @@ export default function CaregiverResponsibilitiesPage() {
       defaultValues: defaultFormValues,
     });
     
-    const SignatureField = ({ fieldName, title, adminOnly = false, isReadOnly = false }: { fieldName: keyof CaregiverResponsibilitiesFormData; title: string; adminOnly?: boolean; isReadOnly?: boolean; }) => {
+    const SignatureField = ({ fieldName, title }: { fieldName: keyof CaregiverResponsibilitiesFormData; title: string; }) => {
         const signatureData = form.watch(fieldName);
-        const buttonDisabled = isPrintMode || (adminOnly && !isAnAdmin) || isReadOnly;
+        const disabled = isPrintMode;
         
         return (
-            <div className="space-y-2 flex-1">
-                <Label>{title}</Label>
+            <div className="space-y-2">
+                <FormLabel>{title}</FormLabel>
                 <div className="relative rounded-md border bg-muted/30 h-28 flex items-center justify-center">
                     {signatureData ? (
                         <Image src={signatureData as string} alt="Signature" layout="fill" objectFit="contain" />
                     ) : (
                         <span className="text-muted-foreground">Not Signed</span>
                     )}
-                     {!buttonDisabled && (
+                     {!disabled && (
                          <Button
                             type="button"
                             variant="ghost"
@@ -326,7 +326,30 @@ export default function CaregiverResponsibilitiesPage() {
                         <FormField
                             control={form.control}
                             name="caregiverResponsibilitiesSignature"
-                            render={() => <SignatureField fieldName="caregiverResponsibilitiesSignature" title="Employee Signature" />}
+                            render={({ field }) => (
+                                <div className="space-y-2">
+                                    <Label>Employee Signature</Label>
+                                    <div className="relative rounded-md border bg-muted/30 h-28 flex items-center justify-center">
+                                        {field.value ? (
+                                            <Image src={field.value} alt="Signature" layout="fill" objectFit="contain" />
+                                        ) : (
+                                            <span className="text-muted-foreground">Not Signed</span>
+                                        )}
+                                        {!isPrintMode && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="absolute top-1 right-1 h-7 w-7"
+                                                onClick={() => setActiveSignature({ fieldName: 'caregiverResponsibilitiesSignature', title: 'Employee Signature' })}
+                                            >
+                                                <Edit2 className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                    <FormMessage>{form.formState.errors.caregiverResponsibilitiesSignature?.message}</FormMessage>
+                                </div>
+                            )}
                         />
                          <FormField control={form.control} name="caregiverResponsibilitiesSignatureDate" render={({ field }) => (
                             <FormItem className="flex flex-col"><Label>Date</Label><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
