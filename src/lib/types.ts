@@ -1,4 +1,5 @@
 
+
 import { z } from "zod";
 
 export const initialContactSchema = z.object({
@@ -391,10 +392,7 @@ export const confidentialityAgreementSchema = z.object({
 });
 export type ConfidentialityAgreementFormData = z.infer<typeof confidentialityAgreementSchema>;
 
-export const confidentialityAgreementAdminSchema = confidentialityAgreementSchema.extend({
-    confidentialityAgreementRepSignature: z.string().min(1, "Representative signature is required."),
-    confidentialityAgreementRepDate: z.date({required_error: "Date is required."}),
-});
+export const confidentialityAgreementAdminSchema = confidentialityAgreementSchema;
 
 export const trainingAcknowledgementSchema = z.object({
   trainingAcknowledgementEmployeeName: z.string().min(1, "Printed name is required."),
@@ -1089,5 +1087,6 @@ export type CaregiverForRecommendation = z.infer<typeof CaregiverForRecommendati
   
 
     
+
 
 
