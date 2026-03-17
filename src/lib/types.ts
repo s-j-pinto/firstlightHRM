@@ -1,5 +1,4 @@
 
-
 import { z } from "zod";
 
 export const initialContactSchema = z.object({
@@ -347,10 +346,8 @@ export const drugAlcoholPolicySchema = z.object({
 });
 export type DrugAlcoholPolicyFormData = z.infer<typeof drugAlcoholPolicySchema>;
 
-export const drugAlcoholPolicyAdminSchema = drugAlcoholPolicySchema.extend({
-    drugAlcoholPolicyRepSignature: z.string().min(1, "Representative signature is required."),
-    drugAlcoholPolicyRepDate: z.date({required_error: "Date is required."}),
-});
+// Admin validation no longer requires rep signature as it's by reference.
+export const drugAlcoholPolicyAdminSchema = drugAlcoholPolicySchema;
 
 export const hcaJobDescriptionSchema = z.object({
   jobDescriptionSignature: z.string().min(1, "Signature is required."),
@@ -366,9 +363,8 @@ export const clientAbandonmentSchema = z.object({
 });
 export type ClientAbandonmentFormData = z.infer<typeof clientAbandonmentSchema>;
 
-export const clientAbandonmentAdminSchema = clientAbandonmentSchema.extend({
-    clientAbandonmentWitnessSignature: z.string().min(1, "Witness signature is required."),
-});
+// Admin validation no longer requires witness signature as it's by reference.
+export const clientAbandonmentAdminSchema = clientAbandonmentSchema;
 
 export const employeeOrientationAgreementSchema = z.object({
   orientationAgreementEmployeeName: z.string().min(1, "Printed name is required."),
@@ -1098,3 +1094,4 @@ export type CaregiverForRecommendation = z.infer<typeof CaregiverForRecommendati
   
 
     
+

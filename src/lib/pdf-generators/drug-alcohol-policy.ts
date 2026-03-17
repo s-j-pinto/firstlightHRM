@@ -4,6 +4,7 @@
 import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont, PDFPage } from 'pdf-lib';
 import { format, isDate } from 'date-fns';
 import { drawText, drawSignature, drawWrappedText } from './utils';
+import { serverDb } from '@/firebase/server-init';
 
 export async function generateDrugAlcoholPolicyPdf(formData: any): Promise<{ pdfData?: string; error?: string }> {
     try {
@@ -16,6 +17,11 @@ export async function generateDrugAlcoholPolicyPdf(formData: any): Promise<{ pdf
         const logoImage = await pdfDoc.embedPng(logoImageBytes);
         const logoDims = logoImage.scale(0.3); // Enlarged logo
         
+        // Fetch Admin Signature from settings
+        const settingsSnap = await serverDb.collection('settings').doc('availability').get();
+        const settingsData = settingsSnap.exists ? settingsSnap.data() : {};
+        const adminSignature = settingsData?.adminSignature;
+
         const drawFieldBoxWithSignature = async (
             page: PDFPage,
             label: string,
@@ -98,8 +104,8 @@ export async function generateDrugAlcoholPolicyPdf(formData: any): Promise<{ pdf
         drawText(page2, "Employee's Name - Printed", {x: leftMargin, y: y-15, font, size: smallFontSize});
         y -= 40;
 
-        const repSigDate = (formData.drugAlcoholPolicyRepDate && (formData.drugAlcoholPolicyRepDate.toDate || isDate(formData.drugAlcoholPolicyRepDate))) ? format(formData.drugAlcoholPolicyRepDate.toDate ? formData.drugAlcoholPolicyRepDate.toDate() : formData.drugAlcoholPolicyRepDate, "MM/dd/yyyy") : '';
-        await drawFieldBoxWithSignature(page2, "FirstLight HomeCare Representative", repSigDate, formData.drugAlcoholPolicyRepSignature, y, leftMargin, 200);
+        const repSigDate = adminSignature ? format(new Date(), "MM/dd/yyyy") : '';
+        await drawFieldBoxWithSignature(page2, "FirstLight HomeCare Representative", repSigDate, adminSignature, y, leftMargin, 200);
         y -= 60;
         
         // Test Results

@@ -107,7 +107,7 @@ const SignaturePadModal = ({
                     <SignatureCanvas
                         ref={sigPadRef}
                         penColor='black'
-                        canvasProps={{ className: 'w-full h-full bg-muted/50 rounded-md' }}
+                        canvasProps={{ className: 'w-full h-full bg-white rounded-md' }}
                         onEnd={() => setIsSigned(true)}
                     />
                 </div>
@@ -214,13 +214,13 @@ export default function DrugAlcoholPolicyPage() {
     }, [existingData, form]);
     
     useEffect(() => {
-        if (isAnAdmin && settingsData?.adminSignature && !form.getValues('drugAlcoholPolicyRepSignature')) {
+        if (settingsData?.adminSignature) {
             form.setValue('drugAlcoholPolicyRepSignature', settingsData.adminSignature, { shouldDirty: false });
             if (!form.getValues('drugAlcoholPolicyRepDate')) {
                 form.setValue('drugAlcoholPolicyRepDate', new Date(), { shouldDirty: false });
             }
         }
-    }, [settingsData, form, existingData, isAnAdmin]); // Re-run if existingData causes a form reset
+    }, [settingsData, form]);
 
     const handleSaveSignature = (dataUrl: string) => {
         if (activeSignature) {
@@ -234,7 +234,8 @@ export default function DrugAlcoholPolicyPage() {
         return;
       }
       startSavingTransition(async () => {
-        const result = await saveDrugAlcoholPolicyData(profileIdToLoad, data);
+        const { drugAlcoholPolicyRepSignature, drugAlcoholPolicyRepDate, ...dataToSave } = data;
+        const result = await saveDrugAlcoholPolicyData(profileIdToLoad, dataToSave);
         if (result.error) {
           toast({ title: "Save Failed", description: result.error, variant: 'destructive'});
         } else {
