@@ -416,6 +416,12 @@ export const caregiverResponsibilitiesSchema = z.object({
 });
 export type CaregiverResponsibilitiesFormData = z.infer<typeof caregiverResponsibilitiesSchema>;
 
+export const telephonyInstructionsSchema = z.object({
+  telephonyInstructionsAcknowledged: z.boolean().optional(),
+});
+export type TelephonyInstructionsFormData = z.infer<typeof telephonyInstructionsSchema>;
+
+
 export const caregiverFormSchema = generalInfoSchema
   .merge(experienceSchema)
   .merge(certificationsSchema)
@@ -437,9 +443,9 @@ export const caregiverFormSchema = generalInfoSchema
   .merge(trainingAcknowledgementSchema.partial())
   .merge(offerLetterSchema.partial())
   .merge(caregiverResponsibilitiesSchema.partial())
+  .merge(telephonyInstructionsSchema.partial())
   .extend({ 
-    lightHousekeepingAcknowledged: z.boolean().optional(),
-    telephonyInstructionsAcknowledged: z.boolean().optional(),
+    lightHousekeepingAcknowledged: z.boolean().optional()
   });
 
 
@@ -1097,6 +1103,7 @@ export type CaregiverForRecommendation = z.infer<typeof CaregiverForRecommendati
   
 
     
+
 
 
 
