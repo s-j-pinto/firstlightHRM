@@ -1,15 +1,16 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // Utility functions to make rules more readable.
     function isStaffingAdmin() {
-      return request.auth.token.email == resource.data.staffing_admin_email;
+      return request.auth.token.email == "admin-rc@firstlighthomecare.com";
     }
     function isHrAdmin() {
-      return request.auth.token.email == resource.data.hr_admin_email;
+      return request.auth.token.email == "care-rc@firstlighthomecare.com";
     }
     function isOwner() {
-      return request.auth.token.email == resource.data.owner_email;
+      return request.auth.token.email == "lpinto@firstlighthomecare.com";
     }
     function isAnyAdmin() {
       return isStaffingAdmin() || isHrAdmin() || isOwner();
@@ -70,6 +71,17 @@ service cloud.firestore {
     match /caregivers_active/{caregiverId} {
       allow read: if isAnyAdmin() || isActiveCaregiver();
       allow write: if isAnyAdmin(); // Only admins can modify this collection.
+
+      // Scalable subcollection for weekly availability
+      match /availability/{weekId} {
+        allow read: if isAnyAdmin() || request.auth.uid == caregiverId;
+        allow write: if isAnyAdmin();
+      }
+      // Subcollection for preferences and skills
+      match /preferences/{docId} {
+        allow read: if isAnyAdmin() || request.auth.uid == caregiverId;
+        allow write: if isAnyAdmin();
+      }
     }
 
     // Client records (synced from external system).
@@ -133,17 +145,17 @@ service cloud.firestore {
     }
     
     /**
-     * @description Controls access to initial_contacts. Open for all.
-     * @path /initial_contacts/{initialContactId}
-     * @allow (get, list) - Any user can view care logs.
-     * @allow (create) - Any authenticated user can create a initial_contacts.
-     * @deny (update, delete) - No user can update or delete a initial_contacts.
-     * @principle Open read access.
+     * @description Controls access to initial_contacts and its subcollections.
      */
     match /initial_contacts/{initialContactId} {
       allow get, list: if true;
       allow create, update: if isAnyAdmin();
       allow delete: if false;
+
+      // SMS history is private to admins
+      match /sms_history/{messageId} {
+        allow read, create, write, delete: if isAnyAdmin();
+      }
     }
     /**
      * @description Controls access to video_checkin_requests. Open for all.
