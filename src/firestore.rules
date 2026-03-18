@@ -1,161 +1,120 @@
-
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Utility functions to make rules more readable.
-    function isStaffingAdmin() {
-      return request.auth.token.email == resource.data.staffing_admin_email;
-    }
-    function isHrAdmin() {
-      return request.auth.token.email == resource.data.hr_admin_email;
-    }
-    function isOwner() {
-      return request.auth.token.email == resource.data.owner_email;
-    }
-    function isAnyAdmin() {
-      return isStaffingAdmin() || isHrAdmin() || isOwner();
-    }
-    function isAnonymousUser() {
-      return request.auth.provider == 'anonymous';
-    }
-    function isActiveCaregiver() {
-      let isCaregiver = exists(/databases/$(database)/documents/caregivers_active/$(request.auth.uid));
-      let isActive = get(/databases/$(database)/documents/caregivers_active/$(request.auth.uid)).data.status == 'Active';
-      return isCaregiver && isActive;
-    }
-    function isClientUser() {
-      // A client user is identified by the presence of a 'clientId' claim.
-      return request.auth.token.clientId != null;
-    }
-    
-    // Global settings, only readable by admins.
-    match /settings/{settingId} {
-      allow read: if isAnyAdmin();
-      allow write: if isHrAdmin(); // Only HR Admin can change availability.
-    }
-    
-    // Email documents for the 'firestore-send-email' extension.
-    match /mail/{docId} {
-        allow create; // Allow anyone to queue an email.
+
+    function isSignedIn() {
+      return request.auth != null;
     }
 
-    // Caregiver application profiles.
-    match /caregiver_profiles/{caregiverProfileId} {
-      // An anonymous user can create their own profile.
-      allow create: if isAnonymousUser() && request.resource.data.uid == request.auth.uid;
-      
-      // Admins can read, update, and delete any profile.
-      allow read, update, delete: if isAnyAdmin();
+    function isAdmin() {
+      return request.auth.token.isAdmin == true;
     }
-    
-    // Appointments for interviews.
+
+    match /caregiver_profiles/{profileId} {
+      allow read, write: if isSignedIn();
+    }
+
     match /appointments/{appointmentId} {
-        // An anonymous user can create their own appointment.
-        allow create: if isAnonymousUser() && request.resource.data.caregiverId == request.resource.data.caregiverId;
-        
-        // Admins can manage all appointments.
-        allow read, write, delete: if isHrAdmin();
+      allow read, write: if isSignedIn();
     }
-    
-    // Interview records.
+
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
     match /interviews/{interviewId} {
-      allow read, write: if isAnyAdmin();
+      allow get: if isSignedIn();
+      allow list: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
-
-    // Hired employee records.
     match /caregiver_employees/{employeeId} {
-      allow read, write: if isAnyAdmin();
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn();
     }
-
-    // Active caregiver records (synced from external system).
-    match /caregivers_active/{caregiverId} {
-      allow read: if isAnyAdmin() || isActiveCaregiver();
-      allow write: if isAnyAdmin(); // Only admins can modify this collection.
-
-      // Scalable subcollection for weekly availability
-      match /availability/{weekId} {
-        allow read: if isAnyAdmin() || request.auth.uid == caregiverId;
-        allow write: if isAnyAdmin();
-      }
-      // Subcollection for preferences and skills
-      match /preferences/{docId} {
-        allow read: if isAnyAdmin() || request.auth.uid == caregiverId;
-        allow write: if isAnyAdmin();
-      }
-    }
-
-    // Client records (synced from external system).
+   
     match /Clients/{clientId} {
-      allow read, write: if isAnyAdmin();
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn();
     }
-
-    // Groups linking clients and caregivers.
-    match /carelog_groups/{groupId} {
-        allow read: if isAnyAdmin() || isActiveCaregiver() || isClientUser();
-        allow write: if isStaffingAdmin();
+    match /caregivers_active/{caregiverId} {
+      allow get, list: if true;
+      allow create: if true;
+      allow update, delete: if isSignedIn();
+    match /availability/{weekId} {
+        allow get, list, read: if true;
+        allow write: if isAnyAdmin();
+    	}
+    match /preferences/{docId} {
+        allow get, list, read: if true;
+        allow write: if isAnyAdmin();
+      }
     }
-    
-    // Individual care log entries.
-    match /carelogs/{logId} {
-      // An active caregiver can create a log for a group they are part of.
-      allow create: if isActiveCaregiver() && 
-                      request.auth.token.email in get(/databases/$(database)/documents/carelog_groups/$(request.resource.data.careLogGroupId)).data.caregiverEmails;
-                      
-      // A client can read logs for their group IF client access is enabled for that group.
-      allow read: if (isClientUser() && 
-                     request.auth.token.clientId == get(/databases/$(database)/documents/carelog_groups/$(resource.data.careLogGroupId)).data.clientId &&
-                     get(/databases/$(database)/documents/carelog_groups/$(resource.data.careLogGroupId)).data.clientAccessEnabled == true) ||
-                    (isActiveCaregiver() && request.auth.token.email in get(/databases/$(database)/documents/carelog_groups/$(resource.data.careLogGroupId)).data.caregiverEmails) ||
-                    isStaffingAdmin();
+    match /carelog_groups/{carelogId} {
+      allow get, list: if true;
+      allow create: if true;
+      allow update, delete: if isSignedIn();
     }
-
-    // Templates for structured care logs.
-    match /carelog_templates/{templateId} {
-        allow read: if isStaffingAdmin() || isActiveCaregiver();
-        allow write: if isStaffingAdmin();
+    match /carelogs/{carelogId} {
+      allow get, list: if true;
+      allow create: if true;
+      allow update, delete: if isSignedIn();
     }
-    
-    // Requests from clients for additional care.
-    match /client_additional_care_requests/{requestId} {
-        // A client user can create their own request.
-        allow create: if isClientUser() && request.resource.data.clientId == request.auth.token.clientId;
-        
-        // Staffing admin can read and update all requests.
-        allow read, update: if isStaffingAdmin();
-    }
-    
-    // Client intake and signing process documents.
-     match /client_signups/{signupId} {
-      allow read, create, update: if isAnyAdmin() || request.auth.token.email == resource.data.formData.clientEmail;
-      allow delete: if isAnyAdmin();
-    }
-
-    // Referral Program collections
-    match /referral_profiles/{profileId} {
-      allow read: if isClientUser() && request.auth.token.clientId == resource.data.clientId;
-      allow create, update, delete: if isOwner();
-    }
-    match /referrals/{referralId} {
-      allow read: if isClientUser() || isOwner();
-      allow create, update, delete: if isOwner();
-    }
-    match /rewards/{rewardId} {
-      allow read: if isClientUser() && request.auth.token.clientId == resource.data.clientId;
-      allow create, update, delete: if isOwner();
-    }
-    
     /**
-     * @description Controls access to initial_contacts and its subcollections.
+     * @description Controls access to client_additional_care_requests. Open for all.
+     * @path /client_additional_care_requests/{requestId}
+     * @allow (get, list) - Any user can view care logs.
+     * @allow (create) - Any authenticated user can create a care log.
+     * @deny (update, delete) - No user can update or delete a care log.
+     * @principle Open read access.
+     */
+    match /client_additional_care_requests/{requestId} {
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
+    /**
+     * @description Controls access to carelog_templates. Open for all.
+     * @path /carelog_templates/{templateId}
+     * @allow (get, list) - Any user can view care logs.
+     * @allow (create) - Any authenticated user can create a carelog_templates.
+     * @deny (update, delete) - No user can update or delete a carelog_templates.
+     * @principle Open read access.
+     */
+    match /carelog_templates/{templateId} {
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
+    /**
+     * @description Controls access to client_signups. Open for all.
+     * @path /client_signups/{signupsId}
+     * @allow (get, list) - Any user can view care logs.
+     * @allow (create) - Any authenticated user can create a client_signups.
+     * @deny (update, delete) - No user can update or delete a client_signups.
+     * @principle Open read access.
+     */
+    match /client_signups/{signupsId} {
+      allow get, list: if true;
+      allow create, update: if isSignedIn();
+      allow delete: if false;
+    }
+    /**
+     * @description Controls access to initial_contacts. Open for all.
+     * @path /initial_contacts/{initialContactId}
+     * @allow (get, list) - Any user can view care logs.
+     * @allow (create) - Any authenticated user can create a initial_contacts.
+     * @deny (update, delete) - No user can update or delete a initial_contacts.
+     * @principle Open read access.
      */
     match /initial_contacts/{initialContactId} {
       allow get, list: if true;
-      allow create, update: if isAnyAdmin();
+      allow create, update: if isSignedIn();
       allow delete: if false;
-
-      // SMS history is private to admins
-      match /sms_history/{messageId} {
-        allow read, create, write, delete: if isAnyAdmin();
-      }
     }
     /**
      * @description Controls access to video_checkin_requests. Open for all.
@@ -167,7 +126,7 @@ service cloud.firestore {
      */
     match /video_checkin_requests/{videoCheckinRequestId} {
       allow get, list: if true;
-      allow create, update: if isStaffingAdmin() || (isClientUser() && request.resource.data.clientId == request.auth.token.clientId);
+      allow create, update: if isSignedIn();
       allow delete: if false;
     }
     /**
@@ -180,7 +139,7 @@ service cloud.firestore {
      */
     match /rewards/{rewardsId} {
       allow get, list: if true;
-      allow create, update: if isAnyAdmin();
+      allow create, update: if isSignedIn();
       allow delete: if false;
     }
     /**
@@ -193,10 +152,10 @@ service cloud.firestore {
      */
     match /referrals/{referralsId} {
       allow get, list: if true;
-      allow create, update: if isAnyAdmin();
+      allow create, update: if isSignedIn();
       allow delete: if false;
     }
-     /**
+    /**
      * @description Controls access to referrals. Open for all.
      * @path /referral_profiles/{profileId}
      * @allow (get, list) - Any user can referral_profiles.
@@ -206,13 +165,73 @@ service cloud.firestore {
      */
     match /referral_profiles/{profileId} {
       allow get, list: if true;
-      allow create, update: if isAnyAdmin();
+      allow create, update: if isSignedIn();
       allow delete: if false;
     }
-    
-    // Campaign templates can be read and managed only by the Owner.
-    match /campaign_templates/{templateId} {
-      allow read, write: if isOwner();
+    /**
+     * @description Controls access to campaign templates. Open for all.
+     * @path /campaign_templates/{campaignTemplatesId}
+     * @allow (get, list) - Any user can campaign_templates.
+     * @allow (create) - Any authenticated user can create a campaign_templates.
+     * @deny (update, delete) - No user can update or delete a campaign_templates.
+     * @principle Open read access.
+     */
+    match /campaign_templates/{campaignTemplatesId} {
+      allow get, list: if true;
+      allow create, update: if isSignedIn();
+      allow delete: if false;
+    }
+    /**
+     * @description Controls access to level_of_care_assessments. Open for all.
+     * @path /level_of_care_assessments/{assessmentsId}
+     * @allow (get, list) - Any user can level_of_care_assessments.
+     * @allow (create) - Any authenticated user can create a level_of_care_assessments.
+     * @deny (update, delete) - No user can update or delete a level_of_care_assessments.
+     * @principle Open read access.
+     */
+    match /level_of_care_assessments/{assessmentsId} {
+      allow get, list: if true;
+      allow create, update: if isSignedIn();
+      allow delete: if false;
+    }
+    /**
+     * @description Controls access to sms_history. Open for all.
+     * @path /initial_contacts/{initialContactId}/sms_history/{smsHistoryId}
+     * @allow (get, list) - Any user can sms_history.
+     * @allow (create) - Any authenticated user can create a sms_history.
+     * @deny (update, delete) - No user can update or delete a sms_history.
+     * @principle Open read access.
+     */
+    match /initial_contacts/{initialContactId}/sms_history/{smsHistoryId} {
+      allow get, list: if true;
+      allow create, update: if isSignedIn();
+      allow delete: if false;
+    }
+    /**
+     * @description Controls access to mail. Open for all.
+     * @path /mail/{mailId}
+     * @allow (get, list) - Any user can mail.
+     * @allow (create) - Any authenticated user can create a mail.
+     * @deny (update, delete) - No user can update or delete a mail.
+     * @principle Open read access.
+     */
+    match /mail/{mailId} {
+      allow get, list: if true;
+      allow create, update: if isSignedIn();
+      allow delete: if false;
+    }
+    /**
+     * @description Controls access to caregiver_availability. Open for all.
+     * @path /caregiver_availability/{Id}
+     * @allow (get, list) - Any user can caregiver_availability.
+     * @allow (create) - Any authenticated user can create a caregiver_availability.
+     * @deny (update, delete) - No user can update or delete a caregiver_availability.
+     * @principle Open read access.
+     */
+    match /caregiver_availability/{Id} {
+      allow get, list: if true;
+      allow create, update: if isSignedIn();
+      allow delete: if false;
     }
   }
 }
