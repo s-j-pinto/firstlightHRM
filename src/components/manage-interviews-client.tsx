@@ -7,7 +7,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from 'zod';
 import Link from 'next/link';
-import { collection, query, where, getDocs, setDoc, doc, updateDoc, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, setDoc, doc, updateDoc, Timestamp, addDoc } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import type { CaregiverProfile, Interview, CaregiverEmployee } from '@/lib/types';
 import { caregiverEmployeeSchema } from '@/lib/types';
@@ -465,7 +465,7 @@ export default function ManageInterviewsClient() {
       const interviewPayload = {
         caregiverProfileId: selectedCaregiver.id,
         caregiverUid: selectedCaregiver.uid,
-        interviewType: "Phone",
+        interviewType: "Phone" as const,
         phoneScreenPassed: data.phoneScreenPassed,
         interviewNotes: data.interviewNotes,
         candidateRating: assessmentForm.getValues('candidateRating'),
@@ -640,7 +640,7 @@ export default function ManageInterviewsClient() {
         });
     }
 
-    const onHiringSubmit = (data: HiringFormData) => {
+  const onHiringSubmit = (data: HiringFormData) => {
     if (!selectedCaregiver || !existingInterview || !db) return;
 
     startSubmitTransition(async () => {
@@ -1617,3 +1617,4 @@ function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: strin
     
 
     
+
