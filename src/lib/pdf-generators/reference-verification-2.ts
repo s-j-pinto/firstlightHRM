@@ -89,7 +89,7 @@ export async function generateReferenceVerification2Pdf(formData: any): Promise<
         };
 
         drawTwoColumnField("Company", formData.company2, "Supervisor’s Name and Title", formData.supervisorName2);
-        drawTwoColumnField("Email and/or Fax #", formData.emailOrFax2, "Phone", formData.phone2);
+        drawTwoColumnField("Supervisor's Email and/or Fax #", formData.emailOrFax2, "Supervisor's Phone", formData.phone2);
         drawTwoColumnField("Dates of Employment", formData.employmentDates2, "Position", formData.position2);
         drawTwoColumnField("Starting Salary:", formData.startingSalary2, "Ending Salary:", formData.endingSalary2);
         
