@@ -14,12 +14,12 @@ import * as fs from "fs";
 let testEnv: RulesTestEnvironment;
 
 beforeAll(async () => {
-  // Set up the test environment, explicitly specifying the host and port.
+  // Set up the test environment.
+  // `firebase emulators:exec` automatically sets the FIRESTORE_EMULATOR_HOST
+  // environment variable, so we don't need to specify host and port.
   testEnv = await initializeTestEnvironment({
     projectId: "firstlighthomecare-hrm",
     firestore: {
-      host: "127.0.0.1",
-      port: 8080,
       rules: fs.readFileSync("firestore.rules", "utf8"),
     },
   });
