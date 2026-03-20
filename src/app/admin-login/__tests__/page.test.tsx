@@ -2,13 +2,6 @@ import '@testing-library/jest-dom'
 import { render, screen } from '@testing-library/react'
 import AdminLoginPage from '../page'
 
-// Mock the dependencies used in the component
-jest.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: jest.fn(),
-  }),
-}));
-
 // Mock the package.json import
 jest.mock('../../../../package.json', () => ({
   version: '0.1.1',
