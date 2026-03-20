@@ -110,3 +110,24 @@
     display: none;
   }
 }
+
+/* Custom styles for react-day-picker to override Tailwind resets */
+.rdp {
+  --rdp-cell-size: 36px;
+}
+
+.rdp table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.rdp-head_row,
+.rdp-row {
+  display: flex;
+  width: 100%;
+}
+
+.rdp-cell {
+  flex: 1;
+  text-align: center;
+}
