@@ -59,6 +59,25 @@
   }
 }
 
+/* Force correct layout for react-day-picker v9+ with Tailwind */
+.rdp {
+  --rdp-cell-size: 40px !important;
+}
+.rdp-table {
+  display: table !important;
+  width: 100% !important;
+  border-collapse: collapse !important;
+}
+.rdp-head_row, .rdp-row {
+  display: table-row !important;
+}
+.rdp-head_cell, .rdp-cell {
+  display: table-cell !important;
+  text-align: center !important;
+  padding: 2px !important;
+}
+
+
 @media print {
   body {
     -webkit-print-color-adjust: exact;
