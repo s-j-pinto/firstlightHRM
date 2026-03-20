@@ -14,11 +14,12 @@ import * as fs from "fs";
 let testEnv: RulesTestEnvironment;
 
 beforeAll(async () => {
-  // Set up the test environment
+  // Set up the test environment, explicitly specifying the host and port.
   testEnv = await initializeTestEnvironment({
     projectId: "firstlighthomecare-hrm",
     firestore: {
-      // Use a relative path from the project root, where you run `npm test`
+      host: "127.0.0.1",
+      port: 8080,
       rules: fs.readFileSync("firestore.rules", "utf8"),
     },
   });
@@ -26,12 +27,16 @@ beforeAll(async () => {
 
 afterAll(async () => {
   // Tearing down the test environment
-  await testEnv.cleanup();
+  if (testEnv) {
+    await testEnv.cleanup();
+  }
 });
 
 beforeEach(async () => {
   // Clear the database before each test
-  await testEnv.clearFirestore();
+  if (testEnv) {
+    await testEnv.clearFirestore();
+  }
 });
 
 
