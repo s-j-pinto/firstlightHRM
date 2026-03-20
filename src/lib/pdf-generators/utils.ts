@@ -7,7 +7,7 @@ export function sanitizeText(text: string | null | undefined): string {
     if (!text) return '';
     // This regex removes most control characters that can cause issues with pdf-lib fonts
     // It keeps standard characters, newlines, and carriage returns.
-    return text.replace(/[^\p{L}\p{N}\p{P}\p{Z}\r\n()]/gu, '');
+    return text.replace(/[^\p{L}\p{N}\p{P}\p{S}\p{Z}\r\n()]/gu, '');
 }
 
 // Standardized helper to draw text using an options object

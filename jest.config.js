@@ -12,11 +12,9 @@ const config = {
   testEnvironment: 'jest-environment-jsdom',
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    // Force module mapping for lucide-react to its CJS build to resolve ESM import issues in Jest
+    'lucide-react': '<rootDir>/node_modules/lucide-react/dist/cjs/lucide-react.js'
   },
-  // This is the key fix. It tells Jest to transform lucide-react, which is an ESM module.
-  transformIgnorePatterns: [
-    '/node_modules/(?!lucide-react)/'
-  ],
 }
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
