@@ -2,7 +2,6 @@
 import type { Metadata } from 'next';
 import { Toaster } from "@/components/ui/toaster"
 import './globals.css';
-import "react-day-picker/dist/style.css";
 import { FirebaseClientProvider } from '@/firebase';
 import { AppHeader } from '@/components/header';
 import { PT_Sans } from 'next/font/google';
