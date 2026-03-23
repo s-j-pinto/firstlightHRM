@@ -215,6 +215,17 @@
           "<strong>Edit:</strong> Make any necessary changes to their profile information in the fields provided.",
           "<strong>Save Changes:</strong> Click to save the updated information back to the database."
         ]
+      },
+      {
+        "type": "heading",
+        "text": "Advanced Actions"
+      },
+      {
+        "type": "list",
+        "items": [
+          "<strong>Delete Profile:</strong> This will permanently remove the caregiver's profile and all associated interview, appointment, and hiring records. This action cannot be undone.",
+          "<strong>Reset Interview:</strong> This will remove all interview and hiring records for the candidate, allowing the interview process to be started over from the beginning. The main profile will not be deleted."
+        ]
       }
     ]
   },
@@ -494,7 +505,7 @@
       {
         "type": "list",
         "items": [
-          "<strong>Request Additional Care:</strong> If you need extra help on a specific day, use this feature to send a request to our staffing team.",
+          "<strong>Request Additional Care:</strong> If you need extra hours or shifts, use this feature to send a request to our staffing team.",
           "<strong>View Care Log Reports:</strong> Access detailed reports submitted by your caregivers. If this is disabled, please contact our office to have it enabled.",
           "<strong>Request Video Check-in:</strong> Use this to schedule a brief video call with a member of your care team.",
           "<strong>Refer & Earn:</strong> Access your unique referral code and invite friends to earn rewards."
