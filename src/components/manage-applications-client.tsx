@@ -11,6 +11,7 @@ import type { CaregiverProfile } from "@/lib/types";
 import { generalInfoSchema } from "@/lib/types";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { format } from "date-fns";
+import { deleteCaregiverProfile, resetCaregiverInterview } from "@/lib/caregiver.actions";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -37,7 +38,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, Trash2, RotateCcw } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 type GeneralInfoFormData = z.infer<typeof generalInfoSchema>;
 
@@ -49,6 +61,9 @@ export default function ManageApplicationsClient() {
 
   const [isSearching, startSearchTransition] = useTransition();
   const [isSubmitting, startSubmitTransition] = useTransition();
+  const [isDeleting, startDeleteTransition] = useTransition();
+  const [isResetting, startResetTransition] = useTransition();
+
 
   const { toast } = useToast();
   const db = useFirestore();
@@ -132,6 +147,32 @@ export default function ManageApplicationsClient() {
   const handleCancel = () => {
     setSelectedCaregiver(null);
     form.reset();
+  };
+
+  const handleDeleteProfile = () => {
+    if (!selectedCaregiver) return;
+    startDeleteTransition(async () => {
+      const result = await deleteCaregiverProfile(selectedCaregiver.id);
+      if (result.error) {
+        toast({ title: 'Error', description: result.message, variant: 'destructive' });
+      } else {
+        toast({ title: 'Success', description: result.message });
+        handleCancel();
+      }
+    });
+  };
+
+  const handleResetInterview = () => {
+    if (!selectedCaregiver) return;
+    startResetTransition(async () => {
+      const result = await resetCaregiverInterview(selectedCaregiver.id);
+      if (result.error) {
+        toast({ title: 'Error', description: result.message, variant: 'destructive' });
+      } else {
+        toast({ title: 'Success', description: result.message });
+        handleCancel();
+      }
+    });
   };
 
   return (
@@ -240,14 +281,62 @@ export default function ManageApplicationsClient() {
                   <FormField control={form.control} name="state" render={({ field }) => ( <FormItem><FormLabel>State</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                   <FormField control={form.control} name="zip" render={({ field }) => ( <FormItem><FormLabel>Zip Code</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                 </div>
-                <div className="flex justify-end gap-4">
-                  <Button type="button" variant="outline" onClick={handleCancel}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Save Changes
-                  </Button>
+                 <div className="flex justify-between items-center pt-6">
+                    <div className="flex gap-2">
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                            <Button type="button" variant="destructive" disabled={isDeleting}>
+                                {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                                Delete Profile
+                            </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete the caregiver's profile and all associated interview and appointment records.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleDeleteProfile}>
+                                Continue
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                            <Button type="button" variant="outline" disabled={isResetting}>
+                                {isResetting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
+                                Reset Interview
+                            </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                This will delete all interview and hiring records for this candidate, allowing the interview process to start over. The main profile will not be deleted.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleResetInterview}>
+                                Continue
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </div>
+                    <div className="flex gap-4">
+                        <Button type="button" variant="outline" onClick={handleCancel}>
+                            Cancel
+                        </Button>
+                        <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Save Changes
+                        </Button>
+                    </div>
                 </div>
               </form>
             </Form>
