@@ -44,8 +44,8 @@ describe("Firestore security rules", () => {
   describe("settings collection", () => {
 
     it("should allow an admin to write to the settings collection", async () => {
-      // Simulate an authenticated admin user by setting the `isAdmin` custom claim
-      const adminContext = testEnv.authenticatedContext("admin_user", { isAdmin: true });
+      // Simulate an authenticated admin user by setting the correct email claim
+      const adminContext = testEnv.authenticatedContext("admin_user", { email: "care-rc@firstlighthomecare.com" });
       const db = adminContext.firestore();
 
       // Attempt to write to a document in the settings collection
@@ -54,8 +54,8 @@ describe("Firestore security rules", () => {
     });
 
     it("should deny a non-admin user from writing to the settings collection", async () => {
-      // Simulate a regular authenticated user (no custom claims)
-      const userContext = testEnv.authenticatedContext("regular_user");
+      // Simulate a regular authenticated user (with a non-admin email)
+      const userContext = testEnv.authenticatedContext("regular_user", { email: "user@example.com" });
       const db = userContext.firestore();
 
       // Attempt to write to a document in the settings collection
@@ -75,7 +75,7 @@ describe("Firestore security rules", () => {
 
     it("should allow any user to read from the settings collection", async () => {
         // Set up some data as an admin first, so the document exists
-        const adminContext = testEnv.authenticatedContext("admin_user", { isAdmin: true });
+        const adminContext = testEnv.authenticatedContext("admin_user", { email: "care-rc@firstlighthomecare.com" });
         await setDoc(doc(adminContext.firestore(), "settings/availability"), { sunday_slots: "10:00,11:00" });
         
         // Unauthenticated read should succeed
@@ -85,7 +85,7 @@ describe("Firestore security rules", () => {
         await assertSucceeds(getDoc(settingsRef));
 
         // Authenticated non-admin read should succeed
-        const userContext = testEnv.authenticatedContext("regular_user");
+        const userContext = testEnv.authenticatedContext("regular_user", { email: "user@example.com" });
         db = userContext.firestore();
         settingsRef = doc(db, "settings/availability");
         await assertSucceeds(getDoc(settingsRef));
