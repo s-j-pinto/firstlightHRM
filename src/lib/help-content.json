@@ -94,7 +94,8 @@
           "<strong>Not Notified:</strong> The candidate has not yet been sent the email to complete their hiring forms.",
           "<strong>Notified:</strong> The candidate has been sent the notification email but has not yet started filling out the forms.",
           "<strong>Started:</strong> The candidate has started filling out one or more hiring forms.",
-          "<strong>Completed:</strong> The candidate has completed all required hiring forms."
+          "<strong>Awaiting Admin:</strong> The candidate has completed all their forms, but some forms require an administrator's input before they are considered fully complete.",
+          "<strong>Admin Signoff:</strong> All forms are fully completed by both the candidate and the administrator."
         ]
       }
     ]
@@ -125,8 +126,32 @@
         "type": "list",
         "items": [
           "You can view a candidate's progress on their forms.",
-          "Click on a form to review or edit the information the candidate has provided.",
-          "Use the 'Printer' icon next to a completed form to generate a PDF copy of that specific document."
+          "Click on a form to review or edit the information the candidate has provided."
+        ]
+      },
+      {
+        "type": "heading",
+        "text": "Understanding Status Icons"
+      },
+      {
+        "type": "list",
+        "items": [
+          "<strong>Green Checkmark:</strong> The candidate has completed and signed their portion of the form.",
+          "<strong>Blue Checkmark:</strong> The administrator has filled in all required admin-only fields for that form (e.g., test results on the Drug & Alcohol policy form).",
+          "<strong>Red 'X' Circle:</strong> The candidate has finished, but the form is now awaiting an administrator's input before it's considered fully complete."
+        ]
+      },
+       {
+        "type": "heading",
+        "text": "Downloading All Forms as a ZIP File"
+      },
+      {
+        "type": "list",
+        "items": [
+          "The option to download all forms as a single ZIP file becomes available only after <strong>all forms have been fully completed by both the candidate and the administrator</strong>.",
+          "Once all forms are complete, a verification checkbox will appear at the top of the page.",
+          "You must check this box to confirm you have reviewed the forms. This will enable the 'Download All Forms' button.",
+          "Click the button to generate and download a ZIP file containing a PDF of every completed document for the candidate's records."
         ]
       }
     ]
