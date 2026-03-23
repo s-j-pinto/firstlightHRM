@@ -8,11 +8,26 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return request.auth.token.isAdmin == true;
+      return request.auth.token.email == 'care-rc@firstlighthomecare.com';
+    }
+
+    function isOwner() {
+      return request.auth.token.email == 'lpinto@firstlighthomecare.com';
+    }
+
+    function isStaffingAdmin() {
+      return request.auth.token.email == 'admin-rc@firstlighthomecare.com';
+    }
+
+    function isAnyAdmin() {
+        return request.auth != null && (isAdmin() || isOwner() || isStaffingAdmin());
     }
 
     match /caregiver_profiles/{profileId} {
       allow read, write: if isSignedIn();
+       match /signatures/{docId} {
+        allow read, write: if isSignedIn() && (request.auth.uid == profileId || isAnyAdmin());
+      }
     }
 
     match /appointments/{appointmentId} {
@@ -235,3 +250,5 @@ service cloud.firestore {
     }
   }
 }
+
+      
