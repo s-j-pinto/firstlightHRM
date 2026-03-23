@@ -26,7 +26,8 @@ import {
     confidentialityAgreementAdminSchema,
     trainingAcknowledgementSchema, 
     offerLetterSchema,
-    caregiverResponsibilitiesSchema
+    caregiverResponsibilitiesSchema,
+    emergencyProcedureSchema
 } from './types';
 import { 
     generateHcs501Pdf, 
@@ -46,7 +47,8 @@ import {
     generateOfferLetterPdf,
     generateCaregiverResponsibilitiesPdf,
     generateLightHousekeepingPdf,
-    generateCaregiverTelephonyInstructionsPdf
+    generateCaregiverTelephonyInstructionsPdf,
+    generateEmergencyProcedurePdf
 } from './pdf.actions';
 import type { CaregiverProfile } from './types';
 import JSZip from 'jszip';
@@ -456,6 +458,25 @@ export async function saveTelephonyInstructionsData(profileId: string) {
     } catch (e: any) { return { error: `Failed to save: ${e.message}` }; }
 }
 
+export async function saveEmergencyProcedureData(profileId: string, data: any) {
+  const validatedFields = emergencyProcedureSchema.safeParse(data);
+  if (!validatedFields.success) {
+    return { error: 'Invalid data provided.' };
+  }
+
+  try {
+    const dataToSave = convertDatesToTimestamps(validatedFields.data);
+    await serverDb.collection('caregiver_profiles').doc(profileId).collection('signatures').doc('onboarding_main').set(dataToSave, { merge: true });
+    
+    revalidatePath(`/candidate-hiring-forms/emergency-procedure?candidateId=${profileId}`);
+    revalidatePath('/candidate-hiring-forms');
+    
+    return { success: true, message: 'Emergency Procedures form saved successfully.' };
+  } catch (error: any) {
+    return { error: `Failed to save form data: ${error.message}` };
+  }
+}
+
 
 
 export async function generateHcs501PdfAction(candidateId: string) {
@@ -776,6 +797,23 @@ export async function generateCaregiverTelephonyInstructionsPdfAction(candidateI
     } catch (e: any) { return { error: `Failed to generate PDF: ${e.message}` }; }
 }
 
+export async function generateEmergencyProcedurePdfAction(candidateId: string) {
+    if (!candidateId) {
+        return { error: 'Candidate ID is required.' };
+    }
+    try {
+        const docSnap = await serverDb.collection('caregiver_profiles').doc(candidateId).collection('signatures').doc('onboarding_main').get();
+        const formData = docSnap.exists ? docSnap.data() : {};
+        const result = await generateEmergencyProcedurePdf(formData);
+        
+        return result;
+    } catch (error: any) {
+        return { error: `Failed to generate PDF: ${error.message}` };
+    }
+}
+
+
+
 export async function generateAllFormsAsZipAction(candidateId: string) {
     if (!candidateId) {
         return { error: 'Candidate ID is required.' };
@@ -808,24 +846,34 @@ export async function generateAllFormsAsZipAction(candidateId: string) {
             { key: 'caregiverResponsibilitiesSignature', name: 'Caregiver Responsibilities.pdf', generator: generateCaregiverResponsibilitiesPdf },
             { key: 'lightHousekeepingAcknowledged', name: 'Light Housekeeping.pdf', generator: generateLightHousekeepingPdf },
             { key: 'telephonyInstructionsAcknowledged', name: 'Caregiver Telephony Instructions.pdf', generator: generateCaregiverTelephonyInstructionsPdf },
+            { key: 'emergencyProcedureSignature', name: 'Caregiver Emergency Procedures.pdf', generator: generateEmergencyProcedurePdf },
         ];
         
         const settingsSnap = await serverDb.collection('settings').doc('hiring_form_fields').get();
         const settingsData = settingsSnap.exists ? settingsSnap.data() : {};
         const combinedData = { ...formData, ...settingsData };
+        
+        const signaturesSnap = await serverDb.collection('caregiver_profiles').doc(candidateId).collection('signatures').doc('onboarding_main').get();
+        const signaturesData = signaturesSnap.exists ? signaturesSnap.data() : {};
+        
         let generatedFileCount = 0;
 
         for (const form of formGenerators) {
-            if (formData[form.key as keyof CaregiverProfile]) {
+            let dataForGenerator: any = formData;
+            let isComplete = !!formData[form.key as keyof CaregiverProfile];
+
+            if (form.key === 'emergencyProcedureSignature') {
+                dataForGenerator = signaturesData;
+                isComplete = !!signaturesData?.emergencyProcedureSignature;
+            } else if (form.key === 'offerLetterSignature') {
+                dataForGenerator = combinedData;
+            } else if (form.key === 'telephonyInstructionsAcknowledged') {
+                const employeeSnap = await serverDb.collection('caregiver_employees').doc(candidateId).get();
+                dataForGenerator = { ...formData, ...employeeSnap.data() };
+            }
+
+            if (isComplete) {
                 try {
-                    let dataForGenerator = formData;
-                     if (form.key === 'offerLetterSignature') {
-                        dataForGenerator = combinedData;
-                    } else if (form.key === 'telephonyInstructionsAcknowledged') {
-                        const employeeSnap = await serverDb.collection('caregiver_employees').doc(candidateId).get();
-                        dataForGenerator = { ...formData, ...employeeSnap.data() };
-                    }
-                    
                     const pdfResult = await form.generator(dataForGenerator);
                     if (pdfResult.pdfData) {
                         zip.file(form.name, pdfResult.pdfData, { base64: true });

@@ -24,6 +24,7 @@ export { generateTppCsaPdf } from './pdf-generators/tpp-csa';
 export { generateCaregiverResponsibilitiesPdf } from './pdf-generators/caregiver-responsibilities';
 export { generateLightHousekeepingPdf } from './pdf-generators/light-housekeeping';
 export { generateCaregiverTelephonyInstructionsPdf } from './pdf-generators/caregiver-telephony-instructions';
+export { generateEmergencyProcedurePdf } from './pdf-generators/emergency-procedure';
     
 
     

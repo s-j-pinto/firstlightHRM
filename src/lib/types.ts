@@ -421,6 +421,18 @@ export const telephonyInstructionsSchema = z.object({
 });
 export type TelephonyInstructionsFormData = z.infer<typeof telephonyInstructionsSchema>;
 
+export const emergencyProcedureSchema = z.object({
+    emergencyProcedureSignature: z.string().min(1, 'Signature is required.'),
+    emergencyProcedureSignatureDate: z.date({required_error: 'Date is required.'}),
+});
+export type EmergencyProcedureFormData = z.infer<typeof emergencyProcedureSchema>;
+
+export const onboardingSignaturesSchema = z.object({
+    emergencyProcedureSignature: z.string().optional(),
+    emergencyProcedureSignatureDate: z.date().optional(),
+});
+export type OnboardingSignatures = z.infer<typeof onboardingSignaturesSchema>;
+
 
 export const caregiverFormSchema = generalInfoSchema
   .merge(experienceSchema)
@@ -444,6 +456,7 @@ export const caregiverFormSchema = generalInfoSchema
   .merge(offerLetterSchema.partial())
   .merge(caregiverResponsibilitiesSchema.partial())
   .merge(telephonyInstructionsSchema.partial())
+  .merge(emergencyProcedureSchema.partial())
   .extend({ 
     lightHousekeepingAcknowledged: z.boolean().optional()
   });
@@ -1103,6 +1116,7 @@ export type CaregiverForRecommendation = z.infer<typeof CaregiverForRecommendati
   
 
     
+
 
 
 
