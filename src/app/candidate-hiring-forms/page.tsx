@@ -8,7 +8,7 @@ import { FileText, CheckCircle, Loader2, ArrowLeft, Printer, Download, XCircle }
 import Link from 'next/link';
 import { useUser, useDoc, useCollection, useMemoFirebase, useFirestore } from '@/firebase';
 import { doc, query, where, collection, limit } from 'firebase/firestore';
-import type { CaregiverProfile, Interview } from '@/lib/types';
+import type { CaregiverProfile, Interview, OnboardingSignatures } from '@/lib/types';
 import { 
     hcs501AdminSchema,
     drugAlcoholPolicyAdminSchema,
@@ -37,6 +37,7 @@ import {
     generateCaregiverResponsibilitiesPdfAction,
     generateLightHousekeepingPdfAction,
     generateCaregiverTelephonyInstructionsPdfAction,
+    generateEmergencyProcedurePdfAction,
     generateAllFormsAsZipAction
 } from '@/lib/candidate-hiring-forms.actions';
 import { useToast } from '@/hooks/use-toast';
@@ -46,7 +47,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 
-const hiringForms: { name: string; href: string; completionKey: keyof CaregiverProfile; pdfAction: string; adminSchema?: z.ZodObject<any, any, any> | z.ZodEffects<any,any,any> }[] = [
+const hiringForms: { name: string; href: string; completionKey: keyof CaregiverProfile | keyof OnboardingSignatures; pdfAction: string; adminSchema?: z.ZodObject<any, any, any> | z.ZodEffects<any,any,any> }[] = [
   { name: "HCS 501 - Personnel Record 2019", href: "/candidate-hiring-forms/hcs501", completionKey: 'hcs501EmployeeSignature', pdfAction: 'hcs501', adminSchema: hcs501AdminSchema },
   { name: "Caregiver Emergency Contact Numbers", href: "/candidate-hiring-forms/emergency-contact", completionKey: 'emergencyContact1_name', pdfAction: 'emergencyContact' },
   { name: "Reference Verification 1", href: "/candidate-hiring-forms/reference-verification-1", completionKey: 'applicantSignature1', pdfAction: 'referenceVerification1' },
@@ -55,7 +56,7 @@ const hiringForms: { name: string; href: string; completionKey: keyof CaregiverP
   { name: "SOC 341A - Elder Abuse Reporting Form", href: "/candidate-hiring-forms/soc341a", completionKey: 'soc341aSignature', pdfAction: 'soc341a' },
 ];
 
-const onboardingForms: { name: string; href: string; completionKey: keyof CaregiverProfile; pdfAction: string; adminSchema?: z.ZodObject<any, any, any> | z.ZodEffects<any,any,any> }[] = [
+const onboardingForms: { name: string; href: string; completionKey: keyof CaregiverProfile | keyof OnboardingSignatures; pdfAction: string; adminSchema?: z.ZodObject<any, any, any> | z.ZodEffects<any,any,any> }[] = [
   { name: "Mutual Arbitration Agreement", href: "/candidate-hiring-forms/arbitration-agreement", completionKey: 'arbitrationAgreementSignature', pdfAction: 'arbitrationAgreement' },
   { name: "Drug and/or Alcohol Testing Consent Form", href: "/candidate-hiring-forms/drug-alcohol-policy", completionKey: 'drugAlcoholPolicySignature', pdfAction: 'drugAlcoholPolicy', adminSchema: drugAlcoholPolicyAdminSchema },
   { name: "HCA job description-Rancho-Cucamonga", href: "/candidate-hiring-forms/hca-job-description", completionKey: 'jobDescriptionSignature', pdfAction: 'hcaJobDescription' },
@@ -68,6 +69,7 @@ const onboardingForms: { name: string; href: string; completionKey: keyof Caregi
   { name: "Caregiver Responsibilities", href: "/candidate-hiring-forms/caregiver-responsibilities", completionKey: 'caregiverResponsibilitiesSignature', pdfAction: 'caregiverResponsibilities' },
   { name: "Light Housekeeping", href: "/candidate-hiring-forms/light-housekeeping", completionKey: 'lightHousekeepingAcknowledged', pdfAction: 'lightHousekeeping' },
   { name: "Caregiver Telephony Instructions", href: "/candidate-hiring-forms/caregiver-telephony-instructions", completionKey: 'telephonyInstructionsAcknowledged', pdfAction: 'caregiverTelephonyInstructions' },
+  { name: "Caregiver Emergency Procedures", href: "/candidate-hiring-forms/emergency-procedure", completionKey: 'emergencyProcedureSignature', pdfAction: 'emergencyProcedure' },
 ];
 
 
@@ -95,6 +97,12 @@ function CandidateHiringFormsContent() {
   );
   const { data: profileData, isLoading: isProfileLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
   
+  const signaturesRef = useMemoFirebase(
+    () => (profileIdToLoad && firestore ? doc(firestore, `caregiver_profiles/${profileIdToLoad}/signatures`, 'onboarding_main') : null),
+    [profileIdToLoad, firestore]
+  );
+  const { data: signaturesData, isLoading: isSignaturesLoading } = useDoc<OnboardingSignatures>(signaturesRef);
+  
   const interviewQuery = useMemoFirebase(
     () => (profileIdToLoad && firestore ? query(collection(firestore, 'interviews'), where('caregiverProfileId', '==', profileIdToLoad), limit(1)) : null),
     [profileIdToLoad, firestore]
@@ -102,7 +110,7 @@ function CandidateHiringFormsContent() {
   const { data: interviewData, isLoading: isInterviewLoading } = useCollection<Interview>(interviewQuery);
   const interview = interviewData?.[0];
 
-  const isLoading = isUserLoading || isProfileLoading || isInterviewLoading;
+  const isLoading = isUserLoading || isProfileLoading || isInterviewLoading || isSignaturesLoading;
   
   const allAvailableForms = interview?.onboardingFormsInitiated ? [...hiringForms, ...onboardingForms] : hiringForms;
 
@@ -123,11 +131,11 @@ function CandidateHiringFormsContent() {
       return { allCandidateFormsComplete: false, allAdminFieldsComplete: false, formsToRender: [] };
     }
 
-    const sanitizedProfileData: { [key: string]: any } = { ...profileData };
+    const sanitizedProfileData: { [key: string]: any } = { ...profileData, ...signaturesData };
     
     allAvailableForms.forEach(form => {
         if (form.adminSchema) {
-            const baseSchema = (form.adminSchema as any).shape
+            const baseSchema = (form.adminSchema as any).shape 
                 ? (form.adminSchema as z.ZodObject<any, any, any>)
                 : (form.adminSchema as z.ZodEffects<any, any, any>)._def.schema;
 
@@ -143,7 +151,13 @@ function CandidateHiringFormsContent() {
     });
 
     const formsWithStatus = allAvailableForms.map(form => {
-      const isCandidateCompleted = !!profileData[form.completionKey as keyof CaregiverProfile];
+      let isCandidateCompleted = false;
+      if (form.completionKey === 'emergencyProcedureSignature') {
+        isCandidateCompleted = !!signaturesData?.[form.completionKey as keyof OnboardingSignatures];
+      } else {
+        isCandidateCompleted = !!profileData[form.completionKey as keyof CaregiverProfile];
+      }
+      
       let isAdminCompleted = true; // Assume complete if no admin schema exists
 
       if (isAnAdmin && isCandidateCompleted && form.adminSchema) {
@@ -160,7 +174,7 @@ function CandidateHiringFormsContent() {
     const allAdminFieldsComplete = formsWithStatus.every(f => f.isAdminCompleted);
 
     return { allCandidateFormsComplete, allAdminFieldsComplete, formsToRender: formsWithStatus };
-  }, [profileData, isAnAdmin, interview?.onboardingFormsInitiated, allAvailableForms]);
+  }, [profileData, signaturesData, isAnAdmin, interview?.onboardingFormsInitiated, allAvailableForms]);
 
   useEffect(() => {
     setIsVerified(false);
@@ -211,6 +225,8 @@ function CandidateHiringFormsContent() {
             result = await generateLightHousekeepingPdfAction();
         } else if (formAction === 'caregiverTelephonyInstructions') {
             result = await generateCaregiverTelephonyInstructionsPdfAction(candidateId);
+        } else if (formAction === 'emergencyProcedure') {
+            result = await generateEmergencyProcedurePdfAction(candidateId);
         } else {
              toast({ title: 'PDF Generation Not Implemented', description: `No PDF generator exists for this form yet.`, variant: 'destructive' });
              return;
