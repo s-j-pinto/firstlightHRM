@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
@@ -14,7 +13,6 @@ import { caregiverEmployeeSchema } from '@/lib/types';
 import { saveInterviewAndSchedule, rejectCandidateAfterOrientation, initiateOnboardingForms } from '@/lib/interviews.actions';
 import { getAiInterviewInsights } from '@/lib/ai.actions';
 import { triggerTeletrackImport } from '@/lib/github.actions';
-import { deleteCaregiverAppointment } from '@/lib/caregiver.actions';
 
 
 import { Input } from '@/components/ui/input';
@@ -491,7 +489,6 @@ export default function ManageInterviewsClient() {
         toast({ title: 'Success', description: "Phone interview results saved." });
 
         if (data.phoneScreenPassed === 'No') {
-          await deleteCaregiverAppointment(selectedCaregiver.id);
           handleCancel();
         }
       } catch(serverError) {
@@ -590,7 +587,6 @@ export default function ManageInterviewsClient() {
                 setExistingInterview(prev => prev ? { ...prev, ...updateData } : null);
                 toast({ title: "Status Updated", description: `Final interview marked as ${status}.` });
                 if(status === 'Failed') {
-                    await deleteCaregiverAppointment(selectedCaregiver.id);
                     handleCancel();
                 }
               })
@@ -885,7 +881,7 @@ export default function ManageInterviewsClient() {
                 </a>
             </Button>
             <p className="mt-3 text-xs">
-                After you authorize, Google will redirect you. Copy the &apos;code&apos; from the new URL, then go to{' '}
+                After you authorize, Google will redirect you. Copy the 'code' from the new URL, then go to{' '}
                 <Link href="/admin/settings" className="underline font-semibold">Admin Settings</Link> to paste it and generate a new refresh token.
             </p>
           </AlertDescription>
@@ -1621,5 +1617,3 @@ function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: strin
     
 
     
-
-

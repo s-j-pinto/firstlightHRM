@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -111,7 +110,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
           eventRequestBody.conferenceData = { createRequest: { requestId: `interview-${interviewId}`, conferenceSolutionKey: { type: 'hangoutsMeet' } } };
         } else {
           eventRequestBody.location = '9650 Business Center Drive, Suite #113, Bldg #17, Rancho Cucamonga, CA 92730, PH: 909-321-4466';
-          eventRequestBody.description = `${logoHtml}Dear ${caregiverProfile.fullName},\nPlease bring the following documents to in-person Interview with FirstLight Homecare:\n- Driver's License,\n- Car insurance and registration,\n- Social Security card or US passport (to prove your work eligibility, If you are green card holder, bring Green card.)\n- Current negative TB-Test Copy,\n- HCA letter or number,\n- Live scan or Clearance letter if you have it,\n If you have not registered, please register on this link: https://guardian.dss.ca.gov/Applicant/. Complete the application and enter the Agency Pin: R38XKSPE (the PIN for independent home care aides)  when prompted. You will be required to pay a fee of $35.00 to register; payment can be made by debit or credit card. \n- CPR-First Aide proof card, Any other certification that you have.`;
+          eventRequestBody.description = `${logoHtml}Dear ${caregiverProfile.fullName},\nPlease bring the following documents to in-person Interview with FirstLight Homecare:\n- Driver's License,\n- Car insurance and registration,\n- Social Security card or US passport (to prove your work eligibility, If you are green card holder, bring Green card.)\n- Current negative TB-Test Copy,\n- HCA letter, number, or Credit Card so during your interview, we can apply and pay $35 fee to guardian.\n- Live scan or Clearance letter if you have it,\n If you have not registered, please register on this link: https://guardian.dss.ca.gov/Applicant/. Complete the application and enter the Agency Pin: R38XKSPE (the PIN for independent home care aides)  when prompted. You will be required to pay a fee of $35.00 to register; payment can be made by debit or credit card. \n- CPR-First Aide proof card, Any other certification that you have.\n- Employment history with dates and contact numbers,\n- DMV Driver’s Record Request Report. You can get a Driver’s Record Request online: https://www.dmv.ca.gov/portal   $2 online or  $5 at DMV office.\n- Physical Test(HHA only)`;
         }
 
         let createdEvent;
@@ -339,13 +338,6 @@ export async function rejectCandidateAfterOrientation(payload: { interviewId: st
             rejectionDate: Timestamp.now(),
         });
         
-        // Delete any associated appointment
-        const appointmentsQuery = firestore.collection('appointments').where('caregiverId', '==', caregiverId);
-        const appointmentSnapshot = await appointmentsQuery.get();
-        if (!appointmentSnapshot.empty) {
-            appointmentSnapshot.forEach(doc => batch.delete(doc.ref));
-        }
-
         await batch.commit();
 
         const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
