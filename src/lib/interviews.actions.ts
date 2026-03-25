@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -320,66 +321,84 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
   }
 }
 
-export async function rejectCandidateAfterOrientation(payload: { interviewId: string, caregiverId: string, reason: string, notes: string, caregiverName: string, caregiverEmail: string }) {
-    const { interviewId, caregiverId, reason, notes, caregiverName, caregiverEmail } = payload;
-    if (!interviewId || !caregiverId || !reason || !caregiverName || !caregiverEmail) {
-        return { error: true, message: "Interview ID, caregiver ID, reason, and caregiver details are required." };
-    }
-    
-    try {
-        const firestore = serverDb;
-        const batch = firestore.batch();
+export async function rejectCandidate(payload: { 
+  caregiverId: string;
+  interviewId: string | null;
+  reason: string;
+  notes: string;
+  caregiverName: string;
+  caregiverEmail: string;
+}) {
+  const { caregiverId, interviewId, reason, notes, caregiverName, caregiverEmail } = payload;
+  if (!caregiverId || !reason) {
+    return { error: true, message: "Caregiver ID and reason are required." };
+  }
 
-        const interviewRef = firestore.collection('interviews').doc(interviewId);
-        batch.update(interviewRef, {
-            finalInterviewStatus: 'Rejected at Orientation',
-            rejectionReason: reason,
-            rejectionNotes: notes,
-            rejectionDate: Timestamp.now(),
+  try {
+    const firestore = serverDb;
+    const batch = firestore.batch();
+    const now = Timestamp.now();
+
+    const status = (reason === "CG ghosted appointment") ? "No Show" : "Process Terminated";
+
+    const interviewRef = interviewId ? firestore.collection('interviews').doc(interviewId) : firestore.collection('interviews').doc();
+      
+    const interviewPayload: Partial<Interview> & { lastUpdatedAt: FirebaseFirestore.Timestamp } = {
+        caregiverProfileId: caregiverId,
+        finalInterviewStatus: status,
+        rejectionReason: reason,
+        rejectionNotes: notes,
+        rejectionDate: now,
+        lastUpdatedAt: now,
+        phoneScreenPassed: 'No',
+    };
+
+    if (interviewId) {
+        batch.update(interviewRef, interviewPayload);
+    } else {
+        batch.set(interviewRef, {
+            ...interviewPayload,
+            interviewType: "Phone",
+            interviewDateTime: now,
+            createdAt: now,
         });
-        
-        await batch.commit();
+    }
 
-        const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
+    const appointmentsQuery = firestore.collection('appointments').where('caregiverId', '==', caregiverId).limit(1);
+    const appointmentSnapshot = await appointmentsQuery.get();
+    if (!appointmentSnapshot.empty) {
+        const appointmentDocRef = appointmentSnapshot.docs[0].ref;
+        batch.update(appointmentDocRef, {
+            appointmentStatus: 'cancelled',
+            cancelReason: reason,
+            cancelDateTime: now
+        });
+    }
 
-        // Construct and send the rejection email
-        const rejectionEmailHtml = `
-            <p>${caregiverName},</p>
-            <p>After careful consideration, we’ve decided not to move forward with your application at this time. This decision was made based on how each candidate aligned with the key qualifications and needs of the role.</p>
-            <p>Best wishes on your employment search.</p>
-            <p>--<br>
-            Jacqui Wilson<br>
-            Care Coordinator<br>
-            Office (909)-321-4466<br>
-            Fax (909)-694-2474</p>
-            <p>CALIFORNIA HCO LICENSE # 364700059</p>
-            <p>9650 Business Center Drive, Suite #113 | Rancho Cucamonga, CA 91730</p>
-            <p><a href="mailto:care-rc@firstlighthomecare.com">care-rc@firstlighthomecare.com</a><br>
-            <a href="http://ranchocucamonga.firstlighthomecare.com">ranchocucamonga.firstlighthomecare.com</a></p>
-            <p><a href="https://www.facebook.com/FirstLightHomeCareofRanchoCucamonga">https://www.facebook.com/FirstLightHomeCareofRanchoCucamonga</a></p>
-            <br>
-            <img src="${logoUrl}" alt="FirstLight Home Care Logo" style="width: 200px; height: auto;"/>
-            <br><br>
-            <p><small><strong>CONFIDENTIALITY NOTICE</strong><br>
-            This email, including any attachments or files transmitted with it, is intended to be confidential and solely for the use of the individual or entity to whom it is addressed. If you received it in error, or if you are not the intended recipient(s), please notify the sender by reply e-mail and delete/destroy the original message and any attachments, and any copies. Any unauthorized review, use, disclosure or distribution of this e-mail or information is prohibited and may be a violation of applicable laws.</small></p>
-        `;
+    await batch.commit();
 
+    const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
+    const rejectionEmailHtml = `...`; // Email content remains the same
+
+    if (reason !== "CG ghosted appointment") {
         await serverDb.collection("mail").add({
             to: [caregiverEmail],
             cc: ['care-rc@firstlighthomecare.com'],
             message: {
                 subject: `Update on Your Application with FirstLight Home Care`,
-                html: `<body style="font-family: sans-serif;">${rejectionEmailHtml}</body>`,
+                html: `<p>${caregiverName},</p><p>After careful consideration, we’ve decided not to move forward with your application at this time. This decision was made based on how each candidate aligned with the key qualifications and needs of the role.</p><p>Best wishes on your employment search.</p><p>--<br>Jacqui Wilson<br>Care Coordinator<br>Office (909)-321-4466<br>Fax (909)-694-2474</p><p>CALIFORNIA HCO LICENSE # 364700059</p><p>9650 Business Center Drive, Suite #113 | Rancho Cucamonga, CA 91730</p><p><a href="mailto:care-rc@firstlighthomecare.com">care-rc@firstlighthomecare.com</a><br><a href="http://ranchocucamonga.firstlighthomecare.com">ranchocucamonga.firstlighthomecare.com</a></p><p><a href="https://www.facebook.com/FirstLightHomeCareofRanchoCucamonga">https://www.facebook.com/FirstLightHomeCareofRanchoCucamonga</a></p><br><img src="${logoUrl}" alt="FirstLight Home Care Logo" style="width: 200px; height: auto;"/><br><p><small><strong>CONFIDENTIALITY NOTICE</strong><br>This email, including any attachments or files transmitted with it, is intended to be confidential and solely for the use of the individual or entity to whom it is addressed. If you received it in error, or if you are not the intended recipient(s), please notify the sender by reply e-mail and delete/destroy the original message and any attachments, and any copies. Any unauthorized review, use, disclosure or distribution of this e-mail or information is prohibited and may be a violation of applicable laws.</small></p>`,
             }
         });
-
-        revalidatePath('/admin/manage-interviews');
-        return { success: true, message: 'Candidate has been marked as rejected and an email has been sent.' };
-
-    } catch (error: any) {
-        console.error("Error rejecting candidate:", error);
-        return { error: true, message: `An error occurred: ${error.message}` };
     }
+
+    revalidatePath('/admin/manage-interviews');
+    revalidatePath('/admin/advanced-search');
+    return { success: true, message: 'Candidate has been rejected and associated appointment cancelled.' };
+
+  } catch (error: any) {
+    console.error("Error rejecting candidate:", error);
+    return { error: true, message: `An error occurred: ${error.message}` };
+  }
 }
 
 export async function initiateOnboardingForms(interviewId: string) {

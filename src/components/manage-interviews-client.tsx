@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
@@ -10,7 +11,7 @@ import { collection, query, where, getDocs, setDoc, doc, updateDoc, Timestamp, a
 import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import type { CaregiverProfile, Interview, CaregiverEmployee } from '@/lib/types';
 import { caregiverEmployeeSchema } from '@/lib/types';
-import { saveInterviewAndSchedule, rejectCandidateAfterOrientation, initiateOnboardingForms } from '@/lib/interviews.actions';
+import { saveInterviewAndSchedule, rejectCandidate, initiateOnboardingForms } from '@/lib/interviews.actions';
 import { getAiInterviewInsights } from '@/lib/ai.actions';
 import { triggerTeletrackImport } from '@/lib/github.actions';
 
@@ -455,52 +456,67 @@ export default function ManageInterviewsClient() {
   };
   
   const onPhoneScreenSubmit = async (data: PhoneScreenFormData) => {
-    if (!selectedCaregiver || !db) return;
+    if (!selectedCaregiver) return;
 
-    startSubmitTransition(async () => {
-      let interviewId = existingInterview?.id;
-      let interviewDocRef;
-      
-      const interviewPayload = {
-        caregiverProfileId: selectedCaregiver.id,
-        caregiverUid: selectedCaregiver.uid,
-        interviewType: "Phone" as const,
-        phoneScreenPassed: data.phoneScreenPassed,
-        interviewNotes: data.interviewNotes,
-        candidateRating: assessmentForm.getValues('candidateRating'),
-        aiGeneratedInsight: aiInsight || '',
-        createdAt: Timestamp.now(),
-        lastUpdatedAt: Timestamp.now(),
-      };
-      
-      try {
-        if (interviewId) {
-          interviewDocRef = doc(db, 'interviews', interviewId);
-          await updateDoc(interviewDocRef, interviewPayload);
-        } else {
-          const interviewsCollection = collection(db, 'interviews');
-          const docRef = await addDoc(interviewsCollection, interviewPayload);
-          interviewId = docRef.id;
-          interviewDocRef = docRef;
-        }
+    if (data.phoneScreenPassed === 'No') {
+        startRejectingTransition(async () => {
+            const result = await rejectCandidate({
+                caregiverId: selectedCaregiver.id,
+                interviewId: existingInterview?.id || null,
+                reason: "Failed Phone Screen",
+                notes: data.interviewNotes,
+                caregiverName: selectedCaregiver.fullName,
+                caregiverEmail: selectedCaregiver.email,
+            });
+            if (result.error) {
+                toast({ title: 'Error', description: result.message, variant: 'destructive' });
+            } else {
+                toast({ title: 'Success', description: "Candidate marked as 'Failed Phone Screen'." });
+                handleCancel();
+            }
+        });
+    } else {
+        startSubmitTransition(async () => {
+            if (!db) return;
+            let interviewId = existingInterview?.id;
+            let interviewDocRef;
+            
+            const interviewPayload: Partial<Interview> = {
+                caregiverProfileId: selectedCaregiver.id,
+                caregiverUid: selectedCaregiver.uid,
+                interviewType: "Phone" as const,
+                phoneScreenPassed: 'Yes' as const,
+                interviewNotes: data.interviewNotes,
+                candidateRating: assessmentForm.getValues('candidateRating'),
+                aiGeneratedInsight: aiInsight || '',
+                lastUpdatedAt: Timestamp.now(),
+            };
+            
+            try {
+                if (interviewId) {
+                    interviewDocRef = doc(db, 'interviews', interviewId);
+                    await updateDoc(interviewDocRef, interviewPayload);
+                } else {
+                    interviewDocRef = doc(collection(db, 'interviews'));
+                    interviewId = interviewDocRef.id;
+                    await setDoc(interviewDocRef, { ...interviewPayload, createdAt: Timestamp.now() });
+                }
 
-        setExistingInterview({ ...interviewPayload, id: interviewId } as Interview);
-        
-        toast({ title: 'Success', description: "Phone interview results saved." });
+                setExistingInterview(prev => ({ ...(prev || { id: interviewId! }), ...interviewPayload } as Interview));
+                toast({ title: 'Success', description: "Phone interview results saved." });
 
-        if (data.phoneScreenPassed === 'No') {
-          handleCancel();
-        }
-      } catch(serverError) {
-          const permissionError = new FirestorePermissionError({
-            path: interviewDocRef ? interviewDocRef.path : collection(db, 'interviews').path,
-            operation: interviewId ? 'update' : 'create',
-            requestResourceData: interviewPayload,
-          });
-          errorEmitter.emit("permission-error", permissionError);
-      }
-    });
+            } catch (serverError) {
+                const permissionError = new FirestorePermissionError({
+                    path: interviewDocRef ? interviewDocRef.path : collection(db, 'interviews').path,
+                    operation: interviewId ? 'update' : 'create',
+                    requestResourceData: interviewPayload,
+                });
+                errorEmitter.emit("permission-error", permissionError);
+            }
+        });
+    }
   };
+
 
   const onAssessmentSubmit = async (data: AssessmentFormData) => {
     if (!selectedCaregiver || !db) return;
@@ -725,26 +741,26 @@ export default function ManageInterviewsClient() {
     });
   };
     
-    const handleRejection = (reason: string, notes: string) => {
-        if (!existingInterview?.id || !selectedCaregiver) return;
-        startRejectingTransition(async () => {
-            const result = await rejectCandidateAfterOrientation({
-                interviewId: existingInterview.id,
-                caregiverId: selectedCaregiver.id,
-                reason,
-                notes,
-                caregiverName: selectedCaregiver.fullName,
-                caregiverEmail: selectedCaregiver.email,
-            });
-            if (result.error) {
-                toast({ title: 'Error', description: result.message, variant: 'destructive' });
-            } else {
-                toast({ title: 'Success', description: result.message });
-                setIsRejectDialogOpen(false);
-                handleCancel();
-            }
+  const handleRejection = (reason: string, notes: string) => {
+    if (!selectedCaregiver) return;
+    startRejectingTransition(async () => {
+        const result = await rejectCandidate({
+            caregiverId: selectedCaregiver.id,
+            interviewId: existingInterview?.id || null,
+            reason,
+            notes,
+            caregiverName: selectedCaregiver.fullName,
+            caregiverEmail: selectedCaregiver.email,
         });
-    };
+        if (result.error) {
+            toast({ title: 'Error', description: result.message, variant: 'destructive' });
+        } else {
+            toast({ title: 'Success', description: result.message });
+            setIsRejectDialogOpen(false);
+            handleCancel();
+        }
+    });
+  };
 
   const handleLaunchMeet = () => {
     if (existingInterview?.googleMeetLink) {
@@ -984,8 +1000,8 @@ export default function ManageInterviewsClient() {
                                       )}
                                   />
                                   <div className="flex justify-end">
-                                      <Button type="submit" disabled={isSubmitting}>
-                                          {isSubmitting ? (
+                                      <Button type="submit" disabled={isSubmitting || isRejecting}>
+                                          {isSubmitting || isRejecting ? (
                                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                           ) : (
                                               <UserCheck className="mr-2 h-4 w-4" />
@@ -1617,3 +1633,4 @@ function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: strin
     
 
     
+
