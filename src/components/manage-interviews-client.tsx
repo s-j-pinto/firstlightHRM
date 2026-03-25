@@ -14,6 +14,7 @@ import { caregiverEmployeeSchema } from '@/lib/types';
 import { saveInterviewAndSchedule, rejectCandidateAfterOrientation, initiateOnboardingForms } from '@/lib/interviews.actions';
 import { getAiInterviewInsights } from '@/lib/ai.actions';
 import { triggerTeletrackImport } from '@/lib/github.actions';
+import { deleteCaregiverAppointment } from '@/lib/caregiver.actions';
 
 
 import { Input } from '@/components/ui/input';
@@ -490,6 +491,7 @@ export default function ManageInterviewsClient() {
         toast({ title: 'Success', description: "Phone interview results saved." });
 
         if (data.phoneScreenPassed === 'No') {
+          await deleteCaregiverAppointment(selectedCaregiver.id);
           handleCancel();
         }
       } catch(serverError) {
@@ -573,7 +575,7 @@ export default function ManageInterviewsClient() {
   }
 
     const handleUpdateFinalInterviewStatus = async (status: 'Passed' | 'Failed') => {
-        if (!existingInterview || !db) return;
+        if (!existingInterview || !db || !selectedCaregiver) return;
 
         startSubmitTransition(async () => {
             const interviewDocRef = doc(db, 'interviews', existingInterview.id);
@@ -584,10 +586,11 @@ export default function ManageInterviewsClient() {
              };
             
             updateDoc(interviewDocRef, updateData)
-              .then(() => {
+              .then(async () => {
                 setExistingInterview(prev => prev ? { ...prev, ...updateData } : null);
                 toast({ title: "Status Updated", description: `Final interview marked as ${status}.` });
                 if(status === 'Failed') {
+                    await deleteCaregiverAppointment(selectedCaregiver.id);
                     handleCancel();
                 }
               })
@@ -731,6 +734,7 @@ export default function ManageInterviewsClient() {
         startRejectingTransition(async () => {
             const result = await rejectCandidateAfterOrientation({
                 interviewId: existingInterview.id,
+                caregiverId: selectedCaregiver.id,
                 reason,
                 notes,
                 caregiverName: selectedCaregiver.fullName,
@@ -1617,4 +1621,5 @@ function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: strin
     
 
     
+
 

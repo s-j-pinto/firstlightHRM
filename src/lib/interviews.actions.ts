@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -101,7 +102,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
             start: { dateTime: startTime.toISOString(), timeZone: pacificTimeZone },
             end: { dateTime: endTime.toISOString(), timeZone: pacificTimeZone },
             attendees: [{ email: 'care-rc@firstlighthomecare.com' }, { email: caregiverProfile.email }],
-            reminders: { useDefault: false, overrides: [{ method: 'email', minutes: 24 * 60 }, { method: 'popup', minutes: 120 }] },
+            reminders: { useDefault: false, overrides: [{ method: 'email', minutes: 24 * 60 }, { method: 'popup', minutes: 60 }] },
         };
         
         if (interviewType === 'Google Meet') {
@@ -320,22 +321,33 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
   }
 }
 
-export async function rejectCandidateAfterOrientation(payload: { interviewId: string, reason: string, notes: string, caregiverName: string, caregiverEmail: string }) {
-    const { interviewId, reason, notes, caregiverName, caregiverEmail } = payload;
-    if (!interviewId || !reason || !caregiverName || !caregiverEmail) {
-        return { error: true, message: "Interview ID, reason, and caregiver details are required." };
+export async function rejectCandidateAfterOrientation(payload: { interviewId: string, caregiverId: string, reason: string, notes: string, caregiverName: string, caregiverEmail: string }) {
+    const { interviewId, caregiverId, reason, notes, caregiverName, caregiverEmail } = payload;
+    if (!interviewId || !caregiverId || !reason || !caregiverName || !caregiverEmail) {
+        return { error: true, message: "Interview ID, caregiver ID, reason, and caregiver details are required." };
     }
     
     try {
         const firestore = serverDb;
+        const batch = firestore.batch();
+
         const interviewRef = firestore.collection('interviews').doc(interviewId);
-        await interviewRef.update({
+        batch.update(interviewRef, {
             finalInterviewStatus: 'Rejected at Orientation',
             rejectionReason: reason,
             rejectionNotes: notes,
             rejectionDate: Timestamp.now(),
         });
         
+        // Delete any associated appointment
+        const appointmentsQuery = firestore.collection('appointments').where('caregiverId', '==', caregiverId);
+        const appointmentSnapshot = await appointmentsQuery.get();
+        if (!appointmentSnapshot.empty) {
+            appointmentSnapshot.forEach(doc => batch.delete(doc.ref));
+        }
+
+        await batch.commit();
+
         const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
 
         // Construct and send the rejection email

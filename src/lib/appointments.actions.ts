@@ -210,12 +210,8 @@ export async function cancelAppointment(appointmentId: string, reason: string) {
                 interviewDocRef = firestore.collection('interviews').doc();
             }
             
-            // WRITE SECOND: Update the appointment
-            transaction.update(appointmentRef, {
-                appointmentStatus: "cancelled",
-                cancelReason: reason,
-                cancelDateTime: new Date(),
-            });
+            // WRITE SECOND: Delete the appointment
+            transaction.delete(appointmentRef);
             
             // WRITE THIRD: Update or create the interview document if needed
             if (isTerminal && interviewDocRef) {

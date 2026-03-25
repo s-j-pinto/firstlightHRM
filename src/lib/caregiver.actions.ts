@@ -106,3 +106,32 @@ export async function resetCaregiverInterview(profileId: string) {
     return { message: `Failed to reset interview: ${error.message}`, error: true };
   }
 }
+
+export async function deleteCaregiverAppointment(profileId: string) {
+  if (!profileId) {
+    return { error: 'Caregiver Profile ID is required.' };
+  }
+  try {
+    const appointmentsQuery = serverDb.collection('appointments').where('caregiverId', '==', profileId);
+    const appointmentSnapshot = await appointmentsQuery.get();
+
+    if (appointmentSnapshot.empty) {
+      console.log(`No appointment found for caregiver ${profileId} to delete.`);
+      return { success: true, message: 'No appointment to delete.' };
+    }
+
+    const batch = serverDb.batch();
+    appointmentSnapshot.forEach(doc => {
+      console.log(`Deleting appointment ${doc.id} for caregiver ${profileId}`);
+      batch.delete(doc.ref);
+    });
+    await batch.commit();
+    
+    revalidatePath('/admin/manage-interviews');
+    revalidatePath('/admin/advanced-search');
+    return { success: true, message: 'Caregiver appointment deleted.' };
+  } catch (error: any) {
+    console.error(`Error deleting appointment for caregiver ${profileId}:`, error);
+    return { error: `Failed to delete appointment: ${error.message}` };
+  }
+}
