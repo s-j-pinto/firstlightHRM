@@ -66,7 +66,16 @@ const onboardingForms: { name: string; href: string; completionKey: keyof Caregi
   { name: "Client Abandonment", href: "/candidate-hiring-forms/client-abandonment", completionKey: 'clientAbandonmentSignature', pdfAction: 'clientAbandonment', adminSchema: clientAbandonmentAdminSchema },
   { name: "EMPLOYEE ORIENTATION AGREEMENT", href: "/candidate-hiring-forms/employee-orientation-agreement", completionKey: 'orientationAgreementSignature', pdfAction: 'employeeOrientationAgreement', adminSchema: employeeOrientationAgreementAdminSchema },
   { name: "FirstLightHomeCare_AcknowledgmentForm", href: "/candidate-hiring-forms/acknowledgment-form", completionKey: 'acknowledgmentSignature', pdfAction: 'acknowledgmentForm' },
-  { name: "FirstLightHomeCare_CONFIDENTIALITY_AGREEMENT", href: "/candidate-hiring-forms/confidentiality-agreement", completionKey: 'confidentialityAgreementEmployeeSignature', pdfAction: 'confidentialityAgreement', adminSchema: confidentialityAgreementAdminSchema },
+  { 
+    name: "FirstLightHomeCare_CONFIDENTIALITY_AGREEMENT", 
+    href: "/candidate-hiring-forms/confidentiality-agreement", 
+    completionKey: 'confidentialityAgreementEmployeeSignature', 
+    pdfAction: 'confidentialityAgreement', 
+    // This is a special case. Since the admin portion is pre-filled from settings and not saved
+    // to the profile, we use an empty schema for admin validation. This means if the candidate
+    // has completed their part, the admin part is automatically considered complete.
+    adminSchema: z.object({}) 
+  },
   { name: "FirstLightHomeCareTrainingAcknowledgement", href: "/candidate-hiring-forms/training-acknowledgement", completionKey: 'trainingAcknowledgementSignature', pdfAction: 'trainingAcknowledgement' },
   { name: "MASTER-FLHC Offer Letter revised-2-16-26", href: "/candidate-hiring-forms/offer-letter", completionKey: 'offerLetterSignature', pdfAction: 'offerLetter' },
   { name: "Caregiver Responsibilities", href: "/candidate-hiring-forms/caregiver-responsibilities", completionKey: 'caregiverResponsibilitiesSignature', pdfAction: 'caregiverResponsibilities' },
@@ -166,20 +175,13 @@ function CandidateHiringFormsContent() {
       
       let isAdminCompleted = true; // Default to true
 
-      if (isAnAdmin && isCandidateCompleted) {
-        if (form.name === 'FirstLightHomeCare_CONFIDENTIALITY_AGREEMENT') {
-          // Special case: This form is considered admin-complete once the candidate signs
-          // because the admin part is pre-filled.
-          isAdminCompleted = true;
-        } else if (form.adminSchema) {
-          const result = form.adminSchema.safeParse(sanitizedProfileData);
-          if (!result.success) {
+      if (isAnAdmin && isCandidateCompleted && form.adminSchema) {
+        const result = form.adminSchema.safeParse(sanitizedProfileData);
+        isAdminCompleted = result.success;
+        if (!result.success) {
             console.log(`Admin validation failed for ${form.name}:`, result.error.flatten());
-          }
-          isAdminCompleted = result.success;
         }
       }
-      
       return { ...form, isCandidateCompleted, isAdminCompleted };
     });
     
