@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import SignatureCanvas from 'react-signature-canvas';
 import { doc } from "firebase/firestore";
 import Image from "next/image";
+import { format } from "date-fns";
 
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
