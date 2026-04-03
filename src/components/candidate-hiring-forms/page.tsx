@@ -70,11 +70,7 @@ const onboardingForms: { name: string; href: string; completionKey: keyof Caregi
     name: "FirstLightHomeCare_CONFIDENTIALITY_AGREEMENT", 
     href: "/candidate-hiring-forms/confidentiality-agreement", 
     completionKey: 'confidentialityAgreementEmployeeSignature', 
-    pdfAction: 'confidentialityAgreement', 
-    // This is a special case. Since the admin portion is pre-filled from settings and not saved
-    // to the profile, we use an empty schema for admin validation. This means if the candidate
-    // has completed their part, the admin part is automatically considered complete.
-    adminSchema: z.object({}) 
+    pdfAction: 'confidentialityAgreement'
   },
   { name: "FirstLightHomeCareTrainingAcknowledgement", href: "/candidate-hiring-forms/training-acknowledgement", completionKey: 'trainingAcknowledgementSignature', pdfAction: 'trainingAcknowledgement' },
   { name: "MASTER-FLHC Offer Letter revised-2-16-26", href: "/candidate-hiring-forms/offer-letter", completionKey: 'offerLetterSignature', pdfAction: 'offerLetter' },
