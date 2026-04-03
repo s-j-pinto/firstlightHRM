@@ -1,4 +1,3 @@
-'use server';
 
 import type { CaregiverProfile, OnboardingSignatures } from './types';
 import { 
