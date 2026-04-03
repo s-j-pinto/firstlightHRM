@@ -6,7 +6,7 @@ import * as React from "react";
 import { useState, useTransition, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useDoc, useMemoFirebase, firestore } from "@/firebase";
+import { useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import { doc } from 'firebase/firestore';
 import { useRouter, usePathname } from "next/navigation";
 import { format } from "date-fns";
@@ -133,13 +133,14 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
   const { toast } = useToast();
   const router = useRouter();
   const pathname = usePathname();
+  const firestore = useFirestore();
 
   const isClientMode = mode === 'client-signing';
   const isPrintMode = mode === 'print';
   
   const [activeSignature, setActiveSignature] = useState<{ fieldName: keyof ClientSignupFormData; title: string; } | null>(null);
 
-  const signupDocRef = useMemoFirebase(() => signupId ? doc(firestore, 'client_signups', signupId) : null, [signupId]);
+  const signupDocRef = useMemoFirebase(() => signupId ? doc(firestore, 'client_signups', signupId) : null, [signupId, firestore]);
   const { data: existingSignupData, isLoading } = useDoc<any>(signupDocRef);
 
   const form = useForm<ClientSignupFormData>({
@@ -660,9 +661,9 @@ provisions of state and federal law. A separate <strong>FirstLight Home Care</st
                 <div className="space-y-6 break-before-page">
                     <h3 className="text-lg font-semibold text-center underline">TERMS AND CONDITIONS</h3>
                     <ol className="space-y-2 text-sm text-muted-foreground list-decimal list-inside">
-                        {terms.map((term, index) => (
+                        {tppTerms.map((term, index) => (
                             <li key={index} className="space-y-1">
-                                <span><span className="font-bold">{index + 1}. {term.title}</span><span dangerouslySetInnerHTML={{ __html: ' ' + term.text.replace(/FirstLight Home Care of Rancho Cucamonga/g, '<strong>FirstLight Home Care</strong>') }} /></span>
+                                <span><span className="font-bold">{term.title}</span><span dangerouslySetInnerHTML={{ __html: ' ' + term.text.replace(/FirstLight Home Care of Rancho Cucamonga/g, '<strong>FirstLight Home Care</strong>') }} /></span>
                                 {term.title === "HIRING:" && (
                                     <div className={cn("w-full md:w-1/3 mt-2 ml-4 p-4 rounded-md", isClientMode && "border border-orange-400")}>
                                         <FormField control={form.control} name="clientInitials" render={({ field }) => ( <FormItem><FormLabel>Client Initials</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
