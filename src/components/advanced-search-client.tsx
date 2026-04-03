@@ -6,19 +6,9 @@ import { useState, useMemo, useTransition, useEffect, useCallback } from 'react'
 import { useForm, Controller } from 'react-hook-form';
 import { collection, doc, query } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { 
-    CaregiverProfile, 
-    Interview, 
-    CaregiverEmployee, 
-    Appointment,
-    hcs501AdminSchema,
-    drugAlcoholPolicyAdminSchema,
-    clientAbandonmentAdminSchema,
-    employeeOrientationAgreementAdminSchema,
-    confidentialityAgreementAdminSchema
-} from '@/lib/types';
+import type { CaregiverProfile, Interview, CaregiverEmployee, Appointment, OnboardingSignatures } from '@/lib/types';
 import { z } from 'zod';
-import { format, isWithinInterval, startOfDay, endOfDay, parse } from 'date-fns';
+import { format, isWithinInterval, startOfDay, endOfDay, parse, isDate } from 'date-fns';
 import Link from 'next/link';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -39,27 +29,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Form, FormControl, FormItem } from '@/components/ui/form';
 import { sendHiringDocsNotification } from '@/lib/communication.actions';
 import { Input } from './ui/input';
-
-const hiringForms: { name: string; href: string; completionKey: keyof CaregiverProfile; pdfAction: string; adminSchema?: z.ZodObject<any, any, any> | z.ZodEffects<any,any,any> }[] = [
-  { name: "HCS 501 - Personnel Record 2019", href: "/candidate-hiring-forms/hcs501", completionKey: 'hcs501EmployeeSignature', pdfAction: 'hcs501', adminSchema: hcs501AdminSchema },
-  { name: "Caregiver Emergency Contact Numbers", href: "/candidate-hiring-forms/emergency-contact", completionKey: 'emergencyContact1_name', pdfAction: 'emergencyContact' },
-  { name: "Reference Verification 1", href: "/candidate-hiring-forms/reference-verification-1", completionKey: 'applicantSignature1', pdfAction: 'referenceVerification1' },
-  { name: "Reference Verification 2", href: "/candidate-hiring-forms/reference-verification-2", completionKey: 'applicantSignature2', pdfAction: 'referenceVerification2' },
-  { name: "LIC 508 - Criminal Record Statement", href: "/candidate-hiring-forms/lic508", completionKey: 'lic508Signature', pdfAction: 'lic508' },
-  { name: "SOC 341A - Elder Abuse Reporting Form", href: "/candidate-hiring-forms/soc341a", completionKey: 'soc341aSignature', pdfAction: 'soc341a' },
-];
-
-const onboardingForms = [
-  { name: "Mutual Arbitration Agreement", href: "/candidate-hiring-forms/arbitration-agreement", completionKey: 'arbitrationAgreementSignature', pdfAction: 'arbitrationAgreement' },
-  { name: "Drug and/or Alcohol Testing Consent Form", href: "/candidate-hiring-forms/drug-alcohol-policy", completionKey: 'drugAlcoholPolicySignature', pdfAction: 'drugAlcoholPolicy', adminSchema: drugAlcoholPolicyAdminSchema },
-  { name: "HCA job description-Rancho-Cucamonga", href: "/candidate-hiring-forms/hca-job-description", completionKey: 'jobDescriptionSignature', pdfAction: 'hcaJobDescription' },
-  { name: "Client Abandonment", href: "/candidate-hiring-forms/client-abandonment", completionKey: 'clientAbandonmentSignature', pdfAction: 'clientAbandonment', adminSchema: clientAbandonmentAdminSchema },
-  { name: "EMPLOYEE ORIENTATION AGREEMENT", href: "/candidate-hiring-forms/employee-orientation-agreement", completionKey: 'orientationAgreementSignature', pdfAction: 'employeeOrientationAgreement', adminSchema: employeeOrientationAgreementAdminSchema },
-  { name: "FirstLightHomeCare_AcknowledgmentForm", href: "/candidate-hiring-forms/acknowledgment-form", completionKey: 'acknowledgmentSignature', pdfAction: 'acknowledgmentForm' },
-  { name: "FirstLightHomeCare_CONFIDENTIALITY_AGREEMENT", href: "/candidate-hiring-forms/confidentiality-agreement", completionKey: 'confidentialityAgreementEmployeeSignature', pdfAction: 'confidentialityAgreement', adminSchema: confidentialityAgreementAdminSchema },
-  { name: "FirstLightHomeCareTrainingAcknowledgement", href: "/candidate-hiring-forms/training-acknowledgement", completionKey: 'trainingAcknowledgementSignature', pdfAction: 'trainingAcknowledgement' },
-  { name: "MASTER-FLHC Offer Letter revised-2-16-26", href: "/candidate-hiring-forms/offer-letter", completionKey: 'offerLetterSignature', pdfAction: 'offerLetter' },
-];
+import { hiringForms, onboardingForms } from '@/lib/hiring-forms';
 
 
 const skillsAndAttributes = [
@@ -291,48 +261,45 @@ export default function AdvancedSearchClient() {
 
     const getDocsStatus = useCallback((profile: CaregiverProfile, interview?: Interview): DocsStatus => {
         const allAvailableForms = interview?.onboardingFormsInitiated ? [...hiringForms, ...onboardingForms] : hiringForms;
-    
-        const allCandidateFormsComplete = allAvailableForms.every(form => !!profile[form.completionKey as keyof CaregiverProfile]);
+
+        // This check is inherently flawed because 'emergencyProcedureSignature' is in a subcollection
+        // that is not fetched on this page. We will temporarily ignore it for the 'all complete' check.
+        const completableForms = allAvailableForms.filter(f => f.completionKey !== 'emergencyProcedureSignature');
+        const allCandidateFormsComplete = completableForms.every(form => !!profile[form.completionKey as keyof CaregiverProfile]);
     
         if (allCandidateFormsComplete) {
             const sanitizedProfileData: { [key: string]: any } = { ...profile };
     
-            allAvailableForms.forEach(form => {
-                if (form.adminSchema) {
-                    const baseSchema = (form.adminSchema as any).shape 
-                        ? (form.adminSchema as z.ZodObject<any, any, any>)
-                        : (form.adminSchema as z.ZodEffects<any, any, any>)._def.schema;
-    
-                    if (baseSchema && baseSchema.shape) {
-                        Object.keys(baseSchema.shape).forEach(key => {
-                            const dateVal = safeToDateForStatus(sanitizedProfileData[key]);
-                             if (dateVal) {
-                                // If the schema expects a string, format it.
-                                if (baseSchema.shape[key] instanceof z.ZodString) {
-                                    sanitizedProfileData[key] = format(dateVal, 'MM/dd/yyyy');
-                                } else {
-                                    // Otherwise, use the Date object.
-                                    sanitizedProfileData[key] = dateVal;
-                                }
+            // Sanitize all date-like fields to strings for validation.
+            for (const key in sanitizedProfileData) {
+                if (Object.prototype.hasOwnProperty.call(sanitizedProfileData, key)) {
+                    const lowerKey = key.toLowerCase();
+                    if (lowerKey.includes('date') || lowerKey.endsWith('at') || lowerKey === 'dob') {
+                        const value = sanitizedProfileData[key];
+                        if (value) {
+                            const date = safeToDateForStatus(value);
+                            if (date) {
+                                sanitizedProfileData[key] = format(date, 'MM/dd/yyyy');
                             }
-                        });
+                        }
                     }
                 }
-            });
+            }
     
             const allAdminFieldsComplete = allAvailableForms.every(form => {
-                // Special case for Confidentiality Agreement: If candidate has signed, admin part is considered done.
-                if (form.name === "FirstLightHomeCare_CONFIDENTIALITY_AGREEMENT") {
+                if (form.completionKey === 'emergencyProcedureSignature') return true; // Ignore for admin check as well
+
+                const isCandidateCompleted = !!profile[form.completionKey as keyof CaregiverProfile];
+                if (!isCandidateCompleted) {
+                    return false;
+                }
+
+                if (!form.adminSchema) {
                     return true;
                 }
-                if (form.adminSchema) {
-                    const result = form.adminSchema.safeParse(sanitizedProfileData);
-                    if (!result.success) {
-                        console.log(`Admin validation failed for ${form.name}:`, result.error.flatten());
-                    }
-                    return result.success;
-                }
-                return true;
+                
+                const result = form.adminSchema.safeParse(sanitizedProfileData);
+                return result.success;
             });
     
             return allAdminFieldsComplete ? 'admin-signoff' : 'awaiting-admin';
@@ -874,4 +841,3 @@ export default function AdvancedSearchClient() {
         </div>
     );
 }
-
