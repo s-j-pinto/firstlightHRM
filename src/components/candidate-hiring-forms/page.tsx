@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Suspense, useTransition, useState, useEffect, useMemo, useCallback } from 'react';
@@ -46,7 +47,7 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { format } from 'date-fns';
+import { format, isDate } from 'date-fns';
 import { sendHiringDocsNotification } from '@/lib/communication.actions';
 
 const hiringForms: { name: string; href: string; completionKey: keyof CaregiverProfile | keyof OnboardingSignatures; pdfAction: string; adminSchema?: z.ZodObject<any, any, any> | z.ZodEffects<any,any,any> }[] = [
@@ -123,7 +124,7 @@ function CandidateHiringFormsContent() {
   const safeToDate = (value: any): Date | undefined => {
     if (!value) return undefined;
     if (value.toDate && typeof value.toDate === 'function') {
-      return value.toDate();
+        return value.toDate();
     }
     const d = new Date(value);
     if (!isNaN(d.getTime())) {
@@ -139,23 +140,21 @@ function CandidateHiringFormsContent() {
 
     const sanitizedProfileData: { [key: string]: any } = { ...profileData, ...signaturesData };
     
-    allAvailableForms.forEach(form => {
-        if (form.adminSchema) {
-            const baseSchema = (form.adminSchema as any).shape 
-                ? (form.adminSchema as z.ZodObject<any, any, any>)
-                : (form.adminSchema as z.ZodEffects<any, any, any>)._def.schema;
-
-            if (baseSchema && baseSchema.shape) {
-                Object.keys(baseSchema.shape).forEach(key => {
-                    const lowerKey = key.toLowerCase();
-                    if (sanitizedProfileData.hasOwnProperty(key) && (lowerKey.includes('date') || lowerKey.endsWith('at') || lowerKey === 'dob')) {
-                        const date = safeToDate(sanitizedProfileData[key]);
-                        sanitizedProfileData[key] = date ? format(date, 'MM/dd/yyyy') : '';
+    // Sanitize all date-like fields to strings for validation, once.
+    for (const key in sanitizedProfileData) {
+        if (Object.prototype.hasOwnProperty.call(sanitizedProfileData, key)) {
+            const lowerKey = key.toLowerCase();
+            if (lowerKey.includes('date') || lowerKey.endsWith('at') || lowerKey === 'dob') {
+                const value = sanitizedProfileData[key];
+                if (value) {
+                    const date = safeToDate(value);
+                    if(date) {
+                        sanitizedProfileData[key] = format(date, 'MM/dd/yyyy');
                     }
-                });
+                }
             }
         }
-    });
+    }
 
     const formsWithStatus = allAvailableForms.map(form => {
       let isCandidateCompleted = false;
@@ -165,7 +164,7 @@ function CandidateHiringFormsContent() {
         isCandidateCompleted = !!profileData[form.completionKey as keyof CaregiverProfile];
       }
       
-      let isAdminCompleted = true; // Assume complete if no admin schema exists
+      let isAdminCompleted = true;
 
       if (isAnAdmin && isCandidateCompleted && form.adminSchema) {
         const result = form.adminSchema.safeParse(sanitizedProfileData);
@@ -393,5 +392,3 @@ export default function CandidateHiringFormsPage() {
         </Suspense>
     )
 }
-
-    
