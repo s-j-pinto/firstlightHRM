@@ -13,21 +13,20 @@ import Image from "next/image";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { RefreshCw, Save, X, Loader2, CalendarIcon, Edit2 } from "lucide-react";
+import { RefreshCw, Save, X, Loader2, Edit2 } from "lucide-react";
 import { useUser, useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { soc341aSchema, type Soc341aFormData, type CaregiverProfile } from "@/lib/types";
 import { saveSoc341aData } from "@/lib/candidate-hiring-forms.actions";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DateInput } from "@/components/ui/date-input";
 
 const defaultFormValues: Soc341aFormData = {
   soc341aSignature: '',
-  soc341aSignatureDate: undefined,
+  soc341aSignatureDate: '',
 };
 
 const safeToDate = (value: any): Date | undefined => {
@@ -178,13 +177,13 @@ export default function SOC341APage() {
         if (existingData) {
             const formData:Partial<Soc341aFormData> = {};
             const formSchemaKeys = Object.keys(soc341aSchema.shape) as Array<keyof Soc341aFormData>;
-            const dateFields = ['soc341aSignatureDate'];
             
             formSchemaKeys.forEach(key => {
                 if (Object.prototype.hasOwnProperty.call(existingData, key)) {
                     const value = (existingData as any)[key];
-                    if (dateFields.includes(key) && value) {
-                        (formData as any)[key] = safeToDate(value);
+                    if (key.toLowerCase().includes('date') && value) {
+                        const date = safeToDate(value);
+                        (formData as any)[key] = date ? format(date, 'MM/dd/yyyy') : '';
                     } else {
                         (formData as any)[key] = value;
                     }
@@ -470,9 +469,19 @@ COURT ORDER (Title 42 United States Code Section 3058g(d)(2); WIC Section 9725).
 suspected abuse of dependent adults or elders. I will comply with the reporting requirements.</p>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                         <SignatureField fieldName="soc341aSignature" title="SIGNATURE" />
-                       <FormField control={form.control} name="soc341aSignatureDate" render={({ field }) => (
-                        <FormItem className="flex flex-col"><FormLabel>DATE</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
-                       )} />
+                        <FormField
+                            control={form.control}
+                            name="soc341aSignatureDate"
+                            render={() => (
+                                <FormItem>
+                                    <FormLabel>DATE (MM/DD/YYYY)</FormLabel>
+                                    <FormControl>
+                                        <DateInput name="soc341aSignatureDate" />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                     </div>
                 </div>
 
@@ -501,3 +510,5 @@ suspected abuse of dependent adults or elders. I will comply with the reporting 
         </Card>
     );
 }
+
+    

@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { doc } from "firebase/firestore";
 import SignatureCanvas from 'react-signature-canvas';
-import { format } from "date-fns";
+import { format, isDate } from "date-fns";
 import { z } from "zod";
 import Image from "next/image";
 
@@ -15,7 +15,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Save, X, Loader2, RefreshCw, CalendarIcon, Edit2 } from "lucide-react";
+import { Save, X, Loader2, RefreshCw, Edit2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useUser, useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
@@ -24,10 +24,10 @@ import { saveLic508Data } from "@/lib/candidate-hiring-forms.actions";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DateInput } from "@/components/ui/date-input";
+
 
 const lic508PageSchema = lic508Object.passthrough().extend({
   fullName: z.string().optional(),
@@ -52,7 +52,7 @@ const defaultFormValues: Lic508PageFormData = {
   livedOutOfStateLast5Years: undefined,
   outOfStateHistory: "",
   lic508Signature: '',
-  lic508SignatureDate: undefined,
+  lic508SignatureDate: '',
   fullName: '',
   address: '',
   city: '',
@@ -60,7 +60,7 @@ const defaultFormValues: Lic508PageFormData = {
   zip: '',
   ssn: '',
   driversLicenseNumber: '',
-  dob: undefined,
+  dob: '',
 };
 
 const safeToDate = (value: any): Date | undefined => {
@@ -208,7 +208,8 @@ export default function LIC508Page() {
                  if (Object.prototype.hasOwnProperty.call(existingData, key)) {
                     const value = (existingData as any)[key];
                     if (dateFields.includes(key) && value) {
-                        (formData as any)[key] = safeToDate(value);
+                        const date = safeToDate(value);
+                        (formData as any)[key] = date ? format(date, 'MM/dd/yyyy') : '';
                     } else {
                         (formData as any)[key] = value;
                     }
@@ -222,7 +223,10 @@ export default function LIC508Page() {
             if (!formData.zip && existingData.zip) formData.zip = existingData.zip;
             if (!formData.driversLicenseNumber && existingData.driversLicenseNumber) formData.driversLicenseNumber = existingData.driversLicenseNumber;
             if (!formData.ssn && existingData.ssn) formData.ssn = existingData.ssn;
-            if (!formData.dob && existingData.dob) (formData as any).dob = safeToDate(existingData.dob);
+            if (!formData.dob && existingData.dob) {
+                const date = safeToDate(existingData.dob);
+                (formData as any).dob = date ? format(date, 'MM/dd/yyyy') : '';
+            }
 
             form.reset({
                 ...defaultFormValues,
@@ -500,30 +504,12 @@ export default function LIC508Page() {
                          <FormField
                             control={form.control}
                             name="dob"
-                            render={({ field }) => (
+                            render={() => (
                                 <FormItem className="flex flex-col">
-                                    <FormLabel>DATE OF BIRTH:</FormLabel>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <FormControl>
-                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                </Button>
-                                            </FormControl>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="start">
-                                            <Calendar 
-                                                mode="single" 
-                                                selected={field.value} 
-                                                onSelect={field.onChange} 
-                                                captionLayout="dropdown-buttons"
-                                                fromYear={1930}
-                                                toYear={new Date().getFullYear() - 18}
-                                                initialFocus 
-                                            />
-                                        </PopoverContent>
-                                    </Popover>
+                                    <FormLabel>DATE OF BIRTH (MM/DD/YYYY):</FormLabel>
+                                    <FormControl>
+                                      <DateInput name="dob" />
+                                    </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -532,8 +518,14 @@ export default function LIC508Page() {
                     
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                         <SignatureField fieldName="lic508Signature" title="SIGNATURE:" />
-                       <FormField control={form.control} name="lic508SignatureDate" render={({ field }) => (
-                        <FormItem className="flex flex-col"><FormLabel>DATE:</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
+                       <FormField control={form.control} name="lic508SignatureDate" render={() => (
+                        <FormItem className="flex flex-col">
+                            <FormLabel>DATE (MM/DD/YYYY):</FormLabel>
+                            <FormControl>
+                                <DateInput name="lic508SignatureDate" />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
                        )} />
                     </div>
                 </div>

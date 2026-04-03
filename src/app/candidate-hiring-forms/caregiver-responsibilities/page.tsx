@@ -13,22 +13,21 @@ import Image from "next/image";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { RefreshCw, Save, X, Loader2, CalendarIcon, Edit2 } from "lucide-react";
+import { RefreshCw, Save, X, Loader2, Edit2 } from "lucide-react";
 import { useUser, useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { caregiverResponsibilitiesSchema, type CaregiverResponsibilitiesFormData, type CaregiverProfile } from "@/lib/types";
 import { saveCaregiverResponsibilitiesData } from "@/lib/candidate-hiring-forms.actions";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 
 
 const defaultFormValues: CaregiverResponsibilitiesFormData = {
   caregiverResponsibilitiesSignature: '',
-  caregiverResponsibilitiesSignatureDate: undefined,
+  caregiverResponsibilitiesSignatureDate: '',
 };
 
 const safeToDate = (value: any): Date | undefined => {
@@ -182,7 +181,8 @@ export default function CaregiverResponsibilitiesPage() {
                 if (Object.prototype.hasOwnProperty.call(existingData, key)) {
                     const value = (existingData as any)[key];
                     if (key.toLowerCase().includes('date') && value) {
-                        (formData as any)[key] = safeToDate(value);
+                        const date = safeToDate(value);
+                        (formData as any)[key] = date ? format(date, 'MM/dd/yyyy') : '';
                     } else {
                         (formData as any)[key] = value;
                     }
@@ -323,37 +323,20 @@ export default function CaregiverResponsibilitiesPage() {
                 <div className="space-y-6 pt-6">
                     <h3 className="font-semibold">Acknowledgement:</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-                        <FormField
+                        <SignatureField fieldName="caregiverResponsibilitiesSignature" title="Employee Signature" />
+                         <FormField
                             control={form.control}
-                            name="caregiverResponsibilitiesSignature"
-                            render={({ field }) => (
-                                <div className="space-y-2">
-                                    <Label>Employee Signature</Label>
-                                    <div className="relative rounded-md border bg-muted/30 h-28 flex items-center justify-center">
-                                        {field.value ? (
-                                            <Image src={field.value} alt="Signature" layout="fill" objectFit="contain" />
-                                        ) : (
-                                            <span className="text-muted-foreground">Not Signed</span>
-                                        )}
-                                        {!isPrintMode && (
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                className="absolute top-1 right-1 h-7 w-7"
-                                                onClick={() => setActiveSignature({ fieldName: 'caregiverResponsibilitiesSignature', title: 'Employee Signature' })}
-                                            >
-                                                <Edit2 className="h-4 w-4" />
-                                            </Button>
-                                        )}
-                                    </div>
-                                    <FormMessage>{form.formState.errors.caregiverResponsibilitiesSignature?.message}</FormMessage>
-                                </div>
+                            name="caregiverResponsibilitiesSignatureDate"
+                            render={() => (
+                                <FormItem>
+                                    <FormLabel>Date (MM/DD/YYYY)</FormLabel>
+                                    <FormControl>
+                                        <DateInput name="caregiverResponsibilitiesSignatureDate" />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
                             )}
-                        />
-                         <FormField control={form.control} name="caregiverResponsibilitiesSignatureDate" render={({ field }) => (
-                            <FormItem className="flex flex-col"><Label>Date</Label><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
-                        )} />
+                         />
                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                         <div className="space-y-2 flex-1">
@@ -368,7 +351,7 @@ export default function CaregiverResponsibilitiesPage() {
                         </div>
                         <div className="flex flex-col space-y-2">
                              <Label>Date</Label>
-                             <Input value={format(new Date(), "PPP")} readOnly disabled/>
+                             <Input value={format(new Date(), "MM/dd/yyyy")} readOnly disabled/>
                         </div>
                     </div>
                 </div>
@@ -398,3 +381,5 @@ export default function CaregiverResponsibilitiesPage() {
         </Card>
     );
 }
+
+    

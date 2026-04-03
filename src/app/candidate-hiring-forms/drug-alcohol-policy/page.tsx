@@ -13,19 +13,18 @@ import Image from "next/image";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { RefreshCw, Save, X, Loader2, CalendarIcon, Edit2 } from "lucide-react";
+import { RefreshCw, Save, X, Loader2, Edit2 } from "lucide-react";
 import { useUser, useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { drugAlcoholPolicySchema, drugAlcoholPolicyAdminSchema, type DrugAlcoholPolicyFormData, type CaregiverProfile } from "@/lib/types";
 import { saveDrugAlcoholPolicyData } from "@/lib/candidate-hiring-forms.actions";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { DateInput } from "@/components/ui/date-input";
 
 
 const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
@@ -33,10 +32,10 @@ const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-
 
 const defaultFormValues: DrugAlcoholPolicyFormData = {
   drugAlcoholPolicySignature: '',
-  drugAlcoholPolicySignatureDate: undefined,
+  drugAlcoholPolicySignatureDate: '',
   drugAlcoholPolicyEmployeePrintedName: '',
   drugAlcoholPolicyRepSignature: '',
-  drugAlcoholPolicyRepDate: undefined,
+  drugAlcoholPolicyRepDate: '',
   oralSalivaTestResult: undefined,
   oralSalivaPositiveDrug: '',
   bloodTestResult: undefined,
@@ -202,7 +201,8 @@ export default function DrugAlcoholPolicyPage() {
                 if (Object.prototype.hasOwnProperty.call(existingData, key)) {
                     const value = (existingData as any)[key];
                     if (key.toLowerCase().includes('date') && value) {
-                        (formData as any)[key] = safeToDate(value);
+                        const date = safeToDate(value);
+                        (formData as any)[key] = date ? format(date, 'MM/dd/yyyy') : '';
                     } else {
                         (formData as any)[key] = value;
                     }
@@ -217,7 +217,8 @@ export default function DrugAlcoholPolicyPage() {
         if (settingsData?.adminSignature) {
             form.setValue('drugAlcoholPolicyRepSignature', settingsData.adminSignature, { shouldDirty: false });
             if (!form.getValues('drugAlcoholPolicyRepDate')) {
-                form.setValue('drugAlcoholPolicyRepDate', new Date(), { shouldDirty: false });
+                const today = format(new Date(), 'MM/dd/yyyy');
+                form.setValue('drugAlcoholPolicyRepDate', today, { shouldDirty: false });
             }
         }
     }, [settingsData, form]);
@@ -302,18 +303,38 @@ export default function DrugAlcoholPolicyPage() {
                  <div className="space-y-6 pt-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                         <SignatureField fieldName="drugAlcoholPolicySignature" title="Signature of Employee" />
-                        <FormField control={form.control} name="drugAlcoholPolicySignatureDate" render={({ field }) => (
-                        <FormItem className="flex flex-col"><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
-                        )} />
+                        <FormField
+                            control={form.control}
+                            name="drugAlcoholPolicySignatureDate"
+                            render={() => (
+                                <FormItem>
+                                    <FormLabel>Date (MM/DD/YYYY)</FormLabel>
+                                    <FormControl>
+                                        <DateInput name="drugAlcoholPolicySignatureDate" />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                     </div>
                      <FormField control={form.control} name="drugAlcoholPolicyEmployeePrintedName" render={({ field }) => (
                         <FormItem><FormLabel>Employee's Name - Printed</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                         <SignatureField fieldName="drugAlcoholPolicyRepSignature" title="FirstLight HomeCare Representative" adminOnly={true} isReadOnly={true} />
-                         <FormField control={form.control} name="drugAlcoholPolicyRepDate" render={({ field }) => (
-                        <FormItem className="flex flex-col"><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} disabled={true} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={true} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
-                        )} />
+                         <FormField
+                            control={form.control}
+                            name="drugAlcoholPolicyRepDate"
+                            render={() => (
+                                <FormItem>
+                                    <FormLabel>Date (MM/DD/YYYY)</FormLabel>
+                                    <FormControl>
+                                        <DateInput name="drugAlcoholPolicyRepDate" disabled={true} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                     </div>
                 </div>
 
@@ -427,3 +448,5 @@ export default function DrugAlcoholPolicyPage() {
         </Card>
     );
 }
+
+    

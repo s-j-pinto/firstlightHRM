@@ -51,13 +51,14 @@ import {
 } from "@/components/ui/form";
 import type { VideoCheckinRequest, ActiveCaregiver } from "@/lib/types";
 import { scheduleVideoCheckin } from "@/lib/video-checkin.actions";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 
 const scheduleSchema = z.object({
   caregiverEmail: z.string().email("A caregiver must be selected."),
-  scheduledDate: z.date({ required_error: "A date is required." }),
+  scheduledDate: z.string().min(1, "A date is required.").refine((val) => /^\d{2}\/\d{2}\/\d{4}$/.test(val), {
+    message: "Date must be in MM/DD/YYYY format.",
+  }),
   scheduledTime: z.string().min(1, "A time is required."),
 });
 type ScheduleFormData = z.infer<typeof scheduleSchema>;
@@ -83,6 +84,9 @@ export default function ManageVideoCheckinsClient() {
 
   const form = useForm<ScheduleFormData>({
     resolver: zodResolver(scheduleSchema),
+    defaultValues: {
+      scheduledDate: format(new Date(), 'MM/dd/yyyy'),
+    }
   });
 
   const sortedRequests = useMemo(() => {
@@ -102,14 +106,11 @@ export default function ManageVideoCheckinsClient() {
 
   const handleSelectRequest = (request: VideoCheckinRequest) => {
     setSelectedRequest(request);
+    const scheduledAtDate = request.scheduledAt ? (request.scheduledAt as any).toDate() : new Date();
     form.reset({
       caregiverEmail: request.caregiverEmail || "",
-      scheduledDate: request.scheduledAt
-        ? (request.scheduledAt as any).toDate()
-        : new Date(),
-      scheduledTime: request.scheduledAt
-        ? format((request.scheduledAt as any).toDate(), "HH:mm")
-        : "",
+      scheduledDate: format(scheduledAtDate, "MM/dd/yyyy"),
+      scheduledTime: request.scheduledAt ? format(scheduledAtDate, "HH:mm") : "",
     });
   };
 
@@ -278,37 +279,12 @@ export default function ManageVideoCheckinsClient() {
                             <FormField
                                 control={form.control}
                                 name="scheduledDate"
-                                render={({ field }) => (
+                                render={() => (
                                 <FormItem className="flex flex-col">
-                                    <FormLabel>Date</FormLabel>
-                                    <Popover>
-                                    <PopoverTrigger asChild>
-                                        <FormControl>
-                                        <Button
-                                            variant={"outline"}
-                                            className={cn(
-                                            "pl-3 text-left font-normal",
-                                            !field.value && "text-muted-foreground"
-                                            )}
-                                        >
-                                            {field.value ? (
-                                            format(field.value, "PPP")
-                                            ) : (
-                                            <span>Pick a date</span>
-                                            )}
-                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                        </Button>
-                                        </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar
-                                        mode="single"
-                                        selected={field.value}
-                                        onSelect={field.onChange}
-                                        initialFocus
-                                        />
-                                    </PopoverContent>
-                                    </Popover>
+                                    <FormLabel>Date (MM/DD/YYYY)</FormLabel>
+                                    <FormControl>
+                                        <DateInput name="scheduledDate" />
+                                    </FormControl>
                                     <FormMessage />
                                 </FormItem>
                                 )}
@@ -351,3 +327,5 @@ export default function ManageVideoCheckinsClient() {
     </div>
   );
 }
+
+    
