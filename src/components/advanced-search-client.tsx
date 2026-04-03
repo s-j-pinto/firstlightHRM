@@ -8,7 +8,9 @@ import { collection, doc, query } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import type { CaregiverProfile, Interview, CaregiverEmployee, Appointment, OnboardingSignatures } from '@/lib/types';
 import { z } from 'zod';
-import { format, isWithinInterval, startOfDay, endOfDay, parse, isDate } from 'date-fns';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { dateString } from '@/lib/types';
+import { format, isWithinInterval, startOfDay, endOfDay, parse, isValid } from 'date-fns';
 import Link from 'next/link';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -26,10 +28,11 @@ import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Form, FormControl, FormItem } from '@/components/ui/form';
+import { Form, FormControl, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { sendHiringDocsNotification } from '@/lib/communication.actions';
 import { Input } from './ui/input';
 import { hiringForms, onboardingForms } from '@/lib/hiring-forms';
+import { DateInput } from './ui/date-input';
 
 
 const skillsAndAttributes = [
@@ -82,12 +85,24 @@ const hiringStatuses: CandidateStatus[] = [
   'Applied', 'Phonescreen Invite Needed', 'Phonescreen Scheduled', 'Hired', 'Orientation Scheduled', 'Final Interview Passed', 'Final Interview Pending', 'Final Interview Failed', 'Phone Screen Failed', 'Rejected at Orientation', 'Process Terminated', 'No Show'
 ];
 
-type FormData = {
-    skills: (typeof skillsAndAttributes)[number]['id'][];
-    hiringStatus: CandidateStatus | 'any';
-    skillMatching: 'any' | 'all';
-    shiftAvailability: 'any' | 'morning' | 'afternoon' | 'evening' | 'night';
-};
+const searchSchema = z.object({
+    skills: z.array(z.string()),
+    hiringStatus: z.string(),
+    skillMatching: z.enum(['any', 'all']),
+    shiftAvailability: z.string(),
+    dateFrom: dateString,
+    dateTo: dateString,
+}).refine(data => {
+    if (data.dateFrom && data.dateTo && isValid(parse(data.dateFrom, 'MM/dd/yyyy', new Date())) && isValid(parse(data.dateTo, 'MM/dd/yyyy', new Date()))) {
+        return parse(data.dateFrom, 'MM/dd/yyyy', new Date()) <= parse(data.dateTo, 'MM/dd/yyyy', new Date());
+    }
+    return true;
+}, {
+    message: "'To' date must be on or after 'From' date.",
+    path: ['dateTo'],
+});
+
+type FormData = z.infer<typeof searchSchema>;
 
 type SortKey = 'fullName' | 'city' | 'createdAt';
 
@@ -230,9 +245,9 @@ const safeToDateForStatus = (value: any): Date | undefined => {
 
 export default function AdvancedSearchClient() {
     const { handleSubmit, control, reset } = useForm<FormData>({
-        defaultValues: { skills: [], hiringStatus: 'any', skillMatching: 'any', shiftAvailability: 'any' }
+        resolver: zodResolver(searchSchema),
+        defaultValues: { skills: [], hiringStatus: 'any', skillMatching: 'any', shiftAvailability: 'any', dateFrom: '', dateTo: '' }
     });
-    const [dateRange, setDateRange] = useState<{ from?: string; to?: string }>({});
     const [filteredResults, setFilteredResults] = useState<EnrichedCandidate[]>([]);
     const [hasSearched, setHasSearched] = useState(false);
     const [isSearching, startSearchTransition] = useTransition();
@@ -402,14 +417,16 @@ export default function AdvancedSearchClient() {
             }
 
             // Filter by date range
-            if (dateRange?.from && dateRange?.to) {
+            if (data.dateFrom && data.dateTo) {
                 try {
-                    const fromDate = parse(dateRange.from, 'MM/dd/yyyy', new Date());
-                    const toDate = parse(dateRange.to, 'MM/dd/yyyy', new Date());
-                    const interval = { start: startOfDay(fromDate), end: endOfDay(toDate) };
-                    results = results.filter(candidate => 
-                        candidate.createdAt && isWithinInterval((candidate.createdAt as any).toDate(), interval)
-                    );
+                    const fromDate = parse(data.dateFrom, 'MM/dd/yyyy', new Date());
+                    const toDate = parse(data.dateTo, 'MM/dd/yyyy', new Date());
+                    if (isValid(fromDate) && isValid(toDate)) {
+                        const interval = { start: startOfDay(fromDate), end: endOfDay(toDate) };
+                        results = results.filter(candidate => 
+                            candidate.createdAt && isWithinInterval((candidate.createdAt as any).toDate(), interval)
+                        );
+                    }
                 } catch(e) {
                     console.error("Invalid date format for filtering");
                 }
@@ -419,20 +436,19 @@ export default function AdvancedSearchClient() {
             setCurrentPage(1); // Reset to first page on new search
             setHasSearched(true);
         });
-    }, [candidates, dateRange]);
+    }, [candidates]);
     
     useEffect(() => {
         if (candidates.length > 0 && !hasSearched) {
-            onSubmit({ skills: [], hiringStatus: 'any', skillMatching: 'any', shiftAvailability: 'any' });
+            onSubmit({ skills: [], hiringStatus: 'any', skillMatching: 'any', shiftAvailability: 'any', dateFrom: '', dateTo: '' });
         }
     }, [candidates, hasSearched, onSubmit]);
     
     const handleClearFilters = () => {
-        reset({ skills: [], hiringStatus: 'any', skillMatching: 'any', shiftAvailability: 'any' });
-        setDateRange({});
+        reset({ skills: [], hiringStatus: 'any', skillMatching: 'any', shiftAvailability: 'any', dateFrom: '', dateTo: '' });
         setFilteredResults([]);
         setHasSearched(false);
-        onSubmit({ skills: [], hiringStatus: 'any', skillMatching: 'any', shiftAvailability: 'any' });
+        onSubmit({ skills: [], hiringStatus: 'any', skillMatching: 'any', shiftAvailability: 'any', dateFrom: '', dateTo: '' });
     }
 
     const sortedResults = useMemo(() => {
@@ -579,7 +595,7 @@ export default function AdvancedSearchClient() {
 
     return (
         <div className="space-y-6">
-            <Form {...control}>
+            <Form {...form}>
             <form onSubmit={handleSubmit(onSubmit)}>
                 <Card>
                     <CardHeader>
@@ -607,17 +623,33 @@ export default function AdvancedSearchClient() {
                                     />
                                 </div>
                                 <div className="space-y-2 flex-grow min-w-[240px]">
-                                    <Label>Application Date Range (MM/DD/YYYY)</Label>
-                                     <div className="flex gap-2">
-                                        <Input 
-                                            placeholder="From" 
-                                            value={dateRange.from || ''} 
-                                            onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value }))}
+                                    <Label>Application Date Range</Label>
+                                    <div className="flex items-start gap-2">
+                                        <FormField
+                                            control={control}
+                                            name="dateFrom"
+                                            render={() => (
+                                                <FormItem className="flex-1">
+                                                    <FormLabel className="text-xs text-muted-foreground">From</FormLabel>
+                                                    <FormControl>
+                                                        <DateInput name="dateFrom" />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
                                         />
-                                        <Input 
-                                            placeholder="To" 
-                                            value={dateRange.to || ''} 
-                                            onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value }))}
+                                        <FormField
+                                            control={control}
+                                            name="dateTo"
+                                            render={() => (
+                                                <FormItem className="flex-1">
+                                                    <FormLabel className="text-xs text-muted-foreground">To</FormLabel>
+                                                    <FormControl>
+                                                        <DateInput name="dateTo" />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
                                         />
                                     </div>
                                 </div>
@@ -841,3 +873,4 @@ export default function AdvancedSearchClient() {
         </div>
     );
 }
+
