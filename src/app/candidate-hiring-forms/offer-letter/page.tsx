@@ -7,21 +7,20 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import SignatureCanvas from 'react-signature-canvas';
 import { doc } from "firebase/firestore";
-import { format } from "date-fns";
 import Image from "next/image";
 
-import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from "@/components/ui/card";
+import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { RefreshCw, Save, X, Loader2, CalendarIcon, Edit2 } from "lucide-react";
+import { RefreshCw, Save, X, Loader2, Edit2 } from "lucide-react";
 import { useUser, useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { offerLetterSchema, type OfferLetterFormData, type CaregiverProfile } from "@/lib/types";
 import { saveOfferLetterData } from "@/lib/candidate-hiring-forms.actions";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DateInput } from "@/components/ui/date-input";
+import { format, isDate } from "date-fns";
 
 const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
 
@@ -119,15 +118,23 @@ export default function OfferLetterPage() {
     
     const form = useForm<OfferLetterFormData>({
         resolver: zodResolver(offerLetterSchema),
-        defaultValues: { offerLetterSignature: '', offerLetterSignatureDate: undefined },
+        defaultValues: { offerLetterSignature: '', offerLetterSignatureDate: '' },
     });
 
     useEffect(() => {
         if (existingData) {
             const formData: Partial<OfferLetterFormData> = {};
             if(existingData.offerLetterSignature) formData.offerLetterSignature = existingData.offerLetterSignature;
-            if(existingData.offerLetterSignatureDate) formData.offerLetterSignatureDate = safeToDate(existingData.offerLetterSignatureDate);
-            if(existingData.hireDate) formData.hireDate = safeToDate(existingData.hireDate);
+            
+            if (existingData.offerLetterSignatureDate) {
+                const date = safeToDate(existingData.offerLetterSignatureDate);
+                formData.offerLetterSignatureDate = date ? format(date, 'MM/dd/yyyy') : '';
+            }
+            if (existingData.hireDate) {
+                const date = safeToDate(existingData.hireDate);
+                formData.hireDate = date ? format(date, 'MM/dd/yyyy') : '';
+            }
+
             form.reset(formData);
         }
     }, [existingData, form]);
@@ -194,21 +201,11 @@ export default function OfferLetterPage() {
                                 <FormField
                                     control={form.control}
                                     name="hireDate"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <Popover>
-                                                <PopoverTrigger asChild>
-                                                    <FormControl>
-                                                        <Button variant={"outline"} className={cn("w-[240px] pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={!isAnAdmin}>
-                                                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                        </Button>
-                                                    </FormControl>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-auto p-0" align="start">
-                                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={!isAnAdmin} initialFocus />
-                                                </PopoverContent>
-                                            </Popover>
+                                    render={() => (
+                                        <FormItem className="w-[240px]">
+                                            <FormControl>
+                                                <DateInput name="hireDate" disabled={!isAnAdmin} />
+                                            </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -243,7 +240,19 @@ export default function OfferLetterPage() {
                                     )}
                                 />
                              </div>
-                            <FormField control={form.control} name="offerLetterSignatureDate" render={({ field }) => ( <FormItem className="flex flex-col"><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                            <FormField 
+                                control={form.control} 
+                                name="offerLetterSignatureDate" 
+                                render={() => ( 
+                                    <FormItem className="flex flex-col">
+                                        <FormLabel>Date (MM/DD/YYYY)</FormLabel>
+                                        <FormControl>
+                                            <DateInput name="offerLetterSignatureDate" />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem> 
+                                )} 
+                            />
                         </div>
                          <div className="pt-2"><p>Phone Number: {existingData?.phone}</p></div>
 

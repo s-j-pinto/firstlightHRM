@@ -7,13 +7,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { doc } from "firebase/firestore";
 import SignatureCanvas from 'react-signature-canvas';
-import { format } from "date-fns";
+import { format, isDate } from "date-fns";
 import Image from "next/image";
 
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Save, X, Loader2, RefreshCw, CalendarIcon, User, Edit2 } from "lucide-react";
+import { Save, X, Loader2, RefreshCw, User, Edit2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useUser, useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
@@ -22,15 +22,14 @@ import { saveReferenceVerification2Data } from "@/lib/candidate-hiring-forms.act
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DateInput } from "@/components/ui/date-input";
 
 const defaultFormValues: ReferenceVerification2FormData = {
     applicantSignature2: '',
-    applicantSignatureDate2: undefined,
+    applicantSignatureDate2: '',
     company2: '',
     supervisorName2: '',
     emailOrFax2: '',
@@ -60,6 +59,17 @@ const safeToDate = (value: any): Date | undefined => {
     if (value.toDate && typeof value.toDate === 'function') {
         return value.toDate();
     }
+     if (typeof value === 'string') {
+        const parts = value.split('/');
+        if (parts.length === 3) {
+            const date = new Date(`${parts[2]}-${parts[0]}-${parts[1]}`);
+            if (!isNaN(date.getTime())) {
+                return date;
+            }
+        }
+    }
+    if (isDate(value)) return value;
+
     const d = new Date(value);
     if (!isNaN(d.getTime())) {
         return d;
@@ -234,7 +244,8 @@ export default function ReferenceVerification2Page() {
                  if (Object.prototype.hasOwnProperty.call(existingData, key)) {
                     const value = (existingData as any)[key];
                     if (dateFields.includes(key) && value) {
-                        (formData as any)[key] = safeToDate(value);
+                        const date = safeToDate(value);
+                        (formData as any)[key] = date ? format(date, 'MM/dd/yyyy') : '';
                     } else {
                          (formData as any)[key] = value;
                     }
@@ -313,9 +324,19 @@ export default function ReferenceVerification2Page() {
                     <p className="text-sm text-muted-foreground">I hereby give FirstLight HomeCare permission to obtain the employment references necessary to make a hiring decision and hold all persons giving references free from any and all liability resulting from this process. I waive any provision impeding the release of this information and agree to provide any information necessary for the release of this information beyond that provided on the employment application and this reference verification form.</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                         <SignatureField fieldName="applicantSignature2" title="Signature" />
-                        <FormField control={form.control} name="applicantSignatureDate2" render={({ field }) => (
-                        <FormItem className="flex flex-col"><FormLabel className="bg-yellow-200/70 p-1 rounded inline-block">Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
-                       )} />
+                        <FormField
+                            control={form.control}
+                            name="applicantSignatureDate2"
+                            render={() => (
+                            <FormItem className="flex flex-col">
+                                <FormLabel className="bg-yellow-200/70 p-1 rounded inline-block">Date (MM/DD/YYYY)</FormLabel>
+                                <FormControl>
+                                    <DateInput name="applicantSignatureDate2" />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
                     </div>
                 </div>
 
@@ -390,3 +411,5 @@ export default function ReferenceVerification2Page() {
         </Card>
     );
 }
+
+    

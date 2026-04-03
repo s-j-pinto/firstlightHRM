@@ -252,12 +252,12 @@ export const lic508Object = z.object({
   livedOutOfStateLast5Years: z.enum(["yes", "no"], { required_error: "This selection is required." }),
   outOfStateHistory: z.string().optional(),
   lic508Signature: z.string().min(1, "Signature is required."),
-  lic508SignatureDate: requiredDateString,
+  lic508SignatureDate: dateString,
   ssn: z.string()
     .min(1, "Social Security Number is required.")
     .regex(/^\d{3}-\d{2}-\d{4}$/, "Invalid Social Security Number format. Expected XXX-XX-XXXX."),
   driversLicenseNumber: z.string().min(1, "Driver's License is required."),
-  dob: requiredDateString,
+  dob: dateString,
 });
 
 export const lic508Schema = lic508Object.refine(data => {
