@@ -1,10 +1,10 @@
 
 'use client';
 
-import { Suspense, useTransition, useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { Suspense, useTransition, useState, useEffect, useMemo, useCallback } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, CheckCircle, Loader2, ArrowLeft, Printer, Download, XCircle } from "lucide-react";
+import { FileText, CheckCircle, Loader2, ArrowLeft, Printer, Download, XCircle, Bell, BellOff, Edit2, FileCheck2, FileClock } from "lucide-react";
 import Link from 'next/link';
 import { useUser, useDoc, useCollection, useMemoFirebase, useFirestore } from '@/firebase';
 import { doc, query, where, collection, limit } from 'firebase/firestore';
@@ -13,8 +13,7 @@ import {
     hcs501AdminSchema,
     drugAlcoholPolicyAdminSchema,
     clientAbandonmentAdminSchema,
-    employeeOrientationAgreementAdminSchema,
-    confidentialityAgreementAdminSchema
+    employeeOrientationAgreementAdminSchema
 } from '@/lib/types';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -46,6 +45,8 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { format, isDate } from 'date-fns';
+import { sendHiringDocsNotification } from '@/lib/communication.actions';
 
 const hiringForms: { name: string; href: string; completionKey: keyof CaregiverProfile | keyof OnboardingSignatures; pdfAction: string; adminSchema?: z.ZodObject<any, any, any> | z.ZodEffects<any,any,any> }[] = [
   { name: "HCS 501 - Personnel Record 2019", href: "/candidate-hiring-forms/hcs501", completionKey: 'hcs501EmployeeSignature', pdfAction: 'hcs501', adminSchema: hcs501AdminSchema },
@@ -63,7 +64,12 @@ const onboardingForms: { name: string; href: string; completionKey: keyof Caregi
   { name: "Client Abandonment", href: "/candidate-hiring-forms/client-abandonment", completionKey: 'clientAbandonmentSignature', pdfAction: 'clientAbandonment', adminSchema: clientAbandonmentAdminSchema },
   { name: "EMPLOYEE ORIENTATION AGREEMENT", href: "/candidate-hiring-forms/employee-orientation-agreement", completionKey: 'orientationAgreementSignature', pdfAction: 'employeeOrientationAgreement', adminSchema: employeeOrientationAgreementAdminSchema },
   { name: "FirstLightHomeCare_AcknowledgmentForm", href: "/candidate-hiring-forms/acknowledgment-form", completionKey: 'acknowledgmentSignature', pdfAction: 'acknowledgmentForm' },
-  { name: "FirstLightHomeCare_CONFIDENTIALITY_AGREEMENT", href: "/candidate-hiring-forms/confidentiality-agreement", completionKey: 'confidentialityAgreementEmployeeSignature', pdfAction: 'confidentialityAgreement', adminSchema: confidentialityAgreementAdminSchema },
+  { 
+    name: "FirstLightHomeCare_CONFIDENTIALITY_AGREEMENT", 
+    href: "/candidate-hiring-forms/confidentiality-agreement", 
+    completionKey: 'confidentialityAgreementEmployeeSignature', 
+    pdfAction: 'confidentialityAgreement'
+  },
   { name: "FirstLightHomeCareTrainingAcknowledgement", href: "/candidate-hiring-forms/training-acknowledgement", completionKey: 'trainingAcknowledgementSignature', pdfAction: 'trainingAcknowledgement' },
   { name: "MASTER-FLHC Offer Letter revised-2-16-26", href: "/candidate-hiring-forms/offer-letter", completionKey: 'offerLetterSignature', pdfAction: 'offerLetter' },
   { name: "Caregiver Responsibilities", href: "/candidate-hiring-forms/caregiver-responsibilities", completionKey: 'caregiverResponsibilitiesSignature', pdfAction: 'caregiverResponsibilities' },
@@ -85,6 +91,10 @@ function CandidateHiringFormsContent() {
   const [isGeneratingPdf, startPdfGeneration] = useTransition();
   const [isDownloadingAll, startDownloadingAll] = useTransition();
   const [isVerified, setIsVerified] = useState(false);
+  const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
+  const router = useRouter();
+  const pathname = usePathname();
+
 
   const isAnAdmin = user?.email === adminEmail || user?.email === ownerEmail || user?.email === staffingAdminEmail;
   const candidateId = searchParams.get('candidateId');
@@ -121,51 +131,55 @@ function CandidateHiringFormsContent() {
     }
     const d = new Date(value);
     if (!isNaN(d.getTime())) {
-      return d;
+        return d;
     }
     return undefined;
   };
   
-  const formCompletionStates = useMemo(() => {
+ const formCompletionStates = useMemo(() => {
     if (!profileData) {
       return { allCandidateFormsComplete: false, allAdminFieldsComplete: false, formsToRender: [] };
     }
 
     const sanitizedProfileData: { [key: string]: any } = { ...profileData, ...signaturesData };
     
-    allAvailableForms.forEach(form => {
-        if (form.adminSchema) {
-            const baseSchema = (form.adminSchema as any).shape 
-                ? (form.adminSchema as z.ZodObject<any, any, any>)
-                : (form.adminSchema as z.ZodEffects<any, any, any>)._def.schema;
-
-            if (baseSchema && baseSchema.shape) {
-                Object.keys(baseSchema.shape).forEach(key => {
-                    const lowerKey = key.toLowerCase();
-                    if (sanitizedProfileData.hasOwnProperty(key) && (lowerKey.includes('date') || lowerKey.endsWith('at') || lowerKey === 'dob')) {
-                        sanitizedProfileData[key] = safeToDate(sanitizedProfileData[key]);
+    // Sanitize all date-like fields to strings for validation, once.
+    for (const key in sanitizedProfileData) {
+        if (Object.prototype.hasOwnProperty.call(sanitizedProfileData, key)) {
+            const lowerKey = key.toLowerCase();
+            if (lowerKey.includes('date') || lowerKey.endsWith('at') || lowerKey === 'dob') {
+                const value = sanitizedProfileData[key];
+                if (value) {
+                    const date = safeToDate(value);
+                    if(date) {
+                        sanitizedProfileData[key] = format(date, 'MM/dd/yyyy');
                     }
-                });
+                }
             }
         }
-    });
+    }
 
     const formsWithStatus = allAvailableForms.map(form => {
       let isCandidateCompleted = false;
-      if (form.completionKey === 'emergencyProcedureSignature') {
+      
+      // Check for completion based on the key and the appropriate data source
+      if (Object.keys(signaturesData || {}).includes(form.completionKey)) {
         isCandidateCompleted = !!signaturesData?.[form.completionKey as keyof OnboardingSignatures];
       } else {
         isCandidateCompleted = !!profileData[form.completionKey as keyof CaregiverProfile];
       }
       
-      let isAdminCompleted = true; // Assume complete if no admin schema exists
+      let isAdminCompleted = false; // Default to false
 
-      if (isAnAdmin && isCandidateCompleted && form.adminSchema) {
-        const result = form.adminSchema.safeParse(sanitizedProfileData);
-         if (!result.success) {
-            console.log(`Admin validation failed for ${form.name}:`, result.error.flatten());
-        }
-        isAdminCompleted = result.success;
+      if (isAnAdmin) {
+          if (!form.adminSchema) {
+              isAdminCompleted = isCandidateCompleted;
+          } else {
+              if (isCandidateCompleted) {
+                  const result = form.adminSchema.safeParse(sanitizedProfileData);
+                  isAdminCompleted = result.success;
+              }
+          }
       }
       return { ...form, isCandidateCompleted, isAdminCompleted };
     });
@@ -272,6 +286,25 @@ function CandidateHiringFormsContent() {
     });
   }
 
+   const sendNotificationEmail = async (candidate: CaregiverProfile) => {
+        setSendingEmailId(candidate.id);
+        const result = await sendHiringDocsNotification({
+            caregiverId: candidate.id,
+            fullName: candidate.fullName,
+            email: candidate.email,
+            phone: candidate.phone,
+        });
+        setSendingEmailId(null);
+        if (result.error) {
+            toast({ title: 'Error', description: result.error, variant: 'destructive' });
+        } else {
+            toast({ title: 'Success', description: 'Hiring documents notification sent.' });
+            // Optionally, navigate back or refresh data.
+            const currentPath = pathname.includes('/admin') ? '/admin/manage-interviews' : '/owner/manage-interviews';
+            router.push(currentPath);
+        }
+    }
+
 
   if (isLoading) {
     return (
@@ -329,7 +362,7 @@ function CandidateHiringFormsContent() {
                   <span className="font-medium">{form.name}</span>
                 </Link>
                  <div className="flex items-center gap-2">
-                    {isCandidateCompleted && <CheckCircle className="h-6 w-6 text-green-500" />}
+                    {isCandidateCompleted && <CheckCircle className="h-6 w-6 text-green-500" title="Completed by Candidate"/>}
                     {isAnAdmin && isCandidateCompleted ? (
                         isAdminCompleted ? (
                              <CheckCircle className="h-6 w-6 text-blue-500" title="Admin Signoff Complete" />
