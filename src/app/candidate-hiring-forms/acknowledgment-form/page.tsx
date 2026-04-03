@@ -7,22 +7,20 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import SignatureCanvas from 'react-signature-canvas';
 import { doc } from "firebase/firestore";
-import { format } from "date-fns";
 import Image from "next/image";
 
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { RefreshCw, Save, X, Loader2, CalendarIcon, Edit2 } from "lucide-react";
+import { RefreshCw, Save, X, Loader2, Edit2 } from "lucide-react";
 import { useUser, useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { acknowledgmentFormSchema, type AcknowledgmentFormData, type CaregiverProfile } from "@/lib/types";
 import { saveAcknowledgmentFormData } from "@/lib/candidate-hiring-forms.actions";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DateInput } from "@/components/ui/date-input";
 
 const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
 
@@ -30,7 +28,7 @@ const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-
 const defaultFormValues: AcknowledgmentFormData = {
   acknowledgmentEmployeeName: '',
   acknowledgmentSignature: '',
-  acknowledgmentSignatureDate: undefined,
+  acknowledgmentSignatureDate: '',
 };
 
 const safeToDate = (value: any): Date | undefined => {
@@ -192,7 +190,8 @@ export default function AcknowledgmentFormPage() {
                 if (Object.prototype.hasOwnProperty.call(existingData, key)) {
                     const value = (existingData as any)[key];
                     if (key.toLowerCase().includes('date') && value) {
-                        (formData as any)[key] = safeToDate(value);
+                        const date = safeToDate(value);
+                        (formData as any)[key] = date ? format(date, 'MM/dd/yyyy') : '';
                     } else {
                         (formData as any)[key] = value;
                     }
@@ -273,7 +272,13 @@ export default function AcknowledgmentFormPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                         <SignatureField fieldName="acknowledgmentSignature" title="Employee signature" />
                         <FormField control={form.control} name="acknowledgmentSignatureDate" render={({ field }) => (
-                        <FormItem className="flex flex-col"><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
+                            <FormItem>
+                                <FormLabel>Date (MM/DD/YYYY)</FormLabel>
+                                <FormControl>
+                                    <DateInput name="acknowledgmentSignatureDate" />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
                         )} />
                     </div>
                 </div>
@@ -308,6 +313,3 @@ export default function AcknowledgmentFormPage() {
         </Card>
     );
 }
-
-
-    

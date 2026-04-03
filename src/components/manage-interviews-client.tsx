@@ -9,7 +9,7 @@ import { z } from 'zod';
 import Link from 'next/link';
 import { collection, query, where, getDocs, setDoc, doc, updateDoc, Timestamp, addDoc } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
-import type { CaregiverProfile, Interview, CaregiverEmployee } from '@/lib/types';
+import type { CaregiverProfile, Interview, CaregiverEmployee, Appointment } from '@/lib/types';
 import { caregiverEmployeeSchema, requiredDateString } from '@/lib/types';
 import { saveInterviewAndSchedule, rejectCandidate, initiateOnboardingForms } from '@/lib/interviews.actions';
 import { getAiInterviewInsights } from '@/lib/ai.actions';
@@ -43,8 +43,8 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Search, Calendar as CalendarIcon, Sparkles, UserCheck, AlertCircle, ExternalLink, Briefcase, Video, GraduationCap, Phone, Star, MessageSquare, CheckCircle, XCircle, UserX, Save, FileText, FileCheck2, FileClock } from 'lucide-react';
-import { format, addDays, isDate } from 'date-fns';
+import { Loader2, Search, Sparkles, UserCheck, AlertCircle, ExternalLink, Briefcase, Video, GraduationCap, Phone, Star, MessageSquare, CheckCircle, XCircle, UserX, Save, FileText, FileCheck2, FileClock, ArrowUpDown, Mail, Edit2 } from 'lucide-react';
+import { format, isDate } from 'date-fns';
 import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
@@ -660,7 +660,7 @@ export default function ManageInterviewsClient() {
         interviewId: existingInterview.id,
         hiringManager: data.hiringManager,
         hiringComments: data.hiringComments,
-        hireDate: Timestamp.fromDate(data.hireDate),
+        hireDate: Timestamp.fromDate(new Date(data.hireDate)),
         teletrackPin: data.teletrackPin,
       };
 
@@ -693,7 +693,7 @@ export default function ManageInterviewsClient() {
       };
 
       if (data.inPersonInterviewDate) {
-        employeeData.inPersonInterviewDate = Timestamp.fromDate(data.inPersonInterviewDate);
+        employeeData.inPersonInterviewDate = Timestamp.fromDate(new Date(data.inPersonInterviewDate));
       }
 
       if (existingEmployee?.id) {
@@ -1085,9 +1085,9 @@ export default function ManageInterviewsClient() {
                                              <FormField
                                                 control={scheduleEventForm.control}
                                                 name="eventDate"
-                                                render={() => (
+                                                render={({ field }) => (
                                                 <FormItem className="flex-1">
-                                                    <FormLabel>{interviewPathway === 'separate' ? 'Final Interview Date' : 'Combined Session Date'} (MM/DD/YYYY)</FormLabel>
+                                                    <FormLabel>{interviewPathway === 'separate' ? 'Final Interview Date (MM/DD/YYYY)' : 'Combined Session Date (MM/DD/YYYY)'}</FormLabel>
                                                     <FormControl>
                                                         <DateInput name="eventDate" />
                                                     </FormControl>
@@ -1240,7 +1240,7 @@ export default function ManageInterviewsClient() {
                                         <FormField
                                             control={orientationForm.control}
                                             name="orientationDate"
-                                            render={() => (
+                                            render={({ field }) => (
                                             <FormItem className="flex-1">
                                                 <FormLabel>Orientation Date (MM/DD/YYYY)</FormLabel>
                                                 <FormControl>
@@ -1555,7 +1555,5 @@ function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: strin
     </div>
   );
 }
-
-    
 
     
