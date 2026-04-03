@@ -164,15 +164,22 @@ function CandidateHiringFormsContent() {
         isCandidateCompleted = !!profileData[form.completionKey as keyof CaregiverProfile];
       }
       
-      let isAdminCompleted = true;
+      let isAdminCompleted = true; // Default to true
 
-      if (isAnAdmin && isCandidateCompleted && form.adminSchema) {
-        const result = form.adminSchema.safeParse(sanitizedProfileData);
-         if (!result.success) {
+      if (isAnAdmin && isCandidateCompleted) {
+        if (form.name === 'FirstLightHomeCare_CONFIDENTIALITY_AGREEMENT') {
+          // Special case: This form is considered admin-complete once the candidate signs
+          // because the admin part is pre-filled.
+          isAdminCompleted = true;
+        } else if (form.adminSchema) {
+          const result = form.adminSchema.safeParse(sanitizedProfileData);
+          if (!result.success) {
             console.log(`Admin validation failed for ${form.name}:`, result.error.flatten());
+          }
+          isAdminCompleted = result.success;
         }
-        isAdminCompleted = result.success;
       }
+      
       return { ...form, isCandidateCompleted, isAdminCompleted };
     });
     
