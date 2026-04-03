@@ -239,8 +239,14 @@ export default function HCS501Page() {
                 ...defaultFormValues,
                 ...formData
             });
+            
+            if (isAnAdmin) {
+                // After resetting, trigger validation to show any existing errors
+                // on the admin-required fields.
+                form.trigger();
+            }
         }
-    }, [existingData, form]);
+    }, [existingData, form, isAnAdmin]);
 
     const handleSaveSignature = (dataUrl: string) => {
         if (activeSignature) {
