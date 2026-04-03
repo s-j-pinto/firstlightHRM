@@ -4,17 +4,21 @@
 
 import { revalidatePath } from 'next/cache';
 import { serverDb, serverAuth } from '@/firebase/server-init';
-import { Timestamp } from 'firebase-admin/firestore';
+import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { cookies } from 'next/headers';
 import { sendHomeVisitInvite } from './google-calendar.actions';
 import { sendSms } from './services/telnyx';
+import { parse } from 'date-fns';
+
+const dateString = z.string().regex(/^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/, "Must be in MM/DD/YYYY format").optional().or(z.literal(''));
+const requiredDateString = z.string().min(1, "Date is required.").regex(/^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/, "Must be in MM/DD/YYYY format");
 
 const initialContactSchema = z.object({
   clientName: z.string().min(1, "Client's Name is required."),
   source: z.string().min(1, "Source is required."),
   clientAddress: z.string().min(1, "Client's Address is required."),
-  dateOfBirth: z.date().optional(),
+  dateOfBirth: dateString,
   rateOffered: z.coerce.number().nonnegative("Rate cannot be negative").optional(),
   milageOffered: z.coerce.number().nonnegative("Mileage cannot be negative").optional(),
   clientDepositAmount: z.coerce.number().optional(),
@@ -25,13 +29,13 @@ const initialContactSchema = z.object({
   mainContact: z.string().min(1, "Main Contact is required."),
   allergies: z.string().optional(),
   pets: z.string().optional(),
-  dateOfHomeVisit: z.date().optional(),
+  dateOfHomeVisit: dateString,
   timeOfVisit: z.string().optional(),
   referredBy: z.string().optional(),
   referralCode: z.string().optional(),
   promptedCall: z.string().min(1, "This field is required."),
   estimatedHours: z.string().optional(),
-  estimatedStartDate: z.date().optional(),
+  estimatedStartDate: dateString,
   inHomeVisitSet: z.enum(["Yes", "No"]).optional(),
   inHomeVisitSetNoReason: z.string().optional(),
   sendFollowUpCampaigns: z.boolean().optional(),
@@ -135,6 +139,23 @@ export async function submitInitialContact(payload: SubmitPayload) {
         lastUpdatedAt: now,
     };
     
+    const dateFields = ['dateOfBirth', 'dateOfHomeVisit', 'estimatedStartDate'];
+    for (const field of dateFields) {
+        if (dataToSave[field]) {
+            try {
+                const date = parse(dataToSave[field], 'MM/dd/yyyy', new Date());
+                if (!isNaN(date.getTime())) {
+                    dataToSave[field] = Timestamp.fromDate(date);
+                } else {
+                    dataToSave[field] = null; 
+                }
+            } catch (e) {
+                console.warn(`Could not parse date string for field ${field}: ${dataToSave[field]}`);
+                dataToSave[field] = null;
+            }
+        }
+    }
+
     if (dataToSave.clientEmail) {
         dataToSave.clientEmail = dataToSave.clientEmail.trim().toLowerCase();
     }
@@ -182,7 +203,7 @@ export async function submitInitialContact(payload: SubmitPayload) {
         
         const oldVisitDate = existingData?.dateOfHomeVisit?.toDate();
         const oldVisitTime = existingData?.timeOfVisit;
-        const newVisitDate = dataToSave.dateOfHomeVisit;
+        const newVisitDate = dataToSave.dateOfHomeVisit?.toDate();
         const newVisitTime = dataToSave.timeOfVisit;
         
         const hasDateChanged = oldVisitDate?.getTime() !== newVisitDate?.getTime();
@@ -292,5 +313,3 @@ export async function sendManualSms(contactId: string, message: string) {
         return { error: `Failed to send SMS: ${error.message}` };
     }
 }
-
-    

@@ -2,11 +2,40 @@
 
 import { z } from "zod";
 
+const isValidDate = (dateString: string): boolean => {
+  if (!/^\d{2}\/\d{2}\/\d{4}$/.test(dateString)) {
+    return false;
+  }
+  const [month, day, year] = dateString.split('/').map(Number);
+  if (month < 1 || month > 12 || year < 1900 || year > 2100) {
+    return false;
+  }
+  const date = new Date(year, month - 1, day);
+  return (
+    date.getFullYear() === year &&
+    date.getMonth() === month - 1 &&
+    date.getDate() === day
+  );
+};
+
+export const dateString = z.string()
+  .optional()
+  .or(z.literal(''))
+  .refine(val => !val || isValidDate(val), {
+    message: "Invalid date. Please use MM/DD/YYYY format.",
+  });
+
+export const requiredDateString = z.string()
+  .min(1, 'Date is required.')
+  .refine(isValidDate, {
+    message: "Invalid date. Please use MM/DD/YYYY format.",
+  });
+
 export const initialContactSchema = z.object({
   clientName: z.string().min(1, "Client's Name is required."),
   source: z.string().min(1, "Source is required."),
   clientAddress: z.string().min(1, "Client's Address is required."),
-  dateOfBirth: z.date().optional(),
+  dateOfBirth: dateString,
   rateOffered: z.coerce.number().nonnegative("Rate cannot be negative").optional(),
   milageOffered: z.coerce.number().nonnegative("Mileage cannot be negative").optional(),
   clientDepositAmount: z.coerce.number().optional(),
@@ -17,13 +46,13 @@ export const initialContactSchema = z.object({
   mainContact: z.string().min(1, "Main Contact is required."),
   allergies: z.string().optional(),
   pets: z.string().optional(),
-  dateOfHomeVisit: z.date().optional(),
+  dateOfHomeVisit: dateString,
   timeOfVisit: z.string().optional(),
   referredBy: z.string().optional(),
   referralCode: z.string().optional(),
   promptedCall: z.string().min(1, "This field is required."),
   estimatedHours: z.string().optional(),
-  estimatedStartDate: z.date().optional(),
+  estimatedStartDate: dateString,
   inHomeVisitSet: z.enum(["Yes", "No"]).optional(),
   inHomeVisitSetNoReason: z.string().optional(),
   sendFollowUpCampaigns: z.boolean().optional(),
@@ -88,7 +117,7 @@ export const initialContactSchema = z.object({
 
 export const generalInfoSchema = z.object({
   uid: z.string().optional(),
-  createdAt: z.date().optional(),
+  createdAt: z.any().optional(),
   fullName: z.string().min(2, "Full name must be at least 2 characters."),
   email: z.string().email("Invalid email address."),
   phone: z.string().min(10, "Phone number must be at least 10 digits."),
@@ -150,24 +179,22 @@ export const transportationSchema = z.object({
 
 export const hcs501Object = z.object({
   perId: z.string().optional(),
-  hireDate: z.date().optional().nullable(),
-  separationDate: z.date().optional().nullable(),
+  hireDate: dateString,
+  separationDate: dateString,
   fullName: z.string().nonempty("Full name is required."),
   phone: z.string().nonempty("Phone is required."),
   address: z.string().nonempty("Address is required."),
   city: z.string().nonempty("City is required."),
   state: z.string().nonempty("State is required."),
   zip: z.string().nonempty("Zip code is required."),
-  dob: z.date({required_error: "Date of Birth is required."}),
+  dob: requiredDateString,
   ssn: z.string().optional().refine((val) => {
-    // If the value is undefined, null, or an empty string, it's valid.
     if (!val) return true; 
-    // If it has a value, it must match the format.
     return /^\d{3}-\d{2}-\d{4}$/.test(val);
   }, {
     message: "Invalid Social Security Number format. Expected XXX-XX-XXXX.",
   }),
-  tbDate: z.date().optional().nullable(),
+  tbDate: dateString,
   tbResults: z.string().optional(),
   additionalTbDates: z.string().optional(),
   alternateNames: z.string().optional(),
@@ -176,10 +203,9 @@ export const hcs501Object = z.object({
   titleOfPosition: z.string().nonempty("Title of Position is required."),
   hcs501Notes: z.string().optional(),
   hcs501EmployeeSignature: z.string().nonempty("Signature is required."),
-  hcs501SignatureDate: z.date({required_error: "Signature date is required."}),
+  hcs501SignatureDate: requiredDateString,
 });
 
-// Common refinement logic for CDL
 const cdlRefinement = (data: { validLicense?: "yes" | "no"; driversLicenseNumber?: string; }) => {
     if (data.validLicense === 'yes') {
         return !!data.driversLicenseNumber && data.driversLicenseNumber.length > 0;
@@ -191,17 +217,14 @@ const cdlRefinementParams = {
     path: ['driversLicenseNumber'],
 };
 
-// Candidate-facing schema (less strict)
 export const hcs501Schema = hcs501Object.refine(cdlRefinement, cdlRefinementParams);
 
-// Admin-facing schema (more strict)
 export const hcs501AdminSchema = hcs501Object.extend({
     perId: z.string().min(1, "Employee's PER ID is required."),
-    hireDate: z.date({ required_error: "Hire Date is required." }),
-    tbDate: z.date({ required_error: "Date of TB Test is required." }),
+    hireDate: requiredDateString,
+    tbDate: requiredDateString,
     tbResults: z.string().nonempty("Results of last TB test are required."),
 }).refine(cdlRefinement, cdlRefinementParams);
-
 
 export type Hcs501FormData = z.infer<typeof hcs501AdminSchema>;
 
@@ -229,12 +252,12 @@ export const lic508Object = z.object({
   livedOutOfStateLast5Years: z.enum(["yes", "no"], { required_error: "This selection is required." }),
   outOfStateHistory: z.string().optional(),
   lic508Signature: z.string().min(1, "Signature is required."),
-  lic508SignatureDate: z.date({ required_error: "Signature date is required." }),
+  lic508SignatureDate: requiredDateString,
   ssn: z.string()
     .min(1, "Social Security Number is required.")
     .regex(/^\d{3}-\d{2}-\d{4}$/, "Invalid Social Security Number format. Expected XXX-XX-XXXX."),
   driversLicenseNumber: z.string().min(1, "Driver's License is required."),
-  dob: z.date({ required_error: "Date of Birth is required." }),
+  dob: requiredDateString,
 });
 
 export const lic508Schema = lic508Object.refine(data => {
@@ -251,13 +274,13 @@ export type Lic508FormData = z.infer<typeof lic508Schema>;
 
 export const soc341aSchema = z.object({
   soc341aSignature: z.string().min(1, "Signature is required."),
-  soc341aSignatureDate: z.date({required_error: "Signature date is required."}),
+  soc341aSignatureDate: requiredDateString,
 });
 export type Soc341aFormData = z.infer<typeof soc341aSchema>;
 
 export const referenceVerification1Object = z.object({
   applicantSignature1: z.string().min(1, "Signature is required."),
-  applicantSignatureDate1: z.date({ required_error: "Signature date is required." }),
+  applicantSignatureDate1: requiredDateString,
   company1: z.string().min(1, "Company name is required."),
   supervisorName1: z.string().min(1, "Supervisor's name is required."),
   emailOrFax1: z.string().min(1, "Email or Fax is required."),
@@ -293,7 +316,7 @@ export type ReferenceVerification1FormData = z.infer<typeof referenceVerificatio
 
 export const referenceVerification2Object = z.object({
   applicantSignature2: z.string().min(1, "Signature is required."),
-  applicantSignatureDate2: z.date({ required_error: "Signature date is required." }),
+  applicantSignatureDate2: requiredDateString,
   company2: z.string().min(1, "Company name is required."),
   supervisorName2: z.string().min(1, "Supervisor's name is required."),
   emailOrFax2: z.string().min(1, "Email or Fax is required."),
@@ -330,16 +353,16 @@ export type ReferenceVerification2FormData = z.infer<typeof referenceVerificatio
 export const arbitrationAgreementSchema = z.object({
   applicantPrintedName: z.string().min(1, "Printed name is required."),
   arbitrationAgreementSignature: z.string().min(1, "Signature is required."),
-  arbitrationAgreementSignatureDate: z.date({required_error: "Signature date is required."}),
+  arbitrationAgreementSignatureDate: requiredDateString,
 });
 export type ArbitrationAgreementFormData = z.infer<typeof arbitrationAgreementSchema>;
 
 export const drugAlcoholPolicySchema = z.object({
   drugAlcoholPolicySignature: z.string().min(1, "Signature is required."),
-  drugAlcoholPolicySignatureDate: z.date({required_error: "Signature date is required."}),
+  drugAlcoholPolicySignatureDate: requiredDateString,
   drugAlcoholPolicyEmployeePrintedName: z.string().min(1, "Printed name is required."),
   drugAlcoholPolicyRepSignature: z.string().optional(),
-  drugAlcoholPolicyRepDate: z.date().optional(),
+  drugAlcoholPolicyRepDate: dateString,
   oralSalivaTestResult: z.enum(['Negative', 'Positive']).optional(),
   oralSalivaPositiveDrug: z.string().optional(),
   bloodTestResult: z.enum(['Negative', 'Positive']).optional(),
@@ -351,14 +374,14 @@ export const drugAlcoholPolicyAdminSchema = drugAlcoholPolicySchema;
 
 export const hcaJobDescriptionSchema = z.object({
   jobDescriptionSignature: z.string().min(1, "Signature is required."),
-  jobDescriptionSignatureDate: z.date({required_error: "Signature date is required."}),
+  jobDescriptionSignatureDate: requiredDateString,
 });
 export type HcaJobDescriptionFormData = z.infer<typeof hcaJobDescriptionSchema>;
 
 export const clientAbandonmentSchema = z.object({
     clientAbandonmentPrintedName: z.string().min(1, "Printed name is required."),
     clientAbandonmentSignature: z.string().min(1, "Signature is required."),
-    clientAbandonmentSignatureDate: z.date({required_error: "Date is required."}),
+    clientAbandonmentSignatureDate: requiredDateString,
     clientAbandonmentWitnessSignature: z.string().optional(),
 });
 export type ClientAbandonmentFormData = z.infer<typeof clientAbandonmentSchema>;
@@ -368,9 +391,9 @@ export const clientAbandonmentAdminSchema = clientAbandonmentSchema;
 export const employeeOrientationAgreementSchema = z.object({
   orientationAgreementEmployeeName: z.string().min(1, "Printed name is required."),
   orientationAgreementSignature: z.string().min(1, "Signature is required."),
-  orientationAgreementSignatureDate: z.date({required_error: "Signature date is required."}),
+  orientationAgreementSignatureDate: requiredDateString,
   orientationAgreementWitnessSignature: z.string().optional(),
-  orientationAgreementWitnessDate: z.date().optional(),
+  orientationAgreementWitnessDate: dateString,
 });
 export type EmployeeOrientationAgreementFormData = z.infer<typeof employeeOrientationAgreementSchema>;
 
@@ -380,15 +403,15 @@ export const employeeOrientationAgreementAdminSchema = employeeOrientationAgreem
 export const acknowledgmentFormSchema = z.object({
   acknowledgmentEmployeeName: z.string().min(1, "Printed name is required."),
   acknowledgmentSignature: z.string().min(1, "Signature is required."),
-  acknowledgmentSignatureDate: z.date({required_error: "Signature date is required."}),
+  acknowledgmentSignatureDate: requiredDateString,
 });
 export type AcknowledgmentFormData = z.infer<typeof acknowledgmentFormSchema>;
 
 export const confidentialityAgreementSchema = z.object({
   confidentialityAgreementEmployeeSignature: z.string().min(1, "Signature is required."),
-  confidentialityAgreementEmployeeSignatureDate: z.date({required_error: "Signature date is required."}),
+  confidentialityAgreementEmployeeSignatureDate: requiredDateString,
   confidentialityAgreementRepSignature: z.string().optional(),
-  confidentialityAgreementRepDate: z.date().optional(),
+  confidentialityAgreementRepDate: dateString,
 });
 export type ConfidentialityAgreementFormData = z.infer<typeof confidentialityAgreementSchema>;
 
@@ -397,14 +420,14 @@ export const confidentialityAgreementAdminSchema = confidentialityAgreementSchem
 export const trainingAcknowledgementSchema = z.object({
   trainingAcknowledgementEmployeeName: z.string().min(1, "Printed name is required."),
   trainingAcknowledgementSignature: z.string().min(1, "Signature is required."),
-  trainingAcknowledgementSignatureDate: z.date({required_error: "Signature date is required."}),
+  trainingAcknowledgementSignatureDate: requiredDateString,
 });
 export type TrainingAcknowledgementFormData = z.infer<typeof trainingAcknowledgementSchema>;
 
 export const offerLetterSchema = z.object({
   offerLetterSignature: z.string().min(1, "Acceptance signature is required."),
-  offerLetterSignatureDate: z.date({ required_error: "Date is required." }),
-  hireDate: z.date().optional(),
+  offerLetterSignatureDate: requiredDateString,
+  hireDate: dateString,
   caregiver_rate_trng_orient: z.coerce.number().optional(),
   minimum_client_care_pay_rate: z.coerce.number().optional(),
 });
@@ -412,7 +435,7 @@ export type OfferLetterFormData = z.infer<typeof offerLetterSchema>;
 
 export const caregiverResponsibilitiesSchema = z.object({
     caregiverResponsibilitiesSignature: z.string().min(1, 'Signature is required.'),
-    caregiverResponsibilitiesSignatureDate: z.date({required_error: "Signature date is required."}),
+    caregiverResponsibilitiesSignatureDate: requiredDateString,
 });
 export type CaregiverResponsibilitiesFormData = z.infer<typeof caregiverResponsibilitiesSchema>;
 
@@ -423,13 +446,13 @@ export type TelephonyInstructionsFormData = z.infer<typeof telephonyInstructions
 
 export const emergencyProcedureSchema = z.object({
     emergencyProcedureSignature: z.string().min(1, 'Signature is required.'),
-    emergencyProcedureSignatureDate: z.date({required_error: 'Date is required.'}),
+    emergencyProcedureSignatureDate: requiredDateString,
 });
 export type EmergencyProcedureFormData = z.infer<typeof emergencyProcedureSchema>;
 
 export const onboardingSignaturesSchema = z.object({
     emergencyProcedureSignature: z.string().optional(),
-    emergencyProcedureSignatureDate: z.date().optional(),
+    emergencyProcedureSignatureDate: dateString,
 });
 export type OnboardingSignatures = z.infer<typeof onboardingSignaturesSchema>;
 
@@ -507,8 +530,8 @@ export type Interview = z.infer<typeof interviewSchema> & { id: string };
 export const caregiverEmployeeSchema = z.object({
   caregiverProfileId: z.string().min(1, 'Caregiver Profile ID is required.'),
   interviewId: z.string().min(1, 'Interview ID is required.'),
-  inPersonInterviewDate: z.coerce.date().optional(),
-  hireDate: z.coerce.date(),
+  inPersonInterviewDate: dateString,
+  hireDate: requiredDateString,
   hiringComments: z.string().optional(),
   hiringManager: z.string(),
   teletrackPin: z.string().min(1, 'TeleTrack PIN is required.'),
@@ -635,15 +658,15 @@ export const clientSignupFormSchema = clientSignupDraftSchema.extend({
   payor: z.string().optional(),
 
   // Office Use Only
-  officeTodaysDate: z.date().optional(),
-  officeReferralDate: z.date().optional(),
-  officeInitialContactDate: z.date().optional(),
+  officeTodaysDate: dateString,
+  officeReferralDate: dateString,
+  officeInitialContactDate: dateString,
 
   // Client Information
   clientAddress: z.string().optional(),
   clientPostalCode: z.string().optional(),
   clientSSN: z.string().optional(),
-  clientDOB: z.string().optional(),
+  clientDOB: dateString,
   
   // Emergency Contact
   emergencyContactName: z.string().optional(),
@@ -659,12 +682,12 @@ export const clientSignupFormSchema = clientSignupDraftSchema.extend({
   personalCare: z.boolean().optional(),
   daysPerWeek: z.string().optional(),
   hoursPerDay: z.string().optional(),
-  contractStartDate: z.date().optional(),
+  contractStartDate: dateString,
 
   // Payments
   hourlyRate: z.coerce.number().optional(),
   minimumHoursPerShift: z.coerce.number().optional(),
-  rateCardDate: z.date().optional(),
+  rateCardDate: dateString,
   
   // Terms and Conditions
   policyNumber: z.string().optional(),
@@ -679,13 +702,13 @@ export const clientSignupFormSchema = clientSignupDraftSchema.extend({
   // Signatures
   clientSignature: z.string().optional(),
   clientPrintedName: z.string().optional(),
-  clientSignatureDate: z.date().optional(),
+  clientSignatureDate: dateString,
   clientRepresentativeSignature: z.string().optional(),
   clientRepresentativePrintedName: z.string().optional(),
-  clientRepresentativeSignatureDate: z.date().optional(),
+  clientRepresentativeSignatureDate: dateString,
   firstLightRepresentativeSignature: z.string().optional(),
   firstLightRepresentativeTitle: z.string().optional(),
-  firstLightRepresentativeSignatureDate: z.date().optional(),
+  firstLightRepresentativeSignatureDate: dateString,
 
   // Home Care Service Plan
   companionCare_mealPreparation: z.boolean().optional(),
@@ -717,43 +740,37 @@ export const clientSignupFormSchema = clientSignupDraftSchema.extend({
   personalCare_assistWithOther: z.string().optional(),
   servicePlanClientInitials: z.string().optional(),
 
-  // Office Use Only
-  officeTodaysDate: z.date().optional(),
-  officeReferralDate: z.date().optional(),
-  officeInitialContactDate: z.date().optional(),
-
   // Agreement
   agreementClientName: z.string().optional(),
   agreementClientSignature: z.string().optional(),
-  agreementSignatureDate: z.date().optional(),
+  agreementSignatureDate: dateString,
   agreementRelationship: z.string().optional(),
   agreementRepSignature: z.string().optional(),
-  agreementRepDate: z.date().optional(),
+  agreementRepDate: dateString,
 
   // Transportation Waiver
   transportationWaiverClientSignature: z.string().optional(),
   transportationWaiverClientPrintedName: z.string().optional(),
   transportationWaiverWitnessSignature: z.string().optional(),
-  transportationWaiverDate: z.date().optional(),
+  transportationWaiverDate: dateString,
 });
 export type ClientSignupFormData = z.infer<typeof clientSignupFormSchema>;
 
-// Stricter schema for private pay finalization
 export const finalizationSchema = clientSignupFormSchema.extend({
   hourlyRate: z.coerce.number().min(1, "Hourly rate is required."),
   minimumHoursPerShift: z.coerce.number().min(1, "Minimum hours per shift is required."),
-  rateCardDate: z.date({ required_error: "Rate card date is required." }),
+  rateCardDate: requiredDateString,
   clientInitials: z.string().min(1, "Client initials for the hiring clause are required."),
   receivedPrivacyPractices: z.literal(true, { errorMap: () => ({ message: "Must be acknowledged" }) }),
   receivedClientRights: z.literal(true, { errorMap: () => ({ message: "Must be acknowledged" }) }),
   receivedPaymentAgreement: z.literal(true, { errorMap: () => ({ message: "Must be acknowledged" }) }),
   firstLightRepresentativeSignature: z.string().min(1, "FirstLight representative signature is required."),
   firstLightRepresentativeTitle: z.string().min(1, "FirstLight representative title is required."),
-  firstLightRepresentativeSignatureDate: z.date({ required_error: "Date is required." }),
+  firstLightRepresentativeSignatureDate: requiredDateString,
   servicePlanClientInitials: z.string().min(1, "Client initials for the service plan are required."),
   agreementClientName: z.string().min(1, "Client name for payment agreement is required."),
   agreementRepSignature: z.string().min(1, "FirstLight representative signature for payment agreement is required."),
-  agreementRepDate: z.date({ required_error: "Date for payment agreement is required." }),
+  agreementRepDate: requiredDateString,
 }).superRefine((data, ctx) => {
     if (data.clientSignature?.trim() === '' && data.clientRepresentativeSignature?.trim() === '') {
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Either client or representative signature is required in the Acknowledgement section.", path: ["clientSignature"] });
@@ -780,7 +797,6 @@ export const finalizationSchema = clientSignupFormSchema.extend({
    }
 });
 
-// Base schema for fields required on a TPP form for finalization
 const tppBaseFinalizationSchema = z.object({
   clientName: z.string().min(1, { message: "Client Name is required." }),
   clientEmail: z.string().email(),
@@ -789,37 +805,33 @@ const tppBaseFinalizationSchema = z.object({
   clientState: z.string().min(1),
   clientPostalCode: z.string().min(1),
   clientPhone: z.string().min(1),
-  clientDOB: z.string().min(1),
+  clientDOB: dateString,
   payor: z.string().min(1, "Payor name is required."),
   clientInitials: z.string().min(1, "Client initials for the hiring clause are required."),
   receivedPrivacyPractices: z.literal(true, { errorMap: () => ({ message: "Must acknowledge receipt of Privacy Practices." }) }),
   firstLightRepresentativeSignature: z.string().min(1, "FirstLight representative signature is required."),
   firstLightRepresentativeTitle: z.string().min(1, "FirstLight representative title is required."),
-  firstLightRepresentativeSignatureDate: z.date({ required_error: "Date for FirstLight representative is required." }),
+  firstLightRepresentativeSignatureDate: requiredDateString,
   receivedTransportationWaiver: z.boolean().optional(),
   transportationWaiverClientSignature: z.string().optional(),
   transportationWaiverClientPrintedName: z.string().optional(),
   transportationWaiverWitnessSignature: z.string().optional(),
-  transportationWaiverDate: z.date().optional(),
+  transportationWaiverDate: dateString,
   clientSignature: z.string().optional(),
   clientRepresentativeSignature: z.string().optional(),
   clientPrintedName: z.string().optional(),
-  clientSignatureDate: z.date().optional(),
+  clientSignatureDate: dateString,
   clientRepresentativePrintedName: z.string().optional(),
-  clientRepresentativeSignatureDate: z.date().optional(),
+  clientRepresentativeSignatureDate: dateString,
   receivedAdditionalDisclosures: z.boolean().optional(),
-  // Add agreement fields which were missing
   agreementClientSignature: z.string().optional(),
-  agreementSignatureDate: z.date().optional(),
+  agreementSignatureDate: dateString,
   agreementRelationship: z.string().optional(),
   agreementRepSignature: z.string().optional(),
-  agreementRepDate: z.date().optional(),
+  agreementRepDate: dateString,
 });
 
-
-// Stricter schema specifically for TPP finalization
 export const tppFinalizationSchema = tppBaseFinalizationSchema.superRefine((data, ctx) => {
-    // At least one client-side signature must be present
     if (!data.clientSignature && !data.clientRepresentativeSignature) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
@@ -827,7 +839,6 @@ export const tppFinalizationSchema = tppBaseFinalizationSchema.superRefine((data
             path: ["clientSignature"],
         });
     }
-    // If a signature is present, its corresponding name and date fields are required
     if (data.clientSignature && (!data.clientPrintedName || !data.clientSignatureDate)) {
         if (!data.clientPrintedName) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Printed name is required.", path: ["clientPrintedName"] });
         if (!data.clientSignatureDate) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date is required.", path: ["clientSignatureDate"] });
@@ -837,7 +848,6 @@ export const tppFinalizationSchema = tppBaseFinalizationSchema.superRefine((data
         if (!data.clientRepresentativeSignatureDate) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date is required.", path: ["clientRepresentativeSignatureDate"] });
     }
 
-   // If the transportation waiver is checked, all its fields are required
    if(data.receivedTransportationWaiver) {
     if (!data.transportationWaiverClientSignature) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Client signature is required for the waiver.", path: ["transportationWaiverClientSignature"] });
     if (!data.transportationWaiverClientPrintedName) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Printed name is required for the waiver.", path: ["transportationWaiverClientPrintedName"] });
@@ -846,56 +856,50 @@ export const tppFinalizationSchema = tppBaseFinalizationSchema.superRefine((data
    }
 });
 
-
-// Schema for client signature submission (Private Pay)
 export const clientSignaturePayloadSchema = z.object({
   signupId: z.string(),
   clientSignature: z.string().optional(),
   clientRepresentativeSignature: z.string().optional(),
   agreementClientSignature: z.string().min(1, "Agreement Signature is required."),
   clientPrintedName: z.string().optional(),
-  clientSignatureDate: z.date().optional(),
+  clientSignatureDate: dateString,
   clientRepresentativePrintedName: z.string().optional(),
-  clientRepresentativeSignatureDate: z.date().optional(),
+  clientRepresentativeSignatureDate: dateString,
   initials: z.string().min(1, { message: "Initials are required for the hiring clause." }),
   servicePlanClientInitials: z.string().min(1, { message: "Initials are required for the service plan section."}),
   agreementRelationship: z.string().optional(),
-  agreementSignatureDate: z.date().optional(),
+  agreementSignatureDate: dateString,
   transportationWaiverClientSignature: z.string().optional(),
   transportationWaiverClientPrintedName: z.string().optional(),
   transportationWaiverWitnessSignature: z.string().optional(),
-  transportationWaiverDate: z.date().optional(),
+  transportationWaiverDate: dateString,
 }).superRefine((data, ctx) => {
     if (!data.clientSignature && !data.clientRepresentativeSignature) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Either client or representative signature is required.", path: ["clientSignature"] });
     }
 });
 
-// New, specific schema for TPP client signature submission
 export const tppClientSignaturePayloadSchema = z.object({
   signupId: z.string(),
   clientSignature: z.string().optional(),
   clientRepresentativeSignature: z.string().optional(),
   clientPrintedName: z.string().optional(),
-  clientSignatureDate: z.date().optional(),
+  clientSignatureDate: dateString,
   clientRepresentativePrintedName: z.string().optional(),
-  clientRepresentativeSignatureDate: z.date().optional(),
+  clientRepresentativeSignatureDate: dateString,
   initials: z.string().min(1, { message: "Initials are required for the hiring clause." }),
   transportationWaiverClientSignature: z.string().optional(),
   transportationWaiverClientPrintedName: z.string().optional(),
   transportationWaiverWitnessSignature: z.string().optional(),
-  transportationWaiverDate: z.date().optional(),
+  transportationWaiverDate: dateString,
   agreementClientSignature: z.string().optional(),
-  agreementSignatureDate: z.date().optional(),
+  agreementSignatureDate: dateString,
 }).superRefine((data, ctx) => {
     if (!data.clientSignature && !data.clientRepresentativeSignature) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: "A client or representative signature is required.", path: ["clientSignature"] });
     }
 });
 
-
-// Defines the schema for the data that will be passed into the AI prompt.
-// It accepts either an image data URI or plain text content.
 export const ExtractCareLogInputSchema = z.object({
   imageDataUri: z.string().describe(
     "A photo of a handwritten care log, as a data URI that must include a " +
@@ -909,7 +913,6 @@ export const ExtractCareLogInputSchema = z.object({
 });
 export type ExtractCareLogInput = z.infer<typeof ExtractCareLogInputSchema>;
 
-// Defines the schema for the expected output from the AI model.
 export const ExtractCareLogOutputSchema = z.object({
   shiftDateTime: z.string().datetime().describe(
     "The exact start date and time of the shift, extracted from the notes. " +
@@ -991,7 +994,6 @@ export const referralProfileSchema = z.object({
     createdAt: z.any(),
 });
 export type ReferralProfile = z.infer<typeof referralProfileSchema> & { id: string };
-
 
 export const clientSignupStatusSchema = z.enum([
     "Initial Phone Contact Completed",
@@ -1108,18 +1110,3 @@ export const CaregiverForRecommendationSchema = z.object({
     availability: z.any(),
 });
 export type CaregiverForRecommendation = z.infer<typeof CaregiverForRecommendationSchema>;
-
-  
-
-    
-
-  
-
-    
-
-
-
-
-
-
-

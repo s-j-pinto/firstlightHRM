@@ -18,8 +18,7 @@ import {
     confidentialityAgreementAdminSchema
 } from '@/lib/types';
 import { z } from 'zod';
-import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
-import { DateRange } from 'react-day-picker';
+import { format, isWithinInterval, startOfDay, endOfDay, parse } from 'date-fns';
 import Link from 'next/link';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -28,7 +27,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
@@ -40,6 +38,7 @@ import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Form, FormControl, FormItem } from '@/components/ui/form';
 import { sendHiringDocsNotification } from '@/lib/communication.actions';
+import { Input } from './ui/input';
 
 const hiringForms: { name: string; href: string; completionKey: keyof CaregiverProfile; pdfAction: string; adminSchema?: z.ZodObject<any, any, any> | z.ZodEffects<any,any,any> }[] = [
   { name: "HCS 501 - Personnel Record 2019", href: "/candidate-hiring-forms/hcs501", completionKey: 'hcs501EmployeeSignature', pdfAction: 'hcs501', adminSchema: hcs501AdminSchema },
@@ -263,7 +262,7 @@ export default function AdvancedSearchClient() {
     const { handleSubmit, control, reset } = useForm<FormData>({
         defaultValues: { skills: [], hiringStatus: 'any', skillMatching: 'any', shiftAvailability: 'any' }
     });
-    const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+    const [dateRange, setDateRange] = useState<{ from?: string; to?: string }>({});
     const [filteredResults, setFilteredResults] = useState<EnrichedCandidate[]>([]);
     const [hasSearched, setHasSearched] = useState(false);
     const [isSearching, startSearchTransition] = useTransition();
@@ -306,9 +305,15 @@ export default function AdvancedSearchClient() {
     
                     if (baseSchema && baseSchema.shape) {
                         Object.keys(baseSchema.shape).forEach(key => {
-                            const lowerKey = key.toLowerCase();
-                            if (sanitizedProfileData.hasOwnProperty(key) && (lowerKey.includes('date') || lowerKey.endsWith('at') || lowerKey === 'dob')) {
-                                sanitizedProfileData[key] = safeToDateForStatus(sanitizedProfileData[key]);
+                            const dateVal = safeToDateForStatus(sanitizedProfileData[key]);
+                             if (dateVal) {
+                                // If the schema expects a string, format it.
+                                if (baseSchema.shape[key] instanceof z.ZodString) {
+                                    sanitizedProfileData[key] = format(dateVal, 'MM/dd/yyyy');
+                                } else {
+                                    // Otherwise, use the Date object.
+                                    sanitizedProfileData[key] = dateVal;
+                                }
                             }
                         });
                     }
@@ -431,10 +436,16 @@ export default function AdvancedSearchClient() {
 
             // Filter by date range
             if (dateRange?.from && dateRange?.to) {
-                const interval = { start: startOfDay(dateRange.from), end: endOfDay(dateRange.to) };
-                results = results.filter(candidate => 
-                    candidate.createdAt && isWithinInterval((candidate.createdAt as any).toDate(), interval)
-                );
+                try {
+                    const fromDate = parse(dateRange.from, 'MM/dd/yyyy', new Date());
+                    const toDate = parse(dateRange.to, 'MM/dd/yyyy', new Date());
+                    const interval = { start: startOfDay(fromDate), end: endOfDay(toDate) };
+                    results = results.filter(candidate => 
+                        candidate.createdAt && isWithinInterval((candidate.createdAt as any).toDate(), interval)
+                    );
+                } catch(e) {
+                    console.error("Invalid date format for filtering");
+                }
             }
 
             setFilteredResults(results);
@@ -451,10 +462,9 @@ export default function AdvancedSearchClient() {
     
     const handleClearFilters = () => {
         reset({ skills: [], hiringStatus: 'any', skillMatching: 'any', shiftAvailability: 'any' });
-        setDateRange(undefined);
+        setDateRange({});
         setFilteredResults([]);
         setHasSearched(false);
-        // Rerun the initial search after clearing
         onSubmit({ skills: [], hiringStatus: 'any', skillMatching: 'any', shiftAvailability: 'any' });
     }
 
@@ -630,36 +640,19 @@ export default function AdvancedSearchClient() {
                                     />
                                 </div>
                                 <div className="space-y-2 flex-grow min-w-[240px]">
-                                    <Label>Application Date Range</Label>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <Button
-                                                variant={"outline"}
-                                                className={cn("w-full justify-start text-left font-normal", !dateRange && "text-muted-foreground")}
-                                            >
-                                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                                {dateRange?.from ? (
-                                                    dateRange.to ? (
-                                                        <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</>
-                                                    ) : (
-                                                        format(dateRange.from, "LLL dd, y")
-                                                    )
-                                                ) : (
-                                                    <span>Pick a date range</span>
-                                                )}
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="start">
-                                            <Calendar
-                                                initialFocus
-                                                mode="range"
-                                                defaultMonth={dateRange?.from}
-                                                selected={dateRange}
-                                                onSelect={setDateRange}
-                                                numberOfMonths={2}
-                                            />
-                                        </PopoverContent>
-                                    </Popover>
+                                    <Label>Application Date Range (MM/DD/YYYY)</Label>
+                                     <div className="flex gap-2">
+                                        <Input 
+                                            placeholder="From" 
+                                            value={dateRange.from || ''} 
+                                            onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value }))}
+                                        />
+                                        <Input 
+                                            placeholder="To" 
+                                            value={dateRange.to || ''} 
+                                            onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value }))}
+                                        />
+                                    </div>
                                 </div>
                                 <div className="space-y-2 flex-grow min-w-[180px]">
                                     <Label>Shift Availability</Label>
@@ -882,6 +875,3 @@ export default function AdvancedSearchClient() {
     );
 }
 
-    
-
-    

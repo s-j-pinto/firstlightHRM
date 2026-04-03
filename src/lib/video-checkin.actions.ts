@@ -1,4 +1,5 @@
 
+
 "use server";
 
 import { revalidatePath } from 'next/cache';
@@ -8,7 +9,7 @@ import { z } from 'zod';
 import { cookies } from 'next/headers';
 import { google } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
-import { format, set } from 'date-fns';
+import { format, set, parse } from 'date-fns';
 
 const requestSchema = z.object({
     requestedBy: z.string().min(1),
@@ -108,8 +109,8 @@ export async function requestVideoCheckin(payload: RequestFormData) {
 const scheduleSchema = z.object({
   requestId: z.string(),
   caregiverEmail: z.string().email(),
-  scheduledDate: z.date(),
-  scheduledTime: z.string(),
+  scheduledDate: z.string().regex(/^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/),
+  scheduledTime: z.string().min(1, "A time is required."),
 });
 type SchedulePayload = z.infer<typeof scheduleSchema>;
 
@@ -146,7 +147,8 @@ export async function scheduleVideoCheckin(payload: SchedulePayload) {
     const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
 
     const [hours, minutes] = scheduledTime.split(':').map(Number);
-    const scheduledAt = set(scheduledDate, { hours, minutes });
+    const parsedDate = parse(scheduledDate, 'MM/dd/yyyy', new Date());
+    const scheduledAt = set(parsedDate, { hours, minutes });
     const endTime = new Date(scheduledAt.getTime() + 15 * 60 * 1000); // 15-minute duration
 
     const event = await calendar.events.insert({

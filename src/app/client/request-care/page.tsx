@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useTransition } from "react";
@@ -14,17 +15,15 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
-import { format } from "date-fns";
-import { CalendarIcon, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { submitCareRequest } from "@/lib/client-care-request.actions";
 import { HelpDialog } from "@/components/HelpDialog";
+import { Loader2 } from "lucide-react";
+import { DateInput } from "@/components/ui/date-input";
+
 
 const requestCareSchema = z.object({
-  preferredDate: z.date({ required_error: "A preferred date is required." }),
+  preferredDate: z.string().regex(/^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/, "Date must be in MM/DD/YYYY format"),
   preferredTime: z.string().min(1, "A preferred time is required."),
   duration: z.string().min(1, "Please select a duration."),
   reason: z.string().min(10, "Please provide a brief reason for your request."),
@@ -43,6 +42,7 @@ export default function RequestCarePage() {
   const form = useForm<RequestCareFormValues>({
     resolver: zodResolver(requestCareSchema),
     defaultValues: {
+      preferredDate: "",
       preferredTime: "09:00",
       duration: "",
       reason: "",
@@ -86,25 +86,12 @@ export default function RequestCarePage() {
               <FormField
                 control={form.control}
                 name="preferredDate"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Preferred Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
-                          >
-                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                      </PopoverContent>
-                    </Popover>
+                render={() => (
+                  <FormItem>
+                    <FormLabel>Preferred Date (MM/DD/YYYY)</FormLabel>
+                    <FormControl>
+                      <DateInput name="preferredDate" />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

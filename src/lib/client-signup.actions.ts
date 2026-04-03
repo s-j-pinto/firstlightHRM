@@ -9,6 +9,7 @@ import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { generateClientIntakePdf, generateTppCsaPdf } from './pdf.actions';
 import { finalizationSchema, tppFinalizationSchema, clientSignaturePayloadSchema, tppClientSignaturePayloadSchema } from './types';
+import { parse } from 'date-fns';
 
 const clientSignupSchema = z.object({
   signupId: z.string().nullable(),
@@ -187,7 +188,7 @@ export async function saveClientSignupForm(payload: z.infer<typeof clientSignupS
             });
 
             await contactRef.update(dataToSync);
-            console.log(`Successfully synced CSA changes back to Initial Contact ID: ${initialContactId}`);
+             console.log(`Successfully synced CSA changes back to Initial Contact ID: ${initialContactId}`);
         } else {
             console.warn(`Could not sync to Initial Contact: initialContactId not found on signup document ${docId}.`);
         }
@@ -239,7 +240,7 @@ export async function sendSignatureEmail(signupId: string, clientEmail: string) 
         if (formType !== 'tpp' && formData?.receivedClientRights) { // Only for regular CSA
             attachmentsHtml += `<p><strong>Download:</strong> <a href="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FClient%20Rights%20and%20Responsibilities%20revised%203-11-24.pdf?alt=media&token=9a22bfc7-215f-4724-b569-2eb0050ba999">Client Rights and Responsibilities</a></p>`;
         }
-        if (formType === 'tpp' && formData?.receivedAdditionalDisclosures) {
+         if (formType === 'tpp' && formData?.receivedAdditionalDisclosures) {
             attachmentsHtml += `<p><strong>Download:</strong> <a href="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FAdditionalStateDisclosures.pdf?alt=media&token=59e0750a-8a49-43d9-9524-81d3a436573c">Additional State Law Disclosures</a></p>`;
         }
         
@@ -464,7 +465,7 @@ export async function finalizeAndSubmit(signupId: string, formData: any) {
             }
              if (formType !== 'tpp' && validation.data?.receivedClientRights) {
                 attachmentsHtml += `<p><strong>Download:</strong> <a href="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FClient%20Rights%20and%20Responsibilities%20revised%203-11-24.pdf?alt=media&token=9a22bfc7-215f-4724-b569-2eb0050ba999">Client Rights and Responsibilities</a></p>`;
-            }
+             }
              if (formType === 'tpp' && validation.data?.receivedAdditionalDisclosures) {
                 attachmentsHtml += `<p><strong>Download:</strong> <a href="https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/waivers%2FAdditionalStateDisclosures.pdf?alt=media&token=59e0750a-8a49-43d9-9524-81d3a436573c">Additional State Law Disclosures</a></p>`;
             }

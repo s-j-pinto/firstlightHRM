@@ -2,16 +2,10 @@
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
-import { format, setHours, setMinutes } from "date-fns";
-import { Calendar as CalendarIcon, Loader2, Trash2 } from "lucide-react";
+import { format, setHours, setMinutes, parse } from "date-fns";
+import { Loader2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import {
   Dialog,
   DialogContent,
@@ -61,7 +55,7 @@ export function EditAppointment({
     isOpen, 
     onClose 
 }: EditAppointmentProps) {
-  const [date, setDate] = useState<Date | undefined>(currentDate);
+  const [date, setDate] = useState<string>(format(currentDate, "MM/dd/yyyy"));
   const [time, setTime] = useState<string>(format(currentDate, "HH:mm"));
   const [isUpdatePending, startUpdateTransition] = useTransition();
   const [isCancelPending, startCancelTransition] = useTransition();
@@ -70,7 +64,7 @@ export function EditAppointment({
   const { toast } = useToast();
 
   useEffect(() => {
-    setDate(currentDate);
+    setDate(format(currentDate, "MM/dd/yyyy"));
     setTime(format(currentDate, "HH:mm"));
   }, [currentDate, isOpen]);
 
@@ -80,8 +74,14 @@ export function EditAppointment({
     startUpdateTransition(async () => {
       const duration = currentEndDate.getTime() - currentDate.getTime();
       
+      const parsedDate = parse(date, 'MM/dd/yyyy', new Date());
+      if(isNaN(parsedDate.getTime())) {
+        toast({ title: "Invalid Date", description: "Please enter the date in MM/DD/YYYY format.", variant: "destructive" });
+        return;
+      }
+      
       const [hours, minutes] = time.split(':').map(Number);
-      let newStartDate = setHours(date, hours);
+      let newStartDate = setHours(parsedDate, hours);
       newStartDate = setMinutes(newStartDate, minutes);
 
       const newEndDate = new Date(newStartDate.getTime() + duration);
@@ -129,30 +129,14 @@ export function EditAppointment({
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="date">Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    id="date"
-                    variant={"outline"}
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !date && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {date ? format(date, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={date}
-                    onSelect={setDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <Label htmlFor="date">Date (MM/DD/YYYY)</Label>
+              <Input
+                id="date"
+                type="text"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                placeholder="MM/DD/YYYY"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="time">Time</Label>

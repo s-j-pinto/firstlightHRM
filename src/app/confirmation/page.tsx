@@ -1,4 +1,5 @@
 
+
 "use client";
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -6,14 +7,24 @@ import { Suspense } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Calendar, Clock, MapPin } from 'lucide-react';
-import { toZonedTime, formatInTimeZone } from 'date-fns-tz';
-
-const pacificTimeZone = "America/Los_Angeles";
+import { format } from 'date-fns';
 
 function ConfirmationPageContent() {
   const searchParams = useSearchParams();
   const time = searchParams.get('time');
-  const appointmentTime = time ? new Date(time) : new Date();
+  
+  let appointmentTime: Date | null = null;
+  if(time) {
+    try {
+        appointmentTime = new Date(time);
+        if(isNaN(appointmentTime.getTime())) {
+            appointmentTime = null;
+        }
+    } catch (e) {
+        console.error("Invalid date format in URL", e);
+        appointmentTime = null;
+    }
+  }
 
   return (
     <main className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
@@ -25,14 +36,20 @@ function ConfirmationPageContent() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="p-4 border rounded-lg space-y-4 bg-background/50">
-             <p className="flex items-start">
-                <Calendar className="h-5 w-5 mr-3 mt-1 text-accent flex-shrink-0" />
-                <span className="font-semibold">{formatInTimeZone(appointmentTime, pacificTimeZone, 'EEEE, MMMM do, yyyy')}</span>
-            </p>
-            <p className="flex items-start">
-                <Clock className="h-5 w-5 mr-3 mt-1 text-accent flex-shrink-0" />
-                <span className="font-semibold">{formatInTimeZone(appointmentTime, pacificTimeZone, 'h:mm a')}</span>
-            </p>
+            {appointmentTime ? (
+              <>
+                <p className="flex items-start">
+                    <Calendar className="h-5 w-5 mr-3 mt-1 text-accent flex-shrink-0" />
+                    <span className="font-semibold">{format(appointmentTime, 'EEEE, MMMM do, yyyy')}</span>
+                </p>
+                <p className="flex items-start">
+                    <Clock className="h-5 w-5 mr-3 mt-1 text-accent flex-shrink-0" />
+                    <span className="font-semibold">{format(appointmentTime, 'h:mm a')}</span>
+                </p>
+              </>
+            ) : (
+                <p className="font-semibold text-center">Appointment details will be sent via email.</p>
+            )}
              <p className="flex items-start">
                 <MapPin className="h-5 w-5 mr-3 mt-1 text-accent flex-shrink-0" />
                 <span className="font-semibold">9650 Business Center Drive, Suite 113, Rancho Cucamonga, CA</span>

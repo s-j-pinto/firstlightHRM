@@ -59,14 +59,12 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
     // --- Timezone and Date Construction ---
     const pacificTimeZone = 'America/Los_Angeles';
     
-    const dateTimeString = `${eventDate}T${eventTime}`; // e.g., "2024-12-08T14:00"
+    // The eventDate comes in as MM/DD/YYYY, convert to YYYY-MM-DD for consistency
+    const [month, day, year] = eventDate.split('/');
+    const isoDate = `${year}-${month}-${day}`;
+    const dateTimeString = `${isoDate}T${eventTime}`; // e.g., "2024-12-08T14:00"
     const startTime = fromZonedTime(dateTimeString, pacificTimeZone);
-    //Troubleshooting
-    const logDate = formatInTimeZone(startTime, pacificTimeZone, 'eeee, MMMM do, yyyy');
-    const logStartTime = formatInTimeZone(startTime, pacificTimeZone, 'h:mm a zzz');
-    console.log('logDate:', logDate);
-    console.log('logStartTime:', logStartTime);
-
+    
     // --- Determine Event Duration and Title ---
     let durationHours: number;
     let eventTitle: string;
@@ -282,8 +280,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
         <a href="http://ranchocucamonga.firstlighthomecare.com">ranchocucamonga.firstlighthomecare.com</a></p>
         <p><a href="https://www.facebook.com/FirstLightHomeCareofRanchoCucamonga">https://www.facebook.com/FirstLightHomeCareofRanchoCucamonga</a></p>
         <br>
-        <img src="${logoUrl}" alt="FirstLight Home Care Logo" style="width: 200px; height: auto;"/>
-        <br>
+        <img src="${logoUrl}" alt="FirstLight Home Care Logo" style="width: 200px; height: auto;"/><br>
         <p><small><strong>CONFIDENTIALITY NOTICE</strong><br>
         This email, including any attachments or files transmitted with it, is intended to be confidential and solely for the use of the individual or entity to whom it is addressed. If you received it in error, or if you are not the intended recipient(s), please notify the sender by reply e-mail and delete/destroy the original message and any attachments, and any copies. Any unauthorized review, use, disclosure or distribution of this e-mail or information is prohibited and may be a violation of applicable laws.</small></p>
     `;
@@ -420,13 +417,3 @@ export async function initiateOnboardingForms(interviewId: string) {
     return { error: `Failed to initiate onboarding forms: ${error.message}` };
   }
 }
-    
-
-    
-
-
-
-
-
-
-    

@@ -1,20 +1,21 @@
 
+
 "use server";
 
 import { revalidatePath } from 'next/cache';
 import { serverAuth, serverDb } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
-import { format } from 'date-fns';
+import { format, parse } from 'date-fns';
 import { cookies } from 'next/headers';
 
 const requestCareSchema = z.object({
-  preferredDate: z.date(),
-  preferredTime: z.string(),
-  duration: z.string(),
-  reason: z.string(),
+  preferredDate: z.string().regex(/^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/, "Date must be in MM/DD/YYYY format"),
+  preferredTime: z.string().min(1, "A preferred time is required."),
+  duration: z.string().min(1, "Please select a duration."),
+  reason: z.string().min(10, "Please provide a brief reason for your request."),
   preferredCaregiver: z.string().optional(),
-  urgency: z.string(),
+  urgency: z.string().min(1, "Please select an urgency level."),
 });
 
 type RequestCareFormValues = z.infer<typeof requestCareSchema>;
@@ -53,7 +54,7 @@ export async function submitCareRequest(payload: RequestCareFormValues) {
         }
 
         const [hours, minutes] = data.preferredTime.split(':').map(Number);
-        const preferredDateTime = new Date(data.preferredDate);
+        const preferredDateTime = parse(data.preferredDate, 'MM/dd/yyyy', new Date());
         preferredDateTime.setHours(hours, minutes);
 
         const requestData = {
@@ -65,7 +66,7 @@ export async function submitCareRequest(payload: RequestCareFormValues) {
             reason: data.reason,
             preferredCaregiver: data.preferredCaregiver || 'N/A',
             urgency: data.urgency,
-            status: 'pending', // Initial status
+            status: 'pending' as const, // Initial status
             createdAt: Timestamp.now(),
         };
 

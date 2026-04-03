@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { serverDb } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
+import { parse } from 'date-fns';
 import { 
     hcs501Schema, 
     emergencyContactSchema, 
@@ -54,20 +55,20 @@ import type { CaregiverProfile } from './types';
 import JSZip from 'jszip';
 
 
-// Helper to convert date strings to Firestore Timestamps if they are valid dates
+// Helper to convert MM/DD/YYYY date strings to Firestore Timestamps
 function convertDatesToTimestamps(data: any): any {
     const dataWithTimestamps: { [key: string]: any } = {};
     for (const [key, value] of Object.entries(data)) {
-        if (typeof value === 'string' && key.toLowerCase().includes('date')) {
-            const date = new Date(value);
-            if (!isNaN(date.getTime())) {
-                dataWithTimestamps[key] = Timestamp.fromDate(date);
-                continue;
+        if (typeof value === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
+            try {
+                const date = parse(value, 'MM/dd/yyyy', new Date());
+                if (!isNaN(date.getTime())) {
+                    dataWithTimestamps[key] = Timestamp.fromDate(date);
+                    continue;
+                }
+            } catch (e) {
+                // Ignore parse errors, keep original value
             }
-        }
-        if (value instanceof Date) {
-             dataWithTimestamps[key] = Timestamp.fromDate(value);
-             continue;
         }
         dataWithTimestamps[key] = value;
     }

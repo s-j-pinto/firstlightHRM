@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { collection, query, where, getDocs, setDoc, doc, updateDoc, Timestamp, addDoc } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import type { CaregiverProfile, Interview, CaregiverEmployee } from '@/lib/types';
-import { caregiverEmployeeSchema } from '@/lib/types';
+import { caregiverEmployeeSchema, requiredDateString } from '@/lib/types';
 import { saveInterviewAndSchedule, rejectCandidate, initiateOnboardingForms } from '@/lib/interviews.actions';
 import { getAiInterviewInsights } from '@/lib/ai.actions';
 import { triggerTeletrackImport } from '@/lib/github.actions';
@@ -41,8 +41,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Search, Calendar as CalendarIcon, Sparkles, UserCheck, AlertCircle, ExternalLink, Briefcase, Video, GraduationCap, Phone, Star, MessageSquare, CheckCircle, XCircle, UserX, Save, FileText, FileCheck2, FileClock } from 'lucide-react';
@@ -55,6 +53,7 @@ import { Dialog, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogCon
 import { Label } from './ui/label';
 import { Checkbox } from './ui/checkbox';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { DateInput } from './ui/date-input';
 
 
 const phoneScreenSchema = z.object({
@@ -70,13 +69,13 @@ const assessmentSchema = z.object({
 const scheduleEventSchema = z.object({
     interviewPathway: z.enum(['separate', 'combined']),
     interviewMethod: z.enum(['In-Person', 'Google Meet']),
-    eventDate: z.date({ required_error: "An event date is required."}),
+    eventDate: requiredDateString,
     eventTime: z.string().min(1, { message: 'An event time is required.'}),
     includeReferenceForm: z.boolean().default(false).optional(),
 });
 
 const orientationSchema = z.object({
-    orientationDate: z.date({ required_error: 'An orientation date is required.' }),
+    orientationDate: requiredDateString,
     orientationTime: z.string().min(1, { message: 'An orientation time is required.' }),
     includeReferenceForm: z.boolean().default(false).optional(),
 });
@@ -193,8 +192,8 @@ export default function ManageInterviewsClient() {
     defaultValues: {
       caregiverProfileId: '',
       interviewId: '',
-      inPersonInterviewDate: undefined,
-      hireDate: new Date(),
+      inPersonInterviewDate: '',
+      hireDate: format(new Date(), 'MM/dd/yyyy'),
       hiringComments: '',
       hiringManager: 'Lolita Pinto',
       teletrackPin: '',
@@ -219,8 +218,8 @@ export default function ManageInterviewsClient() {
     hiringForm.reset({
         caregiverProfileId: '',
         interviewId: '',
-        inPersonInterviewDate: undefined,
-        hireDate: new Date(),
+        inPersonInterviewDate: '',
+        hireDate: format(new Date(), 'MM/dd/yyyy'),
         hiringComments: '',
         hiringManager: 'Lolita Pinto',
         teletrackPin: '',
@@ -280,7 +279,7 @@ export default function ManageInterviewsClient() {
             scheduleEventForm.reset({
                 interviewPathway: interviewData.interviewPathway || undefined,
                 interviewMethod: interviewData.interviewType as 'In-Person' | 'Google Meet' | 'Orientation' | undefined,
-                eventDate: interviewDate,
+                eventDate: interviewDate ? format(interviewDate, 'MM/dd/yyyy') : '',
                 eventTime: interviewDate ? format(interviewDate, 'HH:mm') : '',
                 includeReferenceForm: false,
             });
@@ -288,7 +287,7 @@ export default function ManageInterviewsClient() {
             if(interviewData.orientationDateTime) {
                 const orientationDate = (interviewData.orientationDateTime as any).toDate();
                  orientationForm.reset({
-                    orientationDate: orientationDate,
+                    orientationDate: format(orientationDate, 'MM/dd/yyyy'),
                     orientationTime: format(orientationDate, 'HH:mm')
                 });
             }
@@ -327,24 +326,21 @@ export default function ManageInterviewsClient() {
 
   useEffect(() => {
     if (selectedCaregiver && existingInterview) {
-        const interviewDate = existingInterview.interviewDateTime ? (existingInterview.interviewDateTime as any).toDate() : undefined;
+        const interviewDate = existingInterview.interviewDateTime ? safeToDate(existingInterview.interviewDateTime) : undefined;
         
         let orientationDate: Date | null = null;
         if (existingInterview.orientationDateTime) {
-            if (typeof (existingInterview.orientationDateTime as any).toDate === 'function') {
-                orientationDate = (existingInterview.orientationDateTime as any).toDate();
-            } else if (existingInterview.orientationDateTime instanceof Date) {
-                orientationDate = existingInterview.orientationDateTime;
-            }
+            orientationDate = safeToDate(existingInterview.orientationDateTime);
         }
         
         const offerLetterHireDate = selectedCaregiver.hireDate ? safeToDate(selectedCaregiver.hireDate) : null;
+        const finalHireDate = existingEmployee?.hireDate ? safeToDate(existingEmployee.hireDate) : (offerLetterHireDate || orientationDate || new Date());
 
         hiringForm.reset({
             caregiverProfileId: selectedCaregiver.id,
             interviewId: existingInterview.id,
-            inPersonInterviewDate: interviewDate,
-            hireDate: existingEmployee ? (existingEmployee.hireDate as any).toDate() : offerLetterHireDate || orientationDate || new Date(),
+            inPersonInterviewDate: interviewDate ? format(interviewDate, 'MM/dd/yyyy') : '',
+            hireDate: finalHireDate ? format(finalHireDate, 'MM/dd/yyyy') : '',
             hiringComments: existingEmployee?.hiringComments || '',
             hiringManager: existingEmployee?.hiringManager || 'Lolita Pinto',
             teletrackPin: existingEmployee?.teletrackPin || '',
@@ -555,7 +551,7 @@ export default function ManageInterviewsClient() {
     startScheduleSubmitTransition(async () => {
        const result = await saveInterviewAndSchedule({
          caregiverProfile: selectedCaregiver,
-         eventDate: format(data.eventDate, 'yyyy-MM-dd'),
+         eventDate: data.eventDate,
          eventTime: data.eventTime,
          interviewId: existingInterview.id,
          aiInsight: aiInsight || existingInterview.aiGeneratedInsight || '',
@@ -623,7 +619,7 @@ export default function ManageInterviewsClient() {
         startOrientationSubmitTransition(async () => {
             const result = await saveInterviewAndSchedule({
                 caregiverProfile: selectedCaregiver,
-                eventDate: format(data.orientationDate, 'yyyy-MM-dd'),
+                eventDate: data.orientationDate,
                 eventTime: data.orientationTime,
                 interviewId: existingInterview.id,
                 aiInsight: aiInsight || '',
@@ -650,7 +646,7 @@ export default function ManageInterviewsClient() {
             
             if (!result.error) {
                 // Manually update local state to trigger hiring form visibility
-                 setExistingInterview(prev => prev ? { ...prev, orientationScheduled: true, orientationDateTime: fromZonedTime(`${format(data.orientationDate, 'yyyy-MM-dd')}T${data.orientationTime}`, 'America/Los_Angeles') } : null);
+                 setExistingInterview(prev => prev ? { ...prev, orientationScheduled: true, orientationDateTime: fromZonedTime(`${data.orientationDate}T${data.orientationTime}`, 'America/Los_Angeles') } : null);
             }
         });
     }
@@ -1086,41 +1082,17 @@ export default function ManageInterviewsClient() {
                                         )}
                                         
                                         <div className="flex flex-col sm:flex-row gap-4 items-start">
-                                            <FormField
+                                             <FormField
                                                 control={scheduleEventForm.control}
                                                 name="eventDate"
-                                                render={({ field }) => (
-                                                    <FormItem className="flex flex-col flex-1">
-                                                        <FormLabel>
-                                                            {interviewPathway === 'separate' ? 'Final Interview Date' : 'Combined Session Date'}
-                                                        </FormLabel>
-                                                        <Popover>
-                                                            <PopoverTrigger asChild>
-                                                            <FormControl>
-                                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")}>
-                                                                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                                </Button>
-                                                            </FormControl>
-                                                            </PopoverTrigger>
-                                                            <PopoverContent className="w-auto p-0" align="start">
-                                                                <Calendar
-                                                                    mode="single"
-                                                                    selected={field.value}
-                                                                    onSelect={field.onChange}
-                                                                    initialFocus
-                                                                    footer={
-                                                                        <div className="flex gap-2 p-2 border-t">
-                                                                            <Button size="sm" variant="ghost" type="button" onClick={() => field.onChange(new Date())}>Today</Button>
-                                                                            <Button size="sm" variant="ghost" type="button" onClick={() => field.onChange(addDays(new Date(), 1))}>Tomorrow</Button>
-                                                                            <Button size="sm" variant="ghost" type="button" onClick={() => field.onChange(addDays(new Date(), 7))}>Next Week</Button>
-                                                                        </div>
-                                                                    }
-                                                                />
-                                                            </PopoverContent>
-                                                        </Popover>
-                                                        <FormMessage />
-                                                    </FormItem>
+                                                render={() => (
+                                                <FormItem className="flex-1">
+                                                    <FormLabel>{interviewPathway === 'separate' ? 'Final Interview Date' : 'Combined Session Date'} (MM/DD/YYYY)</FormLabel>
+                                                    <FormControl>
+                                                        <DateInput name="eventDate" />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
                                                 )}
                                             />
                                             <FormField
@@ -1268,36 +1240,14 @@ export default function ManageInterviewsClient() {
                                         <FormField
                                             control={orientationForm.control}
                                             name="orientationDate"
-                                            render={({ field }) => (
-                                                <FormItem className="flex flex-col flex-1">
-                                                    <FormLabel>Orientation Date</FormLabel>
-                                                    <Popover>
-                                                        <PopoverTrigger asChild>
-                                                        <FormControl>
-                                                            <Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")}>
-                                                                {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                            </Button>
-                                                        </FormControl>
-                                                        </PopoverTrigger>
-                                                        <PopoverContent className="w-auto p-0" align="start">
-                                                            <Calendar
-                                                                mode="single"
-                                                                selected={field.value}
-                                                                onSelect={field.onChange}
-                                                                initialFocus
-                                                                footer={
-                                                                    <div className="flex gap-2 p-2 border-t">
-                                                                        <Button size="sm" variant="ghost" type="button" onClick={() => field.onChange(new Date())}>Today</Button>
-                                                                        <Button size="sm" variant="ghost" type="button" onClick={() => field.onChange(addDays(new Date(), 1))}>Tomorrow</Button>
-                                                                        <Button size="sm" variant="ghost" type="button" onClick={() => field.onChange(addDays(new Date(), 7))}>Next Week</Button>
-                                                                    </div>
-                                                                }
-                                                            />
-                                                        </PopoverContent>
-                                                    </Popover>
-                                                    <FormMessage />
-                                                </FormItem>
+                                            render={() => (
+                                            <FormItem className="flex-1">
+                                                <FormLabel>Orientation Date (MM/DD/YYYY)</FormLabel>
+                                                <FormControl>
+                                                    <DateInput name="orientationDate" />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
                                             )}
                                         />
                                         <FormField
@@ -1453,20 +1403,8 @@ export default function ManageInterviewsClient() {
                                                 name="inPersonInterviewDate"
                                                 render={({ field }) => (
                                                     <FormItem className="flex flex-col">
-                                                        <FormLabel>Interview Date</FormLabel>
-                                                        <Popover>
-                                                            <PopoverTrigger asChild>
-                                                            <FormControl>
-                                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={true}>
-                                                                    {field.value ? format(field.value, "PPP") : <span>N/A</span>}
-                                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                                </Button>
-                                                            </FormControl>
-                                                            </PopoverTrigger>
-                                                            <PopoverContent className="w-auto p-0" align="start">
-                                                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                                                            </PopoverContent>
-                                                        </Popover>
+                                                        <FormLabel>Interview Date (MM/DD/YYYY)</FormLabel>
+                                                        <FormControl><DateInput name="inPersonInterviewDate" disabled /></FormControl>
                                                         <FormMessage />
                                                     </FormItem>
                                                 )}
@@ -1476,20 +1414,8 @@ export default function ManageInterviewsClient() {
                                                 name="hireDate"
                                                 render={({ field }) => (
                                                     <FormItem className="flex flex-col">
-                                                        <FormLabel>Hire Date</FormLabel>
-                                                        <Popover>
-                                                            <PopoverTrigger asChild>
-                                                            <FormControl>
-                                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                                </Button>
-                                                            </FormControl>
-                                                            </PopoverTrigger>
-                                                            <PopoverContent className="w-auto p-0" align="start">
-                                                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} />
-                                                            </PopoverContent>
-                                                        </Popover>
+                                                        <FormLabel>Hire Date (MM/DD/YYYY)</FormLabel>
+                                                        <FormControl><DateInput name="hireDate" /></FormControl>
                                                         <FormMessage />
                                                     </FormItem>
                                                 )}
@@ -1633,4 +1559,3 @@ function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: strin
     
 
     
-

@@ -1,10 +1,19 @@
 
+
 'use server';
 
-import { revalidatePath } from "next/cache";
-import { serverDb } from "@/firebase/server-init";
+import { revalidatePath } from 'next/cache';
+import { serverDb } from '@/firebase/server-init';
 import { Timestamp, FieldValue } from 'firebase-admin/firestore';
-import { sendHomeVisitInvite } from "./google-calendar.actions";
+import { sendHomeVisitInvite } from './google-calendar.actions';
+import { parse, set, isValid, isDate } from 'date-fns';
+
+const safeParseDate = (dateString?: string | Date, format = 'MM/dd/yyyy') => {
+    if (!dateString) return null;
+    if (isDate(dateString)) return dateString as Date;
+    const date = parse(dateString as string, format, new Date());
+    return isValid(date) ? date : null;
+};
 
 export async function submitLeadIntakeForm(contactId: string, data: any) {
     if (!contactId) {
@@ -22,19 +31,21 @@ export async function submitLeadIntakeForm(contactId: string, data: any) {
         
         // Ensure an assessment time was selected
         if (!data.assessmentTime) {
-            return { message: "Please select an assessment time to continue.", error: true };
+            return { message: "Please select an appointment time to continue.", error: true };
         }
         
-        const [date, time] = data.assessmentTime.split(' ');
-        const [hours, minutes] = time.split(':');
-        const assessmentDateTime = new Date(date);
-        assessmentDateTime.setHours(parseInt(hours), parseInt(minutes));
+        const [dateStr, timeStr] = data.assessmentTime.split(' ');
+        const [hours, minutes] = timeStr.split(':');
+        const assessmentDate = parse(dateStr, 'yyyy-MM-dd', new Date());
+        assessmentDate.setHours(parseInt(hours), parseInt(minutes));
 
-        const updateData = {
+        const estimatedStartDate = safeParseDate(data.estimatedStartDate);
+
+        const updateData: { [key: string]: any } = {
             ...data,
-            estimatedStartDate: data.estimatedStartDate ? Timestamp.fromDate(data.estimatedStartDate) : null,
-            dateOfHomeVisit: Timestamp.fromDate(assessmentDateTime),
-            timeOfVisit: time,
+            estimatedStartDate: estimatedStartDate ? Timestamp.fromDate(estimatedStartDate) : null,
+            dateOfHomeVisit: Timestamp.fromDate(assessmentDate),
+            timeOfVisit: timeStr,
             status: 'In-Home Visit Scheduled',
             sendFollowUpCampaigns: false, // Stop campaigns after scheduling
             lastUpdatedAt: FieldValue.serverTimestamp(),
@@ -56,8 +67,8 @@ export async function submitLeadIntakeForm(contactId: string, data: any) {
             clientAddress: originalContactData?.clientAddress,
             clientEmail: originalContactData?.clientEmail,
             additionalEmail: originalContactData?.additionalEmail,
-            dateOfHomeVisit: assessmentDateTime,
-            timeOfVisit: time,
+            dateOfHomeVisit: assessmentDate,
+            timeOfVisit: timeStr,
         });
 
         if (calendarResult.error) {
