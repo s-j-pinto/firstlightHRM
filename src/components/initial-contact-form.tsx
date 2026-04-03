@@ -5,8 +5,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter, usePathname } from "next/navigation";
-import { format, differenceInYears } from "date-fns";
-import { CalendarIcon, Loader2, Save, FileText, AlertCircle, ExternalLink, XCircle, Activity, Send, MessageSquare, Users, Sparkles } from "lucide-react";
+import { format, differenceInYears, parse, isValid, isDate } from "date-fns";
+import { Loader2, Save, FileText, AlertCircle, ExternalLink, XCircle, Activity, Send, MessageSquare, Users, Sparkles } from "lucide-react";
 import Link from 'next/link';
 
 import { Button } from "@/components/ui/button";
@@ -24,8 +24,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { submitInitialContact, closeInitialContact, sendManualSms } from "@/lib/initial-contact.actions";
@@ -44,6 +42,7 @@ import { SourceCombobox } from "./source-combobox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { SmsMessage } from "@/lib/types";
 import { AiCaregiverRecommendationClient } from "./ai-caregiver-recommendation-client";
+import { DateInput } from "./ui/date-input";
 
 
 const companionCareCheckboxes = [
@@ -91,7 +90,7 @@ const initialContactSchema = z.object({
   clientName: z.string().min(1, "Client's Name is required."),
   source: z.string().min(1, "Source is required."),
   clientAddress: z.string().min(1, "Client's Address is required."),
-  dateOfBirth: z.date().optional(),
+  dateOfBirth: z.string().optional(),
   rateOffered: z.coerce.number().nonnegative("Rate cannot be negative").optional(),
   milageOffered: z.coerce.number().nonnegative("Mileage cannot be negative").optional(),
   clientDepositAmount: z.coerce.number().optional(),
@@ -102,13 +101,13 @@ const initialContactSchema = z.object({
   mainContact: z.string().min(1, "Main Contact is required."),
   allergies: z.string().optional(),
   pets: z.string().optional(),
-  dateOfHomeVisit: z.date().optional(),
+  dateOfHomeVisit: z.string().optional(),
   timeOfVisit: z.string().optional(),
   referredBy: z.string().optional(),
   referralCode: z.string().optional(),
   promptedCall: z.string().min(1, "This field is required."),
   estimatedHours: z.string().optional(),
-  estimatedStartDate: z.date().optional(),
+  estimatedStartDate: z.string().optional(),
   inHomeVisitSet: z.enum(["Yes", "No"]).optional(),
   inHomeVisitSetNoReason: z.string().optional(),
   sendFollowUpCampaigns: z.boolean().optional(),
@@ -231,7 +230,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
       clientName: "",
       source: "Phone Inquiry",
       clientAddress: "",
-      dateOfBirth: undefined,
+      dateOfBirth: "",
       rateOffered: 0,
       milageOffered: 0,
       clientDepositAmount: 0,
@@ -243,13 +242,13 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
       contactPhone: "",
       allergies: "",
       pets: "",
-      dateOfHomeVisit: undefined,
+      dateOfHomeVisit: "",
       timeOfVisit: "",
       referredBy: "",
       referralCode: "",
       promptedCall: "",
       estimatedHours: "",
-      estimatedStartDate: undefined,
+      estimatedStartDate: "",
       inHomeVisitSet: undefined,
       inHomeVisitSetNoReason: "",
       sendFollowUpCampaigns: true,
@@ -274,7 +273,8 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
         const convertedData = { ...existingData };
         dateFields.forEach(field => {
             if (existingData[field] && typeof existingData[field].toDate === 'function') {
-                convertedData[field] = existingData[field].toDate();
+                const date = existingData[field].toDate();
+                convertedData[field] = format(date, "MM/dd/yyyy");
             }
         });
         if (convertedData.sendFollowUpCampaigns === undefined) {
@@ -378,8 +378,12 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
 
 
   const inHomeVisitSet = form.watch("inHomeVisitSet");
-  const dateOfBirth = form.watch("dateOfBirth");
-  const age = dateOfBirth ? differenceInYears(new Date(), dateOfBirth) : null;
+  
+  const dateOfBirthValue = form.watch("dateOfBirth");
+  const age = dateOfBirthValue && isValid(parse(dateOfBirthValue, 'MM/dd/yyyy', new Date())) 
+    ? differenceInYears(new Date(), parse(dateOfBirthValue, 'MM/dd/yyyy', new Date())) 
+    : null;
+
   const isAutomatedSource = existingData && existingData.source && !['Phone Inquiry', 'Walk-In', 'Existing Client'].includes(existingData.source);
 
 
@@ -467,47 +471,17 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                   <FormField control={form.control} name="zip" render={({ field }) => ( <FormItem><FormLabel>Zip</FormLabel><FormControl><Input {...field} disabled={isCsaCreated || isClosed} /></FormControl><FormMessage /></FormItem> )} />
                 </div>
                  <div className="grid grid-cols-2 gap-4 items-end">
-                    <FormField
+                     <FormField
                         control={form.control}
                         name="dateOfBirth"
-                        render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                            <FormLabel>Date of Birth</FormLabel>
-                            <Popover>
-                            <PopoverTrigger asChild>
+                        render={() => (
+                            <FormItem>
+                                <FormLabel>Date of Birth (MM/DD/YYYY)</FormLabel>
                                 <FormControl>
-                                <Button
-                                    variant={"outline"}
-                                    className={cn(
-                                    "pl-3 text-left font-normal",
-                                    !field.value && "text-muted-foreground"
-                                    )}
-                                    disabled={isCsaCreated || isClosed}
-                                >
-                                    {field.value ? (
-                                    format(field.value, "PPP")
-                                    ) : (
-                                    <span>Pick a date</span>
-                                    )}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
+                                    <DateInput name="dateOfBirth" disabled={isCsaCreated || isClosed} />
                                 </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                mode="single"
-                                captionLayout="dropdown-buttons"
-                                fromYear={1920}
-                                toYear={new Date().getFullYear()}
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                initialFocus
-                                disabled={isCsaCreated || isClosed}
-                                />
-                            </PopoverContent>
-                            </Popover>
-                            <FormMessage />
-                        </FormItem>
+                                <FormMessage />
+                            </FormItem>
                         )}
                     />
                      <FormItem>
@@ -541,22 +515,12 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                         <FormField
                             control={form.control}
                             name="dateOfHomeVisit"
-                            render={({ field }) => (
+                            render={() => (
                                 <FormItem className="flex flex-col">
-                                    <FormLabel>Date of Home Visit</FormLabel>
-                                    <Popover>
-                                    <PopoverTrigger asChild>
-                                        <FormControl>
-                                        <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={isClosed}>
-                                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                        </Button>
-                                        </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isClosed} />
-                                    </PopoverContent>
-                                    </Popover>
+                                    <FormLabel>Date of Home Visit (MM/DD/YYYY)</FormLabel>
+                                    <FormControl>
+                                        <DateInput name="dateOfHomeVisit" disabled={isClosed} />
+                                    </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -705,22 +669,12 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                      <FormField
                         control={form.control}
                         name="estimatedStartDate"
-                        render={({ field }) => (
+                        render={() => (
                             <FormItem className="flex flex-col">
-                                <FormLabel>Estimated Start Date:</FormLabel>
-                                <Popover>
-                                <PopoverTrigger asChild>
-                                    <FormControl>
-                                    <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={isClosed}>
-                                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                    </Button>
-                                    </FormControl>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isClosed} />
-                                </PopoverContent>
-                                </Popover>
+                                <FormLabel>Estimated Start Date: (MM/DD/YYYY)</FormLabel>
+                                <FormControl>
+                                    <DateInput name="estimatedStartDate" disabled={isClosed} />
+                                </FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -798,7 +752,7 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                             <DialogHeader>
                                 <DialogTitle>Close Initial Contact</DialogTitle>
                                 <DialogDescription>
-                                    Select a reason for closing this contact. This will mark the contact as closed and archive any associated Client Service Agreement. This action cannot be undone.
+                                    Select a reason for closing this contact. This will archive the contact and any associated Client Service Agreement. This action cannot be undone.
                                 </DialogDescription>
                             </DialogHeader>
                             <div className="py-4">
