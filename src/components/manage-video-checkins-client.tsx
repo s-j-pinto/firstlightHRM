@@ -4,7 +4,7 @@ import { useState, useMemo, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { firestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection } from "firebase/firestore";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -68,17 +68,18 @@ export default function ManageVideoCheckinsClient() {
     useState<VideoCheckinRequest | null>(null);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const firestore = useFirestore();
 
   const requestsRef = useMemoFirebase(
-    () => collection(firestore, "video_checkin_requests"),
-    []
+    () => firestore ? collection(firestore, "video_checkin_requests") : null,
+    [firestore]
   );
   const { data: requestsData, isLoading: requestsLoading } =
     useCollection<VideoCheckinRequest>(requestsRef);
     
   const caregiversRef = useMemoFirebase(
-    () => collection(firestore, 'caregivers_active'),
-    []
+    () => firestore ? collection(firestore, 'caregivers_active') : null,
+    [firestore]
   );
   const { data: caregiversData, isLoading: caregiversLoading } = useCollection<ActiveCaregiver>(caregiversRef);
 
@@ -327,5 +328,3 @@ export default function ManageVideoCheckinsClient() {
     </div>
   );
 }
-
-    

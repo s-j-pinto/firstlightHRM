@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import Link from 'next/link';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { collection } from "firebase/firestore";
-import { firestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { Client, ActiveCaregiver, CareLogGroup, CareLog, CareLogTemplate } from "@/lib/types";
 import { saveCareLogGroup, deleteCareLogGroup, reactivateCareLogGroup } from "@/lib/carelog-groups.actions";
 import { useToast } from "@/hooks/use-toast";
@@ -38,8 +38,9 @@ export function CareLogGroupAdmin() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<CareLogGroup | null>(null);
   const { toast } = useToast();
+  const firestore = useFirestore();
 
-  const clientsRef = useMemoFirebase(() => collection(firestore, 'Clients'), [firestore]);
+  const clientsRef = useMemoFirebase(() => firestore ? collection(firestore, 'Clients') : null, [firestore]);
   const { data: clients, isLoading: clientsLoading } = useCollection<Client>(clientsRef);
   
   const clientsMap = useMemo(() => {
@@ -47,16 +48,16 @@ export function CareLogGroupAdmin() {
     return new Map(clients.map(c => [c.id, c]));
   }, [clients]);
 
-  const activeCaregiversRef = useMemoFirebase(() => collection(firestore, 'caregivers_active'), [firestore]);
+  const activeCaregiversRef = useMemoFirebase(() => firestore ? collection(firestore, 'caregivers_active') : null, [firestore]);
   const { data: allCaregiversData, isLoading: caregiversLoading } = useCollection<ActiveCaregiver>(activeCaregiversRef);
 
-  const careLogGroupsRef = useMemoFirebase(() => collection(firestore, 'carelog_groups'), [firestore]);
+  const careLogGroupsRef = useMemoFirebase(() => firestore ? collection(firestore, 'carelog_groups') : null, [firestore]);
   const { data: careLogGroups, isLoading: groupsLoading } = useCollection<CareLogGroup>(careLogGroupsRef);
   
-  const templatesRef = useMemoFirebase(() => collection(firestore, 'carelog_templates'), [firestore]);
+  const templatesRef = useMemoFirebase(() => firestore ? collection(firestore, 'carelog_templates') : null, [firestore]);
   const { data: templates, isLoading: templatesLoading } = useCollection<CareLogTemplate>(templatesRef);
   
-  const allCareLogsRef = useMemoFirebase(() => collection(firestore, 'carelogs'), [firestore]);
+  const allCareLogsRef = useMemoFirebase(() => firestore ? collection(firestore, 'carelogs') : null, [firestore]);
   const { data: allCareLogs, isLoading: logsLoading } = useCollection<CareLog>(allCareLogsRef);
 
   const activeClients = useMemo(() => clients?.filter(c => c.status === 'Active') || [], [clients]);
@@ -225,7 +226,7 @@ export function CareLogGroupAdmin() {
                                 <DialogContent>
                                     <DialogHeader>
                                         <DialogTitle>Are you sure?</DialogTitle>
-                                        <DialogDescription>This will mark the group for {group.clientName} as inactive. Caregivers will no longer be able to submit logs for this group. This action can be undone by reactivating the group.</DialogDescription>
+                                        <DialogDescription>This will mark the group for {group.clientName} as inactive. Caregivers will no longer be able to submit logs for this group. This action can be undone.</DialogDescription>
                                     </DialogHeader>
                                     <DialogFooter>
                                         <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>

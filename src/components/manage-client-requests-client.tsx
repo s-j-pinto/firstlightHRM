@@ -5,7 +5,7 @@ import { useState, useMemo, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { firestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -33,8 +33,9 @@ export default function ManageClientRequestsClient() {
   const [selectedRequest, setSelectedRequest] = useState<ClientCareRequest | null>(null);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const firestore = useFirestore();
 
-  const requestsRef = useMemoFirebase(() => collection(firestore, 'client_additional_care_requests'), [firestore]);
+  const requestsRef = useMemoFirebase(() => firestore ? collection(firestore, 'client_additional_care_requests') : null, [firestore]);
   const { data: requestsData, isLoading } = useCollection<ClientCareRequest>(requestsRef);
 
   const form = useForm<UpdateStatusFormData>({

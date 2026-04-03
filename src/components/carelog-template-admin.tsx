@@ -4,8 +4,8 @@
 import { useState, useMemo, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { collection } from "firebase/firestore";
-import { firestore, useCollection, useMemoFirebase } from "@/firebase";
+import { collection, query, orderBy } from "firebase/firestore";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { CareLogTemplate, careLogTemplateSchema } from "@/lib/types";
 import { saveCareLogTemplate, deleteCareLogTemplate } from "@/lib/carelog-groups.actions";
 import { useToast } from "@/hooks/use-toast";
@@ -37,8 +37,9 @@ export function CareLogTemplateAdmin() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<CareLogTemplate | null>(null);
   const { toast } = useToast();
+  const firestore = useFirestore();
 
-  const templatesRef = useMemoFirebase(() => collection(firestore, 'carelog_templates'), []);
+  const templatesRef = useMemoFirebase(() => firestore ? collection(firestore, 'carelog_templates') : null, [firestore]);
   const { data: templates, isLoading: templatesLoading } = useCollection<CareLogTemplate>(templatesRef);
 
   const form = useForm<CareLogTemplateFormData>({
