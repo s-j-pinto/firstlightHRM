@@ -19,15 +19,14 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Loader2, Send, Save, BookUser, Calendar as CalendarIcon, RefreshCw, Briefcase, FileCheck, Signature, X, Printer, Eye, Edit2 } from "lucide-react";
+import { Loader2, Send, Save, BookUser, RefreshCw, Briefcase, FileCheck, Signature, X, Printer, Eye, Edit2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { sendSignatureEmail, finalizeAndSubmit, previewClientIntakePdf, createCsaFromContact, submitClientSignature, saveClientSignupForm } from "@/lib/client-signup.actions";
 import { cn } from "@/lib/utils";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "./ui/calendar";
 import { Checkbox } from "./ui/checkbox";
 import { HelpDialog } from "./HelpDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
+import { DateInput } from "./ui/date-input";
 
 const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
 
@@ -166,10 +165,10 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
       personalCare: false,
       daysPerWeek: '',
       hoursPerDay: '',
-      contractStartDate: undefined,
+      contractStartDate: '',
       hourlyRate: 0,
       minimumHoursPerShift: 0,
-      rateCardDate: undefined,
+      rateCardDate: '',
       policyNumber: "",
       policyPeriod: "",
       clientInitials: "",
@@ -180,13 +179,13 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
       receivedAdditionalDisclosures: false,
       clientSignature: "",
       clientPrintedName: "",
-      clientSignatureDate: undefined,
+      clientSignatureDate: '',
       clientRepresentativeSignature: "",
       clientRepresentativePrintedName: "",
-      clientRepresentativeSignatureDate: undefined,
+      clientRepresentativeSignatureDate: '',
       firstLightRepresentativeSignature: "",
       firstLightRepresentativeTitle: "",
-      firstLightRepresentativeSignatureDate: undefined,
+      firstLightRepresentativeSignatureDate: '',
       // Service Plan
       companionCare_mealPreparation: false,
       companionCare_cleanKitchen: false,
@@ -217,21 +216,21 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
       personalCare_assistWithOther: "",
       servicePlanClientInitials: "",
       // Office Use Only
-      officeTodaysDate: undefined,
-      officeReferralDate: undefined,
-      officeInitialContactDate: undefined,
+      officeTodaysDate: '',
+      officeReferralDate: '',
+      officeInitialContactDate: '',
       // Agreement
       agreementClientName: "",
       agreementClientSignature: "",
-      agreementSignatureDate: undefined,
+      agreementSignatureDate: '',
       agreementRelationship: "",
       agreementRepSignature: "",
-      agreementRepDate: undefined,
+      agreementRepDate: '',
       // Transportation Waiver
       transportationWaiverClientSignature: "",
       transportationWaiverClientPrintedName: "",
       transportationWaiverWitnessSignature: "",
-      transportationWaiverDate: undefined,
+      transportationWaiverDate: '',
     },
   });
   
@@ -264,7 +263,8 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
             'contractStartDate', 'rateCardDate', 'clientSignatureDate',
             'clientRepresentativeSignatureDate', 'firstLightRepresentativeSignatureDate',
             'officeTodaysDate', 'officeReferralDate', 'officeInitialContactDate',
-            'agreementSignatureDate', 'agreementRepDate', 'transportationWaiverDate'
+            'agreementSignatureDate', 'agreementRepDate', 'transportationWaiverDate',
+            'clientDOB'
         ];
 
         const convertedData: { [key: string]: any } = { ...formData };
@@ -275,12 +275,16 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
 
             if (dateFields.includes(typedKey)) {
                 if (value && typeof (value as any).toDate === 'function') {
-                    convertedData[typedKey] = (value as any).toDate();
+                    convertedData[typedKey] = format((value as any).toDate(), "MM/dd/yyyy");
                 } else if (value && typeof value === 'string') {
                     const parsedDate = new Date(value);
-                    convertedData[typedKey] = !isNaN(parsedDate.getTime()) ? parsedDate : undefined;
-                } else if (!value) {
-                    convertedData[typedKey] = undefined;
+                    if (!isNaN(parsedDate.getTime())) {
+                        convertedData[typedKey] = format(parsedDate, "MM/dd/yyyy");
+                    } else {
+                        convertedData[typedKey] = value;
+                    }
+                } else {
+                    convertedData[typedKey] = '';
                 }
             } else if (value === null) {
                 const fieldSchema = (clientSignupFormSchema.shape as any)[typedKey];
@@ -295,11 +299,11 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
         });
         
         if (isClientMode) {
-            if (!convertedData.clientSignatureDate) convertedData.clientSignatureDate = new Date();
-            if (!convertedData.clientRepresentativeSignatureDate) convertedData.clientRepresentativeSignatureDate = new Date();
-             if (!convertedData.agreementSignatureDate) convertedData.agreementSignatureDate = new Date();
+            if (!convertedData.clientSignatureDate) convertedData.clientSignatureDate = format(new Date(), "MM/dd/yyyy");
+            if (!convertedData.clientRepresentativeSignatureDate) convertedData.clientRepresentativeSignatureDate = format(new Date(), "MM/dd/yyyy");
+             if (!convertedData.agreementSignatureDate) convertedData.agreementSignatureDate = format(new Date(), "MM/dd/yyyy");
             if (convertedData.receivedTransportationWaiver && !convertedData.transportationWaiverDate) {
-                convertedData.transportationWaiverDate = new Date();
+                convertedData.transportationWaiverDate = format(new Date(), "MM/dd/yyyy");
             }
         }
         
@@ -418,7 +422,7 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
             clientSignature: form.getValues('clientSignature'),
             clientRepresentativeSignature: form.getValues('clientRepresentativeSignature'),
             clientPrintedName: form.getValues('clientPrintedName'),
-            clientSignatureDate: form.getValues('clientSignatureDate') || new Date(),
+            clientSignatureDate: form.getValues('clientSignatureDate') || format(new Date(), "MM/dd/yyyy"),
             clientRepresentativePrintedName: form.getValues('clientRepresentativePrintedName'),
             clientRepresentativeSignatureDate: form.getValues('clientRepresentativeSignatureDate'),
             initials: form.getValues('clientInitials'),
@@ -556,29 +560,7 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
                     <h3 className="text-lg font-semibold text-center">I. CLIENT INFORMATION</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <FormField control={form.control} name="clientName" render={({ field }) => ( <FormItem><FormLabel>Client Name</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
-                         <FormField
-                            control={form.control}
-                            name="officeTodaysDate"
-                            render={({ field }) => (
-                                <FormItem className="flex flex-col">
-                                    <FormLabel>Date</FormLabel>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <FormControl>
-                                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={isClientMode || isPublished}>
-                                                    {field.value ? format(new Date(field.value), "PPP") : <span>Pick a date</span>}
-                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                </Button>
-                                            </FormControl>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="start">
-                                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isClientMode || isPublished} />
-                                        </PopoverContent>
-                                    </Popover>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                        <FormField control={form.control} name="officeTodaysDate" render={() => ( <FormItem className="flex flex-col"><FormLabel>Date (MM/DD/YYYY)</FormLabel><FormControl><DateInput name="officeTodaysDate" disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
                     </div>
                      <FormField control={form.control} name="clientAddress" render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -588,7 +570,7 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <FormField control={form.control} name="clientPhone" render={({ field }) => ( <FormItem><FormLabel>Phone</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="clientDOB" render={({ field }) => ( <FormItem><FormLabel>DOB</FormLabel><FormControl><Input {...field} type="date" value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="clientDOB" render={() => ( <FormItem><FormLabel>DOB (MM/DD/YYYY)</FormLabel><FormControl><DateInput name="clientDOB" disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <FormField control={form.control} name="emergencyContactName" render={({ field }) => ( <FormItem><FormLabel>Emergency Contact Name</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
@@ -625,29 +607,7 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
                         </div>
                         <FormField control={form.control} name="daysPerWeek" render={({ field }) => ( <FormItem><FormLabel>Days/Wk</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
                         <FormField control={form.control} name="hoursPerDay" render={({ field }) => ( <FormItem><FormLabel>Hrs/Day</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField
-                            control={form.control}
-                            name="contractStartDate"
-                            render={({ field }) => (
-                            <FormItem className="flex flex-col">
-                                <FormLabel>Services Start Date</FormLabel>
-                                <Popover>
-                                <PopoverTrigger asChild>
-                                    <FormControl>
-                                    <Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isClientMode || isPublished}>
-                                        {field.value ? format(new Date(field.value), "PPP") : <span>Pick a date</span>}
-                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                    </Button>
-                                    </FormControl>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isClientMode || isPublished} />
-                                </PopoverContent>
-                                </Popover>
-                                <FormMessage />
-                            </FormItem>
-                            )}
-                        />
+                        <FormField control={form.control} name="contractStartDate" render={() => ( <FormItem className="flex flex-col"><FormLabel>Services Start Date (MM/DD/YYYY)</FormLabel><FormControl><DateInput name="contractStartDate" disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
                     </div>
                 </div>
 
@@ -680,19 +640,19 @@ provisions of state and federal law. A separate <strong>FirstLight Home Care</st
                         <div className={cn("grid grid-cols-1 md:grid-cols-3 gap-6 items-end p-4 rounded-md", isClientMode && "border border-orange-400")}>
                             <SignatureField fieldName="clientSignature" title="Signed (Client)" />
                             <FormField control={form.control} name="clientPrintedName" render={({ field }) => ( <FormItem><FormLabel>Printed Name (Client)</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
-                            <FormField control={form.control} name="clientSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPublished}>{field.value ? format(new Date(field.value), "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="clientSignatureDate" render={() => ( <FormItem><FormLabel>Date (MM/DD/YYYY)</FormLabel><FormControl><DateInput name="clientSignatureDate" disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
                         </div>
                         {/* Representative Signature Section */}
                         <div className={cn("grid grid-cols-1 md:grid-cols-3 gap-6 items-end p-4 rounded-md", isClientMode && "border border-orange-400")}>
                             <SignatureField fieldName="clientRepresentativeSignature" title="Signed (Responsible Party)" />
                             <FormField control={form.control} name="clientRepresentativePrintedName" render={({ field }) => ( <FormItem><FormLabel>Printed Name (Client Representative)</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
-                            <FormField control={form.control} name="clientRepresentativeSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPublished}>{field.value ? format(new Date(field.value), "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="clientRepresentativeSignatureDate" render={() => ( <FormItem><FormLabel>Date (MM/DD/YYYY)</FormLabel><FormControl><DateInput name="clientRepresentativeSignatureDate" disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
                         </div>
                         {/* FirstLight Home Care Signature Section */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
                             <SignatureField fieldName="firstLightRepresentativeSignature" title="(FirstLight Home Care of Representative Signature)" />
                             <FormField control={form.control} name="firstLightRepresentativeTitle" render={({ field }) => ( <FormItem><FormLabel>(FirstLight Home Care Representative Title)</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
-                            <FormField control={form.control} name="firstLightRepresentativeSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isClientMode || isPublished}>{field.value ? format(new Date(field.value), "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isClientMode || isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="firstLightRepresentativeSignatureDate" render={() => ( <FormItem><FormLabel>Date (MM/DD/YYYY)</FormLabel><FormControl><DateInput name="firstLightRepresentativeSignatureDate" disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
                         </div>
                     </div>
                 </div>
@@ -742,7 +702,7 @@ provisions of state and federal law. A separate <strong>FirstLight Home Care</st
                             </div>
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
                                 <SignatureField fieldName="transportationWaiverWitnessSignature" title="Witness (FirstLight Home Care Representative)" />
-                                <FormField control={form.control} name="transportationWaiverDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPublished}>{field.value ? format(new Date(field.value), "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                                <FormField control={form.control} name="transportationWaiverDate" render={() => ( <FormItem><FormLabel>Date (MM/DD/YYYY)</FormLabel><FormControl><DateInput name="transportationWaiverDate" disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
                             </div>
                         </div>
                     </div>

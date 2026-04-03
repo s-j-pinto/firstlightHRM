@@ -1,6 +1,6 @@
 
 
-"use client";
+'use client';
 
 import * as React from "react";
 import { useState, useTransition, useEffect, useRef } from "react";
@@ -19,16 +19,15 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Loader2, Send, Save, BookUser, Calendar as CalendarIcon, RefreshCw, Briefcase, FileCheck, Signature, X, Printer, Eye, Edit2 } from "lucide-react";
+import { Loader2, Send, Save, BookUser, RefreshCw, Briefcase, FileCheck, Signature, X, Printer, Eye, Edit2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { sendSignatureEmail, finalizeAndSubmit, previewClientIntakePdf, createCsaFromContact, submitClientSignature, saveClientSignupForm } from "@/lib/client-signup.actions";
-import { Textarea } from "./ui/textarea";
+import { Textarea } from "./textarea";
 import { cn } from "@/lib/utils";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { Calendar } from "./ui/calendar";
 import { Checkbox } from "./ui/checkbox";
 import { HelpDialog } from "./HelpDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
+import { DateInput } from "./ui/date-input";
 
 const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
 
@@ -168,10 +167,10 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
       personalCare: false,
       daysPerWeek: '',
       hoursPerDay: '',
-      contractStartDate: undefined,
+      contractStartDate: '',
       hourlyRate: 0,
       minimumHoursPerShift: 0,
-      rateCardDate: undefined,
+      rateCardDate: '',
       policyNumber: "",
       policyPeriod: "",
       clientInitials: "",
@@ -181,13 +180,13 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
       receivedPaymentAgreement: false,
       clientSignature: "",
       clientPrintedName: "",
-      clientSignatureDate: undefined,
+      clientSignatureDate: '',
       clientRepresentativeSignature: "",
       clientRepresentativePrintedName: "",
-      clientRepresentativeSignatureDate: undefined,
+      clientRepresentativeSignatureDate: '',
       firstLightRepresentativeSignature: "",
       firstLightRepresentativeTitle: "",
-      firstLightRepresentativeSignatureDate: undefined,
+      firstLightRepresentativeSignatureDate: '',
       // Service Plan
       companionCare_mealPreparation: false,
       companionCare_cleanKitchen: false,
@@ -218,21 +217,21 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
       personalCare_assistWithOther: "",
       servicePlanClientInitials: "",
       // Office Use Only
-      officeTodaysDate: undefined,
-      officeReferralDate: undefined,
-      officeInitialContactDate: undefined,
+      officeTodaysDate: '',
+      officeReferralDate: '',
+      officeInitialContactDate: '',
       // Agreement
       agreementClientName: "",
       agreementClientSignature: "",
-      agreementSignatureDate: undefined,
+      agreementSignatureDate: '',
       agreementRelationship: "",
       agreementRepSignature: "",
-      agreementRepDate: undefined,
+      agreementRepDate: '',
       // Transportation Waiver
       transportationWaiverClientSignature: "",
       transportationWaiverClientPrintedName: "",
       transportationWaiverWitnessSignature: "",
-      transportationWaiverDate: undefined,
+      transportationWaiverDate: '',
     },
   });
   
@@ -265,28 +264,33 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
             'contractStartDate', 'rateCardDate', 'clientSignatureDate',
             'clientRepresentativeSignatureDate', 'firstLightRepresentativeSignatureDate',
             'officeTodaysDate', 'officeReferralDate', 'officeInitialContactDate',
-            'agreementSignatureDate', 'agreementRepDate', 'transportationWaiverDate'
+            'agreementSignatureDate', 'agreementRepDate', 'transportationWaiverDate',
+            'clientDOB'
         ];
 
         const convertedData: { [key: string]: any } = { ...formData };
         
-        // Convert Timestamps to Dates and nulls/undefined to empty strings/0 for controlled components
         Object.keys(convertedData).forEach(key => {
             const typedKey = key as keyof typeof convertedData;
             let value = convertedData[typedKey];
 
             if (dateFields.includes(typedKey)) {
                 if (value && typeof (value as any).toDate === 'function') {
-                    convertedData[typedKey] = (value as any).toDate();
+                    convertedData[typedKey] = format((value as any).toDate(), "MM/dd/yyyy");
                 } else if (value && typeof value === 'string') {
+                    // Try to parse strings (like from an older version of the form)
                     const parsedDate = new Date(value);
-                    convertedData[typedKey] = !isNaN(parsedDate.getTime()) ? parsedDate : undefined;
-                } else if (!value) {
-                    convertedData[typedKey] = undefined;
+                    if (!isNaN(parsedDate.getTime())) {
+                        convertedData[typedKey] = format(parsedDate, "MM/dd/yyyy");
+                    } else {
+                        // Assume it's already in MM/DD/YYYY format or invalid
+                        convertedData[typedKey] = value;
+                    }
+                } else {
+                    convertedData[typedKey] = '';
                 }
             } else if (value === null) {
-                 // Determine default empty value based on schema type if possible
-                const fieldSchema = (clientSignupFormSchema.shape as any)[typedKey];
+                 const fieldSchema = (clientSignupFormSchema.shape as any)[typedKey];
                 if (fieldSchema && fieldSchema._def.typeName === 'ZodNumber') {
                     convertedData[typedKey] = 0;
                 } else if (fieldSchema && fieldSchema._def.typeName === 'ZodBoolean') {
@@ -298,23 +302,15 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
         });
         
         if (isClientMode) {
-            // Pre-populate dates for client signing if they aren't already set
-            if (!convertedData.clientSignatureDate) {
-                convertedData.clientSignatureDate = new Date();
-            }
-             if (!convertedData.clientRepresentativeSignatureDate) {
-                convertedData.clientRepresentativeSignatureDate = new Date();
-            }
-            if (!convertedData.agreementSignatureDate) {
-                convertedData.agreementSignatureDate = new Date();
-            }
-             if (convertedData.receivedTransportationWaiver && !convertedData.transportationWaiverDate) {
-                convertedData.transportationWaiverDate = new Date();
+            if (!convertedData.clientSignatureDate) convertedData.clientSignatureDate = format(new Date(), "MM/dd/yyyy");
+            if (!convertedData.clientRepresentativeSignatureDate) convertedData.clientRepresentativeSignatureDate = format(new Date(), "MM/dd/yyyy");
+            if (!convertedData.agreementSignatureDate) convertedData.agreementSignatureDate = format(new Date(), "MM/dd/yyyy");
+            if (convertedData.receivedTransportationWaiver && !convertedData.transportationWaiverDate) {
+                convertedData.transportationWaiverDate = format(new Date(), "MM/dd/yyyy");
             }
         }
 
       form.reset(convertedData);
-      
     }
   }, [existingSignupData, form, isClientMode]);
 
@@ -432,7 +428,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
             clientRepresentativeSignature: form.getValues('clientRepresentativeSignature'),
             agreementClientSignature: form.getValues('agreementClientSignature'),
             clientPrintedName: form.getValues('clientPrintedName'),
-            clientSignatureDate: form.getValues('clientSignatureDate') || new Date(),
+            clientSignatureDate: form.getValues('clientSignatureDate') || format(new Date(), "MM/dd/yyyy"),
             clientRepresentativePrintedName: form.getValues('clientRepresentativePrintedName'),
             clientRepresentativeSignatureDate: form.getValues('clientRepresentativeSignatureDate'),
             initials: form.getValues('clientInitials'),
@@ -593,7 +589,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                         <FormField control={form.control} name="clientPostalCode" render={({ field }) => ( <FormItem><FormLabel>Postal Code</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
                         <FormField control={form.control} name="clientPhone" render={({ field }) => ( <FormItem><FormLabel>Phone</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
                         <FormField control={form.control} name="clientSSN" render={({ field }) => ( <FormItem><FormLabel>Social Security #</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="clientDOB" render={({ field }) => ( <FormItem><FormLabel>DOB</FormLabel><FormControl><Input {...field} type="date" value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="clientDOB" render={() => ( <FormItem><FormLabel>DOB (MM/DD/YYYY)</FormLabel><FormControl><DateInput name="clientDOB" disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
                         <FormField control={form.control} name="clientEmail" render={({ field }) => ( <FormItem><FormLabel>Client Email</FormLabel><FormControl><Input {...field} type="email" value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
                     </div>
                 </div>
@@ -633,22 +629,12 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                         <FormField
                             control={form.control}
                             name="contractStartDate"
-                            render={({ field }) => (
+                            render={() => (
                             <FormItem className="flex flex-col">
-                                <FormLabel>Contract Start Date</FormLabel>
-                                <Popover>
-                                <PopoverTrigger asChild>
-                                    <FormControl>
-                                    <Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isClientMode || isPublished}>
-                                        {field.value ? format(new Date(field.value), "PPP") : <span>Pick a date</span>}
-                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                    </Button>
-                                    </FormControl>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isClientMode || isPublished} />
-                                </PopoverContent>
-                                </Popover>
+                                <FormLabel>Contract Start Date (MM/DD/YYYY)</FormLabel>
+                                <FormControl>
+                                    <DateInput name="contractStartDate" disabled={isClientMode || isPublished} />
+                                </FormControl>
                                 <FormMessage />
                             </FormItem>
                             )}
@@ -679,21 +665,11 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                                 </FormItem>
                             )} />
                             <p className="text-sm">hours per shift. The rates are provided on a current rate card dated</p>
-                            <FormField control={form.control} name="rateCardDate" render={({ field }) => (
+                            <FormField control={form.control} name="rateCardDate" render={() => (
                                 <FormItem className="inline-flex">
-                                    <Popover>
-                                    <PopoverTrigger asChild>
-                                        <FormControl>
-                                        <Button variant={"outline"} size="sm" className={cn("pl-3 text-left font-normal h-8", !field.value && "text-muted-foreground")} disabled={isClientMode || isPublished}>
-                                            {field.value ? format(new Date(field.value), "PPP") : <span>Pick a date</span>}
-                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                        </Button>
-                                        </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isClientMode || isPublished} />
-                                    </PopoverContent>
-                                    </Popover>
+                                    <FormControl>
+                                        <DateInput name="rateCardDate" disabled={isClientMode || isPublished} />
+                                    </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )} />
@@ -719,19 +695,19 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                         <div className={cn("grid grid-cols-1 md:grid-cols-3 gap-6 items-end p-4 rounded-md", isClientMode && "border border-orange-400")}>
                             <SignatureField fieldName="clientSignature" title="Signed (Client)" />
                             <FormField control={form.control} name="clientPrintedName" render={({ field }) => ( <FormItem><FormLabel>Printed Name (Client)</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
-                            <FormField control={form.control} name="clientSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPublished}>{field.value ? format(new Date(field.value), "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="clientSignatureDate" render={() => ( <FormItem><FormLabel>Date (MM/DD/YYYY)</FormLabel><FormControl><DateInput name="clientSignatureDate" disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
                         </div>
                         {/* Representative Signature Section */}
                         <div className={cn("grid grid-cols-1 md:grid-cols-3 gap-6 items-end p-4 rounded-md", isClientMode && "border border-orange-400")}>
                             <SignatureField fieldName="clientRepresentativeSignature" title="Signed (Responsible Party)" />
                             <FormField control={form.control} name="clientRepresentativePrintedName" render={({ field }) => ( <FormItem><FormLabel>Printed Name (Client Representative)</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
-                            <FormField control={form.control} name="clientRepresentativeSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPublished}>{field.value ? format(new Date(field.value), "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                             <FormField control={form.control} name="clientRepresentativeSignatureDate" render={() => ( <FormItem><FormLabel>Date (MM/DD/YYYY)</FormLabel><FormControl><DateInput name="clientRepresentativeSignatureDate" disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
                         </div>
                         {/* FirstLight Signature Section */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
                             <SignatureField fieldName="firstLightRepresentativeSignature" title="(FirstLight Home Care of Representative Signature)" />
                             <FormField control={form.control} name="firstLightRepresentativeTitle" render={({ field }) => ( <FormItem><FormLabel>(FirstLight Home Care of Rancho Cucamonga Representative Title)</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
-                            <FormField control={form.control} name="firstLightRepresentativeSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isClientMode || isPublished}>{field.value ? format(new Date(field.value), "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isClientMode || isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                             <FormField control={form.control} name="firstLightRepresentativeSignatureDate" render={() => ( <FormItem><FormLabel>Date (MM/DD/YYYY)</FormLabel><FormControl><DateInput name="firstLightRepresentativeSignatureDate" disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
                         </div>
                     </div>
                 </div>
@@ -795,7 +771,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                             </div>
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
                                 <SignatureField fieldName="transportationWaiverWitnessSignature" title="Witness (FirstLight Home Care Representative)" />
-                                <FormField control={form.control} name="transportationWaiverDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPublished}>{field.value ? format(new Date(field.value), "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                                <FormField control={form.control} name="transportationWaiverDate" render={() => ( <FormItem><FormLabel>Date (MM/DD/YYYY)</FormLabel><FormControl><DateInput name="transportationWaiverDate" disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
                             </div>
                         </div>
                     </div>
@@ -806,9 +782,9 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                     <div className="border p-4 rounded-md space-y-4 bg-muted/20">
                         <h3 className="text-lg font-semibold text-center">For Office Use Only</h3>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <FormField control={form.control} name="officeTodaysDate" render={({ field }) => ( <FormItem><FormLabel>TODAY'S DATE</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isClientMode || isPublished}>{field.value ? format(new Date(field.value), "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isClientMode || isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
-                            <FormField control={form.control} name="officeReferralDate" render={({ field }) => ( <FormItem><FormLabel>REFERRAL DATE</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isClientMode || isPublished}>{field.value ? format(new Date(field.value), "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isClientMode || isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
-                            <FormField control={form.control} name="officeInitialContactDate" render={({ field }) => ( <FormItem><FormLabel>DATE OF INITIAL CLIENT CONTACT</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isClientMode || isPublished}>{field.value ? format(new Date(field.value), "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isClientMode || isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="officeTodaysDate" render={() => ( <FormItem><FormLabel>TODAY'S DATE (MM/DD/YYYY)</FormLabel><FormControl><DateInput name="officeTodaysDate" disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="officeReferralDate" render={() => ( <FormItem><FormLabel>REFERRAL DATE (MM/DD/YYYY)</FormLabel><FormControl><DateInput name="officeReferralDate" disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="officeInitialContactDate" render={() => ( <FormItem><FormLabel>DATE OF INITIAL CLIENT CONTACT (MM/DD/YYYY)</FormLabel><FormControl><DateInput name="officeInitialContactDate" disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
                         </div>
                     </div>
                     <FormField control={form.control} name="clientName" render={({ field }) => ( <FormItem><FormLabel>Client Name:</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled /></FormControl></FormItem> )} />
@@ -849,14 +825,14 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
                     <p className="text-sm text-muted-foreground">My consent will be valid for two (2) years from the date below. I may revoke my consent to share information, in writing, at any time. Revoking my consent does not apply to information that has already been shared or affect my financial responsibility for Services. I understand that some uses and sharing of my information are authorized by law and do not require my consent.</p>
                     <div className={cn("grid grid-cols-1 md:grid-cols-2 gap-8 items-end p-4 rounded-md", isClientMode && "border border-orange-400")}>
                         <SignatureField fieldName="agreementClientSignature" title="Client Signature/Responsible Party" />
-                        <FormField control={form.control} name="agreementSignatureDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isPublished}>{field.value ? format(new Date(field.value), "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="agreementSignatureDate" render={() => ( <FormItem><FormLabel>Date (MM/DD/YYYY)</FormLabel><FormControl><DateInput name="agreementSignatureDate" disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
                     </div>
                      <div className={cn("p-4 rounded-md", isClientMode && "border border-orange-400")}>
                         <FormField control={form.control} name="agreementRelationship" render={({ field }) => ( <FormItem><FormLabel>Relationship if not Client</FormLabel><FormControl><Input {...field} value={field.value || ''} disabled={isPublished} /></FormControl><FormMessage /></FormItem> )} />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
                         <SignatureField fieldName="agreementRepSignature" title="FirstLight Home Care of Rancho Cucamonga Representative" />
-                        <FormField control={form.control} name="agreementRepDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")} disabled={isClientMode || isPublished}>{field.value ? format(new Date(field.value), "PPP") : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus disabled={isClientMode || isPublished} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                        <FormField control={form.control} name="agreementRepDate" render={() => ( <FormItem><FormLabel>Date (MM/DD/YYYY)</FormLabel><FormControl><DateInput name="agreementRepDate" disabled={isClientMode || isPublished} /></FormControl><FormMessage /></FormItem> )} />
                     </div>
                 </div>
 
