@@ -35,15 +35,15 @@ export async function generateLightHousekeepingPdf(): Promise<{ pdfData?: string
         y -= 30;
 
         const housekeepingTasks = [
-            "● Laundry (machine washing, drying, folding, putting back into drawers, hanging up). Done only for the client",
-            "● Changing bed linens",
-            "● Dishes will also be cleaned and put away",
-            "● Wipe down of kitchen counters",
-            "● Wiping down bathroom countertops, sinks, and shower/tub after bathing",
-            "● Maintenance-level cleaning of the toilet in the client’s bathroom",
-            "● Dusting of the surfaces of the client’s living area.",
-            "● Vacuuming and sweeping of the client’s general living space and walkways",
-            "● Gathering trash and taking trash to the collection spot at the end of the shift"
+            "- Laundry (machine washing, drying, folding, putting back into drawers, hanging up). Done only for the client",
+            "- Changing bed linens",
+            "- Dishes will also be cleaned and put away",
+            "- Wipe down of kitchen counters",
+            "- Wiping down bathroom countertops, sinks, and shower/tub after bathing",
+            "- Maintenance-level cleaning of the toilet in the client’s bathroom",
+            "- Dusting of the surfaces of the client’s living area.",
+            "- Vacuuming and sweeping of the client’s general living space and walkways",
+            "- Gathering trash and taking trash to the collection spot at the end of the shift"
         ];
         
         housekeepingTasks.forEach(task => {
@@ -69,5 +69,4 @@ export async function generateLightHousekeepingPdf(): Promise<{ pdfData?: string
         return { error: `Failed to generate PDF: ${error.message}` };
     }
 }
-
     
