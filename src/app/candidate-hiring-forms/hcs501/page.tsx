@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { doc } from "firebase/firestore";
+import { format } from "date-fns";
 import SignatureCanvas from 'react-signature-canvas';
 import Image from "next/image";
 
