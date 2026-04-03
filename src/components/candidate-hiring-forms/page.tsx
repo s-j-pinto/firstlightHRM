@@ -137,7 +137,7 @@ function CandidateHiringFormsContent() {
     return undefined;
   };
   
-  const formCompletionStates = useMemo(() => {
+ const formCompletionStates = useMemo(() => {
     if (!profileData) {
       return { allCandidateFormsComplete: false, allAdminFieldsComplete: false, formsToRender: [] };
     }
@@ -174,19 +174,12 @@ function CandidateHiringFormsContent() {
 
       if (isAnAdmin) {
           if (!form.adminSchema) {
-              // If there's no admin schema, admin is considered complete IF the candidate is complete.
               isAdminCompleted = isCandidateCompleted;
           } else {
-              // If there is an admin schema, admin completion depends on both candidate completion and schema validation.
               if (isCandidateCompleted) {
                   const result = form.adminSchema.safeParse(sanitizedProfileData);
                   isAdminCompleted = result.success;
-                  if (!result.success) {
-                      // Optional: log validation errors for debugging
-                      // console.log(`Admin validation failed for ${form.name}:`, result.error.flatten());
-                  }
               }
-              // else isAdminCompleted remains false
           }
       }
       return { ...form, isCandidateCompleted, isAdminCompleted };
@@ -408,3 +401,5 @@ export default function CandidateHiringFormsPage() {
         </Suspense>
     )
 }
+
+    
