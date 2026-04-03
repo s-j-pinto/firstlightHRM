@@ -244,10 +244,11 @@ const safeToDateForStatus = (value: any): Date | undefined => {
 
 
 export default function AdvancedSearchClient() {
-    const { handleSubmit, control, reset } = useForm<FormData>({
+    const form = useForm<FormData>({
         resolver: zodResolver(searchSchema),
         defaultValues: { skills: [], hiringStatus: 'any', skillMatching: 'any', shiftAvailability: 'any', dateFrom: '', dateTo: '' }
     });
+    const { handleSubmit, control, reset } = form;
     const [filteredResults, setFilteredResults] = useState<EnrichedCandidate[]>([]);
     const [hasSearched, setHasSearched] = useState(false);
     const [isSearching, startSearchTransition] = useTransition();
@@ -277,15 +278,12 @@ export default function AdvancedSearchClient() {
     const getDocsStatus = useCallback((profile: CaregiverProfile, interview?: Interview): DocsStatus => {
         const allAvailableForms = interview?.onboardingFormsInitiated ? [...hiringForms, ...onboardingForms] : hiringForms;
 
-        // This check is inherently flawed because 'emergencyProcedureSignature' is in a subcollection
-        // that is not fetched on this page. We will temporarily ignore it for the 'all complete' check.
         const completableForms = allAvailableForms.filter(f => f.completionKey !== 'emergencyProcedureSignature');
         const allCandidateFormsComplete = completableForms.every(form => !!profile[form.completionKey as keyof CaregiverProfile]);
     
         if (allCandidateFormsComplete) {
             const sanitizedProfileData: { [key: string]: any } = { ...profile };
     
-            // Sanitize all date-like fields to strings for validation.
             for (const key in sanitizedProfileData) {
                 if (Object.prototype.hasOwnProperty.call(sanitizedProfileData, key)) {
                     const lowerKey = key.toLowerCase();
@@ -293,7 +291,7 @@ export default function AdvancedSearchClient() {
                         const value = sanitizedProfileData[key];
                         if (value) {
                             const date = safeToDateForStatus(value);
-                            if (date) {
+                            if(date) {
                                 sanitizedProfileData[key] = format(date, 'MM/dd/yyyy');
                             }
                         }
@@ -302,7 +300,7 @@ export default function AdvancedSearchClient() {
             }
     
             const allAdminFieldsComplete = allAvailableForms.every(form => {
-                if (form.completionKey === 'emergencyProcedureSignature') return true; // Ignore for admin check as well
+                if (form.completionKey === 'emergencyProcedureSignature') return true; 
 
                 const isCandidateCompleted = !!profile[form.completionKey as keyof CaregiverProfile];
                 if (!isCandidateCompleted) {
@@ -873,4 +871,3 @@ export default function AdvancedSearchClient() {
         </div>
     );
 }
-
