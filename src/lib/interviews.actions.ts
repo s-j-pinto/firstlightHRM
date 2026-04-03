@@ -201,7 +201,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
     const detailedInPersonEmail = `
         <p>${caregiverProfile.fullName},</p>
         <p>This is to confirm your in-person ${inPersonDuration} hour ${interviewType === 'Orientation' ? 'orientation' : 'interview'} for a HCA/Caregiver position on ${formattedDate} at ${formattedStartTime}.</p>
-        <p>Please bring the below list of documents and call or text the office if you have questions, or need to cancel or reschedule your appointment.</p>
+        <p><strong>Please bring the documents (listed below) to your interview.</strong> You can call or text the office if you have questions, or need to cancel or reschedule your appointment.</p>
         ${referenceFormHtml}
         <br>
         <p><strong>Office address:</strong><br>
