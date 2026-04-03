@@ -14,8 +14,7 @@ import {
     hcs501AdminSchema,
     drugAlcoholPolicyAdminSchema,
     clientAbandonmentAdminSchema,
-    employeeOrientationAgreementAdminSchema,
-    confidentialityAgreementAdminSchema
+    employeeOrientationAgreementAdminSchema
 } from '@/lib/types';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -63,7 +62,7 @@ const onboardingForms: { name: string; href: string; completionKey: keyof Caregi
   { name: "Mutual Arbitration Agreement", href: "/candidate-hiring-forms/arbitration-agreement", completionKey: 'arbitrationAgreementSignature', pdfAction: 'arbitrationAgreement' },
   { name: "Drug and/or Alcohol Testing Consent Form", href: "/candidate-hiring-forms/drug-alcohol-policy", completionKey: 'drugAlcoholPolicySignature', pdfAction: 'drugAlcoholPolicy', adminSchema: drugAlcoholPolicyAdminSchema },
   { name: "HCA job description-Rancho-Cucamonga", href: "/candidate-hiring-forms/hca-job-description", completionKey: 'jobDescriptionSignature', pdfAction: 'hcaJobDescription' },
-  { name: "Client Abandonment", href: "/candidate-hiring-forms/client-abandonment", completionKey: 'clientAbandonmentSignature', pdfAction: 'clientAbandonment', adminSchema: clientAbandonmentAdminSchema },
+  { name: "Client Abandonment", href: "/candidate-hiring-forms/client-abandonment", completionKey: 'clientAbandonmentSignature', pdfAction: 'clientAbandonment' },
   { name: "EMPLOYEE ORIENTATION AGREEMENT", href: "/candidate-hiring-forms/employee-orientation-agreement", completionKey: 'orientationAgreementSignature', pdfAction: 'employeeOrientationAgreement', adminSchema: employeeOrientationAgreementAdminSchema },
   { name: "FirstLightHomeCare_AcknowledgmentForm", href: "/candidate-hiring-forms/acknowledgment-form", completionKey: 'acknowledgmentSignature', pdfAction: 'acknowledgmentForm' },
   { 
@@ -163,7 +162,9 @@ function CandidateHiringFormsContent() {
 
     const formsWithStatus = allAvailableForms.map(form => {
       let isCandidateCompleted = false;
-      if (form.completionKey === 'emergencyProcedureSignature') {
+      
+      // Check for completion based on the key and the appropriate data source
+      if (Object.keys(signaturesData || {}).includes(form.completionKey)) {
         isCandidateCompleted = !!signaturesData?.[form.completionKey as keyof OnboardingSignatures];
       } else {
         isCandidateCompleted = !!profileData[form.completionKey as keyof CaregiverProfile];
