@@ -204,9 +204,9 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         y -= 20;
 
         drawCheckbox(page, formData.homemakerCompanion, leftMargin, y);
-        drawText(page, "Homemaker/Companion", { x: leftMargin + 20, y, font, size: mainFontSize });
+        drawText(page, "Homemaker/Companion", { x: leftMargin + 15, y: y+1, font, size: mainFontSize });
         drawCheckbox(page, formData.personalCare, leftMargin + 200, y);
-        drawText(page, "Personal Care", { x: leftMargin + 220, y, font, size: mainFontSize });
+        drawText(page, "Personal Care", { x: leftMargin + 220, y: y+1, font, size: mainFontSize });
         y -= 20;
         
         drawText(page, "Scheduled Frequency:", {x: leftMargin, y, font: boldFont, size: mainFontSize});
@@ -234,31 +234,44 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         const sigY = y;
         await drawSignature(page, formData.clientSignature, leftMargin, sigY, 250, 40, pdfDoc);
         page.drawLine({ start: { x: leftMargin, y: sigY-5 }, end: { x: leftMargin + 250, y: sigY-5 }, thickness: 0.5 });
-        drawText(page, "Signed (Client)", { x: leftMargin, y: sigY-15, font: font, size: signatureLabelFontSize });
-
+        drawText(page, `Signed (Client)`, { x: leftMargin, y: sigY-15, font: font, size: signatureLabelFontSize });
+        
+        drawText(page, formData.clientPrintedName, { x: leftMargin + 270, y: sigY, font, size: mainFontSize });
+        page.drawLine({ start: { x: leftMargin + 270, y: sigY - 5 }, end: { x: leftMargin + 420, y: sigY - 5 }, thickness: 0.5 });
+        drawText(page, `Printed Name (Client)`, { x: leftMargin + 270, y: sigY - 15, font, size: signatureLabelFontSize });
+    
         const clientSigDate = safeFormatDate(formData.clientSignatureDate);
-        drawField(page, sigY, "Date", clientSigDate, font, boldFont, mainFontSize, leftMargin + 300, leftMargin + 350);
-        page.drawLine({ start: { x: leftMargin + 350, y: sigY - 5}, end: {x: leftMargin + 500, y: sigY - 5}, thickness: 0.5 });
+        drawText(page, clientSigDate, { x: leftMargin + 440, y: sigY, font, size: mainFontSize });
+        page.drawLine({ start: { x: leftMargin + 440, y: sigY - 5 }, end: { x: width - leftMargin, y: sigY - 5 }, thickness: 0.5 });
+        drawText(page, "Date", { x: leftMargin + 440, y: sigY-15, font, size: signatureLabelFontSize});
         y -= 50;
 
         const repSigY = y;
         await drawSignature(page, formData.clientRepresentativeSignature, leftMargin, repSigY, 250, 40, pdfDoc);
         page.drawLine({ start: { x: leftMargin, y: repSigY - 5 }, end: { x: leftMargin + 250, y: repSigY - 5 }, thickness: 0.5 });
-        drawText(page, "Signed (Responsible Party)", { x: leftMargin, y: repSigY - 15, font: font, size: signatureLabelFontSize });
+        drawText(page, `Signed (Responsible Party)`, { x: leftMargin, y: repSigY - 15, font: font, size: signatureLabelFontSize });
 
+        drawText(page, formData.clientRepresentativePrintedName, { x: leftMargin + 270, y: repSigY, font, size: mainFontSize });
+        page.drawLine({ start: { x: leftMargin + 270, y: repSigY - 5 }, end: { x: leftMargin + 420, y: repSigY - 5 }, thickness: 0.5 });
+        drawText(page, `Printed Name (Client Representative)`, { x: leftMargin + 270, y: repSigY - 15, font, size: signatureLabelFontSize });
+        
         const repSigDate = safeFormatDate(formData.clientRepresentativeSignatureDate);
-        drawField(page, repSigY, "Date", repSigDate, font, boldFont, mainFontSize, leftMargin + 300, leftMargin + 350);
-        page.drawLine({ start: { x: leftMargin + 350, y: repSigY-5 }, end: { x: leftMargin + 500, y: repSigY-5}, thickness: 0.5 });
+        drawText(page, repSigDate, { x: leftMargin + 440, y: repSigY, font, size: mainFontSize });
+        page.drawLine({ start: { x: leftMargin + 440, y: repSigY-5 }, end: { x: leftMargin + 500, y: repSigY-5}, thickness: 0.5 });
         y -= 50;
         
         const firstlightSigY = y;
         await drawSignature(page, formData.firstLightRepresentativeSignature, leftMargin, firstlightSigY, 250, 40, pdfDoc);
         page.drawLine({ start: { x: leftMargin, y: firstlightSigY - 5 }, end: { x: leftMargin + 250, y: firstlightSigY - 5 }, thickness: 0.5 });
-        drawText(page, "(FirstLight Home Care of Representative Signature)", { x: leftMargin, y: firstlightSigY - 15, font: font, size: signatureLabelFontSize });
+        drawText(page, `(FirstLight Home Care of Representative Signature)`, { x: leftMargin, y: firstlightSigY - 15, font: font, size: signatureLabelFontSize });
 
+        drawText(page, formData.firstLightRepresentativeTitle, { x: leftMargin + 270, y: firstlightSigY, font, size: mainFontSize });
+        page.drawLine({ start: { x: leftMargin + 270, y: firstlightSigY - 5 }, end: { x: leftMargin + 420, y: firstlightSigY - 5 }, thickness: 0.5 });
+        drawText(page, `(FirstLight Home Care of Rancho Cucamonga Representative Title)`, { x: leftMargin + 270, y: firstlightSigY - 15, font, size: signatureLabelFontSize });
+        
         const firstlightSigDate = safeFormatDate(formData.firstLightRepresentativeSignatureDate);
-        drawField(page, firstlightSigY, "Date", firstlightSigDate, font, boldFont, mainFontSize, leftMargin + 300, leftMargin + 350);
-        page.drawLine({ start: { x: leftMargin + 350, y: firstlightSigY - 5 }, end: { x: leftMargin + 500, y: firstlightSigY - 5 }, thickness: 0.5 });
+        drawText(page, firstlightSigDate, { x: leftMargin + 440, y: firstlightSigY, font, size: mainFontSize });
+        page.drawLine({ start: { x: leftMargin + 440, y: firstlightSigY - 5 }, end: { x: leftMargin + 500, y: firstlightSigY - 5 }, thickness: 0.5 });
 
         // --- Page 2-3: Terms and Conditions ---
         let currentPageIndex = 1;

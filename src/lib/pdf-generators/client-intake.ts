@@ -306,7 +306,7 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         y -= 15;
         
         const secondContactY = y;
-        drawText(page, "2nd Emergency Contact:", { x: col1X, y: secondContactY + 5, font: boldFont, size: mainFontSize });
+        drawText(page, "2nd Emergency Contact:", { x: col1X, y: secondContactY + 5, font: boldFont, size: titleFontSize });
         
         drawText(page, `Name: ${formData.secondEmergencyContactName || ''}`, {x: leftMargin, y: secondContactY - 10, font, size: mainFontSize});
         drawText(page, `Relationship: ${formData.secondEmergencyContactRelationship || ''}`, {x: leftMargin + 200, y: secondContactY - 10, font, size: mainFontSize});
