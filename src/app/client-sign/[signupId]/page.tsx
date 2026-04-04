@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDoc, useMemoFirebase, useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -17,11 +18,27 @@ export default function ClientSigningPage() {
     const firestore = useFirestore();
 
     const signupRef = useMemoFirebase(() => signupId && firestore ? doc(firestore, 'client_signups', signupId) : null, [signupId, firestore]);
-    const { data: signupData, isLoading } = useDoc<any>(signupRef);
+    const { data: signupData, isLoading } = useDoc<any>(signupDocRef);
+
+    const isAlreadySigned = signupData && (signupData.status === 'Signed and Published' || signupData.status === 'Client Signatures Completed');
+
+    useEffect(() => {
+        if (isAlreadySigned) {
+            router.replace('/new-client/dashboard');
+        }
+    }, [isAlreadySigned, router]);
 
     if (isLoading) {
         return (
             <div className="flex items-center justify-center min-h-screen">
+                <Loader2 className="h-12 w-12 animate-spin text-accent" />
+            </div>
+        );
+    }
+    
+    if (isAlreadySigned) {
+        return (
+             <div className="flex items-center justify-center min-h-screen">
                 <Loader2 className="h-12 w-12 animate-spin text-accent" />
             </div>
         );
@@ -37,15 +54,6 @@ export default function ClientSigningPage() {
                     </CardHeader>
                 </Card>
             </main>
-        );
-    }
-
-    if (signupData.status === 'Signed and Published' || signupData.status === 'Client Signatures Completed') {
-        router.replace('/new-client/dashboard'); // Redirect to dashboard if already done.
-        return (
-             <div className="flex items-center justify-center min-h-screen">
-                <Loader2 className="h-12 w-12 animate-spin text-accent" />
-            </div>
         );
     }
     
