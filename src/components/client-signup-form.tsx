@@ -405,15 +405,28 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
     const validationResult = finalizationSchema.safeParse(form.getValues());
     
     if (!validationResult.success) {
-      console.error("Finalization validation errors:", validationResult.error.flatten().fieldErrors);
+      const flattenedErrors = validationResult.error.flatten();
+      console.error("Finalization validation errors:", flattenedErrors);
+
+      const fieldErrorEntries = Object.entries(flattenedErrors.fieldErrors);
+      let errorDescription = "Please fill out all required fields before finalizing. Check all signatures, dates, initials and payment info.";
+
+      if (fieldErrorEntries.length > 0) {
+          const firstErrorField = fieldErrorEntries[0] as [string, string[] | undefined];
+          errorDescription = `Error in field '${firstErrorField[0]}': ${firstErrorField[1]?.[0]}`;
+      } else if (flattenedErrors.formErrors.length > 0) {
+          errorDescription = flattenedErrors.formErrors[0];
+      }
+
       toast({
         title: "Validation Failed",
-        description: "Please fill out all required fields before finalizing. Check all signatures, dates, initials and payment info.",
+        description: errorDescription,
         variant: "destructive",
         duration: 8000,
       });
+
        // Manually set form errors to make them visible
-      for (const [key, messages] of Object.entries(validationResult.error.flatten().fieldErrors)) {
+      for (const [key, messages] of fieldErrorEntries) {
         if (messages) {
           form.setError(key as keyof ClientSignupFormData, { type: 'manual', message: messages.join(', ') });
         }
@@ -914,4 +927,3 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
     </Card>
   );
 }
-

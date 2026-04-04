@@ -381,14 +381,27 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
     const validationResult = tppFinalizationSchema.safeParse(form.getValues());
     
     if (!validationResult.success) {
-      console.error("Finalization validation errors:", validationResult.error.flatten().fieldErrors);
+      const flattenedErrors = validationResult.error.flatten();
+      console.error("Finalization validation errors:", flattenedErrors);
+
+      const fieldErrorEntries = Object.entries(flattenedErrors.fieldErrors);
+      let errorDescription = "Please fill out all required fields before finalizing. Check all signatures, dates, and initials.";
+
+      if (fieldErrorEntries.length > 0) {
+          const firstErrorField = fieldErrorEntries[0] as [string, string[] | undefined];
+          errorDescription = `Error in field '${firstErrorField[0]}': ${firstErrorField[1]?.[0]}`;
+      } else if (flattenedErrors.formErrors.length > 0) {
+          errorDescription = flattenedErrors.formErrors[0];
+      }
+
       toast({
         title: "Validation Failed",
-        description: "Please fill out all required fields before finalizing. Check all signatures, dates, and initials.",
+        description: errorDescription,
         variant: "destructive",
         duration: 8000,
       });
-      for (const [key, messages] of Object.entries(validationResult.error.flatten().fieldErrors)) {
+
+      for (const [key, messages] of fieldErrorEntries) {
         if (messages) {
           form.setError(key as keyof ClientSignupFormData, { type: 'manual', message: messages.join(', ') });
         }
@@ -512,7 +525,7 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
   
   const receivedTransportationWaiver = form.watch('receivedTransportationWaiver');
 
-  const terms = [
+  const tppTerms = [
     { title: "BUSINESS OPERATIONS", text: "FirstLight Home Care is independently owned and operated as a franchisee of FirstLight Home Care Franchising, LLC. FirstLight Home Care meets all requirements of the State of California to provide non-medical in-home personal care, companion and homemaker services. Additional information about FirstLight Home Care that is required to be disclosed under the state law can be found in Section 15 of this Agreement." },
     { title: "FIRSTLIGHT CONTACT INFORMATION", text: "If you have any question, problems, needs or concerns, please contact the FirstLight Home Care of Rancho Cucamonga contact Lolita Pinto at 9093214466 or by mail sent to the address above." },
     { title: "COMPLAINTS", text: "To file a complaint, you may contact the manager listed above or the appropriate State reporting agency. In cases of allegations of abuse or neglect by an employee of FirstLight Home Care a complete investigation will be completed as soon as possible, and FirstLight Home Care will complete a written report within 14 days of the initial complaint unless state law requires earlier reporting in which case that requirements shall apply. The written report shall include the date, time, and description of alleged abuse, neglect, or financial exploitation; description of any injury or abuse of the Client; any actions taken by FirstLight Home Care; a description of actions taken to prevent  future abuse or other crime, or when death (other than by disease or actual causes) has occurred." },
@@ -623,8 +636,7 @@ export default function TppCsaForm({ signupId, mode = 'owner' }: TppCsaFormProps
                                 </FormItem>
                             )} />
                             <p className="text-sm">(“Payor”) will reimburse <strong>FirstLight Home Care</strong> agreement between <strong>FirstLight Home Care</strong> and Payor (“Payor Agreement”). <strong>FirstLight Home Care</strong> will submit claims to Payor in accordance with the provisions of the Payor Agreement and applicable requirements under state or federal law. To the extent Client owes <strong>FirstLight Home Care</strong> for any cost sharing or other financial obligation for the Services, such amounts shall be determined by Payor in accordance with the Payor Agreement and applicable provisions of state and federal law. Client agrees to notify 
-<strong>FirstLight Home Care</strong> if Client becomes ineligible to receive the Services under this Agreement. Additional service (payable 
-by Client out of pocket and not covered by Payor) (the “Private Pay Services”) can be arranged upon Client request; provided,
+<strong>FirstLight Home Care</strong> if Client becomes ineligible to receive the Services under this Agreement. Additional service (payable by Client out of pocket and not covered by Payor) (the “Private Pay Services”) can be arranged upon Client request; provided,
 however, that <strong>FirstLight Home Care</strong>’s ability to render Private Pay Services depends on the Payor Agreement and applicable
 provisions of state and federal law. A separate <strong>FirstLight Home Care</strong> Private Pay Client Service Agreement must be executed prior to initiation of Private Pay Services.</p>
                         </div>
