@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDoc, useMemoFirebase, useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import ClientSignupForm from '@/components/client-signup-form';
 import TppCsaForm from '@/components/tpp-csa-form';
@@ -18,15 +18,15 @@ export default function ClientSigningPage() {
     const firestore = useFirestore();
 
     const signupRef = useMemoFirebase(() => signupId && firestore ? doc(firestore, 'client_signups', signupId) : null, [signupId, firestore]);
-    const { data: signupData, isLoading } = useDoc<any>(signupDocRef);
+    const { data: signupData, isLoading } = useDoc<any>(signupRef);
 
     const isAlreadySigned = signupData && (signupData.status === 'Signed and Published' || signupData.status === 'Client Signatures Completed');
 
     useEffect(() => {
-        if (isAlreadySigned) {
+        if (!isLoading && isAlreadySigned) {
             router.replace('/new-client/dashboard');
         }
-    }, [isAlreadySigned, router]);
+    }, [isAlreadySigned, isLoading, router]);
 
     if (isLoading) {
         return (
