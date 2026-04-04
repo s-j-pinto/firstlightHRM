@@ -3,9 +3,34 @@
 'use server';
 
 import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont, PDFPage } from 'pdf-lib';
-import { format, isDate } from 'date-fns';
+import { format, isDate, isValid } from 'date-fns';
 import { sanitizeText, drawText, drawCheckbox, drawSignature, drawWrappedText, drawCenteredText } from './utils';
 import type { ClientSignupFormData } from '../types';
+
+const safeFormatDate = (date: any): string => {
+    if (!date) return '';
+    // Handle Firestore Timestamp
+    if (date.toDate && typeof date.toDate === 'function') {
+        return format(date.toDate(), 'MM/dd/yyyy');
+    }
+    // Handle JS Date Object
+    if (isDate(date)) {
+        return format(date, 'MM/dd/yyyy');
+    }
+    // Handle string (from form or Firestore serialization)
+    if (typeof date === 'string') {
+        // If it's already in MM/DD/YYYY, just return it.
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(date)) {
+            return date;
+        }
+        // Otherwise, try to parse it (e.g., from ISO string)
+        const parsedDate = new Date(date);
+        if (isValid(parsedDate)) {
+            return format(parsedDate, 'MM/dd/yyyy');
+        }
+    }
+    return ''; // Return empty for unknown formats
+};
 
 const addHeaderAndFooter = (page: PDFPage, logoImage: any, logoDims: any, pageNum: number, totalPages: number, font: PDFFont) => {
     const { width, height } = page.getSize();
@@ -206,13 +231,13 @@ async function drawServicePlanPageContent(page: PDFPage, formData: ClientSignupF
     let textY = boxY - 5;
     drawText(page, "For Office Use Only", {x: leftMargin + 5, y: textY, font: boldFont, size: mainFontSize});
     textY -= 15;
-    const officeDate1 = formData.officeTodaysDate ? format(new Date(formData.officeTodaysDate), "MM/dd/yyyy") : '';
+    const officeDate1 = safeFormatDate(formData.officeTodaysDate);
     drawText(page, `TODAY'S DATE: ${officeDate1}`, {x: leftMargin + 5, y: textY, font, size: mainFontSize});
     textY -= 15;
-    const officeDate2 = formData.officeReferralDate ? format(new Date(formData.officeReferralDate), "MM/dd/yyyy") : '';
+    const officeDate2 = safeFormatDate(formData.officeReferralDate);
     drawText(page, `REFERRAL DATE: ${officeDate2}`, {x: leftMargin + 5, y: textY, font, size: mainFontSize});
     textY -= 15;
-    const officeDate3 = formData.officeInitialContactDate ? format(new Date(formData.officeInitialContactDate), "MM/dd/yyyy") : '';
+    const officeDate3 = safeFormatDate(formData.officeInitialContactDate);
     drawText(page, `DATE OF INITIAL CLIENT CONTACT: ${officeDate3}`, {x: leftMargin + 5, y: textY, font, size: mainFontSize});
 }
 
@@ -267,7 +292,7 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         drawField(page, y, "Email", formData.clientEmail, font, boldFont, mainFontSize, col2X, col2X + 40);
         y -= 20;
 
-        const dobFormatted = formData.clientDOB ? (typeof formData.clientDOB === 'string' ? formData.clientDOB : format(new Date(formData.clientDOB), "MM/dd/yyyy")) : '';
+        const dobFormatted = safeFormatDate(formData.clientDOB);
         drawField(page, y, "SSN", formData.clientSSN, font, boldFont, mainFontSize, col1X, col1X + 25);
         drawField(page, y, "DOB", dobFormatted, font, boldFont, mainFontSize, col2X, col2X + 25);
         y -= 20;
@@ -298,7 +323,7 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         
         y = drawCenteredText(page, "II. PAYMENTS FOR THE SERVICES", boldFont, titleFontSize, y);
         y-=10;
-        const rateCardDateFormatted = formData.rateCardDate ? (typeof formData.rateCardDate === 'string' ? formData.rateCardDate : format(new Date(formData.rateCardDate), 'MM/dd/yyyy')) : '____________';
+        const rateCardDateFormatted = safeFormatDate(formData.rateCardDate);
         const rateText1 = `The hourly rate for providing the Services is $${formData.hourlyRate || '___'} per hour. The rate is based on the Client utilizing the services of FirstLight Home Care of Rancho Cucamonga for a minimum of ${formData.minimumHoursPerShift || '___'} hours per shift. The rates are provided on a current rate card dated ${rateCardDateFormatted}. Rates are subject to change with two (2) weeks' written notice.`;
         y = await drawFormattedWrappedText(page, rateText1, font, boldFont, mainFontSize, leftMargin, y, contentWidth, lineHeight);
         y -= 10;
@@ -325,7 +350,7 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
             page.drawLine({ start: { x: leftMargin + 270, y: yPos - 5 }, end: { x: leftMargin + 420, y: yPos - 5 }, thickness: 0.5 });
             drawText(page, `Printed Name (Client)`, { x: leftMargin + 270, y: yPos - 15, font, size: signatureLabelFontSize });
         
-            const clientSigDate = formData.clientSignatureDate ? format(new Date(formData.clientSignatureDate), "MM/dd/yyyy") : '';
+            const clientSigDate = safeFormatDate(formData.clientSignatureDate);
             drawText(page, clientSigDate, { x: leftMargin + 440, y: yPos, font, size: mainFontSize });
             page.drawLine({ start: { x: leftMargin + 440, y: yPos - 5 }, end: { x: width - leftMargin, y: yPos - 5 }, thickness: 0.5 });
             drawText(page, "Date", { x: leftMargin + 440, y: yPos-15, font, size: signatureLabelFontSize});
@@ -339,7 +364,7 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
             page.drawLine({ start: { x: leftMargin + 270, y: yPos - 5 }, end: { x: leftMargin + 420, y: yPos - 5 }, thickness: 0.5 });
             drawText(page, `Printed Name (Client Representative)`, { x: leftMargin + 270, y: yPos - 15, font, size: signatureLabelFontSize });
             
-            const repSigDate = formData.clientRepresentativeSignatureDate ? format(new Date(formData.clientRepresentativeSignatureDate), "MM/dd/yyyy") : '';
+            const repSigDate = safeFormatDate(formData.clientRepresentativeSignatureDate);
             drawText(page, repSigDate, { x: leftMargin + 440, y: yPos, font, size: mainFontSize });
             page.drawLine({ start: { x: leftMargin + 440, y: yPos - 5 }, end: { x: width - leftMargin, y: yPos - 5 }, thickness: 0.5 });
             drawText(page, "Date", { x: leftMargin + 440, y: yPos-15, font, size: signatureLabelFontSize});
@@ -353,7 +378,7 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
             page.drawLine({ start: { x: leftMargin + 270, y: yPos - 5 }, end: { x: leftMargin + 420, y: yPos - 5 }, thickness: 0.5 });
             drawText(page, `(FirstLight Home Care of Rancho Cucamonga Representative Title)`, { x: leftMargin + 270, y: yPos - 15, font, size: signatureLabelFontSize });
             
-            const firstlightSigDate = formData.firstLightRepresentativeSignatureDate ? format(new Date(formData.firstLightRepresentativeSignatureDate), "MM/dd/yyyy") : '';
+            const firstlightSigDate = safeFormatDate(formData.firstLightRepresentativeSignatureDate);
             drawText(page, firstlightSigDate, { x: leftMargin + 440, y: yPos, font, size: mainFontSize });
             page.drawLine({ start: { x: leftMargin + 440, y: yPos - 5 }, end: { x: width - leftMargin, y: yPos - 5 }, thickness: 0.5 });
             drawText(page, "Date", { x: leftMargin + 440, y: yPos-15, font, size: signatureLabelFontSize});
@@ -368,8 +393,8 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         y -= 20;
 
         for (const term of privatePayTerms) {
-            const titleHeight = boldFont.heightAtSize(mainFontSize);
-            const textHeight = (font.heightAtSize(mainFontSize) * Math.ceil(font.widthOfTextAtSize(sanitizeText(term.text), mainFontSize) / contentWidth)) + 15;
+            const titleHeight = boldFont.heightAtSize(mainFontSize) + 5; 
+            const textHeight = (font.heightAtSize(mainFontSize) * Math.ceil(font.widthOfTextAtSize(sanitizeText(term.text), mainFontSize) / contentWidth)) + 10;
             let estimatedHeight = titleHeight + textHeight + 20;
             if(term.title === "11. INSURANCE:" || term.title === "14. HIRING:") estimatedHeight += 40;
             if (term.title === "19. INFORMATION AND DOCUMENTS RECEIVED:") estimatedHeight += 60;
@@ -414,7 +439,7 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         if (formData.receivedTransportationWaiver) {
             page = addNewPage();
             y = page.getHeight() - 80;
-            y = drawCenteredText(page, "Transportation Waiver", boldFont, 13, y);
+            y = drawCenteredText(page, "Transportation Waiver", boldFont, 11, y);
             y -= 30;
 
             const waiverText = [
@@ -428,7 +453,7 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
 
             for(const p of waiverText) {
                 y = await drawFormattedWrappedText(page, p, font, boldFont, mainFontSize + 1, leftMargin, y, contentWidth, lineHeight + 4);
-                y -= 25;
+                y -= 15;
             };
             y -= 30;
             
@@ -448,7 +473,7 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
             page.drawLine({ start: { x: leftMargin + 240, y: witnessSigY - 5 }, end: { x: leftMargin + 420, y: witnessSigY - 5 }, thickness: 0.5 });
             drawText(page, "Witness (FirstLight Home Care Representative)", { x: leftMargin + 240, y: witnessSigY - 15, font, size: 8 });
 
-            const waiverDate = (formData.transportationWaiverDate && (formData.transportationWaiverDate.toDate || isDate(formData.transportationWaiverDate))) ? format(formData.transportationWaiverDate.toDate ? formData.transportationWaiverDate.toDate() : formData.transportationWaiverDate, "MM/dd/yyyy") : '';
+            const waiverDate = safeFormatDate(formData.transportationWaiverDate);
             drawText(page, waiverDate, { x: leftMargin, y: witnessSigY, font, size: 10 });
             page.drawLine({ start: { x: leftMargin, y: witnessSigY - 5 }, end: { x: leftMargin + 180, y: witnessSigY - 5 }, thickness: 0.5 });
             drawText(page, "Date", { x: leftMargin, y: witnessSigY - 15, font, size: 8 });
@@ -480,7 +505,7 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         page.drawLine({ start: { x: leftMargin, y: y - 5 }, end: { x: leftMargin + 250, y: y - 5 }, thickness: 0.5 });
         drawText(page, "Client Signature/Responsible Party", { x: leftMargin, y: y - 15, font, size: 8 });
 
-        const agreementDate = (formData.agreementSignatureDate && (formData.agreementSignatureDate.toDate || isDate(formData.agreementSignatureDate))) ? format(formData.agreementSignatureDate.toDate ? formData.agreementSignatureDate.toDate() : formData.agreementSignatureDate, "MM/dd/yyyy") : '';
+        const agreementDate = safeFormatDate(formData.agreementSignatureDate);
         drawField(page, y, "Date", agreementDate, font, boldFont, mainFontSize, leftMargin + 300, leftMargin + 350);
         page.drawLine({ start: { x: leftMargin + 350, y: y - 5}, end: {x: leftMargin + 500, y: y - 5}, thickness: 0.5 });
         y -= 40;
@@ -493,7 +518,7 @@ export async function generateClientIntakePdf(formData: ClientSignupFormData): P
         page.drawLine({ start: { x: leftMargin, y: y - 5 }, end: { x: leftMargin + 250, y: y - 5 }, thickness: 0.5 });
         drawText(page, "FirstLight Home Care of Rancho Cucamonga Representative", { x: leftMargin, y: y - 15, font, size: 8 });
 
-        const agreementRepDate = (formData.agreementRepDate && (formData.agreementRepDate.toDate || isDate(formData.agreementRepDate))) ? format(formData.agreementRepDate.toDate ? formData.agreementRepDate.toDate() : formData.agreementRepDate, "MM/dd/yyyy") : '';
+        const agreementRepDate = safeFormatDate(formData.agreementRepDate);
         drawField(page, y, "Date", agreementRepDate, font, boldFont, mainFontSize, leftMargin + 300, leftMargin + 350);
         page.drawLine({ start: { x: leftMargin + 350, y: y - 5}, end: {x: leftMargin + 500, y: y - 5}, thickness: 0.5 });
 

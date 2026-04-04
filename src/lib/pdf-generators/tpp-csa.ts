@@ -3,9 +3,34 @@
 'use server';
 
 import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont, PDFPage } from 'pdf-lib';
-import { format, isDate } from 'date-fns';
+import { format, isDate, isValid } from 'date-fns';
 import { sanitizeText, drawText, drawCheckbox, drawSignature, drawWrappedText, drawCenteredText } from './utils';
 import type { ClientSignupFormData } from '../types';
+
+const safeFormatDate = (date: any): string => {
+    if (!date) return '';
+    // Handle Firestore Timestamp
+    if (date.toDate && typeof date.toDate === 'function') {
+        return format(date.toDate(), 'MM/dd/yyyy');
+    }
+    // Handle JS Date Object
+    if (isDate(date)) {
+        return format(date, 'MM/dd/yyyy');
+    }
+    // Handle string (from form or Firestore serialization)
+    if (typeof date === 'string') {
+        // If it's already in MM/DD/YYYY, just return it.
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(date)) {
+            return date;
+        }
+        // Otherwise, try to parse it (e.g., from ISO string)
+        const parsedDate = new Date(date);
+        if (isValid(parsedDate)) {
+            return format(parsedDate, 'MM/dd/yyyy');
+        }
+    }
+    return ''; // Return empty for unknown formats
+};
 
 const addHeaderAndFooter = (page: PDFPage, logoImage: any, logoDims: any, pageNum: number, totalPages: number, font: PDFFont) => {
     const { width, height } = page.getSize();
@@ -148,7 +173,7 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
 
         // Draw Client Info Fields
         drawField(page, y, "Client Name", formData.clientName, font, boldFont, mainFontSize, leftMargin, leftMargin + 150);
-        const officeDate = formData.officeTodaysDate ? (typeof formData.officeTodaysDate === 'string' ? formData.officeTodaysDate : format(new Date(formData.officeTodaysDate), "MM/dd/yyyy")) : '';
+        const officeDate = safeFormatDate(formData.officeTodaysDate);
         drawField(page, y, "Date", officeDate, font, boldFont, mainFontSize, leftMargin + 300, leftMargin + 350);
         y -= 20;
 
@@ -157,7 +182,7 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         y -= 20;
 
         drawField(page, y, "Phone", formData.clientPhone, font, boldFont, mainFontSize, leftMargin, leftMargin + 150);
-        const dobFormatted = formData.clientDOB ? (typeof formData.clientDOB === 'string' ? formData.clientDOB : format(new Date(formData.clientDOB), "MM/dd/yyyy")) : '';
+        const dobFormatted = safeFormatDate(formData.clientDOB);
         drawField(page, y, "DOB", dobFormatted, font, boldFont, mainFontSize, leftMargin + 300, leftMargin + 350);
         y -= 20;
 
@@ -187,7 +212,7 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         drawText(page, "Scheduled Frequency:", {x: leftMargin, y, font: boldFont, size: mainFontSize});
         drawText(page, `Days/Wk: ${formData.daysPerWeek || ''}`, {x: leftMargin + 150, y, font, size: mainFontSize});
         drawText(page, `Hrs/Day: ${formData.hoursPerDay || ''}`, {x: leftMargin + 250, y, font, size: mainFontSize});
-        const startDate = formData.contractStartDate ? (typeof formData.contractStartDate === 'string' ? formData.contractStartDate : format(new Date(formData.contractStartDate), 'MM/dd/yyyy')) : '';
+        const startDate = safeFormatDate(formData.contractStartDate);
         drawText(page, `Services Start Date: ${startDate}`, {x: leftMargin + 350, y, font, size: mainFontSize});
         y -= 20;
         
@@ -211,7 +236,7 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         page.drawLine({ start: { x: leftMargin, y: sigY-5 }, end: { x: leftMargin + 250, y: sigY-5 }, thickness: 0.5 });
         drawText(page, "Signed (Client)", { x: leftMargin, y: sigY-15, font: font, size: signatureLabelFontSize });
 
-        const clientSigDate = formData.clientSignatureDate ? (typeof formData.clientSignatureDate === 'string' ? formData.clientSignatureDate : format(new Date(formData.clientSignatureDate), 'MM/dd/yyyy')) : '';
+        const clientSigDate = safeFormatDate(formData.clientSignatureDate);
         drawField(page, sigY, "Date", clientSigDate, font, boldFont, mainFontSize, leftMargin + 300, leftMargin + 350);
         page.drawLine({ start: { x: leftMargin + 350, y: sigY - 5}, end: {x: leftMargin + 500, y: sigY - 5}, thickness: 0.5 });
         y -= 50;
@@ -221,7 +246,7 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         page.drawLine({ start: { x: leftMargin, y: repSigY - 5 }, end: { x: leftMargin + 250, y: repSigY - 5 }, thickness: 0.5 });
         drawText(page, "Signed (Responsible Party)", { x: leftMargin, y: repSigY - 15, font: font, size: signatureLabelFontSize });
 
-        const repSigDate = formData.clientRepresentativeSignatureDate ? (typeof formData.clientRepresentativeSignatureDate === 'string' ? formData.clientRepresentativeSignatureDate : format(new Date(formData.clientRepresentativeSignatureDate), 'MM/dd/yyyy')) : '';
+        const repSigDate = safeFormatDate(formData.clientRepresentativeSignatureDate);
         drawField(page, repSigY, "Date", repSigDate, font, boldFont, mainFontSize, leftMargin + 300, leftMargin + 350);
         page.drawLine({ start: { x: leftMargin + 350, y: repSigY-5 }, end: { x: leftMargin + 500, y: repSigY-5}, thickness: 0.5 });
         y -= 50;
@@ -231,7 +256,7 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
         page.drawLine({ start: { x: leftMargin, y: firstlightSigY - 5 }, end: { x: leftMargin + 250, y: firstlightSigY - 5 }, thickness: 0.5 });
         drawText(page, "(FirstLight Home Care of Representative Signature)", { x: leftMargin, y: firstlightSigY - 15, font: font, size: signatureLabelFontSize });
 
-        const firstlightSigDate = formData.firstLightRepresentativeSignatureDate ? (typeof formData.firstLightRepresentativeSignatureDate === 'string' ? formData.firstLightRepresentativeSignatureDate : format(new Date(formData.firstLightRepresentativeSignatureDate), 'MM/dd/yyyy')) : '';
+        const firstlightSigDate = safeFormatDate(formData.firstLightRepresentativeSignatureDate);
         drawField(page, firstlightSigY, "Date", firstlightSigDate, font, boldFont, mainFontSize, leftMargin + 300, leftMargin + 350);
         page.drawLine({ start: { x: leftMargin + 350, y: firstlightSigY - 5 }, end: { x: leftMargin + 500, y: firstlightSigY - 5 }, thickness: 0.5 });
 
@@ -243,7 +268,7 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
             page = allPages[currentPageIndex];
             
             if (i === 0) {
-                 y = drawCenteredText(page, "TERMS AND CONDITIONS", boldFont, titleFontSize, y);
+                 y = drawCenteredText(page, "TERMS AND CONDITIONS", boldFont, 11, y);
                  y -= 10;
             }
 
@@ -325,7 +350,7 @@ export async function generateTppCsaPdf(formData: ClientSignupFormData): Promise
             page.drawLine({ start: { x: leftMargin + 240, y: witnessSigY - 5 }, end: { x: leftMargin + 420, y: witnessSigY - 5 }, thickness: 0.5 });
             drawText(page, "Witness (FirstLight Home Care Representative)", { x: leftMargin + 240, y: witnessSigY - 15, font, size: 8 });
 
-            const waiverDate = (formData.transportationWaiverDate && (formData.transportationWaiverDate.toDate || isDate(formData.transportationWaiverDate))) ? format(formData.transportationWaiverDate.toDate ? formData.transportationWaiverDate.toDate() : formData.transportationWaiverDate, "MM/dd/yyyy") : '';
+            const waiverDate = safeFormatDate(formData.transportationWaiverDate);
             drawText(page, waiverDate, { x: leftMargin, y: witnessSigY, font, size: 10 });
             page.drawLine({ start: { x: leftMargin, y: witnessSigY - 5 }, end: { x: leftMargin + 180, y: witnessSigY - 5 }, thickness: 0.5 });
             drawText(page, "Date", { x: leftMargin, y: witnessSigY - 15, font, size: 8 });
