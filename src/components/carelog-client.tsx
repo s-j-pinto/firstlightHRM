@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useTransition, useRef, useEffect } from "react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
-import { useUser, firestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
+import { useUser, useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { collection, query, where, addDoc, Timestamp } from "firebase/firestore";
 import { CareLogGroup, Client, CareLog, CareLogTemplate } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -169,6 +169,7 @@ const FormattedTemplateData = ({ data }: { data: any }) => {
 
 export default function CareLogClient() {
   const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, startSubmitTransition] = useTransition();
   const [isExtracting, startExtractTransition] = useTransition();
@@ -194,7 +195,7 @@ export default function CareLogClient() {
   
   const { fields: medFields, append: appendMed, remove: removeMed } = useFieldArray({ control, name: "medication_support" });
 
-  const clientsRef = useMemoFirebase(() => collection(firestore, 'Clients'), []);
+  const clientsRef = useMemoFirebase(() => firestore ? collection(firestore, 'Clients') : null, [firestore]);
   const { data: clients, isLoading: clientsLoading } = useCollection<Client>(clientsRef);
 
   const clientsMap = useMemo(() => {
@@ -203,12 +204,12 @@ export default function CareLogClient() {
   }, [clients]);
 
   const careLogGroupsQueryRef = useMemoFirebase(
-    () => user?.email ? query(collection(firestore, 'carelog_groups'), where('caregiverEmails', 'array-contains', user.email)) : null,
-    [user]
+    () => user?.email && firestore ? query(collection(firestore, 'carelog_groups'), where('caregiverEmails', 'array-contains', user.email)) : null,
+    [user, firestore]
   );
   const { data: allCareLogGroups, isLoading: groupsLoading } = useCollection<CareLogGroup>(careLogGroupsQueryRef);
 
-  const templateRef = useMemoFirebase(() => selectedGroup?.careLogTemplateId ? doc(firestore, 'carelog_templates', selectedGroup.careLogTemplateId) : null, [selectedGroup]);
+  const templateRef = useMemoFirebase(() => selectedGroup?.careLogTemplateId && firestore ? doc(firestore, 'carelog_templates', selectedGroup.careLogTemplateId) : null, [selectedGroup, firestore]);
   const { data: template, isLoading: templateLoading } = useDoc<CareLogTemplate>(templateRef);
 
   const careLogGroups = useMemo(() => {
@@ -223,8 +224,8 @@ export default function CareLogClient() {
 
 
   const careLogsRef = useMemoFirebase(
-    () => selectedGroup ? query(collection(firestore, 'carelogs'), where('careLogGroupId', '==', selectedGroup.id)) : null,
-    [selectedGroup]
+    () => selectedGroup && firestore ? query(collection(firestore, 'carelogs'), where('careLogGroupId', '==', selectedGroup.id)) : null,
+    [selectedGroup, firestore]
   );
   const { data: careLogsData, isLoading: logsLoading } = useCollection<CareLog>(careLogsRef);
   
