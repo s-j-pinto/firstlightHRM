@@ -15,12 +15,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import Image from "next/image";
-import { format, set } from "date-fns";
+import { format, set, parse, isValid } from "date-fns";
 import { careLogSchema } from "@/lib/types";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -180,7 +177,7 @@ export default function CareLogClient() {
   const [scannedImage, setScannedImage] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(false);
   
-  const [shiftDate, setShiftDate] = useState<Date | undefined>(new Date());
+  const [shiftDate, setShiftDate] = useState<string>(format(new Date(), 'MM/dd/yyyy'));
   const [startTime, setStartTime] = useState<string>('09:00');
   const [endTime, setEndTime] = useState<string>('17:00');
   
@@ -249,7 +246,7 @@ export default function CareLogClient() {
     setScannedImage(null);
     setShowCamera(false);
     setExtractedShiftDateTime(null);
-    setShiftDate(new Date());
+    setShiftDate(format(new Date(), 'MM/dd/yyyy'));
     setStartTime("09:00");
     setEndTime("17:00");
   }
@@ -350,16 +347,18 @@ export default function CareLogClient() {
                 } catch (e) {}
             }
         } else {
-             if (!shiftDate || !startTime || !endTime) {
-                toast({ title: "Missing Information", description: "Please provide the shift date, start time, and end time.", variant: "destructive" });
+            const parsedDate = parse(shiftDate, 'MM/dd/yyyy', new Date());
+
+            if (!shiftDate || !startTime || !endTime || !isValid(parsedDate)) {
+                toast({ title: "Missing Information", description: "Please provide a valid shift date, start time, and end time.", variant: "destructive" });
                 return;
             }
             const [startHours, startMinutes] = startTime.split(':').map(Number);
-            const startDate = set(shiftDate, { hours: startHours, minutes: startMinutes, seconds: 0, milliseconds: 0 });
+            const startDate = set(parsedDate, { hours: startHours, minutes: startMinutes, seconds: 0, milliseconds: 0 });
             finalShiftDateTime = startDate.toISOString();
 
             const [endHours, endMinutes] = endTime.split(':').map(Number);
-            const endDate = set(shiftDate, { hours: endHours, minutes: endMinutes, seconds: 0, milliseconds: 0 });
+            const endDate = set(parsedDate, { hours: endHours, minutes: endMinutes, seconds: 0, milliseconds: 0 });
             finalShiftEndDateTime = endDate.toISOString();
         }
         
@@ -501,17 +500,13 @@ export default function CareLogClient() {
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="shift-date">Shift Date</Label>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button id="shift-date" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !shiftDate && "text-muted-foreground")}>
-                                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                                    {shiftDate ? format(shiftDate, "PPP") : <span>Pick a date</span>}
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0">
-                                                <Calendar mode="single" selected={shiftDate} onSelect={setShiftDate} initialFocus />
-                                            </PopoverContent>
-                                        </Popover>
+                                        <Input
+                                            id="shift-date"
+                                            type="text"
+                                            value={shiftDate}
+                                            onChange={(e) => setShiftDate(e.target.value)}
+                                            placeholder="MM/DD/YYYY"
+                                        />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="start-time">Start Time</Label>
