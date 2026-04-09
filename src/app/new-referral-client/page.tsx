@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Suspense } from 'react';
@@ -7,21 +6,21 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { useTransition } from 'react';
-import { CalendarIcon, Loader2, Save } from 'lucide-react';
+import { Loader2, Save } from 'lucide-react';
 import { format } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
 import { submitInitialContact } from '@/lib/initial-contact.actions';
 import Image from 'next/image';
+import { DateInput } from '@/components/ui/date-input';
+import { dateString } from '@/lib/types';
+
 
 const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstLight_Logo_VRT_CMYK_ICO.ico?alt=media&token=1151ccf8-5dc3-4ffd-b5aa-ca13e8b083d9";
 
@@ -29,7 +28,7 @@ const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-
 const referralClientSchema = z.object({
   clientName: z.string().min(1, "Your Name is required."),
   clientAddress: z.string().min(1, "Your Address is required."),
-  dateOfBirth: z.date().optional(),
+  dateOfBirth: dateString,
   city: z.string().min(1, "City is required."),
   zip: z.string().min(1, "Zip code is required."),
   clientPhone: z.string().min(1, "Your Phone is required."),
@@ -41,7 +40,7 @@ const referralClientSchema = z.object({
   referralCode: z.string().optional(),
   promptedCall: z.string().min(1, "Please let us know what prompted you to contact us."),
   estimatedHours: z.string().optional(),
-  estimatedStartDate: z.date().optional(),
+  estimatedStartDate: dateString,
   medicalIns: z.string().optional(),
   dnr: z.boolean().optional(),
   va: z.string().optional(),
@@ -76,24 +75,24 @@ type ReferralClientFormData = z.infer<typeof referralClientSchema>;
 
 const companionCareCheckboxes = [
     { id: 'companionCare_mealPreparation', label: 'Meal preparation and clean up' },
-    { id: 'companionCare_cleanKitchen', label: 'Clean kitchen' },
-    { id: 'companionCare_assistWithLaundry', label: 'Assist with laundry' },
-    { id: 'companionCare_dustFurniture', label: 'Dust furniture' },
-    { id: 'companionCare_assistWithEating', label: 'Assist with eating' },
-    { id: 'companionCare_provideAlzheimersRedirection', label: "Alzheimer's redirection" },
-    { id: 'companionCare_assistWithHomeManagement', label: 'Assist with home management' },
-    { id: 'companionCare_preparationForBathing', label: 'Preparation for bathing' },
+    { id: 'companionCare_cleanKitchen', label: 'Clean kitchen - appliances, sinks, mop floors' },
+    { id: 'companionCare_assistWithLaundry', label: 'Assist with laundry and ironing' },
+    { id: 'companionCare_dustFurniture', label: 'Dust furniture - living room, bedrooms, dining room' },
+    { id: 'companionCare_assistWithEating', label: 'Assist with eating and proper nutrition' },
+    { id: 'companionCare_provideAlzheimersRedirection', label: "Provide Alzheimer's redirection - for safety" },
+    { id: 'companionCare_assistWithHomeManagement', label: 'Assist with home management - mail, plants, calendar' },
+    { id: 'companionCare_preparationForBathing', label: 'Preparation for bathing and hair care' },
     { id: 'companionCare_groceryShopping', label: 'Grocery shopping' },
-    { id: 'companionCare_cleanBathrooms', label: 'Clean bathrooms' },
-    { id: 'companionCare_changeBedLinens', label: 'Change bed linens' },
-    { id: 'companionCare_runErrands', label: 'Run errands' },
+    { id: 'companionCare_cleanBathrooms', label: 'Clean bathrooms - sink, tub, toilet' },
+    { id: 'companionCare_changeBedLinens', label: 'Change bed linens and make bed' },
+    { id: 'companionCare_runErrands', label: 'Run errands - pick up prescription' },
     { id: 'companionCare_escortAndTransportation', label: 'Escort and transportation' },
-    { id: 'companionCare_provideRemindersAndAssistWithToileting', label: 'Toileting reminders' },
+    { id: 'companionCare_provideRemindersAndAssistWithToileting', label: 'Provide reminders and assist with toileting' },
     { id: 'companionCare_provideRespiteCare', label: 'Provide respite care' },
-    { id: 'companionCare_stimulateMentalAwareness', label: 'Stimulate mental awareness' },
-    { id: 'companionCare_assistWithDressingAndGrooming', label: 'Dressing and grooming' },
-    { id: 'companionCare_assistWithShavingAndOralCare', label: 'Shaving and oral care' },
-];
+    { id: 'companionCare_stimulateMentalAwareness', label: 'Stimulate mental awareness - read' },
+    { id: 'companionCare_assistWithDressingAndGrooming', label: 'Assist with dressing and grooming' },
+    { id: 'companionCare_assistWithShavingAndOralCare', label: 'Assist with shaving and oral care' },
+  ];
 
 
 function ReferralClientForm() {
@@ -202,22 +201,12 @@ function ReferralClientForm() {
                          <FormField
                             control={form.control}
                             name="estimatedStartDate"
-                            render={({ field }) => (
-                                <FormItem className="flex flex-col">
+                            render={() => (
+                                <FormItem>
                                     <FormLabel>Estimated Start Date</FormLabel>
-                                    <Popover>
-                                    <PopoverTrigger asChild>
-                                        <FormControl>
-                                        <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                        </Button>
-                                        </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                                    </PopoverContent>
-                                    </Popover>
+                                    <FormControl>
+                                        <DateInput name="estimatedStartDate" />
+                                    </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}

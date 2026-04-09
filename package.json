@@ -45,7 +45,7 @@
     "dotenv": "^16.5.0",
     "embla-carousel-react": "^8.6.0",
     "firebase": "^10.12.2",
-    "firebase-admin": "^10.3.0",
+    "firebase-admin": "^13.7.0",
     "genkit": "^1.16.1",
     "google-auth-library": "^9.11.0",
     "googleapis": "^140.0.1",
