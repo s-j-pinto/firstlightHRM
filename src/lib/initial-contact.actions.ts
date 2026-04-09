@@ -131,7 +131,7 @@ export async function submitInitialContact(payload: SubmitPayload) {
         status = "In-Home Visit Scheduled";
     }
 
-    const dataToSave: { [key: string]: any } = {
+    const { createdAt, ...dataToSave }: { [key: string]: any } = {
         ...validation.data,
         status: status,
         lastUpdatedAt: now,
@@ -331,4 +331,40 @@ export async function sendManualSms(contactId: string, message: string) {
     } catch (error: any) {
         return { error: `Failed to send SMS: ${error.message}` };
     }
+}
+
+export async function deleteInitialContactAndSignups(contactId: string) {
+  if (!contactId) {
+    return { error: true, message: "Contact ID is required." };
+  }
+
+  const firestore = serverDb;
+
+  try {
+    const contactRef = firestore.collection("initial_contacts").doc(contactId);
+    const signupQuery = firestore.collection("client_signups").where("initialContactId", "==", contactId);
+    
+    const signupSnapshot = await signupQuery.get();
+    
+    const batch = firestore.batch();
+    
+    // Delete the initial_contact document
+    batch.delete(contactRef);
+
+    // Delete all associated client_signup documents
+    signupSnapshot.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+
+    await batch.commit();
+
+    revalidatePath("/admin/assessments");
+    revalidatePath("/owner/dashboard");
+
+    return { success: true, message: "Intake record and all associated CSAs have been deleted." };
+
+  } catch (error: any) {
+    console.error("Error deleting initial contact and signups:", error);
+    return { error: true, message: `An error occurred: ${error.message}` };
+  }
 }

@@ -2,11 +2,11 @@
 
 "use client";
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { format, subDays, isAfter } from 'date-fns';
-import { Loader2, ChevronRight, FileText } from 'lucide-react';
+import { Loader2, ChevronRight, FileText, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -37,6 +37,21 @@ import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import type { CampaignTemplate } from '@/lib/types';
+import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useToast } from '@/hooks/use-toast';
+import { deleteInitialContactAndSignups } from '@/lib/initial-contact.actions';
+
 
 const intakeStatuses = [
     "New",
@@ -87,6 +102,9 @@ export default function ClientSignupList() {
   const [dateFilter, setDateFilter] = useState<DateRangeKey>('last_month');
   const [showClosed, setShowClosed] = useState(false);
   const firestore = useFirestore();
+  const { toast } = useToast();
+  const [isDeleting, startDeleteTransition] = useTransition();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   
   const contactsQuery = useMemoFirebase(() => 
     firestore ? query(collection(firestore, 'initial_contacts'), orderBy('createdAt', 'desc')) : null,
@@ -204,6 +222,19 @@ export default function ClientSignupList() {
     return <Badge className={cn("text-white", colorClass)}>{status}</Badge>;
   };
   
+  const handleDelete = (contactId: string) => {
+    startDeleteTransition(async () => {
+      setDeletingId(contactId);
+      const result = await deleteInitialContactAndSignups(contactId);
+      if (result.error) {
+        toast({ title: 'Error', description: result.message, variant: 'destructive' });
+      } else {
+        toast({ title: 'Success', description: result.message });
+      }
+      setDeletingId(null);
+    });
+  };
+  
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-40">
@@ -298,6 +329,35 @@ export default function ClientSignupList() {
                         <ChevronRight className="h-4 w-4 ml-1" />
                       </Link>
                     )}
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10 flex items-center justify-end w-full p-0 h-auto font-normal">
+                          Delete Intake and CSAs
+                          {isDeleting && deletingId === item.id ? (
+                            <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4 ml-2" />
+                          )}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the intake record for <strong>{item.clientName}</strong> and any associated Client Service Agreements.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDelete(item.id)}
+                            className="bg-destructive hover:bg-destructive/90"
+                          >
+                            Confirm Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </TableCell>
                 </TableRow>
               ))
