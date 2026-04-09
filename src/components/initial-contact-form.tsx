@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect, useMemo, useRef } from "react";
@@ -288,13 +289,15 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
     startSubmittingTransition(async () => {
       setAuthUrl(null);
       
+      const { createdAt, lastUpdatedAt, ...formDataForServer } = data as any;
+
       const payload = {
         contactId: contactId,
-        formData: data
+        formData: formDataForServer
       };
 
       if (data.inHomeVisitSet === "Yes") {
-        payload.formData.sendFollowUpCampaigns = false; // Don't send campaigns if visit is set
+        (payload.formData as any).sendFollowUpCampaigns = false; // Don't send campaigns if visit is set
       }
 
       const result = await submitInitialContact(payload);
