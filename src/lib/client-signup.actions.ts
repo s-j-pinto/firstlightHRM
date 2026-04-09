@@ -124,18 +124,15 @@ export async function saveClientSignupForm(payload: z.infer<typeof clientSignupS
     try {
         let docId = signupId;
         
-        // This is the reference to the signup document itself.
         const signupDocRef = docId ? firestore.collection('client_signups').doc(docId) : firestore.collection('client_signups').doc();
         if (!docId) {
-            docId = signupDocRef.id; // Assign new ID if creating
+            docId = signupDocRef.id;
         }
 
-        // Get the initialContactId *before* saving, as we need it for the sync.
         const existingSignupDoc = await signupDocRef.get();
         const initialContactId = existingSignupDoc.exists ? existingSignupDoc.data()?.initialContactId : null;
         const formType = existingSignupDoc.exists ? existingSignupDoc.data()?.formType : 'private';
 
-        // Normalize email before saving
         const normalizedClientEmail = (formData.clientEmail || '').trim().toLowerCase();
         formData.clientEmail = normalizedClientEmail;
 
@@ -153,12 +150,11 @@ export async function saveClientSignupForm(payload: z.infer<typeof clientSignupS
         } else {
             await signupDocRef.set({
                 ...saveData,
-                initialContactId: null, // This should have been set on creation from contact.
+                initialContactId: null,
                 createdAt: now,
             });
         }
         
-        // Sync back to the initial contact form if it exists.
         if (initialContactId) {
             const contactRef = firestore.collection('initial_contacts').doc(initialContactId);
              const dataToSync: { [key: string]: any } = {
@@ -167,23 +163,19 @@ export async function saveClientSignupForm(payload: z.infer<typeof clientSignupS
                 city: formData.clientCity || '',
                 zip: formData.clientPostalCode || '',
                 clientPhone: formData.clientPhone || '',
-                clientEmail: normalizedClientEmail, // Use normalized email for sync
+                clientEmail: normalizedClientEmail,
                 dateOfBirth: formData.clientDOB ? Timestamp.fromDate(new Date(formData.clientDOB)) : null,
                 lastUpdatedAt: now,
             };
 
-            const otherTextfields = ['companionCare_other', 'personalCare_assistWithOther'];
+            const booleanCareFields = [ 'companionCare_mealPreparation', 'companionCare_cleanKitchen', 'companionCare_assistWithLaundry', 'companionCare_dustFurniture', 'companionCare_assistWithEating', 'companionCare_provideAlzheimersRedirection', 'companionCare_assistWithHomeManagement', 'companionCare_preparationForBathing', 'companionCare_groceryShopping', 'companionCare_cleanBathrooms', 'companionCare_changeBedLinens', 'companionCare_runErrands', 'companionCare_escortAndTransportation', 'companionCare_provideRemindersAndAssistWithToileting', 'companionCare_provideRespiteCare', 'companionCare_stimulateMentalAwareness', 'companionCare_assistWithDressingAndGrooming', 'companionCare_assistWithShavingAndOralCare', 'personalCare_provideAlzheimersCare', 'personalCare_provideMedicationReminders', 'personalCare_assistWithDressingGrooming', 'personalCare_assistWithBathingHairCare', 'personalCare_assistWithFeedingSpecialDiets', 'personalCare_assistWithMobilityAmbulationTransfer', 'personalCare_assistWithIncontinenceCare' ];
+            const stringCareFields = ['companionCare_other', 'personalCare_assistWithOther'];
 
-            // Dynamically add all companion and personal care fields to the sync object
             Object.keys(formData).forEach(key => {
-                if (key.startsWith('companionCare_') || key.startsWith('personalCare_')) {
-                    if (otherTextfields.includes(key)) {
-                        // This is a text field, save as string or empty string
-                        dataToSync[key] = formData[key] || '';
-                    } else {
-                        // This is a checkbox, save as boolean
-                        dataToSync[key] = formData[key] || false;
-                    }
+                if (booleanCareFields.includes(key)) {
+                    dataToSync[key] = !!formData[key]; // Ensure boolean
+                } else if (stringCareFields.includes(key)) {
+                    dataToSync[key] = formData[key] || ''; // Ensure string
                 }
             });
 
@@ -316,7 +308,6 @@ export async function submitClientSignature(payload: any) {
         }
         const formType = signupDoc.data()?.formType || 'private';
 
-        // Choose the correct schema based on the form type
         const validationSchema = formType === 'tpp'
             ? tppClientSignaturePayloadSchema
             : clientSignaturePayloadSchema;
@@ -335,7 +326,6 @@ export async function submitClientSignature(payload: any) {
             lastUpdatedAt: Timestamp.now(),
         };
 
-        // Dynamically build the update payload from the validated data
         for (const [key, value] of Object.entries(signatureData)) {
             if (value !== undefined) {
                 if (value instanceof Date) {
@@ -348,7 +338,6 @@ export async function submitClientSignature(payload: any) {
 
         await signupRef.update(updatePayload);
 
-        // Notify owner to review and finalize
         const clientName = signupDoc.data()?.formData?.clientName || 'the client';
 
         if (ownerEmail) {
@@ -387,12 +376,23 @@ export async function finalizeAndSubmit(signupId: string, formData: any) {
 
     const validation = validationSchema.safeParse(formData);
     if (!validation.success) {
-        console.error("Finalization validation failed:", validation.error.flatten().fieldErrors);
-        return { error: true, message: `Validation failed: ${validation.error.errors[0].path.join('.')} - ${validation.error.errors[0].message}` };
+        const flattenedErrors = validation.error.flatten();
+        console.error("Finalization validation errors:", flattenedErrors);
+
+        const fieldErrorEntries = Object.entries(flattenedErrors.fieldErrors);
+        let errorDescription = "Please fill out all required fields before finalizing. Check all signatures, dates, initials and payment info.";
+
+        if (fieldErrorEntries.length > 0) {
+            const firstErrorField = fieldErrorEntries[0] as [string, string[] | undefined];
+            errorDescription = `Error in field '${firstErrorField[0]}': ${firstErrorField[1]?.[0]}`;
+        } else if (flattenedErrors.formErrors.length > 0) {
+            errorDescription = flattenedErrors.formErrors[0];
+        }
+        
+        return { error: true, message: errorDescription };
     }
 
     try {
-        // First, save the final, validated state of the form data passed from the client
         await signupRef.update({
             formData: validation.data,
             lastUpdatedAt: now,
@@ -429,7 +429,6 @@ export async function finalizeAndSubmit(signupId: string, formData: any) {
             ? await generateTppCsaPdf(validation.data)
             : await generateClientIntakePdf(validation.data);
         
-        // 2. Upload to Firebase Storage
         const bucket = getStorage().bucket("gs://firstlighthomecare-hrm.firebasestorage.app");
         const fileName = `client-agreements/${clientName.replace(/ /g, '_')}_${signupId}.pdf`;
         const file = bucket.file(fileName);
@@ -438,7 +437,7 @@ export async function finalizeAndSubmit(signupId: string, formData: any) {
             metadata: {
                 contentType: 'application/pdf',
                 metadata: {
-                    ownerUid: clientAuthUid // Add the client's UID as custom metadata
+                    ownerUid: clientAuthUid
                 }
             },
         });
@@ -448,14 +447,12 @@ export async function finalizeAndSubmit(signupId: string, formData: any) {
             expires: '03-09-2491',
         });
 
-        // 3. Update status and save PDF URL
         await signupRef.update({
             status: 'Signed and Published',
             completedPdfUrl: signedUrl,
             lastUpdatedAt: now,
         });
         
-        // 4. Send confirmation emails
         const emailRecipients = [ownerEmail, clientEmail].filter(Boolean) as string[];
 
         if (emailRecipients.length > 0) {
