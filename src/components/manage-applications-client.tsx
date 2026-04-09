@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useTransition } from "react";
@@ -115,13 +116,20 @@ export default function ManageApplicationsClient() {
       try {
         const profileRef = doc(db, "caregiver_profiles", selectedCaregiver.id);
         
+        // Sanitize data to remove undefined fields which Firestore doesn't allow.
+        const updateData: { [key: string]: any } = {};
+        for (const key in data) {
+            if (data[key as keyof GeneralInfoFormData] !== undefined) {
+                updateData[key] = data[key as keyof GeneralInfoFormData];
+            }
+        }
+        
         // Normalize email to lowercase before updating
-        const normalizedData = {
-            ...data,
-            email: data.email.trim().toLowerCase()
-        };
+        if(data.email) {
+            updateData.email = data.email.trim().toLowerCase();
+        }
 
-        updateDocumentNonBlocking(profileRef, normalizedData);
+        updateDocumentNonBlocking(profileRef, updateData);
         
         toast({
           title: "Success",
