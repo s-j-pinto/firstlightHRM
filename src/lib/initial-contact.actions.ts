@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { cookies } from 'next/headers';
 import { sendHomeVisitInvite } from './google-calendar.actions';
 import { sendSms } from './services/telnyx';
-import { parse, isValid } from 'date-fns';
+import { parse, isValid, isDate } from 'date-fns';
 
 const dateString = z.string().regex(/^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/, "Must be in MM/DD/YYYY format").optional().or(z.literal(''));
 const requiredDateString = z.string().min(1, "Date is required.").regex(/^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/, "Must be in MM/DD/YYYY format");
@@ -131,10 +131,8 @@ export async function submitInitialContact(payload: SubmitPayload) {
         status = "In-Home Visit Scheduled";
     }
 
-    const { createdAt, ...restOfData } = validation.data;
-
     const dataToSave: { [key: string]: any } = {
-        ...restOfData,
+        ...validation.data,
         status: status,
         lastUpdatedAt: now,
     };
@@ -144,7 +142,7 @@ export async function submitInitialContact(payload: SubmitPayload) {
         if (dataToSave[field]) {
             try {
                 const date = parse(dataToSave[field], 'MM/dd/yyyy', new Date());
-                if (!isNaN(date.getTime())) {
+                if (isValid(date)) {
                     dataToSave[field] = Timestamp.fromDate(date);
                 } else {
                     dataToSave[field] = null; 
@@ -173,10 +171,26 @@ export async function submitInitialContact(payload: SubmitPayload) {
         const existingDoc = await contactRef.get();
         const existingData = existingDoc.data();
 
-        const oldVisitDate = existingData?.dateOfHomeVisit?.toDate();
+        const safeParseTimestamp = (value: any): Date | null => {
+            if (!value) return null;
+            if (value.toDate && typeof value.toDate === 'function') {
+                return value.toDate();
+            }
+            if (isDate(value)) {
+                return value;
+            }
+            if (typeof value === 'string') {
+                const parsed = parse(value, 'MM/dd/yyyy', new Date());
+                if (isValid(parsed)) {
+                    return parsed;
+                }
+            }
+            return null;
+        }
+
+        const oldVisitDate = safeParseTimestamp(existingData?.dateOfHomeVisit);
         const oldVisitTime = existingData?.timeOfVisit;
         
-        // Correctly parse the date string from the form data
         const newVisitDateFromForm = validation.data.dateOfHomeVisit ? parse(validation.data.dateOfHomeVisit, 'MM/dd/yyyy', new Date()) : null;
         const newVisitDateIsValid = newVisitDateFromForm && isValid(newVisitDateFromForm);
         const newVisitDate = newVisitDateIsValid ? newVisitDateFromForm : null;

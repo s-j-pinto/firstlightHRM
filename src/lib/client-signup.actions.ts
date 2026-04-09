@@ -9,7 +9,7 @@ import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { generateClientIntakePdf, generateTppCsaPdf } from './pdf.actions';
 import { finalizationSchema, tppFinalizationSchema, clientSignaturePayloadSchema, tppClientSignaturePayloadSchema } from './types';
-import { parse } from 'date-fns';
+import { parse, isValid } from 'date-fns';
 
 const clientSignupSchema = z.object({
   signupId: z.string().nullable(),
@@ -157,30 +157,60 @@ export async function saveClientSignupForm(payload: z.infer<typeof clientSignupS
         
         if (initialContactId) {
             const contactRef = firestore.collection('initial_contacts').doc(initialContactId);
-             const dataToSync: { [key: string]: any } = {
-                clientName: formData.clientName || '',
-                clientAddress: formData.clientAddress || '',
-                city: formData.clientCity || '',
-                zip: formData.clientPostalCode || '',
-                clientPhone: formData.clientPhone || '',
-                clientEmail: normalizedClientEmail,
-                dateOfBirth: formData.clientDOB ? Timestamp.fromDate(new Date(formData.clientDOB)) : null,
+            const dataToSync: { [key: string]: any } = {
                 lastUpdatedAt: now,
             };
 
-            const booleanCareFields = [ 'companionCare_mealPreparation', 'companionCare_cleanKitchen', 'companionCare_assistWithLaundry', 'companionCare_dustFurniture', 'companionCare_assistWithEating', 'companionCare_provideAlzheimersRedirection', 'companionCare_assistWithHomeManagement', 'companionCare_preparationForBathing', 'companionCare_groceryShopping', 'companionCare_cleanBathrooms', 'companionCare_changeBedLinens', 'companionCare_runErrands', 'companionCare_escortAndTransportation', 'companionCare_provideRemindersAndAssistWithToileting', 'companionCare_provideRespiteCare', 'companionCare_stimulateMentalAwareness', 'companionCare_assistWithDressingAndGrooming', 'companionCare_assistWithShavingAndOralCare', 'personalCare_provideAlzheimersCare', 'personalCare_provideMedicationReminders', 'personalCare_assistWithDressingGrooming', 'personalCare_assistWithBathingHairCare', 'personalCare_assistWithFeedingSpecialDiets', 'personalCare_assistWithMobilityAmbulationTransfer', 'personalCare_assistWithIncontinenceCare' ];
-            const stringCareFields = ['companionCare_other', 'personalCare_assistWithOther'];
+            const fieldsToSyncFromForm = [
+                'clientName', 'clientAddress', 'clientCity', 'clientPhone', 'clientEmail', 
+                'companionCare_mealPreparation', 'companionCare_cleanKitchen', 
+                'companionCare_assistWithLaundry', 'companionCare_dustFurniture', 
+                'companionCare_assistWithEating', 'companionCare_provideAlzheimersRedirection', 
+                'companionCare_assistWithHomeManagement', 'companionCare_preparationForBathing', 
+                'companionCare_groceryShopping', 'companionCare_cleanBathrooms', 
+                'companionCare_changeBedLinens', 'companionCare_runErrands', 
+                'companionCare_escortAndTransportation', 'companionCare_provideRemindersAndAssistWithToileting', 
+                'companionCare_provideRespiteCare', 'companionCare_stimulateMentalAwareness', 
+                'companionCare_assistWithDressingAndGrooming', 'companionCare_assistWithShavingAndOralCare',
+                'personalCare_provideAlzheimersCare', 'personalCare_provideMedicationReminders',
+                'personalCare_assistWithDressingGrooming', 'personalCare_assistWithBathingHairCare',
+                'personalCare_assistWithFeedingSpecialDiets', 'personalCare_assistWithMobilityAmbulationTransfer',
+                'personalCare_assistWithIncontinenceCare'
+            ];
+            
+            const stringFields = ['companionCare_other', 'personalCare_assistWithOther'];
 
-            Object.keys(formData).forEach(key => {
-                if (booleanCareFields.includes(key)) {
-                    dataToSync[key] = !!formData[key]; // Ensure boolean
-                } else if (stringCareFields.includes(key)) {
-                    dataToSync[key] = formData[key] || ''; // Ensure string
+            fieldsToSyncFromForm.forEach(key => {
+                if (formData[key] !== undefined) {
+                    dataToSync[key] = !!formData[key];
                 }
             });
 
+            stringFields.forEach(key => {
+                if (formData[key] !== undefined) {
+                    dataToSync[key] = formData[key] || '';
+                }
+            });
+
+            if (formData.clientDOB) {
+                const date = parse(formData.clientDOB, 'MM/dd/yyyy', new Date());
+                if (isValid(date)) {
+                    dataToSync.dateOfBirth = Timestamp.fromDate(date);
+                }
+            } else {
+                dataToSync.dateOfBirth = null;
+            }
+
+            // Sync main contact info as well
+            dataToSync.clientName = formData.clientName || '';
+            dataToSync.clientAddress = formData.clientAddress || '';
+            dataToSync.city = formData.clientCity || '';
+            dataToSync.zip = formData.clientPostalCode || '';
+            dataToSync.clientPhone = formData.clientPhone || '';
+            dataToSync.clientEmail = normalizedClientEmail;
+
             await contactRef.update(dataToSync);
-             console.log(`Successfully synced CSA changes back to Initial Contact ID: ${initialContactId}`);
+            console.log(`Successfully synced CSA changes back to Initial Contact ID: ${initialContactId}`);
         } else {
             console.warn(`Could not sync to Initial Contact: initialContactId not found on signup document ${docId}.`);
         }
