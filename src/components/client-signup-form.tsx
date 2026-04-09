@@ -146,6 +146,37 @@ const privatePayTerms = [
     { title: "19. INFORMATION AND DOCUMENTS RECEIVED:", text: "The Client acknowledges receipt of a copy of this Agreement, these Terms and Conditions and the following documents provided by FirstLight Home Care of Rancho Cucamonga and agrees to be bound by and comply with all of the same:" },
 ];
 
+const companionCareCheckboxes = [
+    { id: 'companionCare_mealPreparation', label: 'Meal preparation and clean up' },
+    { id: 'companionCare_cleanKitchen', label: 'Clean kitchen - appliances, sinks, mop floors' },
+    { id: 'companionCare_assistWithLaundry', label: 'Assist with laundry and ironing' },
+    { id: 'companionCare_dustFurniture', label: 'Dust furniture - living room, bedrooms, dining room' },
+    { id: 'companionCare_assistWithEating', label: 'Assist with eating and proper nutrition' },
+    { id: 'companionCare_provideAlzheimersRedirection', label: "Provide Alzheimer's redirection - for safety" },
+    { id: 'companionCare_assistWithHomeManagement', label: 'Assist with home management - mail, plants, calendar' },
+    { id: 'companionCare_preparationForBathing', label: 'Preparation for bathing and hair care' },
+    { id: 'companionCare_groceryShopping', label: 'Grocery shopping' },
+    { id: 'companionCare_cleanBathrooms', label: 'Clean bathrooms - sink, tub, toilet' },
+    { id: 'companionCare_changeBedLinens', label: 'Change bed linens and make bed' },
+    { id: 'companionCare_runErrands', label: 'Run errands - pick up prescription' },
+    { id: 'companionCare_escortAndTransportation', label: 'Escort and transportation' },
+    { id: 'companionCare_provideRemindersAndAssistWithToileting', label: 'Provide reminders and assist with toileting' },
+    { id: 'companionCare_provideRespiteCare', label: 'Provide respite care' },
+    { id: 'companionCare_stimulateMentalAwareness', label: 'Stimulate mental awareness - read' },
+    { id: 'companionCare_assistWithDressingAndGrooming', label: 'Assist with dressing and grooming' },
+    { id: 'companionCare_assistWithShavingAndOralCare', label: 'Assist with shaving and oral care' },
+  ] as const;
+
+const personalCareCheckboxes = [
+    { id: 'personalCare_provideAlzheimersCare', label: "Provide Alzheimer's care, cognitive impairment" },
+    { id: 'personalCare_provideMedicationReminders', label: 'Provide medication reminders' },
+    { id: 'personalCare_assistWithDressingGrooming', label: 'Assist with dressing, grooming' },
+    { id: 'personalCare_assistWithBathingHairCare', label: 'Assist with bathing, hair care' },
+    { id: 'personalCare_assistWithFeedingSpecialDiets', label: 'Assist with feeding, special diets' },
+    { id: 'personalCare_assistWithMobilityAmbulationTransfer', label: 'Assist with mobility, ambulation and transfer' },
+    { id: 'personalCare_assistWithIncontinenceCare', label: 'Assist with incontinence care' },
+] as const;
+
 export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSignupFormProps) {
   const [isSaving, startSavingTransition] = useTransition();
   const [isSending, startSendingTransition] = useTransition();
@@ -400,13 +431,11 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
   };
 
   const handleFinalize = async () => {
-    // Explicitly trigger validation against the stricter schema
-    const isValid = await form.trigger();
     const validationResult = finalizationSchema.safeParse(form.getValues());
     
     if (!validationResult.success) {
       const flattenedErrors = validationResult.error.flatten();
-      console.error("Finalization validation errors:", flattenedErrors);
+      console.error("Finalization validation errors:", JSON.stringify(flattenedErrors, null, 2));
 
       const fieldErrorEntries = Object.entries(flattenedErrors.fieldErrors);
       let errorDescription = "Please fill out all required fields before finalizing. Check all signatures, dates, initials and payment info.";
@@ -554,36 +583,7 @@ export default function ClientSignupForm({ signupId, mode = 'owner' }: ClientSig
   
   const receivedTransportationWaiver = form.watch('receivedTransportationWaiver');
 
-  const companionCareCheckboxes = [
-    { id: 'companionCare_mealPreparation', label: 'Meal preparation and clean up' },
-    { id: 'companionCare_cleanKitchen', label: 'Clean kitchen - appliances, sinks, mop floors' },
-    { id: 'companionCare_assistWithLaundry', label: 'Assist with laundry and ironing' },
-    { id: 'companionCare_dustFurniture', label: 'Dust furniture - living room, bedrooms, dining room' },
-    { id: 'companionCare_assistWithEating', label: 'Assist with eating and proper nutrition' },
-    { id: 'companionCare_provideAlzheimersRedirection', label: "Provide Alzheimer's redirection - for safety" },
-    { id: 'companionCare_assistWithHomeManagement', label: 'Assist with home management - mail, plants, calendar' },
-    { id: 'companionCare_preparationForBathing', label: 'Preparation for bathing and hair care' },
-    { id: 'companionCare_groceryShopping', label: 'Grocery shopping' },
-    { id: 'companionCare_cleanBathrooms', label: 'Clean bathrooms - sink, tub, toilet' },
-    { id: 'companionCare_changeBedLinens', label: 'Change bed linens and make bed' },
-    { id: 'companionCare_runErrands', label: 'Run errands - pick up prescription' },
-    { id: 'companionCare_escortAndTransportation', label: 'Escort and transportation' },
-    { id: 'companionCare_provideRemindersAndAssistWithToileting', label: 'Provide reminders and assist with toileting' },
-    { id: 'companionCare_provideRespiteCare', label: 'Provide respite care' },
-    { id: 'companionCare_stimulateMentalAwareness', label: 'Stimulate mental awareness - read' },
-    { id: 'companionCare_assistWithDressingAndGrooming', label: 'Assist with dressing and grooming' },
-    { id: 'companionCare_assistWithShavingAndOralCare', label: 'Assist with shaving and oral care' },
-  ] as const;
-
-  const personalCareCheckboxes = [
-    { id: 'personalCare_provideAlzheimersCare', label: "Provide Alzheimer's care, cognitive impairment" },
-    { id: 'personalCare_provideMedicationReminders', label: 'Provide medication reminders' },
-    { id: 'personalCare_assistWithDressingGrooming', label: 'Assist with dressing, grooming' },
-    { id: 'personalCare_assistWithBathingHairCare', label: 'Assist with bathing, hair care' },
-    { id: 'personalCare_assistWithFeedingSpecialDiets', label: 'Assist with feeding, special diets' },
-    { id: 'personalCare_assistWithMobilityAmbulationTransfer', label: 'Assist with mobility, ambulation and transfer' },
-    { id: 'personalCare_assistWithIncontinenceCare', label: 'Assist with incontinence care' },
-  ] as const;
+  
 
   if (isLoading) {
     return (
