@@ -4,7 +4,7 @@
 import { useTransition, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useDoc, useMemoFirebase, firestore } from "@/firebase";
+import { useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import { doc } from 'firebase/firestore';
 
 import { Button } from "@/components/ui/button";
@@ -114,8 +114,9 @@ const levels = [
 export function LevelOfCareForm({ initialContactId, assessmentId, onSave }: LevelOfCareFormProps) {
     const [isSaving, startSavingTransition] = useTransition();
     const { toast } = useToast();
+    const firestore = useFirestore();
 
-    const assessmentDocRef = useMemoFirebase(() => assessmentId ? doc(firestore, 'level_of_care_assessments', assessmentId) : null, [assessmentId]);
+    const assessmentDocRef = useMemoFirebase(() => assessmentId && firestore ? doc(firestore, 'level_of_care_assessments', assessmentId) : null, [assessmentId, firestore]);
     const { data: existingData, isLoading } = useDoc<LevelOfCareFormData>(assessmentDocRef);
 
     const form = useForm<LevelOfCareFormData>({
