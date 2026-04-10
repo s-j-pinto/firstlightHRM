@@ -1183,7 +1183,7 @@ export default function ManageInterviewsClient() {
                                             name="finalInterviewNotes"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Final Interview Notes</FormLabel>
+                                                    <FormLabel>In-Person Interview Notes</FormLabel>
                                                     <FormControl>
                                                         <Textarea placeholder="Enter notes from the in-person/video interview..." {...field} />
                                                     </FormControl>
