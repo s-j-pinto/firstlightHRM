@@ -74,10 +74,10 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
         eventTitle = `Orientation: ${caregiverProfile.fullName}`;
     } else if (pathway === 'combined') {
         durationHours = 3;
-        eventTitle = `Interview + Orientation: ${caregiverProfile.fullName}`;
+        eventTitle = `In-Person Interview + Orientation: ${caregiverProfile.fullName}`;
     } else { // separate final interview
         durationHours = 1;
-        eventTitle = `Final Interview: ${caregiverProfile.fullName}`;
+        eventTitle = `In-Person Interview: ${caregiverProfile.fullName}`;
     }
     
     const endTime = new Date(startTime.getTime() + durationHours * 60 * 60 * 1000);
