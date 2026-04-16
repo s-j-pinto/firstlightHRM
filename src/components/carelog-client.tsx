@@ -389,14 +389,23 @@ export default function CareLogClient() {
 
      const plainFormData = JSON.parse(JSON.stringify(formData));
      
-     const {logNotes, ...templateData} = plainFormData;
+     let dataForTemplate;
+
+     if (isAllstarTemplate) {
+        // For Allstar, the relevant data is nested under `templateData`
+        dataForTemplate = plainFormData.templateData;
+     } else {
+        // For other templates, we exclude `logNotes` and the nested `templateData` object
+        const { logNotes, templateData, ...rest } = plainFormData;
+        dataForTemplate = rest;
+     }
 
      const logData = {
         careLogGroupId: selectedGroup.id,
         caregiverId: user.email,
         caregiverName: user.displayName || user.email || 'Unknown Caregiver',
-        logNotes: logNotes || "",
-        templateData: template ? templateData : null,
+        logNotes: plainFormData.logNotes || "",
+        templateData: template ? dataForTemplate : null,
         logImages: scannedImage ? [scannedImage] : [],
         shiftDateTime: startIso ? Timestamp.fromDate(new Date(startIso)) : Timestamp.now(),
         shiftEndDateTime: endIso ? Timestamp.fromDate(new Date(endIso)) : null,
