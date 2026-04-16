@@ -1,4 +1,5 @@
 
+
 "use server";
 
 import { serverAuth, serverDb } from "@/firebase/server-init";
@@ -7,6 +8,19 @@ export async function loginCandidate(email: string, password: string) {
   const normalizedEmail = email.trim().toLowerCase();
 
   try {
+    // Check if this email belongs to an *active* caregiver first.
+    const activeCaregiversRef = serverDb.collection('caregivers_active');
+    const activeQuery = activeCaregiversRef
+      .where('Email', '==', normalizedEmail)
+      .where('status', '==', 'Active')
+      .limit(1);
+    
+    const activeSnapshot = await activeQuery.get();
+    if (!activeSnapshot.empty) {
+      // This is an active caregiver. They should not use the candidate portal.
+      return { error: "You are an active caregiver. Please use the 'Active Caregiver Login' page, not the candidate hiring portal." };
+    }
+
     const profilesRef = serverDb.collection('caregiver_profiles');
     // Reverted to a direct query now that the index is deployed.
     const query = profilesRef.where('email', '==', normalizedEmail).limit(1);
