@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo, useTransition, useRef, useEffect } from "react";
@@ -26,6 +27,7 @@ import { useDoc } from "@/firebase/firestore/use-doc";
 import { doc } from 'firebase/firestore';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import SignatureCanvas from 'react-signature-canvas';
+import { AllstarRouteSheetForm } from "./allstar-route-sheet-form";
 
 
 const initialTemplateData = {
@@ -72,6 +74,16 @@ const initialTemplateData = {
 
 const FormattedTemplateData = ({ data }: { data: any }) => {
     if (!data) return null;
+    
+    if (data.allstar_route_sheet) {
+        // We'll render the Allstar data differently in the log viewer
+        return (
+            <div className="pt-4 mt-4 border-t">
+                <h4 className="font-semibold text-md">Allstar Health Providers Route Sheet</h4>
+                <p className="text-sm text-muted-foreground">This log contains a completed route sheet. Please view the full details in the admin report section.</p>
+            </div>
+        );
+    }
 
     const renderSection = (title: string, items: any[], columns: { key: string, label: string }[]) => {
         if (!items || !Array.isArray(items)) return null;
@@ -211,6 +223,8 @@ export default function CareLogClient() {
 
   const templateRef = useMemoFirebase(() => selectedGroup?.careLogTemplateId && firestore ? doc(firestore, 'carelog_templates', selectedGroup.careLogTemplateId) : null, [selectedGroup, firestore]);
   const { data: template, isLoading: templateLoading } = useDoc<CareLogTemplate>(templateRef);
+  
+  const isAllstarTemplate = useMemo(() => template?.subsections.includes('allstar_health_providers') || false, [template]);
 
   const careLogGroups = useMemo(() => {
     if (!allCareLogGroups || !clientsMap) return [];
@@ -566,7 +580,15 @@ export default function CareLogClient() {
                 
                   {template && (
                      <Accordion type="multiple" className="w-full space-y-4">
-                        {template.subsections.includes('personal_care') && (
+                        {isAllstarTemplate && (
+                            <AccordionItem value="allstar">
+                                <AccordionTrigger>Allstar Health Providers Route Sheet</AccordionTrigger>
+                                <AccordionContent>
+                                    <AllstarRouteSheetForm mode="caregiver" />
+                                </AccordionContent>
+                            </AccordionItem>
+                        )}
+                        {!isAllstarTemplate && template.subsections.includes('personal_care') && (
                             <AccordionItem value="personal_care">
                                 <AccordionTrigger>Personal Care</AccordionTrigger>
                                 <AccordionContent>
@@ -604,7 +626,7 @@ export default function CareLogClient() {
                                 </AccordionContent>
                             </AccordionItem>
                         )}
-                         {template.subsections.includes('meals_hydration') && (
+                         {!isAllstarTemplate && template.subsections.includes('meals_hydration') && (
                             <AccordionItem value="meals_hydration">
                                 <AccordionTrigger>Meals & Hydration</AccordionTrigger>
                                 <AccordionContent>
@@ -647,7 +669,7 @@ export default function CareLogClient() {
                                 </AccordionContent>
                             </AccordionItem>
                         )}
-                        {template.subsections.includes('medication_support') && (
+                        {!isAllstarTemplate && template.subsections.includes('medication_support') && (
                              <AccordionItem value="medication_support">
                                 <AccordionTrigger>Medication Support</AccordionTrigger>
                                 <AccordionContent>
@@ -680,7 +702,7 @@ export default function CareLogClient() {
                                 </AccordionContent>
                             </AccordionItem>
                         )}
-                        {template.subsections.includes('companionship') && (
+                        {!isAllstarTemplate && template.subsections.includes('companionship') && (
                             <AccordionItem value="companionship">
                                 <AccordionTrigger>Companionship & Mental Engagement</AccordionTrigger>
                                 <AccordionContent>
@@ -699,7 +721,7 @@ export default function CareLogClient() {
                                 </AccordionContent>
                             </AccordionItem>
                         )}
-                         {template.subsections.includes('household_tasks') && (
+                         {!isAllstarTemplate && template.subsections.includes('household_tasks') && (
                              <AccordionItem value="household_tasks">
                                 <AccordionTrigger>Household Tasks</AccordionTrigger>
                                 <AccordionContent>
@@ -729,7 +751,7 @@ export default function CareLogClient() {
                                 </AccordionContent>
                             </AccordionItem>
                         )}
-                        {template.subsections.includes('client_condition') && (
+                        {!isAllstarTemplate && template.subsections.includes('client_condition') && (
                             <AccordionItem value="client_condition">
                                 <AccordionTrigger>Client Condition & Observations</AccordionTrigger>
                                 <AccordionContent>
@@ -747,7 +769,7 @@ export default function CareLogClient() {
                                 </AccordionContent>
                             </AccordionItem>
                         )}
-                        {template.subsections.includes('communication') && (
+                        {!isAllstarTemplate && template.subsections.includes('communication') && (
                             <AccordionItem value="communication">
                                 <AccordionTrigger>Communication & Follow-Up</AccordionTrigger>
                                 <AccordionContent className="space-y-4">
@@ -787,7 +809,7 @@ export default function CareLogClient() {
                                 </AccordionContent>
                             </AccordionItem>
                         )}
-                        {template.subsections.includes('signature') && (
+                        {!isAllstarTemplate && template.subsections.includes('signature') && (
                              <AccordionItem value="signature">
                                 <AccordionTrigger>Caregiver Signature</AccordionTrigger>
                                 <AccordionContent>
@@ -879,3 +901,5 @@ export default function CareLogClient() {
     </div>
   );
 }
+
+    

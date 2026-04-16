@@ -1,25 +1,55 @@
 
+
 "use client";
 
-import { useState, useMemo, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { collection, query, orderBy } from "firebase/firestore";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { CareLogTemplate, careLogTemplateSchema } from "@/lib/types";
-import { saveCareLogTemplate, deleteCareLogTemplate } from "@/lib/carelog-groups.actions";
 import { useToast } from "@/hooks/use-toast";
+import { z } from "zod";
 
+import {
+  Loader2,
+  PlusCircle,
+  Edit,
+  Trash2,
+  FileText
+} from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import { saveCareLogTemplate, deleteCareLogTemplate } from "@/lib/carelog-groups.actions";
+import type { CareLogTemplate } from "@/lib/types";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, PlusCircle, Trash2, Edit, FileText } from "lucide-react";
-
-type CareLogTemplateFormData = z.infer<typeof careLogTemplateSchema>;
 
 const subsections = [
   { id: 'personal_care', label: 'Personal Care' },
@@ -29,31 +59,48 @@ const subsections = [
   { id: 'household_tasks', label: 'Household Tasks' },
   { id: 'client_condition', label: 'Client Condition & Observations' },
   { id: 'communication', label: 'Communication & Follow-Up' },
-  { id: 'signature', label: 'Caregiver Signature' }
+  { id: 'signature', label: 'Caregiver Signature' },
+  { id: 'allstar_health_providers', label: 'Allstar Health Providers' },
 ];
 
+const templateSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(3, "Name is required."),
+  description: z.string().optional(),
+  subsections: z.array(z.string()).min(1, "At least one subsection must be selected."),
+});
+
+type TemplateFormData = z.infer<typeof templateSchema>;
+
 export function CareLogTemplateAdmin() {
+  const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<CareLogTemplate | null>(null);
-  const { toast } = useToast();
   const firestore = useFirestore();
 
-  const templatesRef = useMemoFirebase(() => firestore ? collection(firestore, 'carelog_templates') : null, [firestore]);
-  const { data: templates, isLoading: templatesLoading } = useCollection<CareLogTemplate>(templatesRef);
+  const templatesQuery = useMemoFirebase(() => 
+    firestore ? query(collection(firestore, "carelog_templates"), orderBy("name", "asc")) : null, 
+    [firestore]
+  );
+  const { data: templates, isLoading } = useCollection<CareLogTemplate>(templatesQuery);
 
-  const form = useForm<CareLogTemplateFormData>({
-    resolver: zodResolver(careLogTemplateSchema),
-    defaultValues: { name: "", description: "", subsections: [] },
+  const form = useForm<TemplateFormData>({
+    resolver: zodResolver(templateSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      subsections: [],
+    },
   });
 
   const handleOpenModal = (template: CareLogTemplate | null) => {
     setEditingTemplate(template);
     if (template) {
       form.reset({
-        name: template.name,
-        description: template.description || "",
-        subsections: template.subsections || [],
+          name: template.name,
+          description: template.description,
+          subsections: template.subsections || [],
       });
     } else {
       form.reset({ name: "", description: "", subsections: [] });
@@ -61,9 +108,9 @@ export function CareLogTemplateAdmin() {
     setIsModalOpen(true);
   };
 
-  const onSubmit = (data: CareLogTemplateFormData) => {
+  const onSubmit = (data: TemplateFormData) => {
     startTransition(async () => {
-      const payload = editingTemplate ? { ...data, id: editingTemplate.id } : data;
+      const payload = { ...data, id: editingTemplate?.id };
       const result = await saveCareLogTemplate(payload);
       if (result.error) {
         toast({ title: "Error", description: result.message, variant: "destructive" });
@@ -76,116 +123,165 @@ export function CareLogTemplateAdmin() {
 
   const handleDelete = (id: string) => {
     startTransition(async () => {
-      const result = await deleteCareLogTemplate(id);
-      if (result.error) {
-        toast({ title: "Error", description: result.message, variant: "destructive" });
-      } else {
-        toast({ title: "Success", description: result.message });
-      }
+        const result = await deleteCareLogTemplate(id);
+        if (result.error) {
+            toast({ title: 'Error', description: result.message, variant: 'destructive' });
+        } else {
+            toast({ title: 'Success', description: result.message });
+        }
     });
   };
 
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <div>
-            <CardTitle>CareLog Template Administration</CardTitle>
-            <CardDescription>Create and manage reusable templates for care logs.</CardDescription>
-          </div>
-          <Button onClick={() => handleOpenModal(null)}>
-            <PlusCircle className="mr-2" />
-            Create Template
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {templatesLoading ? (
-          <div className="flex justify-center items-center h-40">
-            <Loader2 className="h-8 w-8 animate-spin text-accent" />
-            <p className="ml-4 text-muted-foreground">Loading templates...</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {templates && templates.length > 0 ? (
-              templates.map(template => (
-                <Card key={template.id} className="flex justify-between items-center p-4">
-                  <div>
-                    <h3 className="font-semibold text-lg flex items-center gap-2"><FileText className="text-accent" />{template.name}</h3>
-                    <p className="text-sm text-muted-foreground">{template.description}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="icon" onClick={() => handleOpenModal(template)}><Edit className="h-4 w-4" /></Button>
-                    <Dialog>
-                        <DialogTrigger asChild><Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button></DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>Are you sure?</DialogTitle>
-                                <DialogDescription>This will permanently delete the &quot;{template.name}&quot; template. This action cannot be undone.</DialogDescription>
-                            </DialogHeader>
-                             <DialogFooter>
-                                <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
-                                <Button variant="destructive" onClick={() => handleDelete(template.id)} disabled={isPending}>
-                                    {isPending && <Loader2 className="animate-spin mr-2"/>}
-                                    Delete Template
-                                </Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
-                  </div>
-                </Card>
-              ))
-            ) : (
-              <div className="text-center py-10 border-dashed border-2 rounded-lg">
-                <h3 className="text-lg font-medium text-gray-900">No Templates Found</h3>
-                <p className="mt-1 text-sm text-muted-foreground">Click &quot;Create Template&quot; to get started.</p>
-              </div>
-            )}
-          </div>
-        )}
-      </CardContent>
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-accent" />
+      </div>
+    );
+  }
 
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[625px]">
+  return (
+    <div className="space-y-8">
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-start">
+            <CardTitle>CareLog Templates</CardTitle>
+            <Button onClick={() => handleOpenModal(null)}>
+              <PlusCircle className="mr-2" />
+              Create Template
+            </Button>
+          </div>
+          <CardDescription>
+            Create and manage reusable templates for caregiver daily logs.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Template Name</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {templates && templates.length > 0 ? (
+                templates.map((template) => (
+                  <TableRow key={template.id}>
+                    <TableCell>
+                      <div className="font-medium">{template.name}</div>
+                    </TableCell>
+                    <TableCell>{template.description}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex gap-2 justify-end">
+                        <Button variant="outline" size="icon" onClick={() => handleOpenModal(template)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Dialog key={`delete-dialog-${template.id}`}>
+                            <DialogTrigger asChild>
+                                <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Are you sure?</DialogTitle>
+                                    <DialogDescription>This will permanently delete the "{template.name}" template. This action cannot be undone.</DialogDescription>
+                                </DialogHeader>
+                                <DialogFooter>
+                                    <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
+                                    <Button variant="destructive" onClick={() => handleDelete(template.id)} disabled={isPending}>
+                                        {isPending && <Loader2 className="animate-spin mr-2"/>}
+                                        Delete Template
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={3} className="h-24 text-center">
+                    No templates found. Click "Create Template" to begin.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+      
+       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editingTemplate ? "Edit" : "Create"} CareLog Template</DialogTitle>
-            <DialogDescription>Build a new template by selecting the sections you want to include.</DialogDescription>
+            <DialogDescription>
+              Select the sections to include in this template.
+            </DialogDescription>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4">
               <FormField control={form.control} name="name" render={({ field }) => (
-                  <FormItem><FormLabel>Template Name</FormLabel><FormControl><Input placeholder="e.g., Standard Daily Log" {...field} /></FormControl><FormMessage /></FormItem>
+                  <FormItem><Label>Template Name</Label><FormControl><Input placeholder="e.g., Standard Daily Log" {...field} /></FormControl><FormMessage /></FormItem>
               )} />
               <FormField control={form.control} name="description" render={({ field }) => (
-                  <FormItem><FormLabel>Description (Optional)</FormLabel><FormControl><Textarea placeholder="A short description of when to use this template" {...field} /></FormControl><FormMessage /></FormItem>
+                  <FormItem><Label>Description</Label><FormControl><Textarea placeholder="A short description of when to use this template" {...field} /></FormControl><FormMessage /></FormItem>
               )} />
-              <FormField control={form.control} name="subsections" render={() => (
-                <FormItem>
-                    <FormLabel>Subsections</FormLabel>
-                    <div className="grid grid-cols-2 gap-4 border p-4 rounded-md">
-                        {subsections.map((item) => (
-                        <FormField key={item.id} control={form.control} name="subsections" render={({ field }) => (
-                            <FormItem key={item.id} className="flex flex-row items-center space-x-3 space-y-0">
+              
+               <FormField
+                control={form.control}
+                name="subsections"
+                render={() => (
+                  <FormItem>
+                    <div className="mb-4">
+                      <FormLabel className="text-base">Subsections</FormLabel>
+                      <p className="text-sm text-muted-foreground">
+                        Select all the sections you want to include in this log template.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      {subsections.map((item) => (
+                        <FormField
+                          key={item.id}
+                          control={form.control}
+                          name="subsections"
+                          render={({ field }) => {
+                            return (
+                              <FormItem
+                                key={item.id}
+                                className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4"
+                              >
                                 <FormControl>
-                                <Checkbox
+                                  <Checkbox
                                     checked={field.value?.includes(item.id)}
                                     onCheckedChange={(checked) => {
-                                    return checked
-                                        ? field.onChange([...field.value, item.id])
-                                        : field.onChange(field.value?.filter((value) => value !== item.id));
+                                      return checked
+                                        ? field.onChange([
+                                            ...(field.value || []),
+                                            item.id,
+                                          ])
+                                        : field.onChange(
+                                            field.value?.filter(
+                                              (value) => value !== item.id
+                                            )
+                                          );
                                     }}
-                                />
+                                  />
                                 </FormControl>
-                                <FormLabel className="font-normal">{item.label}</FormLabel>
-                            </FormItem>
-                            )}
+                                <FormLabel className="font-normal">
+                                  {item.label}
+                                </FormLabel>
+                              </FormItem>
+                            );
+                          }}
                         />
-                        ))}
+                      ))}
                     </div>
                     <FormMessage />
-                </FormItem>
-              )}
+                  </FormItem>
+                )}
               />
+
               <DialogFooter>
                 <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
                 <Button type="submit" disabled={isPending}>
@@ -197,6 +293,6 @@ export function CareLogTemplateAdmin() {
           </Form>
         </DialogContent>
       </Dialog>
-    </Card>
+    </div>
   );
 }

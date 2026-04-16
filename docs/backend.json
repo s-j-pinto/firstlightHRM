@@ -2,6 +2,38 @@
 
 {
   "entities": {
+    "AllstarVisit": {
+      "title": "AllstarVisit",
+      "type": "object",
+      "description": "A single visit entry for an Allstar Route Sheet.",
+      "properties": {
+        "serviceDate": { "type": "string", "format": "date" },
+        "timeIn": { "type": "string" },
+        "timeOut": { "type": "string" },
+        "patientName": { "type": "string" },
+        "patientSignature": { "type": "string", "contentEncoding": "base64" },
+        "typeOfVisit": { "type": "string", "enum": ["Follow-up", "SOC", "ROC", "Recert", "Discharge"] }
+      }
+    },
+    "AllstarRouteSheet": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AllstarRouteSheet",
+      "type": "object",
+      "description": "Data for the Allstar Health Providers route sheet.",
+      "properties": {
+        "visits": {
+          "type": "array",
+          "items": { "$ref": "#/entities/AllstarVisit" }
+        },
+        "employeeName": { "type": "string" },
+        "title": { "type": "string" },
+        "employeeSignature": { "type": "string", "contentEncoding": "base64" },
+        "dateSubmitted": { "type": "string", "format": "date" },
+        "checkedBy": { "type": "string" },
+        "checkedDate": { "type": "string", "format": "date" },
+        "remarks": { "type": "string" }
+      }
+    },
     "InitialContact": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "title": "InitialContact",
@@ -664,6 +696,6 @@
     }
   }
 }
-
-
       
+
+    

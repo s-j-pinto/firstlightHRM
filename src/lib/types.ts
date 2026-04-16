@@ -30,6 +30,29 @@ export const requiredDateString = z.string()
   .refine(isValidDate, {
     message: "Invalid date. Please use MM/DD/YYYY format.",
   });
+  
+export const allstarVisitSchema = z.object({
+  serviceDate: dateString,
+  timeIn: z.string().optional(),
+  timeOut: z.string().optional(),
+  patientName: z.string().optional(),
+  patientSignature: z.string().optional(),
+  typeOfVisit: z.string().optional(),
+});
+export type AllstarVisit = z.infer<typeof allstarVisitSchema>;
+
+export const allstarRouteSheetSchema = z.object({
+  visits: z.array(allstarVisitSchema).optional(),
+  employeeName: z.string().optional(),
+  title: z.string().optional(),
+  employeeSignature: z.string().optional(),
+  dateSubmitted: dateString,
+  checkedBy: z.string().optional(),
+  checkedDate: dateString,
+  remarks: z.string().optional(),
+});
+export type AllstarRouteSheetFormData = z.infer<typeof allstarRouteSheetSchema>;
+
 
 export const initialContactSchema = z.object({
   clientName: z.string().min(1, "Client's Name is required."),
