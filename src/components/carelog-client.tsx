@@ -570,7 +570,7 @@ export default function CareLogClient() {
                                     <Info className="h-4 w-4"/>
                                     <AlertTitle className="text-xs">How it works</AlertTitle>
                                     <AlertDescription className="text-xs">
-                                    If you don&apos;t scan a log, the AI will try to find a date and time from your typed notes upon submission.
+                                    If you don't scan a log, the AI will try to find a date and time from your typed notes upon submission.
                                     </AlertDescription>
                                     </Alert>
                                 </div>
@@ -585,7 +585,11 @@ export default function CareLogClient() {
                             <AccordionItem value="allstar">
                                 <AccordionTrigger>Allstar Health Providers Route Sheet</AccordionTrigger>
                                 <AccordionContent>
-                                    <AllstarRouteSheetForm mode="caregiver" clientName={selectedGroup.clientName} />
+                                    <AllstarRouteSheetForm 
+                                        mode="caregiver" 
+                                        clientName={selectedGroup.clientName} 
+                                        caregiverName={user?.displayName || user?.email || ''}
+                                    />
                                 </AccordionContent>
                             </AccordionItem>
                         )}
@@ -849,53 +853,55 @@ export default function CareLogClient() {
               </CardContent>
           </Card>
           
-          <Card>
-              <CardHeader>
-                  <CardTitle>Recent Logs for {selectedGroup.clientName}</CardTitle>
-                  <CardDescription>A running log of submitted care notes, sorted by the most recent shift.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {logsLoading ? (
-                   <div className="flex items-center justify-center h-40">
-                      <Loader2 className="h-8 w-8 animate-spin text-accent" />
-                   </div>
-                ) : careLogs && careLogs.length > 0 ? (
-                    <div className="space-y-6">
-                        {careLogs.map(log => (
-                          <Card key={log.id} className="bg-background/50">
-                            <CardHeader>
-                                <CardTitle className="text-lg flex items-center gap-2">
-                                  <FileText className="text-accent" />
-                                  Shift: {log.shiftDateTime ? format((log.shiftDateTime as any).toDate(), 'PPpp') : 'N/A'}
-                                </CardTitle>
-                                <CardDescription>
-                                  Posted by {log.caregiverName} on {log.createdAt ? format((log.createdAt as any).toDate(), 'PPp') : 'N/A'}
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                              {log.logNotes && <p className="whitespace-pre-wrap text-sm">{log.logNotes}</p>}
-                              
-                              {log.templateData && <FormattedTemplateData data={log.templateData} />}
+          {!isAllstarTemplate && selectedGroup && (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Recent Logs for {selectedGroup.clientName}</CardTitle>
+                    <CardDescription>A running log of submitted care notes, sorted by the most recent shift.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {logsLoading ? (
+                     <div className="flex items-center justify-center h-40">
+                        <Loader2 className="h-8 w-8 animate-spin text-accent" />
+                     </div>
+                  ) : careLogs && careLogs.length > 0 ? (
+                      <div className="space-y-6">
+                          {careLogs.map(log => (
+                            <Card key={log.id} className="bg-background/50">
+                              <CardHeader>
+                                  <CardTitle className="text-lg flex items-center gap-2">
+                                    <FileText className="text-accent" />
+                                    Shift: {log.shiftDateTime ? format((log.shiftDateTime as any).toDate(), 'PPpp') : 'N/A'}
+                                  </CardTitle>
+                                  <CardDescription>
+                                    Posted by {log.caregiverName} on {log.createdAt ? format((log.createdAt as any).toDate(), 'PPp') : 'N/A'}
+                                  </CardDescription>
+                              </CardHeader>
+                              <CardContent className="space-y-4">
+                                {log.logNotes && <p className="whitespace-pre-wrap text-sm">{log.logNotes}</p>}
+                                
+                                {log.templateData && <FormattedTemplateData data={log.templateData} />}
 
-                              {log.logImages && log.logImages.length > 0 && (
-                                <div className="flex gap-4 pt-2">
-                                  {log.logImages.map((img, index) => (
-                                      <Image key={index} src={img} alt={`Log image ${index+1}`} width={200} height={150} className="rounded-md border object-cover" />
-                                  ))}
-                                </div>
-                              )}
-                            </CardContent>
-                          </Card>
-                        ))}
+                                {log.logImages && log.logImages.length > 0 && (
+                                  <div className="flex gap-4 pt-2">
+                                    {log.logImages.map((img, index) => (
+                                        <Image key={index} src={img} alt={`Log image ${index+1}`} width={200} height={150} className="rounded-md border object-cover" />
+                                    ))}
+                                  </div>
+                                )}
+                              </CardContent>
+                            </Card>
+                          ))}
+                      </div>
+                  ) : (
+                    <div className="text-center py-10 border-dashed border-2 rounded-lg">
+                        <h3 className="text-lg font-medium text-gray-900">No Logs Found</h3>
+                        <p className="mt-1 text-sm text-muted-foreground">There are no care logs for this client yet.</p>
                     </div>
-                ) : (
-                  <div className="text-center py-10 border-dashed border-2 rounded-lg">
-                      <h3 className="text-lg font-medium text-gray-900">No Logs Found</h3>
-                      <p className="mt-1 text-sm text-muted-foreground">There are no care logs for this client yet.</p>
-                  </div>
-                )}
-              </CardContent>
-          </Card>
+                  )}
+                </CardContent>
+            </Card>
+          )}
         </form>
         </Form>
       )}

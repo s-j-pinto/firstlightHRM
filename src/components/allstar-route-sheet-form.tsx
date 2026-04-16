@@ -1,7 +1,7 @@
 
 'use client';
 
-import * as React from 'react';
+import * as React from "react";
 import { useFormContext, useFieldArray } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 interface AllstarRouteSheetFormProps {
   mode: 'caregiver' | 'admin';
   clientName?: string;
+  caregiverName?: string;
 }
 
 const SignaturePadModal = ({
@@ -117,13 +118,19 @@ const SignatureField = ({ fieldName, title, disabled }: { fieldName: `templateDa
 };
 
 
-export const AllstarRouteSheetForm = ({ mode, clientName }: AllstarRouteSheetFormProps) => {
-  const { control } = useFormContext();
+export const AllstarRouteSheetForm = ({ mode, clientName, caregiverName }: AllstarRouteSheetFormProps) => {
+  const { control, setValue } = useFormContext();
   const { fields, append, remove } = useFieldArray({
     control,
     name: "templateData.allstar_route_sheet.visits",
   });
   
+  React.useEffect(() => {
+    if (caregiverName) {
+        setValue('templateData.allstar_route_sheet.employeeName', caregiverName);
+    }
+  }, [caregiverName, setValue]);
+
   const isCaregiver = mode === 'caregiver';
   const isAdmin = mode === 'admin';
 
@@ -195,7 +202,7 @@ export const AllstarRouteSheetForm = ({ mode, clientName }: AllstarRouteSheetFor
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Type of Visit</FormLabel>
-                         <Select onValueChange={field.onChange} defaultValue={field.value}>
+                         <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select visit type" />
@@ -236,18 +243,28 @@ export const AllstarRouteSheetForm = ({ mode, clientName }: AllstarRouteSheetFor
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>Employee Name</FormLabel>
-                        <FormControl><Input {...field} disabled={!isCaregiver} /></FormControl>
+                        <FormControl><Input {...field} disabled /></FormControl>
                         <FormMessage />
                     </FormItem>
                     )}
                 />
-                 <FormField
+                <FormField
                     control={control}
                     name="templateData.allstar_route_sheet.title"
                     render={({ field }) => (
-                    <FormItem>
+                        <FormItem>
                         <FormLabel>Title</FormLabel>
-                        <FormControl><Input {...field} disabled={!isCaregiver} /></FormControl>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={!isCaregiver}>
+                            <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a title" />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                <SelectItem value="Caregiver">Caregiver</SelectItem>
+                                <SelectItem value="HCA">HCA</SelectItem>
+                            </SelectContent>
+                        </Select>
                         <FormMessage />
                     </FormItem>
                     )}

@@ -37,14 +37,14 @@ export const allstarVisitSchema = z.object({
   timeOut: z.string().optional(),
   patientName: z.string().optional(),
   patientSignature: z.string().optional(),
-  typeOfVisit: z.string().optional(),
+  typeOfVisit: z.enum(["Follow-up", "SOC", "ROC", "Recert", "Discharge"]).optional(),
 });
 export type AllstarVisit = z.infer<typeof allstarVisitSchema>;
 
 export const allstarRouteSheetSchema = z.object({
   visits: z.array(allstarVisitSchema).optional(),
   employeeName: z.string().optional(),
-  title: z.string().optional(),
+  title: z.enum(["Caregiver", "HCA"]).optional(),
   employeeSignature: z.string().optional(),
   dateSubmitted: dateString,
   checkedBy: z.string().optional(),
