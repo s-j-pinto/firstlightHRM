@@ -37,7 +37,7 @@ export async function saveCareLogGroup(payload: CareLogGroupPayload) {
       clientName,
       caregiverEmails,
       clientAccessEnabled: !!clientAccessEnabled,
-      status: 'ACTIVE',
+      status: 'Active',
       lastUpdatedAt: Timestamp.now(),
     };
 
@@ -75,7 +75,7 @@ export async function deleteCareLogGroup(groupId: string) {
   try {
     const groupRef = firestore.collection('carelog_groups').doc(groupId);
     await groupRef.update({
-        status: 'INACTIVE',
+        status: 'Inactive',
         lastUpdatedAt: Timestamp.now(),
     });
 
@@ -96,7 +96,7 @@ export async function reactivateCareLogGroup(groupId: string) {
   try {
     const groupRef = firestore.collection('carelog_groups').doc(groupId);
     await groupRef.update({
-        status: 'ACTIVE',
+        status: 'Active',
         lastUpdatedAt: Timestamp.now(),
     });
 
@@ -137,5 +137,3 @@ export async function deleteCareLogTemplate(id: string) {
         return { message: `Error deleting template: ${e.message}`, error: true };
     }
 }
-
-    
