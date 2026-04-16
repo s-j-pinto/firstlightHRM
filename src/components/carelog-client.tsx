@@ -360,7 +360,7 @@ export default function CareLogClient() {
                     finalShiftDateTime = result.shiftDateTime;
                 } catch (e) {}
             }
-        } else {
+        } else if (!isAllstarTemplate) {
             const parsedDate = parse(shiftDate, 'MM/dd/yyyy', new Date());
 
             if (!shiftDate || !startTime || !endTime || !isValid(parsedDate)) {
@@ -387,7 +387,6 @@ export default function CareLogClient() {
   const submitLog = (startIso: string | null, endIso: string | null, formData: any) => {
      if (!selectedGroup || !user || !user.email) return;
 
-     // Create a plain object from formData to remove any symbols or methods from react-hook-form
      const plainFormData = JSON.parse(JSON.stringify(formData));
      
      const {logNotes, ...templateData} = plainFormData;
@@ -491,90 +490,93 @@ export default function CareLogClient() {
               </CardHeader>
               <CardContent className="space-y-6">
                   
-                  {showCamera ? (
-                      <div className="space-y-4">
-                          <video ref={videoRef} className="w-full aspect-video rounded-md bg-black" autoPlay playsInline muted />
-                           <canvas ref={canvasRef} className="hidden" />
-                          {hasCameraPermission === false && (
-                              <Alert variant="destructive">
-                                  <AlertTitle>Camera Access Required</AlertTitle>
-                                  <AlertDescription>
-                                  Please allow camera access in your browser settings to use this feature.
-                                  </AlertDescription>
-                              </Alert>
-                          )}
-                          <div className="flex justify-center gap-4">
-                              <Button type="button" onClick={handleCapture} disabled={hasCameraPermission === false}><Camera className="mr-2" /> Capture Image</Button>
-                              <Button type="button" variant="outline" onClick={() => setShowCamera(false)}>Cancel</Button>
-                          </div>
-                      </div>
-                  ) : (
-                       <div className="space-y-4">
-                            {!scannedImage && (
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="shift-date">Shift Date</Label>
-                                        <Input
-                                            id="shift-date"
-                                            type="text"
-                                            value={shiftDate}
-                                            onChange={(e) => setShiftDate(e.target.value)}
-                                            placeholder="MM/DD/YYYY"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="start-time">Start Time</Label>
-                                        <Input id="start-time" type="time" value={startTime} onChange={e => setStartTime(e.target.value)} />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="end-time">End Time</Label>
-                                        <Input id="end-time" type="time" value={endTime} onChange={e => setEndTime(e.target.value)} />
-                                    </div>
+                  {!isAllstarTemplate && (
+                    <>
+                        {showCamera ? (
+                            <div className="space-y-4">
+                                <video ref={videoRef} className="w-full aspect-video rounded-md bg-black" autoPlay playsInline muted />
+                                <canvas ref={canvasRef} className="hidden" />
+                                {hasCameraPermission === false && (
+                                    <Alert variant="destructive">
+                                        <AlertTitle>Camera Access Required</AlertTitle>
+                                        <AlertDescription>
+                                        Please allow camera access in your browser settings to use this feature.
+                                        </AlertDescription>
+                                    </Alert>
+                                )}
+                                <div className="flex justify-center gap-4">
+                                    <Button type="button" onClick={handleCapture} disabled={hasCameraPermission === false}><Camera className="mr-2" /> Capture Image</Button>
+                                    <Button type="button" variant="outline" onClick={() => setShowCamera(false)}>Cancel</Button>
                                 </div>
-                            )}
-                          <Textarea 
-                              placeholder="Enter your shift notes here, or scan a document to have the AI fill this in."
-                              {...register('logNotes')}
-                              rows={8}
-                          />
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                    {!scannedImage && (
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="shift-date">Shift Date</Label>
+                                                <Input
+                                                    id="shift-date"
+                                                    type="text"
+                                                    value={shiftDate}
+                                                    onChange={(e) => setShiftDate(e.target.value)}
+                                                    placeholder="MM/DD/YYYY"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="start-time">Start Time</Label>
+                                                <Input id="start-time" type="time" value={startTime} onChange={e => setStartTime(e.target.value)} />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="end-time">End Time</Label>
+                                                <Input id="end-time" type="time" value={endTime} onChange={e => setEndTime(e.target.value)} />
+                                            </div>
+                                        </div>
+                                    )}
+                                <Textarea 
+                                    placeholder="Enter your shift notes here, or scan a document to have the AI fill this in."
+                                    {...register('logNotes')}
+                                    rows={8}
+                                />
 
-                          {isExtracting && (
-                              <div className="flex items-center text-sm text-muted-foreground"><Loader2 className="animate-spin mr-2"/> AI is reading the document...</div>
-                          )}
+                                {isExtracting && (
+                                    <div className="flex items-center text-sm text-muted-foreground"><Loader2 className="animate-spin mr-2"/> AI is reading the document...</div>
+                                )}
 
-                          {extractedShiftDateTime && (
-                            <Alert>
-                                <Clock className="h-4 w-4" />
-                                <AlertTitle>Extracted Shift Time</AlertTitle>
-                                <AlertDescription>
-                                    {format(new Date(extractedShiftDateTime), 'PPPPpp')}
-                                </AlertDescription>
-                            </Alert>
-                          )}
+                                {extractedShiftDateTime && (
+                                    <Alert>
+                                        <Clock className="h-4 w-4" />
+                                        <AlertTitle>Extracted Shift Time</AlertTitle>
+                                        <AlertDescription>
+                                            {format(new Date(extractedShiftDateTime), 'PPPPpp')}
+                                        </AlertDescription>
+                                    </Alert>
+                                )}
 
-                          {scannedImage && (
-                              <div className="relative w-full max-w-sm">
-                                  <Image src={scannedImage} alt="Scanned document" width={400} height={300} className="rounded-md border" />
-                                  <Button type="button" variant="destructive" size="icon" className="absolute top-2 right-2 h-8 w-8" onClick={() => { setScannedImage(null); reset({ ...getValues(), logNotes: '' }); setExtractedShiftDateTime(null);}}>
-                                      <Trash2 className="h-4 w-4" />
-                                  </Button>
-                              </div>
-                          )}
-                           
-                           <div className="flex flex-wrap gap-4 items-center">
-                              <Button type="button" onClick={handleScanClick} variant="outline" disabled={isExtracting}>
-                                  <Camera className="mr-2" /> Scan Written Log
-                              </Button>
-                               <Alert variant="default" className="flex-1 min-w-[280px]">
-                                <Info className="h-4 w-4"/>
-                                <AlertTitle className="text-xs">How it works</AlertTitle>
-                                <AlertDescription className="text-xs">
-                                  If you don&apos;t scan a log, the AI will try to find a date and time from your typed notes upon submission.
-                                </AlertDescription>
-                              </Alert>
-                           </div>
-
-                      </div>
+                                {scannedImage && (
+                                    <div className="relative w-full max-w-sm">
+                                        <Image src={scannedImage} alt="Scanned document" width={400} height={300} className="rounded-md border" />
+                                        <Button type="button" variant="destructive" size="icon" className="absolute top-2 right-2 h-8 w-8" onClick={() => { setScannedImage(null); reset({ ...getValues(), logNotes: '' }); setExtractedShiftDateTime(null);}}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                )}
+                                
+                                <div className="flex flex-wrap gap-4 items-center">
+                                    <Button type="button" onClick={handleScanClick} variant="outline" disabled={isExtracting}>
+                                        <Camera className="mr-2" /> Scan Written Log
+                                    </Button>
+                                    <Alert variant="default" className="flex-1 min-w-[280px]">
+                                    <Info className="h-4 w-4"/>
+                                    <AlertTitle className="text-xs">How it works</AlertTitle>
+                                    <AlertDescription className="text-xs">
+                                    If you don&apos;t scan a log, the AI will try to find a date and time from your typed notes upon submission.
+                                    </AlertDescription>
+                                    </Alert>
+                                </div>
+                            </div>
+                        )}
+                    </>
                   )}
                 
                   {template && (
@@ -583,7 +585,7 @@ export default function CareLogClient() {
                             <AccordionItem value="allstar">
                                 <AccordionTrigger>Allstar Health Providers Route Sheet</AccordionTrigger>
                                 <AccordionContent>
-                                    <AllstarRouteSheetForm mode="caregiver" />
+                                    <AllstarRouteSheetForm mode="caregiver" clientName={selectedGroup.clientName} />
                                 </AccordionContent>
                             </AccordionItem>
                         )}

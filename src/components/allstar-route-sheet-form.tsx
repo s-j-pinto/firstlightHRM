@@ -1,7 +1,8 @@
+
 'use client';
 
 import * as React from 'react';
-import { useFormContext, useFieldArray, Controller } from 'react-hook-form';
+import { useFormContext, useFieldArray } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,9 +12,11 @@ import { PlusCircle, Trash2, Edit2, RefreshCw } from 'lucide-react';
 import SignatureCanvas from 'react-signature-canvas';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import Image from 'next/image';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface AllstarRouteSheetFormProps {
   mode: 'caregiver' | 'admin';
+  clientName?: string;
 }
 
 const SignaturePadModal = ({
@@ -114,7 +117,7 @@ const SignatureField = ({ fieldName, title, disabled }: { fieldName: `templateDa
 };
 
 
-export const AllstarRouteSheetForm = ({ mode }: AllstarRouteSheetFormProps) => {
+export const AllstarRouteSheetForm = ({ mode, clientName }: AllstarRouteSheetFormProps) => {
   const { control } = useFormContext();
   const { fields, append, remove } = useFieldArray({
     control,
@@ -181,7 +184,7 @@ export const AllstarRouteSheetForm = ({ mode }: AllstarRouteSheetFormProps) => {
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>Patient Name</FormLabel>
-                        <FormControl><Input {...field} /></FormControl>
+                        <FormControl><Input {...field} disabled /></FormControl>
                         <FormMessage />
                     </FormItem>
                     )}
@@ -192,9 +195,20 @@ export const AllstarRouteSheetForm = ({ mode }: AllstarRouteSheetFormProps) => {
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Type of Visit</FormLabel>
-                         <FormControl>
-                            <Input {...field} />
-                         </FormControl>
+                         <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select visit type" />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                <SelectItem value="Follow-up">Follow-up</SelectItem>
+                                <SelectItem value="SOC">SOC</SelectItem>
+                                <SelectItem value="ROC">ROC</SelectItem>
+                                <SelectItem value="Recert">Recert</SelectItem>
+                                <SelectItem value="Discharge">Discharge</SelectItem>
+                            </SelectContent>
+                        </Select>
                         <FormMessage />
                     </FormItem>
                     )}
@@ -206,7 +220,7 @@ export const AllstarRouteSheetForm = ({ mode }: AllstarRouteSheetFormProps) => {
         <Button
           type="button"
           variant="outline"
-          onClick={() => append({ serviceDate: '', timeIn: '', timeOut: '', patientName: '', patientSignature: '', typeOfVisit: '' })}
+          onClick={() => append({ serviceDate: '', timeIn: '', timeOut: '', patientName: clientName || '', patientSignature: '', typeOfVisit: '' })}
         >
           <PlusCircle className="mr-2" /> Add Visit
         </Button>
