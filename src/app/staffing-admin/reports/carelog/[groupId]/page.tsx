@@ -3,11 +3,11 @@
 
 import { useParams } from 'next/navigation';
 import * as React from 'react';
-import { collection, query, where, doc } from 'firebase/firestore';
+import { collection, query, where, doc, orderBy } from 'firebase/firestore';
 import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { CareLog, CareLogGroup, CareLogTemplate } from '@/lib/types';
-import { format } from 'date-fns';
-import { Loader2, FileText, Calendar, Clock, User, Image as ImageIcon, ArrowLeft } from 'lucide-react';
+import { format, startOfWeek, endOfWeek, parse, isValid, subWeeks } from 'date-fns';
+import { Loader2, FileText, Calendar, Clock, User, Image as ImageIcon, ArrowLeft, Save, Printer, X } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -15,6 +15,28 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { HelpDialog } from '@/components/HelpDialog';
 import { AllstarReportViewer } from '@/components/allstar-report-viewer';
+import { useForm, FormProvider } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { AllstarRouteSheetForm } from '@/components/allstar-route-sheet-form';
+import { useToast } from '@/hooks/use-toast';
+import { saveAllstarAdminData } from '@/lib/carelog.actions';
+import { generateAllstarWeeklyReportPdf } from '@/lib/pdf.actions';
+
+const adminFormSchema = z.object({
+  visits: z.array(z.any()),
+  dateSubmitted: z.string().optional(),
+  checkedBy: z.string().optional(),
+  checkedDate: z.string().optional(),
+  remarks: z.string().optional(),
+  employeeName: z.string().optional(),
+  title: z.string().optional(),
+  employeeSignature: z.string().optional(),
+});
+
+type AdminFormData = z.infer<typeof adminFormSchema>;
 
 
 const FormattedTemplateData = ({ data }: { data: any }) => {

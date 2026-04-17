@@ -68,6 +68,11 @@ const initialTemplateData = {
     communication: { familyNotified: '', familyReason: '', officeUpdate: '', incidentReport: '', incidentDescription: '', suppliesNeeded: '' },
     signature: { caregiverSignature: '' },
     logNotes: "",
+    // Allstar Route Sheet default fields
+    visits: [],
+    employeeName: '',
+    title: '',
+    employeeSignature: ''
 };
 
 
@@ -393,10 +398,10 @@ export default function CareLogClient() {
 
      if (isAllstarTemplate) {
         // For Allstar, the relevant data is nested under `templateData`
-        dataForTemplate = plainFormData.templateData;
+        dataForTemplate = { allstar_route_sheet: { ...plainFormData } };
      } else {
         // For other templates, we exclude `logNotes` and the nested `templateData` object
-        const { logNotes, templateData, ...rest } = plainFormData;
+        const { logNotes, ...rest } = plainFormData;
         dataForTemplate = rest;
      }
 
