@@ -236,7 +236,7 @@ export const AllstarRouteSheetForm = ({ mode, clientName, caregiverName }: Allst
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Title</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || ''} disabled={!isAdmin}>
+                        <Select onValueChange={field.onChange} value={field.value || ''} disabled={isAdmin}>
                             <FormControl>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select a title" />
