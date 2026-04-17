@@ -16,7 +16,7 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
         const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/CareLogs%2FLogo%2FAll_star_logo.png?alt=media&token=44b7cda1-36eb-4b97-91ca-1fca1a053993";
         const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer());
         const logoImage = await pdfDoc.embedPng(logoImageBytes);
-        const logoDims = logoImage.scale(0.85 * 0.85); // Reduced size by 15%
+        const logoDims = logoImage.scale(0.85 * 0.85);
 
         let y = height - 40;
         const leftMargin = 40;
@@ -24,7 +24,7 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
         
         // --- Header ---
         const headerTopY = y + 10;
-        const headerHeight = logoDims.height + 20;
+        const headerHeight = logoDims.height + 30; // Increased height
         page.drawRectangle({
             x: leftMargin - 5,
             y: headerTopY - headerHeight,
@@ -43,9 +43,9 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
         });
 
         // Column 2: Address
-        const addressText = "Allstar Health Providers, Inc.\n10722 Arrow Route Suite 218\nRancho Cucamonga CA 91730\nTel. No. (909) 945-9899;\nFax No.\n(909) 945-9799";
+        const addressText = "Allstar Health Providers, Inc.\n10722 Arrow Route Suite 218\nRancho Cucamonga CA 91730\nTel. No. (909) 945-9899; Fax No. (909) 945-9799";
         drawText(page, addressText, {
-            x: leftMargin + logoDims.width + 15,
+            x: leftMargin + logoDims.width + (logoDims.width * 0.2), // Adjusted position
             y: y,
             font: font,
             size: 9,
@@ -55,13 +55,13 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
         // Column 3: Title
         const headerRightText = "ROUTE SHEET, PATIENT ACKNOWLEDGEMENT, AND\nSTAFF CERTIFICATION OF SERVICES RENDERED";
         drawText(page, headerRightText, {
-            x: 370, // Adjusted position
+            x: 390, // Adjusted position
             y: y - 10,
             font: boldFont,
-            size: 7, // Reduced font size
+            size: 7,
             lineHeight: 12
         });
-        y -= logoDims.height + 15;
+        y -= logoDims.height + 25;
         
         y -= 20; // One blank row
 
@@ -78,15 +78,11 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
 
         // --- Table ---
         const tableTop = y;
-        const colWidths = [90, 50, 50, 140, 100, 75];
-        const colStarts = [
-            leftMargin,
-            leftMargin + colWidths[0], 
-            leftMargin + colWidths[0] + colWidths[1], 
-            leftMargin + colWidths[0] + colWidths[1] + colWidths[2], 
-            leftMargin + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3], 
-            leftMargin + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4],
-        ];
+        const colWidths = [80, 45, 45, 120, 110, 100];
+        const colStarts = [leftMargin];
+        for(let i=0; i<colWidths.length; i++) {
+            colStarts.push(colStarts[i] + colWidths[i]);
+        }
 
         // Headers
         const tableHeaderY = y - 13;
@@ -94,6 +90,8 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
         drawText(page, "Time In", { x: colStarts[1] + 10, y: tableHeaderY, font: boldFont, size: 9 });
         drawText(page, "Time Out", { x: colStarts[2] + 5, y: tableHeaderY, font: boldFont, size: 9 });
         drawText(page, "Patient Name", { x: colStarts[3] + 30, y: tableHeaderY, font: boldFont, size: 9 });
+        drawText(page, "Patient/PCG Signature", { x: colStarts[4] + 5, y: tableHeaderY, font: boldFont, size: 9 });
+        drawText(page, "Type of Visit", { x: colStarts[5] + 15, y: tableHeaderY, font: boldFont, size: 9 });
         
         y -= 20;
 
@@ -108,6 +106,11 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
             drawText(page, visit.timeIn || '', { x: colStarts[1] + 5, y: rowY - 20, font, size: 9 });
             drawText(page, visit.timeOut || '', { x: colStarts[2] + 5, y: rowY - 20, font, size: 9 });
             drawText(page, visit.patientName || '', { x: colStarts[3] + 5, y: rowY - 20, font, size: 9 });
+            
+            if(visit.patientSignature) {
+                await drawSignature(page, visit.patientSignature, colStarts[4] + 5, rowY - 28, 100, 25, pdfDoc);
+            }
+            drawText(page, visit.typeOfVisit || '', { x: colStarts[5] + 5, y: rowY - 20, font, size: 9 });
         }
 
         const tableBottom = y - (10 * rowHeight);
@@ -131,29 +134,28 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
 
         const certBody1 = "I certify that, I have provided home health services to this patient on the date and time indicated above. The patient was not hospitalized or otherwise unavailable when the services was provided. The patient signature indicates that the service was provided is authentic. I understand that I must submit visit notes, route sheets and other required documentation within ";
         y = drawWrappedText(page, certBody1, font, 9, leftMargin, y, contentWidth, 11);
-        y -= 1; 
+        y -= 12;
         
         const certBody2 = "5 (FIVE) DAYS from the VISIT.";
-        const body1Width = font.widthOfTextAtSize("...documentation within ", 9);
-        const body2Width = boldFont.widthOfTextAtSize(certBody2, 9);
-        const body2X = leftMargin + body1Width;
+        const body2X = leftMargin;
         drawText(page, certBody2, { x: body2X, y, font: boldFont, size: 9 });
+        const body2Width = boldFont.widthOfTextAtSize(certBody2, 9);
         page.drawLine({ start: { x: body2X, y: y - 2 }, end: { x: body2X + body2Width, y: y - 2 }, thickness: 0.8 });
-
+        
         y -= 25;
 
         // Employee Name and Title with underlines
         const empNameLabel = 'Employee Name: ';
         const empNameValue = data.employeeName || '';
-        const empNameXStart = leftMargin + font.widthOfTextAtSize(empNameLabel, 9);
-        drawText(page, empNameLabel, { x: leftMargin, y, font, size: 9 });
+        const empNameXStart = leftMargin + boldFont.widthOfTextAtSize(empNameLabel, 9);
+        drawText(page, empNameLabel, { x: leftMargin, y, font: boldFont, size: 9 });
         drawText(page, empNameValue, { x: empNameXStart, y, font, size: 9 });
         page.drawLine({ start: { x: empNameXStart, y: y - 2 }, end: { x: leftMargin + 240, y: y - 2 }, thickness: 0.5 });
 
         const titleLabel = 'Title: ';
         const titleValue = data.title || '';
-        const titleXStart = leftMargin + 250 + font.widthOfTextAtSize(titleLabel, 9);
-        drawText(page, titleLabel, { x: leftMargin + 250, y, font, size: 9 });
+        const titleXStart = leftMargin + 250 + boldFont.widthOfTextAtSize(titleLabel, 9);
+        drawText(page, titleLabel, { x: leftMargin + 250, y, font: boldFont, size: 9 });
         drawText(page, titleValue, { x: titleXStart, y, font, size: 9 });
         page.drawLine({ start: { x: titleXStart, y: y - 2 }, end: { x: titleXStart + 80, y: y - 2 }, thickness: 0.5 });
         
@@ -161,7 +163,7 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
             await drawSignature(page, data.employeeSignature, leftMargin + 400, y - 5, 120, 20, pdfDoc);
         }
         page.drawLine({ start: { x: leftMargin + 400, y: y - 5}, end: {x: leftMargin + 520, y: y-5}, thickness: 0.5 });
-        drawText(page, "Signature:", { x: leftMargin + 350, y, font, size: 9 });
+        drawText(page, "Signature:", { x: leftMargin + 350, y, font: boldFont, size: 9 });
         y -= 25;
 
         drawText(page, "FOR OFFICIAL USE ONLY", { x: (width / 2) - 40, y, font: boldFont, size: 9 });
@@ -176,16 +178,12 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
         // Page Footer
         const footerText = `Allstar Health Providers, Inc. - Route Sheet Page 1 of 1`;
         drawText(page, footerText, { x: width - leftMargin - font.widthOfTextAtSize(footerText, 8), y: 30, font, size: 8 });
-
+        
         const pdfBytes = await pdfDoc.save();
         return { pdfData: Buffer.from(pdfBytes).toString('base64') };
 
     } catch (error: any) {
-        console.error("Error generating Allstar weekly report PDF:", error);
-        
         const undefinedFields: string[] = [];
-
-        // Check top-level properties expected by the PDF generator
         const topLevelKeys = ['weekOf', 'employeeName', 'employeeSignature', 'title', 'dateSubmitted', 'checkedBy', 'checkedDate', 'remarks'];
         topLevelKeys.forEach(key => {
             if (data[key] === undefined) {
@@ -193,7 +191,6 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
             }
         });
 
-        // Check nested properties within each visit
         if (!data.visits || !Array.isArray(data.visits)) {
             undefinedFields.push('visits (must be an array)');
         } else {
@@ -201,7 +198,7 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
             data.visits.forEach((visit: any, index: number) => {
                 if (visit === null || typeof visit !== 'object') {
                     undefinedFields.push(`visit at index ${index} (is null or not an object)`);
-                    return; // continue to next visit
+                    return;
                 }
                 visitKeys.forEach(key => {
                     if (visit[key] === undefined) {
