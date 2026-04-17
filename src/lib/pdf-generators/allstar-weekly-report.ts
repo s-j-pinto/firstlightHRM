@@ -15,7 +15,7 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
         const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/CareLogs%2FLogo%2FAll_star_logo.png?alt=media&token=101b4a06-9c40-4011-9abb-6773926727c1";
         const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer());
         const logoImage = await pdfDoc.embedPng(logoImageBytes);
-        const logoDims = logoImage.scale(1); // Increased logo size
+        const logoDims = logoImage.scale(1);
 
         let y = height - 40;
         const leftMargin = 40;
@@ -54,43 +54,46 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
         // Column 3: Title
         const headerRightText = "ROUTE SHEET, PATIENT ACKNOWLEDGEMENT, AND\nSTAFF CERTIFICATION OF SERVICES RENDERED";
         drawText(page, headerRightText, {
-            x: 280, // Moved to the left
+            x: width - leftMargin - 280,
             y: y - 10,
             font: boldFont,
             size: 10,
             lineHeight: 12
         });
-        y -= logoDims.height + 35; // Added blank row space
+        y -= logoDims.height + 15;
+        
+        y -= 20; // One blank row
 
         // --- Sub-Header ---
         const noteText = "NOTE: Due to confidentiality issues, use one route sheet for each patient. (No other patient name can be listed).";
         y = drawWrappedText(page, noteText, font, 9, leftMargin, y, contentWidth, 11);
-        y -= 10;
+        y -= 20; // One blank row
+        
         drawText(page, "PATIENT ACKNOWLEDGEMENT OF SERVICE RENDERED", { x: leftMargin, y, font: boldFont, size: 9 });
         y -= 12;
         const ackText = "By my signature below, I hereby acknowledge that the services herein stated were received by me from the staff herein named, on the date and time indicated below. My signature below is true and authentic.";
         y = drawWrappedText(page, ackText, font, 9, leftMargin, y, contentWidth, 11);
-        y -= 22; // Added blank row space
+        y -= 22;
 
         // --- Table ---
         const tableTop = y;
-        const colWidths = [80, 60, 60, 150, 100, 70];
+        const colWidths = [90, 50, 50, 140, 100, 75]; // Adjusted widths
         const colStarts = [
             leftMargin,
-            leftMargin + colWidths[0],
-            leftMargin + colWidths[0] + colWidths[1],
-            leftMargin + colWidths[0] + colWidths[1] + colWidths[2],
-            leftMargin + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3],
-            leftMargin + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4],
+            leftMargin + colWidths[0], // 130
+            leftMargin + colWidths[0] + colWidths[1], // 180
+            leftMargin + colWidths[0] + colWidths[1] + colWidths[2], // 230
+            leftMargin + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3], // 370
+            leftMargin + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4], // 470
         ];
 
         // Headers
         const tableHeaderY = y - 13;
-        drawText(page, "Service Date", { x: colStarts[0] + 5, y: tableHeaderY, font: boldFont, size: 9 });
-        drawText(page, "Time In", { x: colStarts[1] + 15, y: tableHeaderY, font: boldFont, size: 9 });
-        drawText(page, "Time Out", { x: colStarts[2] + 12, y: tableHeaderY, font: boldFont, size: 9 });
-        drawText(page, "Patient Name", { x: colStarts[3] + 40, y: tableHeaderY, font: boldFont, size: 9 });
-        drawText(page, "Patient/PCG Signature", { x: colStarts[4] + 10, y: tableHeaderY, font: boldFont, size: 9 });
+        drawText(page, "Service Date", { x: colStarts[0] + 10, y: tableHeaderY, font: boldFont, size: 9 });
+        drawText(page, "Time In", { x: colStarts[1] + 10, y: tableHeaderY, font: boldFont, size: 9 });
+        drawText(page, "Time Out", { x: colStarts[2] + 5, y: tableHeaderY, font: boldFont, size: 9 });
+        drawText(page, "Patient Name", { x: colStarts[3] + 30, y: tableHeaderY, font: boldFont, size: 9 });
+        drawText(page, "Patient/PCG Signature", { x: colStarts[4] + 5, y: tableHeaderY, font: boldFont, size: 9 });
         drawText(page, "Type of Visit", { x: colStarts[5] + 10, y: tableHeaderY, font: boldFont, size: 9 });
 
         y -= 20;
@@ -129,14 +132,15 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
         drawText(page, certTitle, { x: leftMargin, y, font: boldFont, size: 9 });
         const titleWidth = boldFont.widthOfTextAtSize(certTitle, 9);
         page.drawLine({ start: { x: leftMargin, y: y - 2 }, end: { x: leftMargin + titleWidth, y: y - 2 }, thickness: 0.8 });
-        y -= 12;
+        y -= 22; // Added more space after the title
 
-        const certBody1 = "I certify that, I have provided home health services to this patient on the date and time indicated above. The patient was not hospitalized or otherwise unavailable when the services was provided. The patient signature indicates that the service was provided is authentic. I understand that I must submit visit notes, route sheets and other required documentation within ";
+        const certBody1 = "I certify that, I have provided home health services to this patient on the date and time indicated above. The patient was not hospitalized or otherwise unavailable when the services was provided. The patient signature indicates that the service was provided is authentic. I understand that I must submit visit notes, route sheets and other required documentation within";
         const certBody2 = "5 (FIVE) DAYS from the VISIT.";
-
-        y = drawWrappedText(page, certBody1, font, 9, leftMargin, y, contentWidth, 11);
-        y -= 11; // new line
         
+        // Draw the first part of the text, which may wrap.
+        y = drawWrappedText(page, certBody1, font, 9, leftMargin, y, contentWidth, 11);
+        
+        // Draw the second, emphasized part on the next available line.
         drawText(page, certBody2, { x: leftMargin, y, font: boldFont, size: 9 });
         const body2Width = boldFont.widthOfTextAtSize(certBody2, 9);
         page.drawLine({ start: { x: leftMargin, y: y - 2 }, end: { x: leftMargin + body2Width, y: y - 2 }, thickness: 0.8 });
