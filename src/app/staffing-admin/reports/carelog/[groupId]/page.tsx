@@ -141,7 +141,9 @@ export default function StaffingCareLogReportPage() {
     });
   }, [logsData]);
   
-  const isAllstarTemplate = React.useMemo(() => templateData?.name === 'Allstar Health Providers', [templateData]);
+  const isAllstarTemplate = React.useMemo(() => {
+    return templateData?.subsections?.includes('allstar_health_providers') || false;
+  }, [templateData]);
 
   const isLoading = groupLoading || logsLoading || templateLoading;
 
