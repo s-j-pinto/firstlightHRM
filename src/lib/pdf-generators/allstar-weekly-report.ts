@@ -2,6 +2,7 @@
 'use server';
 
 import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont, PDFPage } from 'pdf-lib';
+import { format, isDate } from 'date-fns';
 import { drawText, drawSignature, drawWrappedText } from './utils';
 
 export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfData?: string; error?: string }> {
@@ -41,23 +42,23 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
             height: logoDims.height,
         });
 
-        // Column 2: Address (Moved 20% to left)
-        const addressText = "Allstar Health Providers, Inc.\n10722 Arrow Route Suite 218\nRancho Cucamonga CA 91730\nTel. No. (909) 945-9899;\nFax No. (909) 945-9799";
+        // Column 2: Address
+        const addressText = "Allstar Health Providers, Inc.\n10722 Arrow Route Suite 218\nRancho Cucamonga CA 91730\nTel. No. (909) 945-9899;\nFax No.\n(909) 945-9799";
         drawText(page, addressText, {
-            x: leftMargin + logoDims.width - 40, // Shifted left
+            x: leftMargin + logoDims.width + 20, // Positioned after the logo with a gap
             y: y,
             font: font,
             size: 9,
             lineHeight: 11
         });
 
-        // Column 3: Title (Font smaller, moved right)
+        // Column 3: Title
         const headerRightText = "ROUTE SHEET, PATIENT ACKNOWLEDGEMENT, AND\nSTAFF CERTIFICATION OF SERVICES RENDERED";
         drawText(page, headerRightText, {
-            x: width - leftMargin - 260, // Shifted right
+            x: width - leftMargin - 280, // Adjusted position
             y: y - 10,
             font: boldFont,
-            size: 9, // Reduced font size by 1 notch
+            size: 8, // Reduced font size
             lineHeight: 12
         });
         y -= logoDims.height + 15;
@@ -93,9 +94,7 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
         drawText(page, "Time In", { x: colStarts[1] + 10, y: tableHeaderY, font: boldFont, size: 9 });
         drawText(page, "Time Out", { x: colStarts[2] + 5, y: tableHeaderY, font: boldFont, size: 9 });
         drawText(page, "Patient Name", { x: colStarts[3] + 30, y: tableHeaderY, font: boldFont, size: 9 });
-        drawText(page, "Patient/PCG Signature", { x: colStarts[4] + 5, y: tableHeaderY, font: boldFont, size: 9 });
-        drawText(page, "Type of Visit", { x: colStarts[5] + 10, y: tableHeaderY, font: boldFont, size: 9 });
-
+        
         y -= 20;
 
         const rowHeight = 35;
@@ -109,10 +108,6 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
             drawText(page, visit?.timeIn || '', { x: colStarts[1] + 5, y: rowY - 20, font, size: 9 });
             drawText(page, visit?.timeOut || '', { x: colStarts[2] + 5, y: rowY - 20, font, size: 9 });
             drawText(page, visit?.patientName || '', { x: colStarts[3] + 5, y: rowY - 20, font, size: 9 });
-            if (visit?.patientSignature) {
-                await drawSignature(page, visit.patientSignature, colStarts[4] + 5, rowY - 30, 90, 25, pdfDoc);
-            }
-            drawText(page, visit?.typeOfVisit || '', { x: colStarts[5] + 5, y: rowY - 20, font, size: 9 });
         }
 
         const tableBottom = y - (10 * rowHeight);
@@ -190,6 +185,38 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
 
     } catch (error: any) {
         console.error("Error generating Allstar weekly report PDF:", error);
-        return { error: `An unexpected server error occurred during PDF generation. Error: ${error.message}` };
+        const undefinedFields: string[] = [];
+
+        // Check top-level properties
+        const topLevelKeys = ['weekOf', 'employeeName', 'employeeSignature', 'title', 'dateSubmitted', 'checkedBy', 'checkedDate', 'remarks'];
+        topLevelKeys.forEach(key => {
+            if (data[key] === undefined) {
+                undefinedFields.push(key);
+            }
+        });
+
+        // Check nested properties within each visit
+        if (data.visits && Array.isArray(data.visits)) {
+            const visitKeys = ['serviceDate', 'timeIn', 'timeOut', 'patientName'];
+            data.visits.forEach((visit: any, index: number) => {
+                if(visit === null || typeof visit !== 'object') {
+                    undefinedFields.push(`visit at index ${index} (is null or not an object)`);
+                    return; // continue to next visit
+                }
+                visitKeys.forEach(key => {
+                    if (visit[key] === undefined) {
+                        undefinedFields.push(`visits[${index}].${key}`);
+                    }
+                });
+            });
+        } else {
+            undefinedFields.push('visits (must be an array)');
+        }
+
+        const errorMessage = `PDF Generation Error: The following fields were missing or undefined: ${undefinedFields.join(", ")}.`;
+        console.error("[PDF Action] Validation Error:", errorMessage);
+        console.error("[PDF Action] Failing Payload:", JSON.stringify(data, null, 2));
+
+        return { error: errorMessage };
     }
 }
