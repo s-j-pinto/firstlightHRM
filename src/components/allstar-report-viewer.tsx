@@ -83,13 +83,23 @@ export function AllstarReportViewer({ groupId }: AllstarReportViewerProps) {
         }
         
         const allVisits = selectedWeekLogs.flatMap(log => log.templateData?.allstar_route_sheet?.visits || []);
+
+        // Sanitize visits to prevent uncontrolled to controlled input error
+        const sanitizedVisits = allVisits.map(visit => ({
+            serviceDate: visit.serviceDate || '',
+            timeIn: visit.timeIn || '',
+            timeOut: visit.timeOut || '',
+            patientName: visit.patientName || '',
+            patientSignature: visit.patientSignature || '',
+            typeOfVisit: visit.typeOfVisit || '',
+        }));
         
         // Find the log with the most recent employee signature details
         const mostRecentLog = selectedWeekLogs[0];
         const employeeDetails = mostRecentLog.templateData?.allstar_route_sheet;
         
         return {
-            visits: allVisits,
+            visits: sanitizedVisits,
             employeeName: employeeDetails?.employeeName || '',
             employeeSignature: employeeDetails?.employeeSignature || '',
             title: employeeDetails?.title || '',
@@ -248,5 +258,3 @@ export function AllstarReportViewer({ groupId }: AllstarReportViewerProps) {
         </FormProvider>
     );
 }
-
-    
