@@ -2,10 +2,10 @@
 "use client";
 
 import { useParams } from 'next/navigation';
-import { useMemo } from 'react';
+import * as React from 'react';
 import { collection, query, where, doc } from 'firebase/firestore';
 import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { CareLog, CareLogGroup } from '@/lib/types';
+import { CareLog, CareLogGroup, CareLogTemplate } from '@/lib/types';
 import { format } from 'date-fns';
 import { Loader2, FileText, Calendar, Clock, User, Image as ImageIcon } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,10 +13,16 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AllstarReportViewer } from '@/components/allstar-report-viewer';
 
 
 const FormattedTemplateData = ({ data }: { data: any }) => {
     if (!data) return null;
+
+    if (data.allstar_route_sheet) {
+        // This is handled by the AllstarReportViewer now
+        return null;
+    }
 
     const renderSection = (title: string, items: any[], columns: { key: string, label: string }[]) => {
         if (!items || !Array.isArray(items)) return null;
@@ -120,10 +126,13 @@ export default function StaffingCareLogReportPage() {
   const groupRef = useMemoFirebase(() => groupId && firestore ? doc(firestore, 'carelog_groups', groupId) : null, [groupId, firestore]);
   const { data: groupData, isLoading: groupLoading } = useDoc<CareLogGroup>(groupRef);
   
+  const templateRef = useMemoFirebase(() => groupData?.careLogTemplateId && firestore ? doc(firestore, 'carelog_templates', groupData.careLogTemplateId) : null, [groupData, firestore]);
+  const { data: templateData, isLoading: templateLoading } = useDoc<CareLogTemplate>(templateRef);
+  
   const logsQuery = useMemoFirebase(() => groupId && firestore ? query(collection(firestore, 'carelogs'), where('careLogGroupId', '==', groupId)) : null, [groupId, firestore]);
   const { data: logsData, isLoading: logsLoading } = useCollection<CareLog>(logsQuery);
 
-  const sortedLogs = useMemo(() => {
+  const sortedLogs = React.useMemo(() => {
     if (!logsData) return [];
     return logsData.sort((a, b) => {
       const dateA = (a.createdAt as any)?.toDate() || 0;
@@ -131,8 +140,10 @@ export default function StaffingCareLogReportPage() {
       return dateB - dateA;
     });
   }, [logsData]);
+  
+  const isAllstarTemplate = React.useMemo(() => templateData?.name === 'Allstar Health Providers', [templateData]);
 
-  const isLoading = groupLoading || logsLoading;
+  const isLoading = groupLoading || logsLoading || templateLoading;
 
   if (isLoading) {
     return (
@@ -158,6 +169,10 @@ export default function StaffingCareLogReportPage() {
         </Card>
       </div>
     );
+  }
+  
+  if (isAllstarTemplate) {
+    return <AllstarReportViewer groupId={groupId} />;
   }
 
   return (

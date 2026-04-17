@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -74,10 +75,11 @@ service cloud.firestore {
       allow create: if true;
       allow update, delete: if isSignedIn();
     }
-    match /carelogs/{carelogId} {
+    match /carelogs/{logId} {
       allow get, list: if true;
       allow create: if true;
-      allow update, delete: if isSignedIn();
+      allow update: if isAnyAdmin();
+      allow delete: if isAnyAdmin();
     }
     /**
      * @description Controls access to client_additional_care_requests. Open for all.
@@ -90,7 +92,7 @@ service cloud.firestore {
     match /client_additional_care_requests/{requestId} {
       allow get, list: if true;
       allow create: if isSignedIn();
-      allow update, delete: if false;
+      allow update, delete: if isAnyAdmin();
     }
     /**
      * @description Controls access to carelog_templates. Open for all.
@@ -102,8 +104,9 @@ service cloud.firestore {
      */
     match /carelog_templates/{templateId} {
       allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if false;
+      allow create: if isAnyAdmin();
+      allow update: if isAnyAdmin();
+      allow delete: if isAnyAdmin();
     }
     /**
      * @description Controls access to client_signups. Open for all.
@@ -116,7 +119,7 @@ service cloud.firestore {
     match /client_signups/{signupsId} {
       allow get, list: if true;
       allow create, update: if isSignedIn();
-      allow delete: if false;
+      allow delete: if isAnyAdmin();
     }
     /**
      * @description Controls access to initial_contacts. Open for all.
@@ -129,7 +132,7 @@ service cloud.firestore {
     match /initial_contacts/{initialContactId} {
       allow get, list: if true;
       allow create, update: if isSignedIn();
-      allow delete: if false;
+      allow delete: if isAnyAdmin();
     }
     /**
      * @description Controls access to video_checkin_requests. Open for all.
@@ -142,7 +145,7 @@ service cloud.firestore {
     match /video_checkin_requests/{videoCheckinRequestId} {
       allow get, list: if true;
       allow create, update: if isSignedIn();
-      allow delete: if false;
+      allow delete: if isAnyAdmin();
     }
     /**
      * @description Controls access to rewards. Open for all.
@@ -154,8 +157,8 @@ service cloud.firestore {
      */
     match /rewards/{rewardsId} {
       allow get, list: if true;
-      allow create, update: if isSignedIn();
-      allow delete: if false;
+      allow create, update: if isAnyAdmin();
+      allow delete: if isAnyAdmin();
     }
     /**
      * @description Controls access to referrals. Open for all.
@@ -167,8 +170,8 @@ service cloud.firestore {
      */
     match /referrals/{referralsId} {
       allow get, list: if true;
-      allow create, update: if isSignedIn();
-      allow delete: if false;
+      allow create, update: if isAnyAdmin();
+      allow delete: if isAnyAdmin();
     }
     /**
      * @description Controls access to referrals. Open for all.
@@ -180,8 +183,8 @@ service cloud.firestore {
      */
     match /referral_profiles/{profileId} {
       allow get, list: if true;
-      allow create, update: if isSignedIn();
-      allow delete: if false;
+      allow create, update: if isAnyAdmin();
+      allow delete: if isAnyAdmin();
     }
     /**
      * @description Controls access to campaign templates. Open for all.
@@ -193,8 +196,8 @@ service cloud.firestore {
      */
     match /campaign_templates/{campaignTemplatesId} {
       allow get, list: if true;
-      allow create, update: if isSignedIn();
-      allow delete: if false;
+      allow create, update: if isAnyAdmin();
+      allow delete: if isAnyAdmin();
     }
     /**
      * @description Controls access to level_of_care_assessments. Open for all.
@@ -207,7 +210,7 @@ service cloud.firestore {
     match /level_of_care_assessments/{assessmentsId} {
       allow get, list: if true;
       allow create, update: if isSignedIn();
-      allow delete: if false;
+      allow delete: if isAnyAdmin();
     }
     /**
      * @description Controls access to sms_history. Open for all.
@@ -220,7 +223,7 @@ service cloud.firestore {
     match /initial_contacts/{initialContactId}/sms_history/{smsHistoryId} {
       allow get, list: if true;
       allow create, update: if isSignedIn();
-      allow delete: if false;
+      allow delete: if isAnyAdmin();
     }
     /**
      * @description Controls access to mail. Open for all.
@@ -233,7 +236,7 @@ service cloud.firestore {
     match /mail/{mailId} {
       allow get, list: if true;
       allow create, update: if isSignedIn();
-      allow delete: if false;
+      allow delete: if isAnyAdmin();
     }
     /**
      * @description Controls access to caregiver_availability. Open for all.
@@ -246,9 +249,7 @@ service cloud.firestore {
     match /caregiver_availability/{Id} {
       allow get, list: if true;
       allow create, update: if isSignedIn();
-      allow delete: if false;
+      allow delete: if isAnyAdmin();
     }
   }
 }
-
-      

@@ -25,6 +25,7 @@ export { generateCaregiverResponsibilitiesPdf } from './pdf-generators/caregiver
 export { generateLightHousekeepingPdf } from './pdf-generators/light-housekeeping';
 export { generateCaregiverTelephonyInstructionsPdf } from './pdf-generators/caregiver-telephony-instructions';
 export { generateEmergencyProcedurePdf } from './pdf-generators/emergency-procedure';
+export { generateAllstarWeeklyReportPdf } from './pdf-generators/allstar-weekly-report';
     
 
     

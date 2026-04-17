@@ -48,7 +48,7 @@ const SignaturePadModal = ({
     
     const handleDone = () => {
         if (sigPadRef.current && !sigPadRef.current.isEmpty()) {
-            onSave(sigPadRef.current.toDataURL());
+            onSave(sigPadRef.current.toDataURL('image/png'));
         } else {
              onSave(""); 
         }
@@ -65,7 +65,7 @@ const SignaturePadModal = ({
                     <SignatureCanvas
                         ref={sigPadRef}
                         penColor='black'
-                        canvasProps={{ className: 'w-full h-full bg-muted/50 rounded-md' }}
+                        canvasProps={{ className: 'w-full h-full bg-white rounded-md' }}
                     />
                 </div>
                 <div className="flex justify-between p-4 border-t">
@@ -77,7 +77,7 @@ const SignaturePadModal = ({
     );
 };
 
-const SignatureField = ({ fieldName, title, disabled }: { fieldName: `templateData.allstar_route_sheet.visits.${number}.patientSignature` | 'templateData.allstar_route_sheet.employeeSignature'; title: string; disabled: boolean; }) => {
+const SignatureField = ({ fieldName, title, disabled }: { fieldName: `visits.${number}.patientSignature` | 'employeeSignature'; title: string; disabled: boolean; }) => {
     const { watch, setValue } = useFormContext();
     const signatureData = watch(fieldName);
     const [isModalOpen, setIsModalOpen] = React.useState(false);
@@ -119,19 +119,18 @@ const SignatureField = ({ fieldName, title, disabled }: { fieldName: `templateDa
 
 
 export const AllstarRouteSheetForm = ({ mode, clientName, caregiverName }: AllstarRouteSheetFormProps) => {
-  const { control, setValue } = useFormContext();
+  const { control, setValue, getValues } = useFormContext();
   const { fields, append, remove } = useFieldArray({
     control,
-    name: "templateData.allstar_route_sheet.visits",
+    name: "visits",
   });
   
   React.useEffect(() => {
     if (caregiverName) {
-        setValue('templateData.allstar_route_sheet.employeeName', caregiverName);
+        setValue('employeeName', caregiverName);
     }
   }, [caregiverName, setValue]);
 
-  const isCaregiver = mode === 'caregiver';
   const isAdmin = mode === 'admin';
 
   return (
@@ -152,18 +151,18 @@ export const AllstarRouteSheetForm = ({ mode, clientName, caregiverName }: Allst
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormField
                 control={control}
-                name={`templateData.allstar_route_sheet.visits.${index}.serviceDate`}
-                render={({ field }) => (
+                name={`visits.${index}.serviceDate`}
+                render={() => (
                   <FormItem>
                     <FormLabel>Service Date</FormLabel>
-                    <FormControl><DateInput name={field.name} /></FormControl>
+                    <FormControl><DateInput name={`visits.${index}.serviceDate`} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               <FormField
                 control={control}
-                name={`templateData.allstar_route_sheet.visits.${index}.timeIn`}
+                name={`visits.${index}.timeIn`}
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Time In</FormLabel>
@@ -174,7 +173,7 @@ export const AllstarRouteSheetForm = ({ mode, clientName, caregiverName }: Allst
               />
               <FormField
                 control={control}
-                name={`templateData.allstar_route_sheet.visits.${index}.timeOut`}
+                name={`visits.${index}.timeOut`}
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Time Out</FormLabel>
@@ -187,18 +186,18 @@ export const AllstarRouteSheetForm = ({ mode, clientName, caregiverName }: Allst
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                 <FormField
                     control={control}
-                    name={`templateData.allstar_route_sheet.visits.${index}.patientName`}
+                    name={`visits.${index}.patientName`}
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>Patient Name</FormLabel>
-                        <FormControl><Input {...field} disabled /></FormControl>
+                        <FormControl><Input {...field} /></FormControl>
                         <FormMessage />
                     </FormItem>
                     )}
                 />
                  <FormField
                     control={control}
-                    name={`templateData.allstar_route_sheet.visits.${index}.typeOfVisit`}
+                    name={`visits.${index}.typeOfVisit`}
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Type of Visit</FormLabel>
@@ -220,7 +219,7 @@ export const AllstarRouteSheetForm = ({ mode, clientName, caregiverName }: Allst
                     </FormItem>
                     )}
                 />
-                <SignatureField fieldName={`templateData.allstar_route_sheet.visits.${index}.patientSignature`} title="Patient/PCG Signature" disabled={!isCaregiver} />
+                <SignatureField fieldName={`visits.${index}.patientSignature`} title="Patient/PCG Signature" disabled={!isAdmin} />
             </div>
           </div>
         ))}
@@ -239,22 +238,22 @@ export const AllstarRouteSheetForm = ({ mode, clientName, caregiverName }: Allst
             <div className="space-y-4">
                  <FormField
                     control={control}
-                    name="templateData.allstar_route_sheet.employeeName"
+                    name="employeeName"
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>Employee Name</FormLabel>
-                        <FormControl><Input {...field} disabled /></FormControl>
+                        <FormControl><Input {...field} disabled={!isAdmin} /></FormControl>
                         <FormMessage />
                     </FormItem>
                     )}
                 />
                 <FormField
                     control={control}
-                    name="templateData.allstar_route_sheet.title"
+                    name="title"
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Title</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value} disabled={!isCaregiver}>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={!isAdmin}>
                             <FormControl>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select a title" />
@@ -270,7 +269,7 @@ export const AllstarRouteSheetForm = ({ mode, clientName, caregiverName }: Allst
                     )}
                 />
             </div>
-            <SignatureField fieldName="templateData.allstar_route_sheet.employeeSignature" title="Employee Signature" disabled={!isCaregiver} />
+            <SignatureField fieldName="employeeSignature" title="Employee Signature" disabled={!isAdmin} />
         </div>
       </div>
       
@@ -280,18 +279,18 @@ export const AllstarRouteSheetForm = ({ mode, clientName, caregiverName }: Allst
              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <FormField
                     control={control}
-                    name="templateData.allstar_route_sheet.dateSubmitted"
-                    render={({ field }) => (
+                    name="dateSubmitted"
+                    render={() => (
                     <FormItem>
                         <FormLabel>Date Submitted</FormLabel>
-                        <FormControl><DateInput name={field.name} /></FormControl>
+                        <FormControl><DateInput name="dateSubmitted" /></FormControl>
                         <FormMessage />
                     </FormItem>
                     )}
                 />
                  <FormField
                     control={control}
-                    name="templateData.allstar_route_sheet.checkedBy"
+                    name="checkedBy"
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>Checked By</FormLabel>
@@ -302,11 +301,11 @@ export const AllstarRouteSheetForm = ({ mode, clientName, caregiverName }: Allst
                 />
                  <FormField
                     control={control}
-                    name="templateData.allstar_route_sheet.checkedDate"
-                    render={({ field }) => (
+                    name="checkedDate"
+                    render={() => (
                     <FormItem>
                         <FormLabel>Checked Date</FormLabel>
-                        <FormControl><DateInput name={field.name} /></FormControl>
+                        <FormControl><DateInput name="checkedDate" /></FormControl>
                         <FormMessage />
                     </FormItem>
                     )}
@@ -314,7 +313,7 @@ export const AllstarRouteSheetForm = ({ mode, clientName, caregiverName }: Allst
             </div>
             <FormField
                 control={control}
-                name="templateData.allstar_route_sheet.remarks"
+                name="remarks"
                 render={({ field }) => (
                 <FormItem>
                     <FormLabel>Remarks</FormLabel>

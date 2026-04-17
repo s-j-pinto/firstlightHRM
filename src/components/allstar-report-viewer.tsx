@@ -8,15 +8,14 @@ import { z } from 'zod';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
 import type { CareLog, AllstarRouteSheetFormData } from '@/lib/types';
-import { startOfWeek, endOfWeek, format, parse, isValid } from 'date-fns';
+import { startOfWeek, endOfWeek, format, subWeeks, parse, isValid } from 'date-fns';
 
 import { AllstarRouteSheetForm } from './allstar-route-sheet-form';
 import { Button } from './ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from './ui/card';
 import { Loader2, Save, Printer, Calendar as CalendarIcon, X } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { Calendar } from "./ui/calendar";
-import { cn } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Label } from './ui/label';
 import { useToast } from "@/hooks/use-toast";
 import { saveAllstarAdminData } from "@/lib/carelog.actions";
 import { generateAllstarWeeklyReportPdf } from '@/lib/pdf.actions';
@@ -26,6 +25,7 @@ interface AllstarReportViewerProps {
 }
 
 const adminFormSchema = z.object({
+  visits: z.array(z.any()), // Keep visits flexible as they are handled by field array
   dateSubmitted: z.string().optional(),
   checkedBy: z.string().optional(),
   checkedDate: z.string().optional(),
@@ -37,9 +37,22 @@ type AdminFormData = z.infer<typeof adminFormSchema>;
 export function AllstarReportViewer({ groupId }: AllstarReportViewerProps) {
     const { toast } = useToast();
     const firestore = useFirestore();
-    const [selectedDate, setSelectedDate] = React.useState<Date>(new Date());
     const [isGeneratingPdf, startPdfGeneration] = React.useTransition();
     const [isSavingAdmin, startSavingAdminTransition] = React.useTransition();
+
+    const weeks = React.useMemo(() => {
+        return Array.from({ length: 12 }).map((_, i) => {
+            const date = subWeeks(new Date(), i);
+            const start = startOfWeek(date, { weekStartsOn: 1 });
+            const end = endOfWeek(date, { weekStartsOn: 1 });
+            return {
+                label: `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`,
+                value: format(start, 'yyyy-MM-dd')
+            };
+        });
+    }, []);
+
+    const [selectedWeek, setSelectedWeek] = React.useState(weeks[0].value);
 
     const logsQuery = useMemoFirebase(
         () => firestore ? query(collection(firestore, 'carelogs'), where('careLogGroupId', '==', groupId), orderBy('shiftDateTime', 'desc')) : null,
@@ -47,50 +60,67 @@ export function AllstarReportViewer({ groupId }: AllstarReportViewerProps) {
     );
     const { data: logs, isLoading: logsLoading } = useCollection<CareLog>(logsQuery);
 
-    const form = useForm<AllstarRouteSheetFormData & AdminFormData>({
+    const form = useForm<AdminFormData>({
         resolver: zodResolver(adminFormSchema),
     });
     
+    const { watch } = form;
+    const formValues = watch();
+
     const selectedWeekLogs = React.useMemo(() => {
         if (!logs) return [];
-        const start = startOfWeek(selectedDate, { weekStartsOn: 1 }); // Monday
-        const end = endOfWeek(selectedDate, { weekStartsOn: 1 }); // Sunday
+        const start = parse(selectedWeek, 'yyyy-MM-dd', new Date());
+        const end = endOfWeek(start, { weekStartsOn: 1 });
         return logs.filter(log => {
             const logDate = (log.shiftDateTime as any)?.toDate();
             return logDate && logDate >= start && logDate <= end;
         });
-    }, [selectedDate, logs]);
+    }, [selectedWeek, logs]);
 
-    const aggregatedVisits = React.useMemo(() => {
-        if (!selectedWeekLogs) return [];
-        return selectedWeekLogs.flatMap(log => log.templateData?.allstar_route_sheet?.visits || []);
+    const aggregatedData = React.useMemo(() => {
+        if (!selectedWeekLogs || selectedWeekLogs.length === 0) {
+            return { visits: [], employeeName: '', employeeSignature: '', title: '' };
+        }
+        
+        const allVisits = selectedWeekLogs.flatMap(log => log.templateData?.allstar_route_sheet?.visits || []);
+        
+        const mostRecentLog = selectedWeekLogs[0];
+        const employeeDetails = mostRecentLog.templateData?.allstar_route_sheet;
+        
+        return {
+            visits: allVisits,
+            employeeName: employeeDetails?.employeeName || '',
+            employeeSignature: employeeDetails?.employeeSignature || '',
+            title: employeeDetails?.title || '',
+        };
     }, [selectedWeekLogs]);
 
     const existingAdminData = React.useMemo(() => {
         if (!selectedWeekLogs || selectedWeekLogs.length === 0) {
             return { dateSubmitted: '', checkedBy: '', checkedDate: '', remarks: '' };
         }
-        const mostRecentLog = selectedWeekLogs[0]; // Already sorted by desc date
+        const mostRecentLog = selectedWeekLogs[0];
         const data = mostRecentLog.templateData?.allstar_route_sheet;
         return {
-            dateSubmitted: data?.dateSubmitted ? format((data.dateSubmitted as any).toDate(), 'MM/dd/yyyy') : '',
+            dateSubmitted: data?.dateSubmitted && (data.dateSubmitted as any).toDate ? format((data.dateSubmitted as any).toDate(), 'MM/dd/yyyy') : '',
             checkedBy: data?.checkedBy || '',
-            checkedDate: data?.checkedDate ? format((data.checkedDate as any).toDate(), 'MM/dd/yyyy') : '',
+            checkedDate: data?.checkedDate && (data.checkedDate as any).toDate ? format((data.checkedDate as any).toDate(), 'MM/dd/yyyy') : '',
             remarks: data?.remarks || '',
         };
     }, [selectedWeekLogs]);
     
     React.useEffect(() => {
         form.reset({
+            visits: aggregatedData.visits,
             dateSubmitted: existingAdminData.dateSubmitted || format(new Date(), "MM/dd/yyyy"),
             checkedBy: existingAdminData.checkedBy || "Lolita Pinto",
             checkedDate: existingAdminData.checkedDate || format(new Date(), "MM/dd/yyyy"),
             remarks: existingAdminData.remarks || "",
         });
-    }, [existingAdminData, form]);
+    }, [aggregatedData, existingAdminData, form]);
 
     const handleGeneratePdf = async () => {
-        if (!selectedWeekLogs || aggregatedVisits.length === 0) {
+        if (!selectedWeekLogs || aggregatedData.visits.length === 0) {
             toast({ title: "No Data", description: "No visits found for the selected week to generate a report.", variant: 'destructive' });
             return;
         }
@@ -102,8 +132,8 @@ export function AllstarReportViewer({ groupId }: AllstarReportViewerProps) {
         startPdfGeneration(async () => {
             try {
                 const result = await generateAllstarWeeklyReportPdf({
-                    visits: aggregatedVisits,
-                    weekOf: format(startOfWeek(selectedDate, { weekStartsOn: 1 }), 'MM/dd/yyyy'),
+                    visits: adminData.visits, // Use current form data
+                    weekOf: format(parse(selectedWeek, 'yyyy-MM-dd', new Date()), 'MM/dd/yyyy'),
                     employeeName: employeeDetails.employeeName,
                     employeeSignature: employeeDetails.employeeSignature,
                     title: employeeDetails.title,
@@ -137,38 +167,32 @@ export function AllstarReportViewer({ groupId }: AllstarReportViewerProps) {
           toast({ title: "No Data", description: "No logs found for the selected week to save admin data against.", variant: 'destructive' });
           return;
         }
-        // We save the admin data to the most recent log of that week.
         const mostRecentLogId = selectedWeekLogs[0].id;
     
         startSavingAdminTransition(async () => {
           const result = await saveAllstarAdminData({
             logId: mostRecentLogId,
-            adminData: {
-              dateSubmitted: data.dateSubmitted,
-              checkedBy: data.checkedBy,
-              checkedDate: data.checkedDate,
-              remarks: data.remarks,
-            },
+            adminData: data,
           });
     
           if (result.error) {
             toast({ title: 'Save Failed', description: result.error, variant: 'destructive' });
           } else {
-            toast({ title: 'Admin Fields Saved', description: 'Your notes have been saved successfully.' });
+            toast({ title: 'Admin Fields Saved', description: 'Your changes have been saved successfully.' });
           }
         });
     });
-
+    
     const onCancel = () => {
-        form.reset({
+         form.reset({
+            visits: aggregatedData.visits,
             dateSubmitted: existingAdminData.dateSubmitted || format(new Date(), "MM/dd/yyyy"),
             checkedBy: existingAdminData.checkedBy || "Lolita Pinto",
             checkedDate: existingAdminData.checkedDate || format(new Date(), "MM/dd/yyyy"),
             remarks: existingAdminData.remarks || "",
         });
-        toast({ title: "Changes Canceled", description: "Admin fields have been reset to their last saved state." });
+        toast({ title: "Changes Canceled", description: "Form fields have been reset to their last saved state." });
     };
-
 
     if (logsLoading) {
         return <div className="flex justify-center items-center h-64"><Loader2 className="animate-spin" /></div>;
@@ -179,33 +203,21 @@ export function AllstarReportViewer({ groupId }: AllstarReportViewerProps) {
             <Card>
                 <CardHeader>
                     <CardTitle>Allstar Weekly Route Sheet Report</CardTitle>
-                    <CardDescription>Select a week to view all submitted visits and generate a final PDF report.</CardDescription>
+                    <CardDescription>Select a week to view, edit, and generate a final PDF report for all submitted visits.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div>
                         <Label>Select a Week</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                variant={"outline"}
-                                className={cn(
-                                    "w-[280px] justify-start text-left font-normal ml-4",
-                                    !selectedDate && "text-muted-foreground"
-                                )}
-                                >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {selectedDate ? `Week of ${format(startOfWeek(selectedDate, {weekStartsOn: 1}), "MMM d, yyyy")}` : <span>Pick a date</span>}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
-                                <Calendar
-                                mode="single"
-                                selected={selectedDate}
-                                onSelect={(date) => date && setSelectedDate(date)}
-                                initialFocus
-                                />
-                            </PopoverContent>
-                        </Popover>
+                         <Select value={selectedWeek} onValueChange={setSelectedWeek}>
+                            <SelectTrigger className="w-full max-w-sm ml-4">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {weeks.map(week => (
+                                    <SelectItem key={week.value} value={week.value}>{week.label}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     <form>
@@ -218,9 +230,9 @@ export function AllstarReportViewer({ groupId }: AllstarReportViewerProps) {
                             </Button>
                             <Button onClick={handleSaveAdminFields} disabled={isSavingAdmin}>
                                 {isSavingAdmin ? <Loader2 className="mr-2 animate-spin"/> : <Save className="mr-2" />}
-                                Save Admin Fields
+                                Save Changes
                             </Button>
-                            <Button type="button" onClick={handleGeneratePdf} disabled={isGeneratingPdf}>
+                            <Button type="button" onClick={handleGeneratePdf} disabled={isGeneratingPdf || aggregatedData.visits.length === 0}>
                                 {isGeneratingPdf ? <Loader2 className="mr-2 animate-spin"/> : <Printer className="mr-2" />}
                                 Generate Weekly PDF
                             </Button>
@@ -231,4 +243,3 @@ export function AllstarReportViewer({ groupId }: AllstarReportViewerProps) {
         </FormProvider>
     );
 }
-
