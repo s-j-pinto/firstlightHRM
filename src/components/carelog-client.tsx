@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useState, useMemo, useTransition, useRef, useEffect } from "react";
@@ -163,6 +162,15 @@ export default function CareLogClient() {
 
   const form = useForm({
     resolver: zodResolver(isAllstarTemplate ? allstarVisitSchema : careLogFormSchema),
+    defaultValues: {
+        logNotes: '',
+        serviceDate: '',
+        timeIn: '',
+        timeOut: '',
+        patientName: '',
+        patientSignature: '',
+        typeOfVisit: undefined,
+    }
   });
   const { control, register, handleSubmit, reset, getValues, setValue } = form;
 
@@ -194,26 +202,36 @@ export default function CareLogClient() {
     return logsWithDates;
   }, [careLogsData]);
 
-  const resetFormState = () => {
-    reset(isAllstarTemplate ? {
-        serviceDate: '', timeIn: '', timeOut: '', patientName: '',
-        patientSignature: '', typeOfVisit: undefined,
-    } : { logNotes: '', });
-    setScannedImage(null);
-    setShowCamera(false);
-    setExtractedShiftDateTime(null);
-    setIsEmployeeDetailsSet(false);
-    setEmployeeDetails({
+  useEffect(() => {
+    if (selectedGroup) {
+      const isAllstar = template?.subsections.includes('allstar_health_providers') || false;
+      const defaultValues = isAllstar ? {
+        serviceDate: '',
+        timeIn: '',
+        timeOut: '',
+        patientName: selectedGroup.clientName || '',
+        patientSignature: '',
+        typeOfVisit: undefined,
+      } : {
+        logNotes: '',
+      };
+      reset(defaultValues);
+
+      setScannedImage(null);
+      setShowCamera(false);
+      setExtractedShiftDateTime(null);
+      setIsEmployeeDetailsSet(false);
+      setEmployeeDetails({
         employeeName: user?.displayName || '',
         title: undefined,
         employeeSignature: '',
-    });
-  }
+      });
+    }
+  }, [selectedGroup, template, reset, user?.displayName]);
 
   const handleGroupSelect = (groupId: string) => {
     const group = careLogGroups?.find(g => g.id === groupId) || null;
     setSelectedGroup(group);
-    resetFormState();
   };
 
   const handleScanClick = () => {
@@ -353,9 +371,19 @@ export default function CareLogClient() {
           toast({ title: "Success", description: "Your care log has been submitted."});
           // For Allstar, only reset visit-specific fields
           if (isAllstarTemplate) {
-              reset({ serviceDate: '', timeIn: '', timeOut: '', patientName: '', patientSignature: '', typeOfVisit: undefined });
+              reset({ 
+                serviceDate: '', 
+                timeIn: '', 
+                timeOut: '', 
+                patientName: selectedGroup?.clientName || '',
+                patientSignature: '', 
+                typeOfVisit: undefined 
+              });
           } else {
-              resetFormState();
+              reset({ logNotes: '' });
+              setScannedImage(null);
+              setShowCamera(false);
+              setExtractedShiftDateTime(null);
           }
       }).catch(serverError => {
           const permissionError = new FirestorePermissionError({
@@ -483,11 +511,11 @@ export default function CareLogClient() {
                             <h3 className="text-lg font-semibold">Add a Visit</h3>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <FormField control={control} name="serviceDate" render={({ field }) => ( <FormItem><FormLabel>Service Date</FormLabel><FormControl><DateInput {...field} /></FormControl><FormMessage /></FormItem> )} />
-                                <FormField control={control} name="timeIn" render={({ field }) => ( <FormItem><FormLabel>Time In</FormLabel><FormControl><Input type="time" {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem> )} />
-                                <FormField control={control} name="timeOut" render={({ field }) => ( <FormItem><FormLabel>Time Out</FormLabel><FormControl><Input type="time" {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem> )} />
+                                <FormField control={control} name="timeIn" render={({ field }) => ( <FormItem><FormLabel>Time In</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                <FormField control={control} name="timeOut" render={({ field }) => ( <FormItem><FormLabel>Time Out</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem> )} />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                                <FormField control={control} name="patientName" render={({ field }) => ( <FormItem><FormLabel>Patient Name</FormLabel><FormControl><Input {...field} value={selectedGroup?.clientName || ''} readOnly /></FormControl><FormMessage /></FormItem> )} />
+                                <FormField control={control} name="patientName" render={({ field }) => ( <FormItem><FormLabel>Patient Name</FormLabel><FormControl><Input {...field} readOnly /></FormControl><FormMessage /></FormItem> )} />
                                 <FormField control={control} name="typeOfVisit" render={({ field }) => ( <FormItem><FormLabel>Type of Visit</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select visit type" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Follow-up">Follow-up</SelectItem><SelectItem value="SOC">SOC</SelectItem><SelectItem value="ROC">ROC</SelectItem><SelectItem value="Recert">Recert</SelectItem><SelectItem value="Discharge">Discharge</SelectItem></SelectContent></Select><FormMessage /></FormItem> )} />
                                 <div className="space-y-2">
                                     <Label>Patient/PCG Signature</Label>
