@@ -100,10 +100,10 @@ export async function generateHcaJobDescriptionPdf(formData: any): Promise<{ pdf
         y = drawSection(page2, "RISK EXPOSURE:", "High risk", y);
         y = drawSection(page2, "LIFTING REQUIREMENTS:", [
             "Ability to perform the following tasks if necessary:",
-            "● Ability to participate in physical activity.",
-            "● Ability to work for extended period of time while standing and being involved in physical activity.",
-            "● Heavy lifting.",
-            "● Ability to do extensive bending, lifting and standing on a regular basis."
+            "- Ability to participate in physical activity.",
+            "- Ability to work for extended period of time while standing and being involved in physical activity.",
+            "- Heavy lifting.",
+            "- Ability to do extensive bending, lifting and standing on a regular basis."
         ], y);
 
         y -= 20;
