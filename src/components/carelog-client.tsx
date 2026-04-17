@@ -2,14 +2,14 @@
 
 "use client";
 
-import { useState, useMemo, useTransition, useRef, useEffect } from "react";
+import React, { useState, useMemo, useTransition, useRef, useEffect } from "react";
 import { useForm, FormProvider, useFormContext } from "react-hook-form";
 import { useUser, useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { collection, query, where, addDoc, Timestamp } from "firebase/firestore";
 import { CareLogGroup, Client, CareLog, CareLogTemplate, allstarVisitSchema, careLogFormSchema, careLogSchema } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { extractCareLogData } from "@/ai/flows/extract-carelog-flow";
-import { Loader2, Users, Camera, Trash2, FileText, Clock, Upload, Info, Calendar as CalendarIcon, Edit2, RefreshCw } from "lucide-react";
+import { Loader2, Users, Camera, Trash2, FileText, Clock, Upload, Info, Calendar as CalendarIcon, Edit2, RefreshCw, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -163,16 +163,6 @@ export default function CareLogClient() {
 
   const form = useForm({
     resolver: zodResolver(isAllstarTemplate ? allstarVisitSchema : careLogFormSchema),
-    defaultValues: isAllstarTemplate ? {
-        serviceDate: '',
-        timeIn: '',
-        timeOut: '',
-        patientName: '',
-        patientSignature: '',
-        typeOfVisit: undefined,
-    } : {
-        logNotes: '',
-    }
   });
   const { control, register, handleSubmit, reset, getValues, setValue } = form;
 
