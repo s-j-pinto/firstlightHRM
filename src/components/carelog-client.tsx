@@ -6,7 +6,7 @@ import { useState, useMemo, useTransition, useRef, useEffect } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { useUser, useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { collection, query, where, addDoc, Timestamp } from "firebase/firestore";
-import { CareLogGroup, Client, CareLog, CareLogTemplate, allstarRouteSheetSchema } from "@/lib/types";
+import { CareLogGroup, Client, CareLog, CareLogTemplate, allstarRouteSheetSchema, careLogFormSchema, careLogSchema } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { extractCareLogData } from "@/ai/flows/extract-carelog-flow";
 import { Loader2, Users, Camera, Trash2, FileText, Clock, Upload, Info, Calendar as CalendarIcon } from "lucide-react";
@@ -17,7 +17,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import Image from "next/image";
 import { format, set, parse, isValid } from "date-fns";
-import { careLogSchema } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useDoc } from "@/firebase/firestore/use-doc";
@@ -97,7 +96,20 @@ export default function CareLogClient() {
   const isAllstarTemplate = useMemo(() => template?.subsections.includes('allstar_health_providers') || false, [template]);
 
   const form = useForm({
-    resolver: zodResolver(isAllstarTemplate ? allstarRouteSheetSchema : careLogSchema.omit({ templateData: true })),
+    resolver: zodResolver(isAllstarTemplate ? allstarRouteSheetSchema : careLogFormSchema),
+    defaultValues: isAllstarTemplate ? {
+        serviceDate: '',
+        timeIn: '',
+        timeOut: '',
+        patientName: '',
+        patientSignature: '',
+        typeOfVisit: undefined,
+        employeeName: '',
+        title: undefined,
+        employeeSignature: '',
+    } : {
+        logNotes: '',
+    }
   });
   const { control, register, handleSubmit, reset, getValues, setValue } = form;
 
@@ -130,7 +142,19 @@ export default function CareLogClient() {
   }, [careLogsData]);
 
   const resetFormState = () => {
-    reset();
+    reset(isAllstarTemplate ? {
+        serviceDate: '',
+        timeIn: '',
+        timeOut: '',
+        patientName: '',
+        patientSignature: '',
+        typeOfVisit: undefined,
+        employeeName: user?.displayName || '',
+        title: undefined,
+        employeeSignature: '',
+    } : {
+        logNotes: '',
+    });
     setScannedImage(null);
     setShowCamera(false);
     setExtractedShiftDateTime(null);

@@ -56,6 +56,9 @@ export const allstarRouteSheetSchema = allstarVisitSchema.extend({
 });
 export type AllstarRouteSheetFormData = z.infer<typeof allstarRouteSheetSchema>;
 
+export const careLogFormSchema = z.object({
+    logNotes: z.string().optional(),
+});
 
 export const initialContactSchema = z.object({
   clientName: z.string().min(1, "Client's Name is required."),
