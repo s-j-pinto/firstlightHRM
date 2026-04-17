@@ -19,7 +19,7 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
 
         let y = height - 40;
         const leftMargin = 40;
-        const contentWidth = width - (leftMargin * 2);
+        const contentWidth = width - leftMargin * 2;
         
         // --- Header ---
         const headerTopY = y + 10;
@@ -42,7 +42,7 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
         });
 
         // Column 2: Address (Moved 20% to left)
-        const addressText = "Allstar Health Providers, Inc.\n10722 Arrow Route Suite 218\nRancho Cucamonga CA 91730\nTel. No. (909) 945-9899; Fax No. (909) 945-9799";
+        const addressText = "Allstar Health Providers, Inc.\n10722 Arrow Route Suite 218\nRancho Cucamonga CA 91730\nTel. No. (909) 945-9899;\nFax No. (909) 945-9799";
         drawText(page, addressText, {
             x: leftMargin + logoDims.width - 40, // Shifted left
             y: y,
@@ -138,10 +138,14 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
         const certBody2 = "5 (FIVE) DAYS from the VISIT.";
         
         y = drawWrappedText(page, certBody1, font, 9, leftMargin, y, contentWidth, 11);
-        y -= 11;
-        drawText(page, certBody2, { x: leftMargin, y, font: boldFont, size: 9 });
+        y -= 2; // Move up a bit to connect the text blocks
+        
+        const body1Width = font.widthOfTextAtSize("...documentation within ", 9);
         const body2Width = boldFont.widthOfTextAtSize(certBody2, 9);
-        page.drawLine({ start: { x: leftMargin, y: y - 2 }, end: { x: leftMargin + body2Width, y: y - 2 }, thickness: 0.8 });
+        const body2X = leftMargin + body1Width;
+        drawText(page, certBody2, { x: body2X, y, font: boldFont, size: 9 });
+        page.drawLine({ start: { x: body2X, y: y - 2 }, end: { x: body2X + body2Width, y: y - 2 }, thickness: 0.8 });
+
         y -= 25;
 
         // Employee Name and Title with underlines
