@@ -49,8 +49,8 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
 
             // Table
             const tableTop = y;
-            const colWidths = [70, 50, 50, 110, 150, 100];
-            const colStarts = [leftMargin, 110, 160, 210, 320, 470];
+            const colWidths = [70, 50, 50, 362]; // Adjusted widths
+            const colStarts = [leftMargin, 110, 160, 210]; // Adjusted starts
 
             // Headers
             page.drawRectangle({ x: leftMargin, y: y - 20, width: contentWidth, height: 20, borderColor: rgb(0, 0, 0), borderWidth: 0.5 });
@@ -58,9 +58,7 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
             drawText(page, "Time In", { x: colStarts[1] + 10, y: y - 13, font: boldFont, size: 8 });
             drawText(page, "Time Out", { x: colStarts[2] + 8, y: y - 13, font: boldFont, size: 8 });
             drawText(page, "Patient Name", { x: colStarts[3] + 25, y: y - 13, font: boldFont, size: 8 });
-            drawText(page, "Patient/PCG Signature", { x: colStarts[4] + 20, y: y - 13, font: boldFont, size: 8 });
-            drawText(page, "Type of Visit", { x: colStarts[5] + 25, y: y - 13, font: boldFont, size: 8 });
-            drawText(page, "(Follow-up, SOC, ROC, Recert, Discharge)", { x: colStarts[5] + 2, y: y-23, font, size: 6 });
+            
             y -= 20;
 
             const rowHeight = 35;
@@ -74,8 +72,6 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
                     timeIn: rawVisit.timeIn || '',
                     timeOut: rawVisit.timeOut || '',
                     patientName: rawVisit.patientName || '',
-                    patientSignature: rawVisit.patientSignature || '',
-                    typeOfVisit: rawVisit.typeOfVisit || '',
                 };
 
                 const visitIndexInPage = j - startIndex;
@@ -86,8 +82,6 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
                 drawText(page, visit.timeIn, { x: colStarts[1] + 5, y: rowY - 20, font, size: 9 });
                 drawText(page, visit.timeOut, { x: colStarts[2] + 5, y: rowY - 20, font, size: 9 });
                 drawText(page, visit.patientName, { x: colStarts[3] + 5, y: rowY - 20, font, size: 9 });
-                if (visit.patientSignature) await drawSignature(page, visit.patientSignature, colStarts[4] + 5, rowY-25, 140, 20, pdfDoc);
-                drawText(page, visit.typeOfVisit, { x: colStarts[5] + 5, y: rowY - 20, font, size: 9 });
             }
 
             const tableBottom = y - (visitsPerPage * rowHeight);

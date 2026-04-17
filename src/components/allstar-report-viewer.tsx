@@ -36,21 +36,24 @@ type AdminFormData = z.infer<typeof adminFormSchema>;
 
 const safeFormatDateFromFirestore = (dateValue: any): string => {
     if (!dateValue) return '';
-    // This handles nested Timestamps which are serialized as plain objects with seconds/nanoseconds
-    if (dateValue.seconds && typeof dateValue.seconds === 'number') {
-        return format(new Date(dateValue.seconds * 1000), 'MM/dd/yyyy');
+     // Handle Firestore Timestamp object with toDate method
+    if (dateValue.toDate && typeof dateValue.toDate === 'function') {
+        return format(dateValue.toDate(), 'MM/dd/yyyy');
     }
-    // This handles cases where it might already be a JS Date object
+    // Handle plain object with seconds/nanoseconds (from client-side Firestore)
+    if (typeof dateValue === 'object' && 'seconds' in dateValue && 'nanoseconds' in dateValue) {
+        return format(new Date(dateValue.seconds * 1000 + dateValue.nanoseconds / 1000000), 'MM/dd/yyyy');
+    }
+    // Handle standard JS Date object
     if (isDate(dateValue)) {
         return format(dateValue, 'MM/dd/yyyy');
     }
-    // This handles cases where data might come from the server as a Timestamp object with a toDate method
-    if (typeof dateValue.toDate === 'function') {
-        return format(dateValue.toDate(), 'MM/dd/yyyy');
-    }
     // If it's already a formatted string, return it as is.
     if (typeof dateValue === 'string') {
-        return dateValue;
+        // Attempt to parse it in case it's an ISO string
+        const parsed = parse(dateValue, 'yyyy-MM-dd', new Date());
+        if(isValid(parsed)) return format(parsed, 'MM/dd/yyyy');
+        return dateValue; // Assume it's already formatted
     }
     return ''; // Return empty for unknown formats
 };
@@ -180,15 +183,45 @@ export function AllstarReportViewer({ groupId }: AllstarReportViewerProps) {
         }
 
         startPdfGeneration(async () => {
-            try {
-                const result = await generateAllstarWeeklyReportPdf({
-                    visits: formData.visits,
-                    weekOf: format(parse(selectedWeek, 'yyyy-MM-dd', new Date()), 'MM/dd/yyyy'),
-                    employeeName: aggregatedData.employeeName,
-                    employeeSignature: aggregatedData.employeeSignature,
-                    title: aggregatedData.title,
-                    ...formData
+            const payloadForPdf = {
+                visits: formData.visits,
+                weekOf: format(parse(selectedWeek, 'yyyy-MM-dd', new Date()), 'MM/dd/yyyy'),
+                employeeName: aggregatedData.employeeName,
+                employeeSignature: aggregatedData.employeeSignature,
+                title: aggregatedData.title,
+                ...formData
+            };
+            
+            // Debugging: Check for undefined fields
+            const undefinedFields: string[] = [];
+            Object.entries(payloadForPdf).forEach(([key, value]) => {
+                if (value === undefined) {
+                    undefinedFields.push(key);
+                }
+            });
+            if (payloadForPdf.visits) {
+                payloadForPdf.visits.forEach((visit: any, index: number) => {
+                    Object.entries(visit).forEach(([key, value]) => {
+                        if (value === undefined) {
+                            undefinedFields.push(`visits[${index}].${key}`);
+                        }
+                    });
                 });
+            }
+
+            if (undefinedFields.length > 0) {
+                toast({
+                    title: "PDF Generation Error: Undefined Data",
+                    description: `The following fields have an undefined value which is causing the error: ${undefinedFields.join(", ")}`,
+                    variant: "destructive",
+                    duration: 20000,
+                });
+                return;
+            }
+
+
+            try {
+                const result = await generateAllstarWeeklyReportPdf(payloadForPdf);
 
                 if (result.error) {
                     toast({ title: 'PDF Generation Failed', description: result.error, variant: 'destructive' });
