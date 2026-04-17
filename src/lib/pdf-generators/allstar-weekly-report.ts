@@ -16,7 +16,7 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
         const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/CareLogs%2FLogo%2FAll_star_logo.png?alt=media&token=44b7cda1-36eb-4b97-91ca-1fca1a053993";
         const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer());
         const logoImage = await pdfDoc.embedPng(logoImageBytes);
-        const logoDims = logoImage.scale(0.85); // Reduced size by 15%
+        const logoDims = logoImage.scale(0.85 * 0.85); // Reduced size by 15%
 
         let y = height - 40;
         const leftMargin = 40;
@@ -45,7 +45,7 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
         // Column 2: Address
         const addressText = "Allstar Health Providers, Inc.\n10722 Arrow Route Suite 218\nRancho Cucamonga CA 91730\nTel. No. (909) 945-9899;\nFax No.\n(909) 945-9799";
         drawText(page, addressText, {
-            x: leftMargin + logoDims.width + 20, // Positioned after the logo with a gap
+            x: leftMargin + logoDims.width + 15,
             y: y,
             font: font,
             size: 9,
@@ -55,10 +55,10 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
         // Column 3: Title
         const headerRightText = "ROUTE SHEET, PATIENT ACKNOWLEDGEMENT, AND\nSTAFF CERTIFICATION OF SERVICES RENDERED";
         drawText(page, headerRightText, {
-            x: width - leftMargin - 280, // Adjusted position
+            x: 370, // Adjusted position
             y: y - 10,
             font: boldFont,
-            size: 8, // Reduced font size
+            size: 7, // Reduced font size
             lineHeight: 12
         });
         y -= logoDims.height + 15;
@@ -99,15 +99,15 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
 
         const rowHeight = 35;
         for (let j = 0; j < 10; j++) {
-            const visit = data.visits?.[j];
+            const visit = data.visits?.[j] || {};
             const rowY = y - (j * rowHeight);
             
             drawText(page, `${j + 1}.`, { x: leftMargin - 15, y: rowY - (rowHeight / 2) + 4, font, size: 9 });
 
-            drawText(page, visit?.serviceDate || '', { x: colStarts[0] + 5, y: rowY - 20, font, size: 9 });
-            drawText(page, visit?.timeIn || '', { x: colStarts[1] + 5, y: rowY - 20, font, size: 9 });
-            drawText(page, visit?.timeOut || '', { x: colStarts[2] + 5, y: rowY - 20, font, size: 9 });
-            drawText(page, visit?.patientName || '', { x: colStarts[3] + 5, y: rowY - 20, font, size: 9 });
+            drawText(page, visit.serviceDate || '', { x: colStarts[0] + 5, y: rowY - 20, font, size: 9 });
+            drawText(page, visit.timeIn || '', { x: colStarts[1] + 5, y: rowY - 20, font, size: 9 });
+            drawText(page, visit.timeOut || '', { x: colStarts[2] + 5, y: rowY - 20, font, size: 9 });
+            drawText(page, visit.patientName || '', { x: colStarts[3] + 5, y: rowY - 20, font, size: 9 });
         }
 
         const tableBottom = y - (10 * rowHeight);
@@ -130,11 +130,10 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
         y -= 22;
 
         const certBody1 = "I certify that, I have provided home health services to this patient on the date and time indicated above. The patient was not hospitalized or otherwise unavailable when the services was provided. The patient signature indicates that the service was provided is authentic. I understand that I must submit visit notes, route sheets and other required documentation within ";
-        const certBody2 = "5 (FIVE) DAYS from the VISIT.";
-        
         y = drawWrappedText(page, certBody1, font, 9, leftMargin, y, contentWidth, 11);
-        y -= 2; // Move up a bit to connect the text blocks
+        y -= 1; 
         
+        const certBody2 = "5 (FIVE) DAYS from the VISIT.";
         const body1Width = font.widthOfTextAtSize("...documentation within ", 9);
         const body2Width = boldFont.widthOfTextAtSize(certBody2, 9);
         const body2X = leftMargin + body1Width;
@@ -147,18 +146,16 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
         const empNameLabel = 'Employee Name: ';
         const empNameValue = data.employeeName || '';
         const empNameXStart = leftMargin + font.widthOfTextAtSize(empNameLabel, 9);
-        const empNameValueWidth = font.widthOfTextAtSize(empNameValue, 9);
         drawText(page, empNameLabel, { x: leftMargin, y, font, size: 9 });
         drawText(page, empNameValue, { x: empNameXStart, y, font, size: 9 });
-        page.drawLine({ start: { x: empNameXStart, y: y - 2 }, end: { x: empNameXStart + empNameValueWidth + 20, y: y - 2 }, thickness: 0.5 });
+        page.drawLine({ start: { x: empNameXStart, y: y - 2 }, end: { x: leftMargin + 240, y: y - 2 }, thickness: 0.5 });
 
         const titleLabel = 'Title: ';
         const titleValue = data.title || '';
         const titleXStart = leftMargin + 250 + font.widthOfTextAtSize(titleLabel, 9);
-        const titleValueWidth = font.widthOfTextAtSize(titleValue, 9);
         drawText(page, titleLabel, { x: leftMargin + 250, y, font, size: 9 });
         drawText(page, titleValue, { x: titleXStart, y, font, size: 9 });
-        page.drawLine({ start: { x: titleXStart, y: y - 2 }, end: { x: titleXStart + titleValueWidth + 20, y: y - 2 }, thickness: 0.5 });
+        page.drawLine({ start: { x: titleXStart, y: y - 2 }, end: { x: titleXStart + 80, y: y - 2 }, thickness: 0.5 });
         
         if (data.employeeSignature) {
             await drawSignature(page, data.employeeSignature, leftMargin + 400, y - 5, 120, 20, pdfDoc);
@@ -185,9 +182,10 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
 
     } catch (error: any) {
         console.error("Error generating Allstar weekly report PDF:", error);
+        
         const undefinedFields: string[] = [];
 
-        // Check top-level properties
+        // Check top-level properties expected by the PDF generator
         const topLevelKeys = ['weekOf', 'employeeName', 'employeeSignature', 'title', 'dateSubmitted', 'checkedBy', 'checkedDate', 'remarks'];
         topLevelKeys.forEach(key => {
             if (data[key] === undefined) {
@@ -196,10 +194,12 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
         });
 
         // Check nested properties within each visit
-        if (data.visits && Array.isArray(data.visits)) {
+        if (!data.visits || !Array.isArray(data.visits)) {
+            undefinedFields.push('visits (must be an array)');
+        } else {
             const visitKeys = ['serviceDate', 'timeIn', 'timeOut', 'patientName'];
             data.visits.forEach((visit: any, index: number) => {
-                if(visit === null || typeof visit !== 'object') {
+                if (visit === null || typeof visit !== 'object') {
                     undefinedFields.push(`visit at index ${index} (is null or not an object)`);
                     return; // continue to next visit
                 }
@@ -209,10 +209,8 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
                     }
                 });
             });
-        } else {
-            undefinedFields.push('visits (must be an array)');
         }
-
+        
         const errorMessage = `PDF Generation Error: The following fields were missing or undefined: ${undefinedFields.join(", ")}.`;
         console.error("[PDF Action] Validation Error:", errorMessage);
         console.error("[PDF Action] Failing Payload:", JSON.stringify(data, null, 2));
