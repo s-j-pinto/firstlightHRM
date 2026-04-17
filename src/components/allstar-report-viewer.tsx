@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, orderBy, doc } from 'firebase/firestore';
 import type { CareLog, AllstarRouteSheetFormData, CareLogGroup, ActiveCaregiver } from '@/lib/types';
-import { startOfWeek, endOfWeek, format, subWeeks, parse, isValid } from 'date-fns';
+import { startOfWeek, endOfWeek, format, subWeeks, parse, isValid, isDate } from 'date-fns';
 
 import { AllstarRouteSheetForm } from './allstar-route-sheet-form';
 import { Button } from './ui/button';
@@ -16,7 +16,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from './ui/
 import { Loader2, Save, Printer, Calendar as CalendarIcon, X } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Label } from './ui/label';
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from '@/hooks/use-toast';
 import { saveAllstarVisitAndAdminData } from "@/lib/carelog.actions";
 import { generateAllstarWeeklyReportPdf } from '@/lib/pdf.actions';
 
@@ -105,9 +105,23 @@ export function AllstarReportViewer({ groupId }: AllstarReportViewerProps) {
         const visits = selectedWeekLogs.map(log => {
             const visitData = log.templateData?.allstar_route_sheet || {};
             const serviceDate = visitData.serviceDate;
+
+            let dateToFormat: Date | null = null;
+            if (serviceDate) {
+                // Firebase client SDK's onSnapshot converts Timestamps to JS Date objects.
+                if (isDate(serviceDate)) {
+                    dateToFormat = serviceDate;
+                } 
+                // This handles cases where data might come from the server as a Timestamp object.
+                else if (typeof serviceDate.toDate === 'function') {
+                    dateToFormat = serviceDate.toDate();
+                }
+            }
+            const formattedDate = dateToFormat ? format(dateToFormat, 'MM/dd/yyyy') : '';
+
             return {
                 logId: log.id,
-                serviceDate: (serviceDate && serviceDate.toDate) ? format(serviceDate.toDate(), 'MM/dd/yyyy') : '',
+                serviceDate: formattedDate,
                 timeIn: visitData.timeIn || '',
                 timeOut: visitData.timeOut || '',
                 patientName: visitData.patientName || '',
