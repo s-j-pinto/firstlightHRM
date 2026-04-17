@@ -129,9 +129,13 @@ export default function CareLogClient() {
   const [extractedShiftDateTime, setExtractedShiftDateTime] = useState<string | null>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   
-  const [employeeDetails, setEmployeeDetails] = useState({
+  const [employeeDetails, setEmployeeDetails] = useState<{
+      employeeName: string;
+      title: 'Caregiver' | 'HCA' | undefined;
+      employeeSignature: string;
+  }>({
       employeeName: user?.displayName || '',
-      title: undefined as 'Caregiver' | 'HCA' | undefined,
+      title: undefined,
       employeeSignature: '',
   });
   const [isEmployeeDetailsSet, setIsEmployeeDetailsSet] = useState(false);
@@ -162,15 +166,6 @@ export default function CareLogClient() {
 
   const form = useForm({
     resolver: zodResolver(isAllstarTemplate ? allstarVisitSchema : careLogFormSchema),
-    defaultValues: {
-        logNotes: '',
-        serviceDate: '',
-        timeIn: '',
-        timeOut: '',
-        patientName: '',
-        patientSignature: '',
-        typeOfVisit: undefined,
-    }
   });
   const { control, register, handleSubmit, reset, getValues, setValue } = form;
 
@@ -205,18 +200,19 @@ export default function CareLogClient() {
   useEffect(() => {
     if (selectedGroup) {
       const isAllstar = template?.subsections.includes('allstar_health_providers') || false;
+      
       const defaultValues = isAllstar ? {
         serviceDate: '',
         timeIn: '',
         timeOut: '',
         patientName: selectedGroup.clientName || '',
         patientSignature: '',
-        typeOfVisit: undefined,
+        typeOfVisit: undefined, 
       } : {
         logNotes: '',
       };
-      reset(defaultValues);
-
+      
+      reset(defaultValues as any);
       setScannedImage(null);
       setShowCamera(false);
       setExtractedShiftDateTime(null);
@@ -365,9 +361,15 @@ export default function CareLogClient() {
           return;
       }
       
+      const dataToSave = validation.data;
+
+      if (isAllstarTemplate && dataToSave.templateData?.allstar_route_sheet?.typeOfVisit === undefined) {
+        dataToSave.templateData.allstar_route_sheet.typeOfVisit = null;
+      }
+      
       const colRef = collection(firestore, "carelogs");
       
-      addDoc(colRef, validation.data).then(() => {
+      addDoc(colRef, dataToSave).then(() => {
           toast({ title: "Success", description: "Your care log has been submitted."});
           // For Allstar, only reset visit-specific fields
           if (isAllstarTemplate) {
@@ -389,7 +391,7 @@ export default function CareLogClient() {
           const permissionError = new FirestorePermissionError({
             path: colRef.path,
             operation: "create",
-            requestResourceData: validation.data,
+            requestResourceData: dataToSave,
           });
           errorEmitter.emit("permission-error", permissionError);
       });
