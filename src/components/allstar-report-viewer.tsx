@@ -1,13 +1,13 @@
 
-      'use client';
+'use client';
 
 import * as React from "react";
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy } from 'firebase/firestore';
-import type { CareLog, AllstarRouteSheetFormData } from '@/lib/types';
+import { useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
+import { collection, query, where, orderBy, doc } from 'firebase/firestore';
+import type { CareLog, AllstarRouteSheetFormData, CareLogGroup, ActiveCaregiver } from '@/lib/types';
 import { startOfWeek, endOfWeek, format, subWeeks, parse, isValid } from 'date-fns';
 
 import { AllstarRouteSheetForm } from './allstar-route-sheet-form';
@@ -17,7 +17,7 @@ import { Loader2, Save, Printer, Calendar as CalendarIcon, X } from 'lucide-reac
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Label } from './ui/label';
 import { useToast } from "@/hooks/use-toast";
-import { saveAllstarAdminData } from "@/lib/carelog.actions";
+import { saveAllstarVisitAndAdminData } from "@/lib/carelog.actions";
 import { generateAllstarWeeklyReportPdf } from '@/lib/pdf.actions';
 
 interface AllstarReportViewerProps {
@@ -53,56 +53,76 @@ export function AllstarReportViewer({ groupId }: AllstarReportViewerProps) {
     }, []);
 
     const [selectedWeek, setSelectedWeek] = React.useState(weeks[0].value);
+    const [selectedCaregiverEmail, setSelectedCaregiverEmail] = React.useState<string>('');
+
+    const groupRef = useMemoFirebase(() => firestore ? doc(firestore, 'carelog_groups', groupId) : null, [groupId, firestore]);
+    const { data: groupData, isLoading: groupLoading } = useDoc<CareLogGroup>(groupRef);
+
+    const caregiversRef = useMemoFirebase(() => firestore ? collection(firestore, 'caregivers_active') : null, [firestore]);
+    const { data: allCaregiversData, isLoading: caregiversLoading } = useCollection<ActiveCaregiver>(caregiversRef);
 
     const logsQuery = useMemoFirebase(
         () => firestore ? query(collection(firestore, 'carelogs'), where('careLogGroupId', '==', groupId), orderBy('shiftDateTime', 'desc')) : null,
         [firestore, groupId]
     );
     const { data: logs, isLoading: logsLoading } = useCollection<CareLog>(logsQuery);
+    
+    const caregiversInGroup = React.useMemo(() => {
+        if (!groupData || !allCaregiversData) return [];
+        const caregiverEmailSet = new Set(groupData.caregiverEmails);
+        return allCaregiversData.filter(cg => caregiverEmailSet.has(cg.Email) && cg.status === 'Active');
+    }, [groupData, allCaregiversData]);
+    
+    // Effect to select the first caregiver by default
+    React.useEffect(() => {
+        if (caregiversInGroup.length > 0 && !selectedCaregiverEmail) {
+            setSelectedCaregiverEmail(caregiversInGroup[0].Email);
+        }
+    }, [caregiversInGroup, selectedCaregiverEmail]);
 
     const form = useForm<AdminFormData>({
         resolver: zodResolver(adminFormSchema),
     });
-    
-    const { watch } = form;
-    const formValues = watch();
 
     const selectedWeekLogs = React.useMemo(() => {
-        if (!logs) return [];
+        if (!logs || !selectedCaregiverEmail) return [];
+        
         const start = parse(selectedWeek, 'yyyy-MM-dd', new Date());
         const end = endOfWeek(start, { weekStartsOn: 1 });
+
         return logs.filter(log => {
+            if (log.caregiverId !== selectedCaregiverEmail) return false;
             const logDate = (log.shiftDateTime as any)?.toDate();
             return logDate && logDate >= start && logDate <= end;
         });
-    }, [selectedWeek, logs]);
+    }, [selectedWeek, logs, selectedCaregiverEmail]);
 
     const aggregatedData = React.useMemo(() => {
         if (!selectedWeekLogs || selectedWeekLogs.length === 0) {
             return { visits: [], employeeName: '', employeeSignature: '', title: '' };
         }
         
-        const allVisits = selectedWeekLogs.flatMap(log => log.templateData?.allstar_route_sheet?.visits || []);
+        const visits = selectedWeekLogs.map(log => {
+            const visitData = log.templateData?.allstar_route_sheet || {};
+            const serviceDate = visitData.serviceDate;
+            return {
+                logId: log.id,
+                serviceDate: (serviceDate && serviceDate.toDate) ? format(serviceDate.toDate(), 'MM/dd/yyyy') : '',
+                timeIn: visitData.timeIn || '',
+                timeOut: visitData.timeOut || '',
+                patientName: visitData.patientName || '',
+                patientSignature: visitData.patientSignature || '',
+                typeOfVisit: visitData.typeOfVisit || undefined,
+            };
+        });
 
-        // Sanitize visits to prevent uncontrolled to controlled input error
-        const sanitizedVisits = allVisits.map(visit => ({
-            serviceDate: visit.serviceDate || '',
-            timeIn: visit.timeIn || '',
-            timeOut: visit.timeOut || '',
-            patientName: visit.patientName || '',
-            patientSignature: visit.patientSignature || '',
-            typeOfVisit: visit.typeOfVisit || '',
-        }));
-        
-        // Find the log with the most recent employee signature details
-        const mostRecentLog = selectedWeekLogs[0];
-        const employeeDetails = mostRecentLog.templateData?.allstar_route_sheet;
+        const firstLog = selectedWeekLogs[0].templateData?.allstar_route_sheet;
         
         return {
-            visits: sanitizedVisits,
-            employeeName: employeeDetails?.employeeName || '',
-            employeeSignature: employeeDetails?.employeeSignature || '',
-            title: employeeDetails?.title || '',
+            visits,
+            employeeName: firstLog?.employeeName || '',
+            employeeSignature: firstLog?.employeeSignature || '',
+            title: firstLog?.title || '',
         };
     }, [selectedWeekLogs]);
 
@@ -110,13 +130,14 @@ export function AllstarReportViewer({ groupId }: AllstarReportViewerProps) {
         if (!selectedWeekLogs || selectedWeekLogs.length === 0) {
             return { dateSubmitted: '', checkedBy: '', checkedDate: '', remarks: '' };
         }
-        // Admin data could be on any log for that week, find the most recent one with data
         const logWithAdminData = selectedWeekLogs.find(log => log.templateData?.allstar_route_sheet?.checkedBy);
         const data = logWithAdminData?.templateData?.allstar_route_sheet;
+        const formatDate = (date: any) => (date && date.toDate) ? format(date.toDate(), 'MM/dd/yyyy') : '';
+        
         return {
-            dateSubmitted: data?.dateSubmitted && (data.dateSubmitted as any).toDate ? format((data.dateSubmitted as any).toDate(), 'MM/dd/yyyy') : '',
+            dateSubmitted: formatDate(data?.dateSubmitted),
             checkedBy: data?.checkedBy || '',
-            checkedDate: data?.checkedDate && (data.checkedDate as any).toDate ? format((data.checkedDate as any).toDate(), 'MM/dd/yyyy') : '',
+            checkedDate: formatDate(data?.checkedDate),
             remarks: data?.remarks || '',
         };
     }, [selectedWeekLogs]);
@@ -132,24 +153,21 @@ export function AllstarReportViewer({ groupId }: AllstarReportViewerProps) {
     }, [aggregatedData, existingAdminData, form]);
 
     const handleGeneratePdf = async () => {
-        if (!selectedWeekLogs || aggregatedData.visits.length === 0) {
+        const formData = form.getValues();
+        if (!formData.visits || formData.visits.length === 0) {
             toast({ title: "No Data", description: "No visits found for the selected week to generate a report.", variant: 'destructive' });
             return;
         }
 
-        const adminData = form.getValues();
-        const mostRecentLog = selectedWeekLogs[0];
-        const employeeDetails = mostRecentLog.templateData?.allstar_route_sheet;
-
         startPdfGeneration(async () => {
             try {
                 const result = await generateAllstarWeeklyReportPdf({
-                    visits: adminData.visits, // Use current form data
+                    visits: formData.visits,
                     weekOf: format(parse(selectedWeek, 'yyyy-MM-dd', new Date()), 'MM/dd/yyyy'),
-                    employeeName: employeeDetails.employeeName,
-                    employeeSignature: employeeDetails.employeeSignature,
-                    title: employeeDetails.title,
-                    ...adminData
+                    employeeName: aggregatedData.employeeName,
+                    employeeSignature: aggregatedData.employeeSignature,
+                    title: aggregatedData.title,
+                    ...formData
                 });
 
                 if (result.error) {
@@ -168,33 +186,36 @@ export function AllstarReportViewer({ groupId }: AllstarReportViewerProps) {
                     toast({ title: 'PDF Generation Failed', description: 'An unknown server error occurred during PDF generation', variant: 'destructive' });
                 }
             } catch (e: any) {
-                console.error("Critical error in handleGeneratePdf:", e);
                 toast({ title: 'PDF Generation Failed', description: `A client-side error occurred: ${e.message}`, variant: 'destructive' });
             }
         });
     };
 
     const handleSaveAdminFields = form.handleSubmit(async (data) => {
-        if (!selectedWeekLogs || selectedWeekLogs.length === 0) {
-          toast({ title: "No Data", description: "No logs found for the selected week to save admin data against.", variant: 'destructive' });
-          return;
+        const { visits, ...adminData } = data;
+        if (!visits || visits.length === 0) {
+            toast({ title: "No Data to Save", variant: "destructive" });
+            return;
         }
-        // Save admin data against all logs for that week to ensure consistency
-        const logIds = selectedWeekLogs.map(log => log.id);
-    
+
         startSavingAdminTransition(async () => {
-          for (const logId of logIds) {
-            const result = await saveAllstarAdminData({
-              logId: logId,
-              adminData: data,
-            });
-      
-            if (result.error) {
-              toast({ title: 'Save Failed', description: result.error, variant: 'destructive' });
-              return; // Stop on first error
+            let hasError = false;
+            for (const visit of visits) {
+                const { logId, ...visitData } = visit;
+                const result = await saveAllstarVisitAndAdminData({
+                    logId,
+                    visitData,
+                    adminData
+                });
+                if (result.error) {
+                    hasError = true;
+                    toast({ title: "Save Failed", description: `Could not save visit for ${visit.patientName}. Error: ${result.error}`, variant: "destructive" });
+                    break;
+                }
             }
-          }
-          toast({ title: 'Admin Fields Saved', description: 'Your changes have been saved successfully across all logs for the week.' });
+            if (!hasError) {
+                toast({ title: "Success", description: "All changes for the week have been saved." });
+            }
         });
     });
     
@@ -209,7 +230,9 @@ export function AllstarReportViewer({ groupId }: AllstarReportViewerProps) {
         toast({ title: "Changes Canceled", description: "Form fields have been reset to their last saved state." });
     };
 
-    if (logsLoading) {
+    const isLoading = logsLoading || groupLoading || caregiversLoading;
+
+    if (isLoading) {
         return <div className="flex justify-center items-center h-64"><Loader2 className="animate-spin" /></div>;
     }
     
@@ -218,21 +241,36 @@ export function AllstarReportViewer({ groupId }: AllstarReportViewerProps) {
             <Card>
                 <CardHeader>
                     <CardTitle>Allstar Weekly Route Sheet Report</CardTitle>
-                    <CardDescription>Select a week to view, edit, and generate a final PDF report for all submitted visits.</CardDescription>
+                    <CardDescription>Select a week and caregiver to view, edit, and generate a final PDF report.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div className="flex items-center gap-4">
-                        <Label>Select a Week</Label>
-                         <Select value={selectedWeek} onValueChange={setSelectedWeek}>
-                            <SelectTrigger className="w-full max-w-sm">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {weeks.map(week => (
-                                    <SelectItem key={week.value} value={week.value}>{week.label}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                    <div className="flex flex-col sm:flex-row items-end gap-4">
+                        <div className="w-full sm:w-auto">
+                            <Label>Select a Week</Label>
+                             <Select value={selectedWeek} onValueChange={setSelectedWeek}>
+                                <SelectTrigger className="w-full max-w-sm">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {weeks.map(week => (
+                                        <SelectItem key={week.value} value={week.value}>{week.label}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="w-full sm:w-auto">
+                            <Label>Select a Caregiver</Label>
+                             <Select value={selectedCaregiverEmail} onValueChange={setSelectedCaregiverEmail}>
+                                <SelectTrigger className="w-full max-w-sm">
+                                    <SelectValue placeholder="Select a caregiver..."/>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {caregiversInGroup.map(cg => (
+                                        <SelectItem key={cg.id} value={cg.Email}>{cg.Name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
 
                     <form>
