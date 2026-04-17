@@ -77,7 +77,7 @@ export async function generateHcaJobDescriptionPdf(formData: any): Promise<{ pdf
             "1. Must have completed personal care training program and competency.",
             "2. Have a sympathetic attitude toward the care of the sick and elderly.",
             "3. Ability to carry out directions, read and write.",
-            "4. Maturity and ability to deal eﬀectively with the demands of the job."
+            "4. Maturity and ability to deal effectively with the demands of the job."
         ], y);
         
         const responsibilities = [
@@ -95,7 +95,7 @@ export async function generateHcaJobDescriptionPdf(formData: any): Promise<{ pdf
 
         // Page 2 Content
         y = topMargin;
-        y = drawSection(page2, "WORKING ENVIRONMENT:", "Works both indoors in the Agency oﬃce and in the field with clients and referral sources.", y);
+        y = drawSection(page2, "WORKING ENVIRONMENT:", "Works both indoors in the Agency office and in the field with clients and referral sources.", y);
         y = drawSection(page2, "JOB RELATIONSHIPS:", ["1. Supervised by: Lolita Pinto, Managing Director"], y);
         y = drawSection(page2, "RISK EXPOSURE:", "High risk", y);
         y = drawSection(page2, "LIFTING REQUIREMENTS:", [
