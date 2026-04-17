@@ -485,12 +485,19 @@ export async function generateHcs501PdfAction(candidateId: string) {
         return { error: 'Candidate ID is required.' };
     }
     try {
-        const docSnap = await serverDb.collection('caregiver_profiles').doc(candidateId).get();
-        if (!docSnap.exists) {
+        const profileDoc = await serverDb.collection('caregiver_profiles').doc(candidateId).get();
+        if (!profileDoc.exists) {
             return { error: 'Candidate profile not found.' };
         }
-        const formData = docSnap.data();
-        const result = await generateHcs501Pdf(formData);
+        
+        const employeeDoc = await serverDb.collection('caregiver_employees').doc(candidateId).get();
+        
+        const combinedData = {
+            ...profileDoc.data(),
+            ...(employeeDoc.exists ? employeeDoc.data() : {}),
+        };
+
+        const result = await generateHcs501Pdf(combinedData);
         
         return result;
     } catch (error: any) {
@@ -852,7 +859,6 @@ export async function generateAllFormsAsZipAction(candidateId: string) {
         
         const settingsSnap = await serverDb.collection('settings').doc('hiring_form_fields').get();
         const settingsData = settingsSnap.exists ? settingsSnap.data() : {};
-        const combinedData = { ...formData, ...settingsData };
         
         const signaturesSnap = await serverDb.collection('caregiver_profiles').doc(candidateId).collection('signatures').doc('onboarding_main').get();
         const signaturesData = signaturesSnap.exists ? signaturesSnap.data() : {};
@@ -860,18 +866,14 @@ export async function generateAllFormsAsZipAction(candidateId: string) {
         let generatedFileCount = 0;
 
         for (const form of formGenerators) {
-            let dataForGenerator: any = formData;
-            let isComplete = !!formData[form.key as keyof CaregiverProfile];
+            let dataForGenerator: any = { ...formData, ...settingsData, ...signaturesData };
 
-            if (form.key === 'emergencyProcedureSignature') {
-                dataForGenerator = signaturesData;
-                isComplete = !!signaturesData?.emergencyProcedureSignature;
-            } else if (form.key === 'offerLetterSignature') {
-                dataForGenerator = combinedData;
-            } else if (form.key === 'telephonyInstructionsAcknowledged') {
+            if (form.key === 'telephonyInstructionsAcknowledged' || form.key === 'hcs501EmployeeSignature') {
                 const employeeSnap = await serverDb.collection('caregiver_employees').doc(candidateId).get();
-                dataForGenerator = { ...formData, ...employeeSnap.data() };
+                dataForGenerator = { ...dataForGenerator, ...employeeSnap.data() };
             }
+            
+            let isComplete = !!(formData as any)[form.key] || !!(signaturesData as any)[form.key];
 
             if (isComplete) {
                 try {

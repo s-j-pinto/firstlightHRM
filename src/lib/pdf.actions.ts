@@ -1,4 +1,5 @@
 
+
 'use server';
 
 // This file now acts as a barrel, re-exporting the individual PDF generators.
@@ -52,41 +53,6 @@ export async function generateEmergencyProcedurePdf(formData: any) { return gene
 
 
 export async function generateAllstarWeeklyReportPdf(data: any) {
-    const undefinedFields: string[] = [];
-
-    // Check top-level properties expected by the PDF generator
-    const topLevelKeys = ['weekOf', 'employeeName', 'employeeSignature', 'title', 'dateSubmitted', 'checkedBy', 'checkedDate', 'remarks'];
-    topLevelKeys.forEach(key => {
-        if (data[key] === undefined) {
-            undefinedFields.push(key);
-        }
-    });
-
-    // Check nested properties within each visit
-    if (!data.visits || !Array.isArray(data.visits)) {
-        undefinedFields.push('visits (must be an array)');
-    } else {
-        const visitKeys = ['serviceDate', 'timeIn', 'timeOut', 'patientName'];
-        data.visits.forEach((visit: any, index: number) => {
-            if (visit === null || typeof visit !== 'object') {
-                undefinedFields.push(`visit at index ${index} (is null or not an object)`);
-                return; // continue to next visit
-            }
-            visitKeys.forEach(key => {
-                if (visit[key] === undefined) {
-                    undefinedFields.push(`visits[${index}].${key}`);
-                }
-            });
-        });
-    }
-
-    if (undefinedFields.length > 0) {
-        const errorMessage = `PDF Generation Error: The following fields were missing or undefined: ${undefinedFields.join(", ")}.`;
-        console.error("[PDF Action] Validation Error:", errorMessage);
-        console.error("[PDF Action] Failing Payload:", JSON.stringify(data, null, 2));
-        return { error: errorMessage };
-    }
-
     try {
         const result = await generateAllstarWeeklyReportPdfInternal(data);
         return result;

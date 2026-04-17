@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont, PDFPage } from 'pdf-lib';
@@ -80,12 +81,15 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
             page.drawRectangle({x, y: yPos-12, width: boxWidth, height: 20, borderColor: rgb(0,0,0), borderWidth: 0.5});
             if(value) drawText(page, value, {x: x + 5, y: yPos-7, font, size: mainFontSize}); // value
         }
+        
+        const hireDate = (formData.hireDate && (formData.hireDate.toDate || isDate(formData.hireDate))) ? format(formData.hireDate.toDate ? formData.hireDate.toDate() : formData.hireDate, "MM/dd/yyyy") : '';
+        const separationDate = (formData.separationDate && (formData.separationDate.toDate || isDate(formData.separationDate))) ? format(formData.separationDate.toDate ? formData.separationDate.toDate() : formData.separationDate, "MM/dd/yyyy") : '';
 
-        drawFieldBox("HCO Number", "", leftMargin, y, 180);
-        drawFieldBox("Employee’s PER ID", "", leftMargin + 200, y, 180);
+        drawFieldBox("HCO Number", "364700059", leftMargin, y, 180);
+        drawFieldBox("Employee’s PER ID", formData.perId, leftMargin + 200, y, 180);
         y -= lineSpacing * 1.8;
-        drawFieldBox("Hire Date", "", leftMargin, y, 180);
-        drawFieldBox("Date of Separation", "", leftMargin + 200, y, 180);
+        drawFieldBox("Hire Date", hireDate, leftMargin, y, 180);
+        drawFieldBox("Date of Separation", separationDate, leftMargin + 200, y, 180);
 
         y -= 45; 
 
@@ -100,36 +104,38 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         y -= sectionSpacing;
 
         // Row 1
-        drawFieldBox("Name (Last First Middle)", "", leftMargin, y, 280);
-        drawFieldBox("Area Code/Telephone", "", leftMargin + 300, y, contentWidth - 300);
+        drawFieldBox("Name (Last First Middle)", formData.fullName, leftMargin, y, 280);
+        drawFieldBox("Area Code/Telephone", formData.phone, leftMargin + 300, y, contentWidth - 300);
         y -= lineSpacing * 1.8;
         
         const addressWidth = contentWidth * 0.7;
         const dobX = leftMargin + addressWidth + 10;
         const dobWidth = contentWidth - addressWidth - 10;
 
-        drawFieldBox("Address", "", leftMargin, y, addressWidth);
-        drawFieldBox("Date of Birth", "", dobX, y, dobWidth);
+        const dobDate = (formData.dob && (formData.dob.toDate || isDate(formData.dob))) ? format(formData.dob.toDate ? formData.dob.toDate() : formData.dob, "MM/dd/yyyy") : '';
+        drawFieldBox("Address", `${formData.address || ''}, ${formData.city || ''}, ${formData.state || ''} ${formData.zip || ''}`, leftMargin, y, addressWidth);
+        drawFieldBox("Date of Birth", dobDate, dobX, y, dobWidth);
         y -= lineSpacing * 1.8;
         
+        const tbDate = (formData.tbDate && (formData.tbDate.toDate || isDate(formData.tbDate))) ? format(formData.tbDate.toDate ? formData.tbDate.toDate() : formData.tbDate, "MM/dd/yyyy") : '';
         const colWidth = contentWidth / 3;
-        drawFieldBox("Social Security Number (Voluntary for ID only)", "", leftMargin, y, colWidth - 10);
-        drawFieldBox("Date of TB Test Upon Hire", "", leftMargin + colWidth, y, colWidth - 10);
-        drawFieldBox("Results of Last TB Test", "", leftMargin + colWidth * 2, y, colWidth);
+        drawFieldBox("Social Security Number (Voluntary for ID only)", formData.ssn, leftMargin, y, colWidth - 10);
+        drawFieldBox("Date of TB Test Upon Hire", tbDate, leftMargin + colWidth, y, colWidth - 10);
+        drawFieldBox("Results of Last TB Test", formData.tbResults, leftMargin + colWidth * 2, y, colWidth);
         y -= lineSpacing * 1.8;
 
-        drawFieldBox("Additional TB Test Dates (Please include test results)", "", leftMargin, y, contentWidth);
+        drawFieldBox("Additional TB Test Dates (Please include test results)", formData.additionalTbDates, leftMargin, y, contentWidth);
         y -= lineSpacing * 1.8;
 
-        drawFieldBox("Please list any alternate names used (For example - maiden name)", "", leftMargin, y, contentWidth);
+        drawFieldBox("Please list any alternate names used (For example - maiden name)", formData.alternateNames, leftMargin, y, contentWidth);
         y -= lineSpacing * 1.8;
 
         drawText(page, "Do you possess a valid California driver’s license?", {x: leftMargin, y, font, size: mainFontSize});
-        drawCheckbox(page, false, leftMargin + 250, y);
+        drawCheckbox(page, formData.validLicense === 'yes', leftMargin + 250, y);
         drawText(page, 'Yes', {x: leftMargin + 265, y: y+1, font, size: mainFontSize});
-        drawCheckbox(page, false, leftMargin + 300, y);
+        drawCheckbox(page, formData.validLicense === 'no', leftMargin + 300, y);
         drawText(page, 'No', {x: leftMargin + 315, y: y+1, font, size: mainFontSize});
-        drawFieldBox("CDL Number:", "", leftMargin + 350, y + 12, contentWidth - 350 -10);
+        drawFieldBox("CDL Number:", formData.driversLicenseNumber, leftMargin + 350, y + 12, contentWidth - 350 -10);
         y -= sectionSpacing;
         
         // Position Information
@@ -142,10 +148,11 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         page.drawLine({ start: { x: leftMargin, y: y - 2 }, end: { x: width - leftMargin, y: y - 2 }, thickness: 0.5 });
         y -= sectionSpacing;
 
-        drawFieldBox("Title of Position", "", leftMargin, y, contentWidth);
+        drawFieldBox("Title of Position", formData.titleOfPosition, leftMargin, y, contentWidth);
         y -= lineSpacing * 1.8; 
         
         drawText(page, "Notes:", {x: leftMargin, y: y+12, font, size: labelFontSize});
+        if(formData.hcs501Notes) drawWrappedText(page, formData.hcs501Notes, font, mainFontSize, leftMargin + 5, y-5, contentWidth-10, lineHeight);
         page.drawRectangle({x: leftMargin, y: y-35, width: contentWidth, height: 40, borderColor: rgb(0,0,0), borderWidth: 0.5});
         y -= 50; 
 
@@ -155,11 +162,15 @@ export async function generateHcs501Pdf(formData: any): Promise<{ pdfData?: stri
         const certifyText = "I hereby certify under penalty of perjury that I am 18 years of age or older and that the above statements are true and correct. I give my permission for any necessary verification.";
         y = drawWrappedText(page, certifyText, boldFont, 10, leftMargin, y - 5, contentWidth - 20, 14);
         y -= 25;
-
+        
+        const sigDate = (formData.hcs501SignatureDate && (formData.hcs501SignatureDate.toDate || isDate(formData.hcs501SignatureDate))) ? format(formData.hcs501SignatureDate.toDate ? formData.hcs501SignatureDate.toDate() : formData.hcs501SignatureDate, "MM/dd/yyyy") : '';
+        if (formData.hcs501EmployeeSignature) {
+            await drawSignature(page, formData.hcs501EmployeeSignature, leftMargin, y - 10, 250, 20, pdfDoc);
+        }
         page.drawLine({ start: { x: leftMargin, y: y-5 }, end: { x: leftMargin + 250, y: y - 5 }, color: rgb(0, 0, 0), thickness: 0.5 });
         drawText(page, "Employee Signature", {x: leftMargin, y: y-15, font, size: labelFontSize});
         
-        drawFieldBox("Date", "", leftMargin + 300, y + 12, 200);
+        drawFieldBox("Date", sigDate, leftMargin + 300, y + 12, 200);
 
         await drawHcs501Footer(page, font);
 
