@@ -71,7 +71,7 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
                 const rowY = y - (visitIndexInPage * rowHeight);
 
                 drawText(page, `${j + 1}`, { x: leftMargin - 15, y: rowY - rowHeight/2, font, size: 8 });
-                const serviceDate = visit.serviceDate && isValid(parse(visit.serviceDate, 'MM/dd/yyyy', new Date())) ? visit.serviceDate : '';
+                const serviceDate = visit.serviceDate && (visit.serviceDate.toDate || isValid(parse(visit.serviceDate, 'MM/dd/yyyy', new Date()))) ? (visit.serviceDate.toDate ? format(visit.serviceDate.toDate(), 'MM/dd/yyyy') : visit.serviceDate) : '';
                 drawText(page, serviceDate, { x: colStarts[0] + 5, y: rowY - 20, font, size: 9 });
                 drawText(page, visit.timeIn, { x: colStarts[1] + 5, y: rowY - 20, font, size: 9 });
                 drawText(page, visit.timeOut, { x: colStarts[2] + 5, y: rowY - 20, font, size: 9 });
@@ -114,7 +114,8 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
                 drawText(page, `Date Submitted: ${dateSubmitted}`, { x: leftMargin, y, font, size: 9 });
                 drawText(page, `Checked By: ${checkedBy}`, { x: leftMargin + 200, y, font, size: 9 });
                 drawText(page, `Checked Date: ${checkedDate}`, { x: leftMargin + 350, y, font, size: 9 });
-                drawText(page, `Remarks: ${remarks}`, { x: leftMargin + 500, y, font, size: 9 });
+                y -= 15;
+                drawWrappedText(page, `Remarks: ${remarks}`, font, 9, leftMargin, y, contentWidth, 10);
                 y -= 20;
 
                 const footerText = `Allstar Health Providers, Inc. - Route Sheet Page ${i + 1} of ${totalPages}`;
@@ -132,3 +133,5 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
         return { error: `An unexpected server error occurred during PDF generation. Error: ${error.message}` };
     }
 }
+
+    

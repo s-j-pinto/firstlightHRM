@@ -7,12 +7,13 @@ import { collection, query, where, doc } from 'firebase/firestore';
 import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { CareLog, CareLogGroup, CareLogTemplate } from '@/lib/types';
 import { format } from 'date-fns';
-import { Loader2, FileText, Calendar, Clock, User, Image as ImageIcon } from 'lucide-react';
+import { Loader2, FileText, Calendar, Clock, User, Image as ImageIcon, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { HelpDialog } from '@/components/HelpDialog';
 import { AllstarReportViewer } from '@/components/allstar-report-viewer';
 
 
@@ -248,3 +249,5 @@ export default function StaffingCareLogReportPage() {
     </div>
   );
 }
+
+    

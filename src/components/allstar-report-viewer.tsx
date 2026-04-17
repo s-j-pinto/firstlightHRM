@@ -1,5 +1,5 @@
 
-'use client';
+      'use client';
 
 import * as React from "react";
 import { useForm, FormProvider } from 'react-hook-form';
@@ -43,7 +43,7 @@ export function AllstarReportViewer({ groupId }: AllstarReportViewerProps) {
     const weeks = React.useMemo(() => {
         return Array.from({ length: 12 }).map((_, i) => {
             const date = subWeeks(new Date(), i);
-            const start = startOfWeek(date, { weekStartsOn: 1 });
+            const start = startOfWeek(date, { weekStartsOn: 1 }); // Assuming week starts on Monday
             const end = endOfWeek(date, { weekStartsOn: 1 });
             return {
                 label: `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`,
@@ -84,6 +84,7 @@ export function AllstarReportViewer({ groupId }: AllstarReportViewerProps) {
         
         const allVisits = selectedWeekLogs.flatMap(log => log.templateData?.allstar_route_sheet?.visits || []);
         
+        // Find the log with the most recent employee signature details
         const mostRecentLog = selectedWeekLogs[0];
         const employeeDetails = mostRecentLog.templateData?.allstar_route_sheet;
         
@@ -99,8 +100,9 @@ export function AllstarReportViewer({ groupId }: AllstarReportViewerProps) {
         if (!selectedWeekLogs || selectedWeekLogs.length === 0) {
             return { dateSubmitted: '', checkedBy: '', checkedDate: '', remarks: '' };
         }
-        const mostRecentLog = selectedWeekLogs[0];
-        const data = mostRecentLog.templateData?.allstar_route_sheet;
+        // Admin data could be on any log for that week, find the most recent one with data
+        const logWithAdminData = selectedWeekLogs.find(log => log.templateData?.allstar_route_sheet?.checkedBy);
+        const data = logWithAdminData?.templateData?.allstar_route_sheet;
         return {
             dateSubmitted: data?.dateSubmitted && (data.dateSubmitted as any).toDate ? format((data.dateSubmitted as any).toDate(), 'MM/dd/yyyy') : '',
             checkedBy: data?.checkedBy || '',
@@ -167,19 +169,22 @@ export function AllstarReportViewer({ groupId }: AllstarReportViewerProps) {
           toast({ title: "No Data", description: "No logs found for the selected week to save admin data against.", variant: 'destructive' });
           return;
         }
-        const mostRecentLogId = selectedWeekLogs[0].id;
+        // Save admin data against all logs for that week to ensure consistency
+        const logIds = selectedWeekLogs.map(log => log.id);
     
         startSavingAdminTransition(async () => {
-          const result = await saveAllstarAdminData({
-            logId: mostRecentLogId,
-            adminData: data,
-          });
-    
-          if (result.error) {
-            toast({ title: 'Save Failed', description: result.error, variant: 'destructive' });
-          } else {
-            toast({ title: 'Admin Fields Saved', description: 'Your changes have been saved successfully.' });
+          for (const logId of logIds) {
+            const result = await saveAllstarAdminData({
+              logId: logId,
+              adminData: data,
+            });
+      
+            if (result.error) {
+              toast({ title: 'Save Failed', description: result.error, variant: 'destructive' });
+              return; // Stop on first error
+            }
           }
+          toast({ title: 'Admin Fields Saved', description: 'Your changes have been saved successfully across all logs for the week.' });
         });
     });
     
@@ -206,10 +211,10 @@ export function AllstarReportViewer({ groupId }: AllstarReportViewerProps) {
                     <CardDescription>Select a week to view, edit, and generate a final PDF report for all submitted visits.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div>
+                    <div className="flex items-center gap-4">
                         <Label>Select a Week</Label>
                          <Select value={selectedWeek} onValueChange={setSelectedWeek}>
-                            <SelectTrigger className="w-full max-w-sm ml-4">
+                            <SelectTrigger className="w-full max-w-sm">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -243,3 +248,5 @@ export function AllstarReportViewer({ groupId }: AllstarReportViewerProps) {
         </FormProvider>
     );
 }
+
+    

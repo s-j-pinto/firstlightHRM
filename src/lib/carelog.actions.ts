@@ -66,3 +66,5 @@ export async function saveCareLog(payload: any) {
   console.error("DEPRECATED: saveCareLog server action was called but is no longer in use.");
   return { message: "This function is deprecated.", error: true };
 }
+
+    
