@@ -9,41 +9,65 @@ import { z } from 'zod';
 import { careLogSchema } from './types';
 import { parse, isValid } from 'date-fns';
 
-export async function saveAllstarAdminData(payload: { logIds: string[]; adminData: any; }) {
-    const { logIds, adminData } = payload;
+export async function saveAllstarWeeklyReport(payload: {
+    logUpdates: { logId: string; visitData: any }[];
+    adminData: any;
+}) {
+    const { logUpdates, adminData } = payload;
     const firestore = serverDb;
 
-    if (!logIds || logIds.length === 0) {
+    if (!logUpdates || logUpdates.length === 0) {
         return { error: 'No logs found for the selected week to update.' };
     }
 
     try {
         const batch = firestore.batch();
-        const updatePayload: { [key: string]: any } = {
+        const now = Timestamp.now();
+
+        // Prepare the admin data to be merged into each document
+        const adminDataToSave: { [key: string]: any } = {
             'templateData.allstar_route_sheet.checkedBy': adminData.checkedBy || null,
             'templateData.allstar_route_sheet.remarks': adminData.remarks || null,
-            lastUpdatedAt: Timestamp.now(),
         };
         
         if (adminData.dateSubmitted && /^\d{2}\/\d{2}\/\d{4}$/.test(adminData.dateSubmitted)) {
-            updatePayload['templateData.allstar_route_sheet.dateSubmitted'] = Timestamp.fromDate(parse(adminData.dateSubmitted, 'MM/dd/yyyy', new Date()));
+            adminDataToSave['templateData.allstar_route_sheet.dateSubmitted'] = Timestamp.fromDate(parse(adminData.dateSubmitted, 'MM/dd/yyyy', new Date()));
         }
         if (adminData.checkedDate && /^\d{2}\/\d{2}\/\d{4}$/.test(adminData.checkedDate)) {
-            updatePayload['templateData.allstar_route_sheet.checkedDate'] = Timestamp.fromDate(parse(adminData.checkedDate, 'MM/dd/yyyy', new Date()));
+            adminDataToSave['templateData.allstar_route_sheet.checkedDate'] = Timestamp.fromDate(parse(adminData.checkedDate, 'MM/dd/yyyy', new Date()));
         }
 
-        logIds.forEach(logId => {
+        // Iterate through each log that needs updating
+        for (const { logId, visitData } of logUpdates) {
             const logRef = firestore.collection('carelogs').doc(logId);
-            batch.update(logRef, updatePayload);
-        });
+            
+            // Prepare the visit-specific data
+            const visitDataToSave: { [key: string]: any } = {};
+            for (const key in visitData) {
+                if (key === 'serviceDate' && visitData[key] && /^\d{2}\/\d{2}\/\d{4}$/.test(visitData[key])) {
+                     visitDataToSave[`templateData.allstar_route_sheet.${key}`] = Timestamp.fromDate(parse(visitData[key], 'MM/dd/yyyy', new Date()));
+                } else {
+                     visitDataToSave[`templateData.allstar_route_sheet.${key}`] = visitData[key] || '';
+                }
+            }
+            
+            // Combine admin data, visit data, and timestamp for the update
+            const finalUpdateData = {
+                ...visitDataToSave,
+                ...adminDataToSave,
+                lastUpdatedAt: now
+            };
+            
+            batch.update(logRef, finalUpdateData);
+        }
         
         await batch.commit();
 
         revalidatePath(`/staffing-admin/reports/carelog`, 'layout');
-        return { success: true };
+        return { success: true, message: 'All changes for the week have been saved successfully.' };
 
     } catch (error: any) {
-        console.error("Error saving Allstar admin data:", error);
+        console.error("Error saving Allstar weekly report:", error);
         return { error: `An error occurred: ${error.message}` };
     }
 }

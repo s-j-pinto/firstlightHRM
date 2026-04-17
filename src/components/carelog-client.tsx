@@ -3,13 +3,13 @@
 "use client";
 
 import { useState, useMemo, useTransition, useRef, useEffect } from "react";
-import { useForm, FormProvider } from "react-hook-form";
+import { useForm, FormProvider, useFormContext } from "react-hook-form";
 import { useUser, useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { collection, query, where, addDoc, Timestamp } from "firebase/firestore";
-import { CareLogGroup, Client, CareLog, CareLogTemplate, allstarRouteSheetSchema, careLogFormSchema, careLogSchema } from "@/lib/types";
+import { CareLogGroup, Client, CareLog, CareLogTemplate, allstarVisitSchema, careLogFormSchema, careLogSchema } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { extractCareLogData } from "@/ai/flows/extract-carelog-flow";
-import { Loader2, Users, Camera, Trash2, FileText, Clock, Upload, Info, Calendar as CalendarIcon } from "lucide-react";
+import { Loader2, Users, Camera, Trash2, FileText, Clock, Upload, Info, Calendar as CalendarIcon, Edit2, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -23,9 +23,66 @@ import { useDoc } from "@/firebase/firestore/use-doc";
 import { doc } from 'firebase/firestore';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import SignatureCanvas from 'react-signature-canvas';
-import { AllstarRouteSheetForm } from "@/components/allstar-route-sheet-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DateInput } from '@/components/ui/date-input';
 
+const SignaturePadModal = ({
+    isOpen,
+    onClose,
+    onSave,
+    signatureData,
+    title
+}: {
+    isOpen: boolean;
+    onClose: () => void;
+    onSave: (dataUrl: string) => void;
+    signatureData: string | undefined | null;
+    title: string;
+}) => {
+    const sigPadRef = React.useRef<SignatureCanvas>(null);
+
+    React.useEffect(() => {
+        if (isOpen && sigPadRef.current) {
+            sigPadRef.current.clear();
+            if (signatureData) {
+                sigPadRef.current.fromDataURL(signatureData);
+            }
+        }
+    }, [isOpen, signatureData]);
+    
+    const handleClear = () => sigPadRef.current?.clear();
+    
+    const handleDone = () => {
+        if (sigPadRef.current && !sigPadRef.current.isEmpty()) {
+            onSave(sigPadRef.current.toDataURL('image/png'));
+        } else {
+             onSave(""); 
+        }
+        onClose();
+    }
+    
+    return (
+        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+            <DialogContent className="sm:max-w-[600px] h-[400px] flex flex-col p-0">
+                <DialogHeader className="p-4 border-b">
+                    <DialogTitle>{title}</DialogTitle>
+                </DialogHeader>
+                <div className="flex-grow p-2">
+                    <SignatureCanvas
+                        ref={sigPadRef}
+                        penColor='black'
+                        canvasProps={{ className: 'w-full h-full bg-white rounded-md' }}
+                    />
+                </div>
+                <div className="flex justify-between p-4 border-t">
+                    <Button type="button" variant="ghost" onClick={handleClear}><RefreshCw className="mr-2"/>Clear</Button>
+                    <Button type="button" onClick={handleDone}>Done</Button>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+};
 
 const FormattedTemplateData = ({ data }: { data: any }) => {
     if (!data) return null;
@@ -72,6 +129,15 @@ export default function CareLogClient() {
   
   const [extractedShiftDateTime, setExtractedShiftDateTime] = useState<string | null>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  
+  const [employeeDetails, setEmployeeDetails] = useState({
+      employeeName: user?.displayName || '',
+      title: undefined as 'Caregiver' | 'HCA' | undefined,
+      employeeSignature: '',
+  });
+  const [isEmployeeDetailsSet, setIsEmployeeDetailsSet] = useState(false);
+  const [activeSignature, setActiveSignature] = useState<string | null>(null);
+
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -96,7 +162,7 @@ export default function CareLogClient() {
   const isAllstarTemplate = useMemo(() => template?.subsections.includes('allstar_health_providers') || false, [template]);
 
   const form = useForm({
-    resolver: zodResolver(isAllstarTemplate ? allstarRouteSheetSchema : careLogFormSchema),
+    resolver: zodResolver(isAllstarTemplate ? allstarVisitSchema : careLogFormSchema),
     defaultValues: isAllstarTemplate ? {
         serviceDate: '',
         timeIn: '',
@@ -104,9 +170,6 @@ export default function CareLogClient() {
         patientName: '',
         patientSignature: '',
         typeOfVisit: undefined,
-        employeeName: '',
-        title: undefined,
-        employeeSignature: '',
     } : {
         logNotes: '',
     }
@@ -143,21 +206,18 @@ export default function CareLogClient() {
 
   const resetFormState = () => {
     reset(isAllstarTemplate ? {
-        serviceDate: '',
-        timeIn: '',
-        timeOut: '',
-        patientName: '',
-        patientSignature: '',
-        typeOfVisit: undefined,
-        employeeName: user?.displayName || '',
-        title: undefined,
-        employeeSignature: '',
-    } : {
-        logNotes: '',
-    });
+        serviceDate: '', timeIn: '', timeOut: '', patientName: '',
+        patientSignature: '', typeOfVisit: undefined,
+    } : { logNotes: '', });
     setScannedImage(null);
     setShowCamera(false);
     setExtractedShiftDateTime(null);
+    setIsEmployeeDetailsSet(false);
+    setEmployeeDetails({
+        employeeName: user?.displayName || '',
+        title: undefined,
+        employeeSignature: '',
+    });
   }
 
   const handleGroupSelect = (groupId: string) => {
@@ -243,6 +303,11 @@ export default function CareLogClient() {
         return;
     }
     
+    if (isAllstarTemplate && !isEmployeeDetailsSet) {
+        toast({ title: "Employee Details Required", description: "Please confirm your title and signature before submitting a visit.", variant: "destructive" });
+        return;
+    }
+
     startSubmitTransition(async () => {
         let finalShiftDateTime: Date | null = null;
         
@@ -258,23 +323,21 @@ export default function CareLogClient() {
     });
   };
   
-  const submitLog = (shiftDateTime: Date | null, formData: any) => {
+  const submitLog = (shiftDateTime: Date | null, visitData: any) => {
      if (!selectedGroup || !user || !user.email) return;
 
-     const plainFormData = JSON.parse(JSON.stringify(formData));
-     
      let templateDataPayload;
      if (isAllstarTemplate) {
-        templateDataPayload = { allstar_route_sheet: plainFormData };
+        templateDataPayload = { allstar_route_sheet: { ...visitData, ...employeeDetails } };
      } else {
-        templateDataPayload = template ? { ...plainFormData } : null;
+        templateDataPayload = template ? { ...visitData } : null;
      }
 
      const logData = {
         careLogGroupId: selectedGroup.id,
         caregiverId: user.email,
         caregiverName: user.displayName || user.email || 'Unknown Caregiver',
-        logNotes: isAllstarTemplate ? "" : plainFormData.logNotes || "",
+        logNotes: isAllstarTemplate ? "" : visitData.logNotes || "",
         templateData: templateDataPayload,
         logImages: scannedImage ? [scannedImage] : [],
         shiftDateTime: shiftDateTime ? Timestamp.fromDate(shiftDateTime) : Timestamp.now(),
@@ -298,7 +361,12 @@ export default function CareLogClient() {
       
       addDoc(colRef, validation.data).then(() => {
           toast({ title: "Success", description: "Your care log has been submitted."});
-          handleGroupSelect(selectedGroup.id);
+          // For Allstar, only reset visit-specific fields
+          if (isAllstarTemplate) {
+              reset({ serviceDate: '', timeIn: '', timeOut: '', patientName: '', patientSignature: '', typeOfVisit: undefined });
+          } else {
+              resetFormState();
+          }
       }).catch(serverError => {
           const permissionError = new FirestorePermissionError({
             path: colRef.path,
@@ -359,12 +427,90 @@ export default function CareLogClient() {
               <CardHeader>
                    <CardTitle>Post Care Log for {selectedGroup.clientName}</CardTitle>
                    <CardDescription>
-                     {isAllstarTemplate ? "Fill out the route sheet for a single patient visit." : "Add notes and scan any written documents for your shift."}
+                     {isAllstarTemplate ? "Confirm your details once, then add each visit." : "Add notes and scan any written documents for your shift."}
                    </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 {isAllstarTemplate ? (
-                    <AllstarRouteSheetForm mode="caregiver" clientName={selectedGroup.clientName} caregiverName={user?.displayName || ''} />
+                  <>
+                    <Card>
+                        <CardHeader><CardTitle>Employee Details</CardTitle></CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                                <div className="space-y-2">
+                                    <Label>Employee Name</Label>
+                                    <Input value={employeeDetails.employeeName} disabled />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Title</Label>
+                                    <Select 
+                                        onValueChange={(value) => setEmployeeDetails(prev => ({...prev, title: value as "Caregiver" | "HCA"}))} 
+                                        value={employeeDetails.title}
+                                        disabled={isEmployeeDetailsSet}
+                                    >
+                                        <SelectTrigger><SelectValue placeholder="Select a title" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Caregiver">Caregiver</SelectItem>
+                                            <SelectItem value="HCA">HCA</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Employee Signature</Label>
+                                <div className="relative rounded-md border bg-muted/30 h-24 flex items-center justify-center">
+                                    {employeeDetails.employeeSignature ? (
+                                        <Image src={employeeDetails.employeeSignature} alt="Signature" layout="fill" objectFit="contain" />
+                                    ) : <span className="text-muted-foreground">Not Signed</span>}
+                                    {!isEmployeeDetailsSet && (
+                                        <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => setActiveSignature('employee')}>
+                                            <Edit2 className="h-4 w-4" />
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                             {!isEmployeeDetailsSet ? (
+                                <Button type="button" onClick={() => {
+                                    if(employeeDetails.title && employeeDetails.employeeSignature) {
+                                        setIsEmployeeDetailsSet(true);
+                                        toast({ title: "Details Confirmed", description: "You can now add visits." });
+                                    } else {
+                                        toast({ title: "Incomplete Details", description: "Please provide both title and signature.", variant: "destructive" });
+                                    }
+                                }}>Confirm Details</Button>
+                            ) : (
+                                <div className="flex items-center gap-2 text-green-600">
+                                    <CheckCircle className="h-5 w-5"/>
+                                    <p>Your details are confirmed for this session.</p>
+                                    <Button variant="link" size="sm" onClick={() => setIsEmployeeDetailsSet(false)}>(Edit)</Button>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {isEmployeeDetailsSet && (
+                         <div className="space-y-6 pt-4 border-t">
+                            <h3 className="text-lg font-semibold">Add a Visit</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <FormField control={control} name="serviceDate" render={({ field }) => ( <FormItem><FormLabel>Service Date</FormLabel><FormControl><DateInput {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                <FormField control={control} name="timeIn" render={({ field }) => ( <FormItem><FormLabel>Time In</FormLabel><FormControl><Input type="time" {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem> )} />
+                                <FormField control={control} name="timeOut" render={({ field }) => ( <FormItem><FormLabel>Time Out</FormLabel><FormControl><Input type="time" {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem> )} />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                                <FormField control={control} name="patientName" render={({ field }) => ( <FormItem><FormLabel>Patient Name</FormLabel><FormControl><Input {...field} value={selectedGroup?.clientName || ''} readOnly /></FormControl><FormMessage /></FormItem> )} />
+                                <FormField control={control} name="typeOfVisit" render={({ field }) => ( <FormItem><FormLabel>Type of Visit</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select visit type" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Follow-up">Follow-up</SelectItem><SelectItem value="SOC">SOC</SelectItem><SelectItem value="ROC">ROC</SelectItem><SelectItem value="Recert">Recert</SelectItem><SelectItem value="Discharge">Discharge</SelectItem></SelectContent></Select><FormMessage /></FormItem> )} />
+                                <div className="space-y-2">
+                                    <Label>Patient/PCG Signature</Label>
+                                    <div className="relative rounded-md border bg-muted/30 h-24 flex items-center justify-center">
+                                        {form.watch('patientSignature') ? ( <Image src={form.watch('patientSignature')!} alt="Signature" layout="fill" objectFit="contain" /> ) : <span className="text-muted-foreground">Not Signed</span>}
+                                        <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => setActiveSignature('patient')}><Edit2 className="h-4 w-4" /></Button>
+                                    </div>
+                                    <FormMessage>{form.formState.errors.patientSignature?.message}</FormMessage>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                  </>
                 ) : (
                     <>
                         {showCamera ? (
@@ -413,7 +559,7 @@ export default function CareLogClient() {
                 )}
                 
                   <div className="flex justify-end pt-4">
-                      <Button type="submit" disabled={isSubmitting || isExtracting}>
+                      <Button type="submit" disabled={isSubmitting || isExtracting || (isAllstarTemplate && !isEmployeeDetailsSet)}>
                           {isSubmitting || isExtracting ? (
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           ) : (
@@ -427,6 +573,22 @@ export default function CareLogClient() {
         </form>
         </FormProvider>
       )}
+      
+      <Dialog open={!!activeSignature} onOpenChange={() => setActiveSignature(null)}>
+        <SignaturePadModal
+            isOpen={!!activeSignature}
+            onClose={() => setActiveSignature(null)}
+            onSave={(dataUrl) => {
+                if (activeSignature === 'employee') {
+                    setEmployeeDetails(prev => ({...prev, employeeSignature: dataUrl}));
+                } else if (activeSignature === 'patient') {
+                    setValue('patientSignature', dataUrl, { shouldValidate: true, shouldDirty: true });
+                }
+            }}
+            signatureData={activeSignature === 'employee' ? employeeDetails.employeeSignature : form.getValues('patientSignature')}
+            title={activeSignature === 'employee' ? 'Employee Signature' : 'Patient/PCG Signature'}
+        />
+       </Dialog>
 
       {selectedGroup && (
         <Card>
@@ -460,7 +622,9 @@ export default function CareLogClient() {
                             {log.logImages && log.logImages.length > 0 && (
                               <div className="flex gap-4 pt-2">
                                 {log.logImages.map((img, index) => (
-                                    <Image key={index} src={img} alt={`Log image ${index+1}`} width={200} height={150} className="rounded-md border object-cover" />
+                                    <a key={index} href={img} target="_blank" rel="noopener noreferrer">
+                                        <Image src={img} alt={`Log image ${index + 1}`} width={200} height={150} className="rounded-md border object-cover hover:opacity-80 transition-opacity" />
+                                    </a>
                                 ))}
                               </div>
                             )}
