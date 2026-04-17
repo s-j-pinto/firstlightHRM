@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from "react";
@@ -36,28 +37,29 @@ type AdminFormData = z.infer<typeof adminFormSchema>;
 
 const safeFormatDateFromFirestore = (dateValue: any): string => {
     if (!dateValue) return '';
-     // Handle Firestore Timestamp object with toDate method
-    if (dateValue.toDate && typeof dateValue.toDate === 'function') {
-        return format(dateValue.toDate(), 'MM/dd/yyyy');
-    }
-    // Handle plain object with seconds/nanoseconds (from client-side Firestore)
-    if (typeof dateValue === 'object' && 'seconds' in dateValue && 'nanoseconds' in dateValue) {
-        return format(new Date(dateValue.seconds * 1000 + dateValue.nanoseconds / 1000000), 'MM/dd/yyyy');
-    }
-    // Handle standard JS Date object
-    if (isDate(dateValue)) {
-        return format(dateValue, 'MM/dd/yyyy');
-    }
-    // If it's already a formatted string, return it as is.
-    if (typeof dateValue === 'string') {
-        // Attempt to parse it in case it's an ISO string
-        const parsed = parse(dateValue, 'yyyy-MM-dd', new Date());
-        if(isValid(parsed)) return format(parsed, 'MM/dd/yyyy');
-        return dateValue; // Assume it's already formatted
-    }
-    return ''; // Return empty for unknown formats
-};
+    
+    let date: Date | null = null;
 
+    if (dateValue.toDate && typeof dateValue.toDate === 'function') {
+        date = dateValue.toDate();
+    } else if (typeof dateValue === 'object' && 'seconds' in dateValue && 'nanoseconds' in dateValue) {
+        date = new Date(dateValue.seconds * 1000 + dateValue.nanoseconds / 1000000);
+    } else if (isDate(dateValue)) {
+        date = dateValue;
+    } else if (typeof dateValue === 'string') {
+        const parsed = parse(dateValue, 'yyyy-MM-dd', new Date());
+        if (isValid(parsed)) {
+            date = parsed;
+        } else {
+             const parsed2 = parse(dateValue, 'MM/dd/yyyy', new Date());
+             if (isValid(parsed2)) {
+                date = parsed2;
+             }
+        }
+    }
+    
+    return date && isValid(date) ? format(date, 'MM/dd/yyyy') : '';
+};
 
 export function AllstarReportViewer({ groupId }: AllstarReportViewerProps) {
     const { toast } = useToast();
@@ -98,7 +100,6 @@ export function AllstarReportViewer({ groupId }: AllstarReportViewerProps) {
         return allCaregiversData.filter(cg => caregiverEmailSet.has(cg.Email) && cg.status === 'Active');
     }, [groupData, allCaregiversData]);
     
-    // Effect to select the first caregiver by default
     React.useEffect(() => {
         if (caregiversInGroup.length > 0 && !selectedCaregiverEmail) {
             setSelectedCaregiverEmail(caregiversInGroup[0].Email);
@@ -192,39 +193,16 @@ export function AllstarReportViewer({ groupId }: AllstarReportViewerProps) {
                 ...formData
             };
             
-            // Debugging: Check for undefined fields
-            const undefinedFields: string[] = [];
-            Object.entries(payloadForPdf).forEach(([key, value]) => {
-                if (value === undefined) {
-                    undefinedFields.push(key);
-                }
-            });
-            if (payloadForPdf.visits) {
-                payloadForPdf.visits.forEach((visit: any, index: number) => {
-                    Object.entries(visit).forEach(([key, value]) => {
-                        if (value === undefined) {
-                            undefinedFields.push(`visits[${index}].${key}`);
-                        }
-                    });
-                });
-            }
-
-            if (undefinedFields.length > 0) {
-                toast({
-                    title: "PDF Generation Error: Undefined Data",
-                    description: `The following fields have an undefined value which is causing the error: ${undefinedFields.join(", ")}`,
-                    variant: "destructive",
-                    duration: 20000,
-                });
-                return;
-            }
-
-
             try {
                 const result = await generateAllstarWeeklyReportPdf(payloadForPdf);
 
                 if (result.error) {
-                    toast({ title: 'PDF Generation Failed', description: result.error, variant: 'destructive' });
+                    toast({ 
+                        title: 'PDF Generation Failed', 
+                        description: result.error, 
+                        variant: 'destructive',
+                        duration: 20000, // Show error for longer
+                    });
                 } else if (result.pdfData) {
                     const byteCharacters = atob(result.pdfData);
                     const byteNumbers = new Array(byteCharacters.length);
@@ -239,7 +217,7 @@ export function AllstarReportViewer({ groupId }: AllstarReportViewerProps) {
                     toast({ title: 'PDF Generation Failed', description: 'An unknown server error occurred during PDF generation', variant: 'destructive' });
                 }
             } catch (e: any) {
-                toast({ title: 'PDF Generation Failed', description: `A client-side error occurred: ${e.message}`, variant: 'destructive' });
+                toast({ title: 'PDF Generation Error', description: `An unexpected client-side error occurred: ${e.message}`, variant: 'destructive' });
             }
         });
     };
