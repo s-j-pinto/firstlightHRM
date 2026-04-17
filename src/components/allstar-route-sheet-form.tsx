@@ -1,14 +1,15 @@
 
+
 'use client';
 
 import * as React from "react";
-import { useFormContext, useFieldArray } from 'react-hook-form';
+import { useFormContext } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { DateInput } from '@/components/ui/date-input';
-import { PlusCircle, Trash2, Edit2, RefreshCw } from 'lucide-react';
+import { Edit2, RefreshCw } from 'lucide-react';
 import SignatureCanvas from 'react-signature-canvas';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import Image from 'next/image';
@@ -77,8 +78,8 @@ const SignaturePadModal = ({
     );
 };
 
-const SignatureField = ({ fieldName, title, disabled }: { fieldName: `visits.${number}.patientSignature` | 'employeeSignature'; title: string; disabled: boolean; }) => {
-    const { watch, setValue } = useFormContext();
+const SignatureField = ({ fieldName, title, disabled }: { fieldName: 'patientSignature' | 'employeeSignature'; title: string; disabled: boolean; }) => {
+    const { watch, setValue, formState: { errors } } = useFormContext();
     const signatureData = watch(fieldName);
     const [isModalOpen, setIsModalOpen] = React.useState(false);
 
@@ -119,11 +120,7 @@ const SignatureField = ({ fieldName, title, disabled }: { fieldName: `visits.${n
 
 
 export const AllstarRouteSheetForm = ({ mode, clientName, caregiverName }: AllstarRouteSheetFormProps) => {
-  const { control, setValue, getValues } = useFormContext();
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: "visits",
-  });
+  const { control, setValue } = useFormContext();
   
   React.useEffect(() => {
     if (caregiverName) {
@@ -131,107 +128,93 @@ export const AllstarRouteSheetForm = ({ mode, clientName, caregiverName }: Allst
     }
   }, [caregiverName, setValue]);
 
+  React.useEffect(() => {
+    if (clientName && mode === 'caregiver') {
+        setValue('patientName', clientName);
+    }
+  }, [clientName, mode, setValue]);
+
   const isAdmin = mode === 'admin';
 
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-semibold">Visits</h3>
-      <div className="space-y-4">
-        {fields.map((field, index) => (
-          <div key={field.id} className="p-4 border rounded-lg space-y-4 relative">
-             <Button
-                type="button"
-                variant="destructive"
-                size="icon"
-                className="absolute top-2 right-2 h-7 w-7"
-                onClick={() => remove(index)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <FormField
+        <h3 className="text-lg font-semibold">Visit Details</h3>
+        <div className="p-4 border rounded-lg space-y-4 relative">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <FormField
+            control={control}
+            name="serviceDate"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Service Date</FormLabel>
+                <FormControl><DateInput name="serviceDate" /></FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+            <FormField
+            control={control}
+            name="timeIn"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Time In</FormLabel>
+                <FormControl><Input type="time" {...field} value={field.value || ''} /></FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+            <FormField
+            control={control}
+            name="timeOut"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Time Out</FormLabel>
+                <FormControl><Input type="time" {...field} value={field.value || ''} /></FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <FormField
                 control={control}
-                name={`visits.${index}.serviceDate`}
-                render={() => (
-                  <FormItem>
-                    <FormLabel>Service Date</FormLabel>
-                    <FormControl><DateInput name={`visits.${index}.serviceDate`} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={control}
-                name={`visits.${index}.timeIn`}
+                name="patientName"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Time In</FormLabel>
-                    <FormControl><Input type="time" {...field} /></FormControl>
+                <FormItem>
+                    <FormLabel>Patient Name</FormLabel>
+                    <FormControl><Input {...field} value={field.value || ''}/></FormControl>
                     <FormMessage />
-                  </FormItem>
+                </FormItem>
                 )}
-              />
-              <FormField
-                control={control}
-                name={`visits.${index}.timeOut`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Time Out</FormLabel>
-                    <FormControl><Input type="time" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            />
                 <FormField
-                    control={control}
-                    name={`visits.${index}.patientName`}
-                    render={({ field }) => (
+                control={control}
+                name="typeOfVisit"
+                render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Patient Name</FormLabel>
-                        <FormControl><Input {...field} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={control}
-                    name={`visits.${index}.typeOfVisit`}
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Type of Visit</FormLabel>
-                         <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select visit type" />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                <SelectItem value="Follow-up">Follow-up</SelectItem>
-                                <SelectItem value="SOC">SOC</SelectItem>
-                                <SelectItem value="ROC">ROC</SelectItem>
-                                <SelectItem value="Recert">Recert</SelectItem>
-                                <SelectItem value="Discharge">Discharge</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                <SignatureField fieldName={`visits.${index}.patientSignature`} title="Patient/PCG Signature" disabled={!isAdmin} />
-            </div>
-          </div>
-        ))}
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => append({ serviceDate: '', timeIn: '', timeOut: '', patientName: clientName || '', patientSignature: '', typeOfVisit: '' })}
-        >
-          <PlusCircle className="mr-2" /> Add Visit
-        </Button>
-      </div>
-
+                    <FormLabel>Type of Visit</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ''}>
+                        <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select visit type" />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            <SelectItem value="Follow-up">Follow-up</SelectItem>
+                            <SelectItem value="SOC">SOC</SelectItem>
+                            <SelectItem value="ROC">ROC</SelectItem>
+                            <SelectItem value="Recert">Recert</SelectItem>
+                            <SelectItem value="Discharge">Discharge</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+            <SignatureField fieldName="patientSignature" title="Patient/PCG Signature" disabled={mode !== 'caregiver'} />
+        </div>
+        </div>
+      
       <div className="space-y-4 border-t pt-6">
         <h3 className="text-lg font-semibold">Employee Details</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
@@ -242,7 +225,7 @@ export const AllstarRouteSheetForm = ({ mode, clientName, caregiverName }: Allst
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>Employee Name</FormLabel>
-                        <FormControl><Input {...field} disabled={!isAdmin} /></FormControl>
+                        <FormControl><Input {...field} value={field.value || ''} disabled={!isAdmin} /></FormControl>
                         <FormMessage />
                     </FormItem>
                     )}
@@ -253,7 +236,7 @@ export const AllstarRouteSheetForm = ({ mode, clientName, caregiverName }: Allst
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Title</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value} disabled={!isAdmin}>
+                        <Select onValueChange={field.onChange} value={field.value || ''} disabled={!isAdmin}>
                             <FormControl>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select a title" />
@@ -269,7 +252,7 @@ export const AllstarRouteSheetForm = ({ mode, clientName, caregiverName }: Allst
                     )}
                 />
             </div>
-            <SignatureField fieldName="employeeSignature" title="Employee Signature" disabled={!isAdmin} />
+            <SignatureField fieldName="employeeSignature" title="Employee Signature" disabled={mode !== 'caregiver'} />
         </div>
       </div>
       
@@ -280,7 +263,7 @@ export const AllstarRouteSheetForm = ({ mode, clientName, caregiverName }: Allst
                 <FormField
                     control={control}
                     name="dateSubmitted"
-                    render={() => (
+                    render={({ field }) => (
                     <FormItem>
                         <FormLabel>Date Submitted</FormLabel>
                         <FormControl><DateInput name="dateSubmitted" /></FormControl>
@@ -294,7 +277,7 @@ export const AllstarRouteSheetForm = ({ mode, clientName, caregiverName }: Allst
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>Checked By</FormLabel>
-                        <FormControl><Input {...field} /></FormControl>
+                        <FormControl><Input {...field} value={field.value || ''} /></FormControl>
                         <FormMessage />
                     </FormItem>
                     )}
@@ -302,7 +285,7 @@ export const AllstarRouteSheetForm = ({ mode, clientName, caregiverName }: Allst
                  <FormField
                     control={control}
                     name="checkedDate"
-                    render={() => (
+                    render={({ field }) => (
                     <FormItem>
                         <FormLabel>Checked Date</FormLabel>
                         <FormControl><DateInput name="checkedDate" /></FormControl>
@@ -317,7 +300,7 @@ export const AllstarRouteSheetForm = ({ mode, clientName, caregiverName }: Allst
                 render={({ field }) => (
                 <FormItem>
                     <FormLabel>Remarks</FormLabel>
-                    <FormControl><Textarea {...field} rows={3} /></FormControl>
+                    <FormControl><Textarea {...field} rows={3} value={field.value || ''} /></FormControl>
                     <FormMessage />
                 </FormItem>
                 )}

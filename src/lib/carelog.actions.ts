@@ -1,4 +1,5 @@
 
+
 "use server";
 
 import { revalidatePath } from 'next/cache';
@@ -8,37 +9,35 @@ import { z } from 'zod';
 import { careLogSchema } from './types';
 import { parse, isValid } from 'date-fns';
 
-export async function saveAllstarAdminData(payload: { logId: string; adminData: any; }) {
-    const { logId, adminData } = payload;
+export async function saveAllstarAdminData(payload: { logIds: string[]; adminData: any; }) {
+    const { logIds, adminData } = payload;
     const firestore = serverDb;
 
-    try {
-        const logRef = firestore.collection('carelogs').doc(logId);
-        
-        const updatePayload: { [key: string]: any } = {};
+    if (!logIds || logIds.length === 0) {
+        return { error: 'No logs found for the selected week to update.' };
+    }
 
-        // Flatten the data to update specific fields in the nested object
-        for (const [key, value] of Object.entries(adminData)) {
-            if (key === 'visits') {
-                // For visits array, handle date conversion for each visit
-                const visitsWithTimestamps = (value as any[]).map(visit => {
-                    const { serviceDate, ...rest } = visit;
-                    if (serviceDate && typeof serviceDate === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(serviceDate)) {
-                        return { ...rest, serviceDate: Timestamp.fromDate(parse(serviceDate, 'MM/dd/yyyy', new Date())) };
-                    }
-                    return visit; // Return as is if date is invalid or not a string
-                });
-                 updatePayload['templateData.allstar_route_sheet.visits'] = visitsWithTimestamps;
-            }
-            else if ((key === 'dateSubmitted' || key === 'checkedDate') && value && typeof value === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
-                updatePayload[`templateData.allstar_route_sheet.${key}`] = Timestamp.fromDate(parse(value, 'MM/dd/yyyy', new Date()));
-            } else {
-                updatePayload[`templateData.allstar_route_sheet.${key}`] = value;
-            }
-        }
-        updatePayload['lastUpdatedAt'] = Timestamp.now();
+    try {
+        const batch = firestore.batch();
+        const updatePayload: { [key: string]: any } = {
+            'templateData.allstar_route_sheet.checkedBy': adminData.checkedBy || null,
+            'templateData.allstar_route_sheet.remarks': adminData.remarks || null,
+            lastUpdatedAt: Timestamp.now(),
+        };
         
-        await logRef.update(updatePayload);
+        if (adminData.dateSubmitted && /^\d{2}\/\d{2}\/\d{4}$/.test(adminData.dateSubmitted)) {
+            updatePayload['templateData.allstar_route_sheet.dateSubmitted'] = Timestamp.fromDate(parse(adminData.dateSubmitted, 'MM/dd/yyyy', new Date()));
+        }
+        if (adminData.checkedDate && /^\d{2}\/\d{2}\/\d{4}$/.test(adminData.checkedDate)) {
+            updatePayload['templateData.allstar_route_sheet.checkedDate'] = Timestamp.fromDate(parse(adminData.checkedDate, 'MM/dd/yyyy', new Date()));
+        }
+
+        logIds.forEach(logId => {
+            const logRef = firestore.collection('carelogs').doc(logId);
+            batch.update(logRef, updatePayload);
+        });
+        
+        await batch.commit();
 
         revalidatePath(`/staffing-admin/reports/carelog`, 'layout');
         return { success: true };
@@ -66,5 +65,3 @@ export async function saveCareLog(payload: any) {
   console.error("DEPRECATED: saveCareLog server action was called but is no longer in use.");
   return { message: "This function is deprecated.", error: true };
 }
-
-    

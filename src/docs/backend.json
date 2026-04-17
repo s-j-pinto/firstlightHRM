@@ -1,6 +1,20 @@
 
+
 {
   "entities": {
+    "AllstarVisit": {
+      "title": "AllstarVisit",
+      "type": "object",
+      "description": "A single visit entry for an Allstar Route Sheet.",
+      "properties": {
+        "serviceDate": { "type": "string", "format": "date" },
+        "timeIn": { "type": "string" },
+        "timeOut": { "type": "string" },
+        "patientName": { "type": "string" },
+        "patientSignature": { "type": "string", "contentEncoding": "base64" },
+        "typeOfVisit": { "type": "string", "enum": ["Follow-up", "SOC", "ROC", "Recert", "Discharge"] }
+      }
+    },
     "InitialContact": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "title": "InitialContact",
@@ -225,6 +239,20 @@
         },
         "hasCar": { "type": "string", "enum": ["yes", "no"] },
         "validLicense": { "type": "string", "enum": ["yes", "no"] },
+        "emergencyContact1_name": { "type": "string" },
+        "emergencyContact1_relation": { "type": "string" },
+        "emergencyContact1_phone": { "type": "string" },
+        "emergencyContact1_address": { "type": "string" },
+        "emergencyContact1_city": { "type": "string" },
+        "emergencyContact1_state": { "type": "string" },
+        "emergencyContact1_zip": { "type": "string" },
+        "emergencyContact2_name": { "type": "string" },
+        "emergencyContact2_relation": { "type": "string" },
+        "emergencyContact2_phone": { "type": "string" },
+        "emergencyContact2_address": { "type": "string" },
+        "emergencyContact2_city": { "type": "string" },
+        "emergencyContact2_state": { "type": "string" },
+        "emergencyContact2_zip": { "type": "string" },
         "perId": { "type": "string", "description": "Employee’s PER ID" },
         "hireDate": { "type": "string", "format": "date-time" },
         "separationDate": { "type": "string", "format": "date-time" },
@@ -238,14 +266,6 @@
         "hcs501Notes": { "type": "string" },
         "hcs501EmployeeSignature": { "type": "string", "contentEncoding": "base64" },
         "hcs501SignatureDate": { "type": "string", "format": "date-time" },
-        "emergencyContact1_name": { "type": "string" },
-        "emergencyContact1_phone": { "type": "string" },
-        "emergencyContact1_address": { "type": "string" },
-        "emergencyContact1_cityStateZip": { "type": "string" },
-        "emergencyContact2_name": { "type": "string" },
-        "emergencyContact2_phone": { "type": "string" },
-        "emergencyContact2_address": { "type": "string" },
-        "emergencyContact2_cityStateZip": { "type": "string" },
         "convictedInCalifornia": { "type": "string", "enum": ["yes", "no"] },
         "convictedOutOfState": { "type": "string", "enum": ["yes", "no"] },
         "livedOutOfStateLast5Years": { "type": "string", "enum": ["yes", "no"] },
@@ -266,6 +286,16 @@
         "hasCar",
         "validLicense"
       ]
+    },
+     "OnboardingSignatures": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "OnboardingSignatures",
+      "type": "object",
+      "description": "Stores signatures for various onboarding forms to avoid bloating the main caregiver profile.",
+      "properties": {
+        "emergencyProcedureSignature": { "type": "string", "contentEncoding": "base64" },
+        "emergencyProcedureSignatureDate": { "type": "string", "format": "date-time" }
+      }
     },
     "AppointmentSlot": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -441,7 +471,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "CareLog",
       "type": "object",
-      "description": "Stores a single care log entry from a caregiver for a specific client group.",
+      "description": "Stores a single care log entry from a caregiver for a specific client group. For an Allstar Routesheet, the templateData field will contain a single visit's information under the 'allstar_route_sheet' key.",
       "properties": {
         "careLogGroupId": { "type": "string", "description": "The document ID of the linked CareLogGroup." },
         "caregiverId": { "type": "string", "format": "email", "description": "The email of the caregiver who submitted the log." },
@@ -581,6 +611,10 @@
       "schema": { "$ref": "#/entities/CaregiverProfile" },
       "description": "Stores caregiver profile information."
     },
+     "/caregiver_profiles/{caregiverProfileId}/signatures/{docId}": {
+      "schema": { "$ref": "#/entities/OnboardingSignatures" },
+      "description": "Stores signatures from onboarding documents."
+    },
     "/appointments/{appointmentId}": {
       "schema": { "$ref": "#/entities/AppointmentSlot" },
       "description": "Stores appointment slots for interviews."
@@ -615,7 +649,7 @@
     },
     "/carelogs/{logId}": {
       "schema": { "$ref": "#/entities/CareLog" },
-      "description": "Stores individual care log entries submitted by caregivers."
+      "description": "Stores individual care log entries submitted by caregivers. Each document represents one entry or visit."
     },
     "/client_additional_care_requests/{requestId}": {
       "schema": { "$ref": "#/entities/ClientCareRequest" },
@@ -643,3 +677,6 @@
     }
   }
 }
+      
+
+    

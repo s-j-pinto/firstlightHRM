@@ -31,6 +31,7 @@ export const requiredDateString = z.string()
     message: "Invalid date. Please use MM/DD/YYYY format.",
   });
   
+// This now represents a single visit within the Allstar route sheet context.
 export const allstarVisitSchema = z.object({
   serviceDate: dateString,
   timeIn: z.string().optional(),
@@ -41,11 +42,13 @@ export const allstarVisitSchema = z.object({
 });
 export type AllstarVisit = z.infer<typeof allstarVisitSchema>;
 
-export const allstarRouteSheetSchema = z.object({
-  visits: z.array(allstarVisitSchema).optional(),
+// The main schema for the Allstar template now directly contains fields for a single visit,
+// plus the employee details that are consistent across all visits in a submission session.
+export const allstarRouteSheetSchema = allstarVisitSchema.extend({
   employeeName: z.string().optional(),
   title: z.enum(["Caregiver", "HCA"]).optional(),
   employeeSignature: z.string().optional(),
+  // Admin fields that will be duplicated across logs for a week upon saving.
   dateSubmitted: dateString,
   checkedBy: z.string().optional(),
   checkedDate: dateString,
@@ -621,23 +624,26 @@ export const careLogGroupSchema = z.object({
 
 export type CareLogGroup = z.infer<typeof careLogGroupSchema> & { id: string };
 
-export const careLogSchema = z.object({
+const careLogBaseSchema = z.object({
   careLogGroupId: z.string(),
   caregiverId: z.string().email("Caregiver ID must be a valid email."),
   caregiverName: z.string(),
   shiftDateTime: z.any().optional(),
   shiftEndDateTime: z.any().optional(),
   logNotes: z.string().optional(),
-  templateData: z.any().optional(),
   logImages: z.array(z.string()).optional(), // Array of data URIs
   createdAt: z.any(),
   lastUpdatedAt: z.any(),
+});
+
+export const careLogSchema = careLogBaseSchema.extend({
+  templateData: z.any().optional(),
 }).refine(data => data.logNotes || data.templateData, {
   message: "Either log notes or template data must be provided.",
   path: ["logNotes"],
 });
-
 export type CareLog = z.infer<typeof careLogSchema> & { id: string };
+
 
 export const clientCareRequestSchema = z.object({
     clientId: z.string(),
