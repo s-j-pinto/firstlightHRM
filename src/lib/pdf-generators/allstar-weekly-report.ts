@@ -15,13 +15,24 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
         const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/CareLogs%2FLogo%2FAll_star_logo.png?alt=media&token=101b4a06-9c40-4011-9abb-6773926727c1";
         const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer());
         const logoImage = await pdfDoc.embedPng(logoImageBytes);
-        const logoDims = logoImage.scale(0.35);
+        const logoDims = logoImage.scale(0.7);
 
         let y = height - 40;
         const leftMargin = 40;
         const contentWidth = width - (leftMargin * 2);
-
+        
         // --- Header ---
+        const headerTopY = y + 10;
+        const headerHeight = logoDims.height + 20;
+        page.drawRectangle({
+            x: leftMargin - 5,
+            y: headerTopY - headerHeight,
+            width: contentWidth + 10,
+            height: headerHeight,
+            borderColor: rgb(0,0,0),
+            borderWidth: 1
+        });
+
         // Column 1: Logo
         page.drawImage(logoImage, {
             x: leftMargin,
@@ -43,7 +54,7 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
         // Column 3: Title
         const headerRightText = "ROUTE SHEET, PATIENT ACKNOWLEDGEMENT, AND\nSTAFF CERTIFICATION OF SERVICES RENDERED";
         drawText(page, headerRightText, {
-            x: 380,
+            x: 304,
             y: y - 10,
             font: boldFont,
             size: 10,
