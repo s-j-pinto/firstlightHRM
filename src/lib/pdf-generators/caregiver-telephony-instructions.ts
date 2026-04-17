@@ -34,12 +34,12 @@ export async function generateCaregiverTelephonyInstructionsPdf(formData: any): 
 
         const instructions = [
             "- Step 1 From the Clients Telephone call the Clock In number. 866-425-8463",
-            `- Step 2 Input your 4-digit TeleTrack ID Number ${formData.teletrackPin || '____'} (provided by your oﬃce)`,
+            `- Step 2 Input your 4-digit TeleTrack ID Number ${formData.teletrackPin || '____'} (provided by your office)`,
             "- Step 3 Input your work status:",
             "  - Press 1, for arrival and then hang up",
             "  - Press 2, for departure and then go to Step 4",
             "- Step 4 Entering Activity Codes – Only prompted when departing. N/A To enter Activity Codes enter the 3-digit code associated with the task you completed and press #, the system will prompt you to enter your next Activity Code. When you have entered all Activity Codes for task completed during this visit press * then #. This will give you confirmation of a successful departure.",
-            "Activity Codes (provided by your oﬃce)",
+            "Activity Codes (provided by your office)",
         ];
 
         instructions.forEach(line => {
@@ -60,5 +60,3 @@ export async function generateCaregiverTelephonyInstructionsPdf(formData: any): 
         return { error: `Failed to generate PDF: ${error.message}` };
     }
 }
-
-    
