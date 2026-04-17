@@ -12,10 +12,10 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
         const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-        const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/CareLogs%2FLogo%2FAll_star_logo.png?alt=media&token=101b4a06-9c40-4011-9abb-6773926727c1";
+        const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/CareLogs%2FLogo%2FAll_star_logo.png?alt=media&token=44b7cda1-36eb-4b97-91ca-1fca1a053993";
         const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer());
         const logoImage = await pdfDoc.embedPng(logoImageBytes);
-        const logoDims = logoImage.scale(1);
+        const logoDims = logoImage.scale(0.85); // Reduced size by 15%
 
         let y = height - 40;
         const leftMargin = 40;
@@ -41,23 +41,23 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
             height: logoDims.height,
         });
 
-        // Column 2: Address
+        // Column 2: Address (Moved 20% to left)
         const addressText = "Allstar Health Providers, Inc.\n10722 Arrow Route Suite 218\nRancho Cucamonga CA 91730\nTel. No. (909) 945-9899; Fax No. (909) 945-9799";
         drawText(page, addressText, {
-            x: leftMargin + logoDims.width + 10,
+            x: leftMargin + logoDims.width - 40, // Shifted left
             y: y,
             font: font,
             size: 9,
             lineHeight: 11
         });
 
-        // Column 3: Title
+        // Column 3: Title (Font smaller, moved right)
         const headerRightText = "ROUTE SHEET, PATIENT ACKNOWLEDGEMENT, AND\nSTAFF CERTIFICATION OF SERVICES RENDERED";
         drawText(page, headerRightText, {
-            x: width - leftMargin - 280,
+            x: width - leftMargin - 260, // Shifted right
             y: y - 10,
             font: boldFont,
-            size: 10,
+            size: 9, // Reduced font size by 1 notch
             lineHeight: 12
         });
         y -= logoDims.height + 15;
@@ -77,14 +77,14 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
 
         // --- Table ---
         const tableTop = y;
-        const colWidths = [90, 50, 50, 140, 100, 75]; // Adjusted widths
+        const colWidths = [90, 50, 50, 140, 100, 75];
         const colStarts = [
             leftMargin,
-            leftMargin + colWidths[0], // 130
-            leftMargin + colWidths[0] + colWidths[1], // 180
-            leftMargin + colWidths[0] + colWidths[1] + colWidths[2], // 230
-            leftMargin + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3], // 370
-            leftMargin + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4], // 470
+            leftMargin + colWidths[0], 
+            leftMargin + colWidths[0] + colWidths[1], 
+            leftMargin + colWidths[0] + colWidths[1] + colWidths[2], 
+            leftMargin + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3], 
+            leftMargin + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4],
         ];
 
         // Headers
@@ -129,25 +129,38 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
         y = tableBottom - 20;
         
         const certTitle = "Staff certification of service provided:";
-        drawText(page, certTitle, { x: leftMargin, y, font: boldFont, size: 9 });
-        const titleWidth = boldFont.widthOfTextAtSize(certTitle, 9);
+        drawText(page, certTitle, { x: leftMargin, y, font: boldFont, size: 10 });
+        const titleWidth = boldFont.widthOfTextAtSize(certTitle, 10);
         page.drawLine({ start: { x: leftMargin, y: y - 2 }, end: { x: leftMargin + titleWidth, y: y - 2 }, thickness: 0.8 });
-        y -= 22; // Added more space after the title
+        y -= 22;
 
-        const certBody1 = "I certify that, I have provided home health services to this patient on the date and time indicated above. The patient was not hospitalized or otherwise unavailable when the services was provided. The patient signature indicates that the service was provided is authentic. I understand that I must submit visit notes, route sheets and other required documentation within";
+        const certBody1 = "I certify that, I have provided home health services to this patient on the date and time indicated above. The patient was not hospitalized or otherwise unavailable when the services was provided. The patient signature indicates that the service was provided is authentic. I understand that I must submit visit notes, route sheets and other required documentation within ";
         const certBody2 = "5 (FIVE) DAYS from the VISIT.";
         
-        // Draw the first part of the text, which may wrap.
         y = drawWrappedText(page, certBody1, font, 9, leftMargin, y, contentWidth, 11);
-        
-        // Draw the second, emphasized part on the next available line.
+        y -= 11;
         drawText(page, certBody2, { x: leftMargin, y, font: boldFont, size: 9 });
         const body2Width = boldFont.widthOfTextAtSize(certBody2, 9);
         page.drawLine({ start: { x: leftMargin, y: y - 2 }, end: { x: leftMargin + body2Width, y: y - 2 }, thickness: 0.8 });
         y -= 25;
 
-        drawText(page, `Employee Name: ${data.employeeName || ''}`, { x: leftMargin, y, font, size: 9 });
-        drawText(page, `Title: ${data.title || ''}`, { x: leftMargin + 250, y, font, size: 9 });
+        // Employee Name and Title with underlines
+        const empNameLabel = 'Employee Name: ';
+        const empNameValue = data.employeeName || '';
+        const empNameXStart = leftMargin + font.widthOfTextAtSize(empNameLabel, 9);
+        const empNameValueWidth = font.widthOfTextAtSize(empNameValue, 9);
+        drawText(page, empNameLabel, { x: leftMargin, y, font, size: 9 });
+        drawText(page, empNameValue, { x: empNameXStart, y, font, size: 9 });
+        page.drawLine({ start: { x: empNameXStart, y: y - 2 }, end: { x: empNameXStart + empNameValueWidth + 20, y: y - 2 }, thickness: 0.5 });
+
+        const titleLabel = 'Title: ';
+        const titleValue = data.title || '';
+        const titleXStart = leftMargin + 250 + font.widthOfTextAtSize(titleLabel, 9);
+        const titleValueWidth = font.widthOfTextAtSize(titleValue, 9);
+        drawText(page, titleLabel, { x: leftMargin + 250, y, font, size: 9 });
+        drawText(page, titleValue, { x: titleXStart, y, font, size: 9 });
+        page.drawLine({ start: { x: titleXStart, y: y - 2 }, end: { x: titleXStart + titleValueWidth + 20, y: y - 2 }, thickness: 0.5 });
+        
         if (data.employeeSignature) {
             await drawSignature(page, data.employeeSignature, leftMargin + 400, y - 5, 120, 20, pdfDoc);
         }
