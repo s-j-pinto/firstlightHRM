@@ -133,7 +133,7 @@ export function AllstarReportViewer({ groupId }: AllstarReportViewerProps) {
                 timeOut: visitData.timeOut || '',
                 patientName: visitData.patientName || '',
                 patientSignature: visitData.patientSignature || '',
-                typeOfVisit: visitData.typeOfVisit || undefined,
+                typeOfVisit: visitData.typeOfVisit || '',
             };
         });
 

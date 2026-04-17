@@ -71,13 +71,13 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
                 const rowY = y - (visitIndexInPage * rowHeight);
 
                 drawText(page, `${j + 1}`, { x: leftMargin - 15, y: rowY - rowHeight/2, font, size: 8 });
-                const serviceDate = visit.serviceDate && (visit.serviceDate.toDate || isValid(parse(visit.serviceDate, 'MM/dd/yyyy', new Date()))) ? (visit.serviceDate.toDate ? format(visit.serviceDate.toDate(), 'MM/dd/yyyy') : visit.serviceDate) : '';
+                const serviceDate = visit.serviceDate || '';
                 drawText(page, serviceDate, { x: colStarts[0] + 5, y: rowY - 20, font, size: 9 });
-                drawText(page, visit.timeIn, { x: colStarts[1] + 5, y: rowY - 20, font, size: 9 });
-                drawText(page, visit.timeOut, { x: colStarts[2] + 5, y: rowY - 20, font, size: 9 });
-                drawText(page, visit.patientName, { x: colStarts[3] + 5, y: rowY - 20, font, size: 9 });
+                drawText(page, visit.timeIn || '', { x: colStarts[1] + 5, y: rowY - 20, font, size: 9 });
+                drawText(page, visit.timeOut || '', { x: colStarts[2] + 5, y: rowY - 20, font, size: 9 });
+                drawText(page, visit.patientName || '', { x: colStarts[3] + 5, y: rowY - 20, font, size: 9 });
                 if (visit.patientSignature) await drawSignature(page, visit.patientSignature, colStarts[4] + 5, rowY-25, 140, 20, pdfDoc);
-                drawText(page, visit.typeOfVisit, { x: colStarts[5] + 5, y: rowY - 20, font, size: 9 });
+                drawText(page, visit.typeOfVisit || '', { x: colStarts[5] + 5, y: rowY - 20, font, size: 9 });
             }
 
             const tableBottom = y - (visitsPerPage * rowHeight);
@@ -133,5 +133,3 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
         return { error: `An unexpected server error occurred during PDF generation. Error: ${error.message}` };
     }
 }
-
-    
