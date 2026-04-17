@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useTransition, useEffect, useMemo, useRef } from "react";
@@ -32,7 +33,7 @@ import { useDoc, useCollection, useMemoFirebase, useFirestore } from "@/firebase
 import { doc, query, collection, where, getDocs, orderBy } from 'firebase/firestore';
 import { createCsaFromContact } from "@/lib/client-signup.actions";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Textarea } from "./ui/textarea";
+import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
@@ -477,11 +478,11 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                      <FormField
                         control={form.control}
                         name="dateOfBirth"
-                        render={() => (
+                        render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Date of Birth (MM/DD/YYYY)</FormLabel>
                                 <FormControl>
-                                    <DateInput name="dateOfBirth" disabled={isCsaCreated || isClosed} />
+                                    <DateInput {...field} disabled={isCsaCreated || isClosed} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -518,11 +519,11 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                         <FormField
                             control={form.control}
                             name="dateOfHomeVisit"
-                            render={() => (
+                            render={({ field }) => (
                                 <FormItem className="flex flex-col">
                                     <FormLabel>Date of Home Visit (MM/DD/YYYY)</FormLabel>
                                     <FormControl>
-                                        <DateInput name="dateOfHomeVisit" disabled={isClosed} />
+                                        <DateInput {...field} disabled={isClosed} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -672,11 +673,11 @@ export function InitialContactForm({ contactId: initialContactId }: { contactId:
                      <FormField
                         control={form.control}
                         name="estimatedStartDate"
-                        render={() => (
+                        render={({ field }) => (
                             <FormItem className="flex flex-col">
                                 <FormLabel>Estimated Start Date: (MM/DD/YYYY)</FormLabel>
                                 <FormControl>
-                                    <DateInput name="estimatedStartDate" disabled={isClosed} />
+                                    <DateInput {...field} disabled={isClosed} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
