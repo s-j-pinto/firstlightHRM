@@ -34,6 +34,28 @@ const adminFormSchema = z.object({
 
 type AdminFormData = z.infer<typeof adminFormSchema>;
 
+const safeFormatDateFromFirestore = (dateValue: any): string => {
+    if (!dateValue) return '';
+    // This handles nested Timestamps which are serialized as plain objects with seconds/nanoseconds
+    if (dateValue.seconds && typeof dateValue.seconds === 'number') {
+        return format(new Date(dateValue.seconds * 1000), 'MM/dd/yyyy');
+    }
+    // This handles cases where it might already be a JS Date object
+    if (isDate(dateValue)) {
+        return format(dateValue, 'MM/dd/yyyy');
+    }
+    // This handles cases where data might come from the server as a Timestamp object with a toDate method
+    if (typeof dateValue.toDate === 'function') {
+        return format(dateValue.toDate(), 'MM/dd/yyyy');
+    }
+    // If it's already a formatted string, return it as is.
+    if (typeof dateValue === 'string') {
+        return dateValue;
+    }
+    return ''; // Return empty for unknown formats
+};
+
+
 export function AllstarReportViewer({ groupId }: AllstarReportViewerProps) {
     const { toast } = useToast();
     const firestore = useFirestore();
@@ -101,27 +123,12 @@ export function AllstarReportViewer({ groupId }: AllstarReportViewerProps) {
         if (!selectedWeekLogs || selectedWeekLogs.length === 0) {
             return { visits: [], employeeName: '', employeeSignature: '', title: '' };
         }
-        
+
         const visits = selectedWeekLogs.map(log => {
             const visitData = log.templateData?.allstar_route_sheet || {};
-            const serviceDate = visitData.serviceDate;
-
-            let dateToFormat: Date | null = null;
-            if (serviceDate) {
-                // Firebase client SDK's onSnapshot converts Timestamps to JS Date objects.
-                if (isDate(serviceDate)) {
-                    dateToFormat = serviceDate;
-                } 
-                // This handles cases where data might come from the server as a Timestamp object.
-                else if (typeof serviceDate.toDate === 'function') {
-                    dateToFormat = serviceDate.toDate();
-                }
-            }
-            const formattedDate = dateToFormat ? format(dateToFormat, 'MM/dd/yyyy') : '';
-
             return {
                 logId: log.id,
-                serviceDate: formattedDate,
+                serviceDate: safeFormatDateFromFirestore(visitData.serviceDate),
                 timeIn: visitData.timeIn || '',
                 timeOut: visitData.timeOut || '',
                 patientName: visitData.patientName || '',
@@ -146,12 +153,11 @@ export function AllstarReportViewer({ groupId }: AllstarReportViewerProps) {
         }
         const logWithAdminData = selectedWeekLogs.find(log => log.templateData?.allstar_route_sheet?.checkedBy);
         const data = logWithAdminData?.templateData?.allstar_route_sheet;
-        const formatDate = (date: any) => (date && date.toDate) ? format(date.toDate(), 'MM/dd/yyyy') : '';
         
         return {
-            dateSubmitted: formatDate(data?.dateSubmitted),
+            dateSubmitted: safeFormatDateFromFirestore(data?.dateSubmitted),
             checkedBy: data?.checkedBy || '',
-            checkedDate: formatDate(data?.checkedDate),
+            checkedDate: safeFormatDateFromFirestore(data?.checkedDate),
             remarks: data?.remarks || '',
         };
     }, [selectedWeekLogs]);
