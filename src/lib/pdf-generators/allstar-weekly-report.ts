@@ -2,7 +2,6 @@
 'use server';
 
 import { PDFDocument, rgb, StandardFonts, PageSizes } from 'pdf-lib';
-import { format, parse, isValid } from 'date-fns';
 import { drawText, drawSignature, drawWrappedText } from './utils';
 
 export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfData?: string; error?: string }> {
@@ -16,9 +15,8 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
         const logoImage = await pdfDoc.embedPng(logoImageBytes);
         const logoDims = logoImage.scale(0.35);
 
-        const visits = data.visits || [];
         const visitsPerPage = 10;
-        const totalPages = visits.length > 0 ? Math.ceil(visits.length / visitsPerPage) : 1;
+        const totalPages = 1; // For now, just generate one page
 
         for (let i = 0; i < totalPages; i++) {
             const page = pdfDoc.addPage(PageSizes.Letter);
@@ -62,26 +60,15 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
             y -= 20;
 
             const rowHeight = 35;
-            const startIndex = i * visitsPerPage;
-            const endIndex = Math.min(startIndex + visitsPerPage, visits.length);
             
-            for (let j = startIndex; j < endIndex; j++) {
-                const rawVisit = visits[j] || {};
-                const visit = {
-                    serviceDate: rawVisit.serviceDate || '',
-                    timeIn: rawVisit.timeIn || '',
-                    timeOut: rawVisit.timeOut || '',
-                    patientName: rawVisit.patientName || '',
-                };
-
-                const visitIndexInPage = j - startIndex;
-                const rowY = y - (visitIndexInPage * rowHeight);
-
+            for (let j = 0; j < visitsPerPage; j++) {
+                const rowY = y - (j * rowHeight);
+                // Draw empty rows
                 drawText(page, `${j + 1}`, { x: leftMargin - 15, y: rowY - rowHeight/2, font, size: 8 });
-                drawText(page, visit.serviceDate, { x: colStarts[0] + 5, y: rowY - 20, font, size: 9 });
-                drawText(page, visit.timeIn, { x: colStarts[1] + 5, y: rowY - 20, font, size: 9 });
-                drawText(page, visit.timeOut, { x: colStarts[2] + 5, y: rowY - 20, font, size: 9 });
-                drawText(page, visit.patientName, { x: colStarts[3] + 5, y: rowY - 20, font, size: 9 });
+                drawText(page, '', { x: colStarts[0] + 5, y: rowY - 20, font, size: 9 });
+                drawText(page, '', { x: colStarts[1] + 5, y: rowY - 20, font, size: 9 });
+                drawText(page, '', { x: colStarts[2] + 5, y: rowY - 20, font, size: 9 });
+                drawText(page, '', { x: colStarts[3] + 5, y: rowY - 20, font, size: 9 });
             }
 
             const tableBottom = y - (visitsPerPage * rowHeight);
@@ -94,44 +81,29 @@ export async function generateAllstarWeeklyReportPdf(data: any): Promise<{ pdfDa
                 page.drawLine({ start: { x: leftMargin, y: rowY }, end: { x: width - leftMargin, y: rowY }, thickness: 0.5 });
             });
 
-            // Footer Section for last page
-            if (i === totalPages - 1) {
-                y = tableBottom - 10;
-                const certText = "Staff certification of service provided: I certify that, I have provided home health services to this patient on the date and time indicated above. The patient was not hospitalized or otherwise unavailable when the services was provided. The patient signature indicates that the service was provided is authentic. I understand that I must submit visit notes, route sheets and other required documentation within 5 (FIVE) DAYS from the VISIT.";
-                y = drawWrappedText(page, certText, font, 7, leftMargin, y, contentWidth, 8);
-                y -= 25;
-                
-                const employeeName = data.employeeName || '';
-                const title = data.title || '';
-                const employeeSignature = data.employeeSignature;
+            // Footer Section
+            y = tableBottom - 10;
+            const certText = "Staff certification of service provided: I certify that, I have provided home health services to this patient on the date and time indicated above. The patient was not hospitalized or otherwise unavailable when the services was provided. The patient signature indicates that the service was provided is authentic. I understand that I must submit visit notes, route sheets and other required documentation within 5 (FIVE) DAYS from the VISIT.";
+            y = drawWrappedText(page, certText, font, 7, leftMargin, y, contentWidth, 8);
+            y -= 25;
+            
+            drawText(page, `Employee Name:`, { x: leftMargin, y, font, size: 9 });
+            drawText(page, `Title:`, { x: leftMargin + 250, y, font, size: 9 });
+            drawText(page, `Signature:`, { x: leftMargin + 350, y, font, size: 9 });
+            y -= 25;
 
-                drawText(page, `Employee Name: ${employeeName}`, { x: leftMargin, y, font, size: 9 });
-                drawText(page, `Title: ${title}`, { x: leftMargin + 250, y, font, size: 9 });
-                if(employeeSignature) await drawSignature(page, employeeSignature, leftMargin + 400, y-5, 150, 18, pdfDoc);
-                drawText(page, `Signature:`, { x: leftMargin + 350, y, font, size: 9 });
-                y -= 25;
+            drawText(page, "FOR OFFICIAL USE ONLY", { x: (width / 2) - 40, y, font: boldFont, size: 9 });
+            y -= 20;
 
-                drawText(page, "FOR OFFICIAL USE ONLY", { x: (width / 2) - 40, y, font: boldFont, size: 9 });
-                y -= 20;
+            drawText(page, `Date Submitted:`, { x: leftMargin, y, font, size: 9 });
+            drawText(page, `Checked By:`, { x: leftMargin + 200, y, font, size: 9 });
+            drawText(page, `Checked Date:`, { x: leftMargin + 350, y, font, size: 9 });
+            y -= 15;
+            drawWrappedText(page, `Remarks:`, font, 9, leftMargin, y, contentWidth, 10);
+            y -= 20;
 
-                const dateSubmitted = data.dateSubmitted || '';
-                const checkedBy = data.checkedBy || '';
-                const checkedDate = data.checkedDate || '';
-                const remarks = data.remarks || '';
-                
-                drawText(page, `Date Submitted: ${dateSubmitted}`, { x: leftMargin, y, font, size: 9 });
-                drawText(page, `Checked By: ${checkedBy}`, { x: leftMargin + 200, y, font, size: 9 });
-                drawText(page, `Checked Date: ${checkedDate}`, { x: leftMargin + 350, y, font, size: 9 });
-                y -= 15;
-                drawWrappedText(page, `Remarks: ${remarks}`, font, 9, leftMargin, y, contentWidth, 10);
-                y -= 20;
-
-                const footerText = `Allstar Health Providers, Inc. - Route Sheet Page ${i + 1} of ${totalPages}`;
-                drawText(page, footerText, { x: width - leftMargin - font.widthOfTextAtSize(footerText, 8), y: 30, font, size: 8 });
-            } else {
-                 const footerText = `Allstar Health Providers, Inc. - Route Sheet Page ${i + 1} of ${totalPages}`;
-                drawText(page, footerText, { x: width - leftMargin - font.widthOfTextAtSize(footerText, 8), y: 30, font, size: 8 });
-            }
+            const footerText = `Allstar Health Providers, Inc. - Route Sheet Page ${i + 1} of ${totalPages}`;
+            drawText(page, footerText, { x: width - leftMargin - font.widthOfTextAtSize(footerText, 8), y: 30, font, size: 8 });
         }
         
         const pdfBytes = await pdfDoc.save();
