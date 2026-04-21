@@ -82,6 +82,9 @@ export default function VATaskTemplateAdmin() {
   const [editingTemplate, setEditingTemplate] = useState<VATaskTemplate | null>(null);
   const firestore = useFirestore();
 
+  const checkboxTasks = vaTasks.filter(task => task.id !== 'providerSignature');
+  const signatureTask = vaTasks.find(task => task.id === 'providerSignature');
+
   const templatesQuery = useMemoFirebase(() =>
     firestore ? query(collection(firestore, "va_task_templates"), orderBy("name", "asc")) : null,
     [firestore]
@@ -103,7 +106,8 @@ export default function VATaskTemplateAdmin() {
       form.reset({
           name: template.name,
           description: template.description,
-          tasks: template.tasks || [],
+          // We don't need to include providerSignature here as it's always added on save
+          tasks: template.tasks?.filter(t => t !== 'providerSignature') || [],
       });
     } else {
       form.reset({ name: "", description: "", tasks: [] });
@@ -113,7 +117,8 @@ export default function VATaskTemplateAdmin() {
 
   const onSubmit = (data: VATemplateFormData) => {
     startTransition(async () => {
-      const payload = { ...data, id: editingTemplate?.id };
+      // Always include 'providerSignature' task when saving
+      const payload = { ...data, tasks: [...data.tasks, 'providerSignature'], id: editingTemplate?.id };
       const result = await saveVATaskTemplate(payload);
       if (result.error) {
         toast({ title: "Error", description: result.message, variant: "destructive" });
@@ -243,7 +248,7 @@ export default function VATaskTemplateAdmin() {
                       </p>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                      {vaTasks.map((item) => (
+                      {checkboxTasks.map((item) => (
                         <FormField
                           key={item.id}
                           control={form.control}
@@ -258,13 +263,15 @@ export default function VATaskTemplateAdmin() {
                                   <Checkbox
                                     checked={field.value?.includes(item.id)}
                                     onCheckedChange={(checked) => {
+                                      // Ensure providerSignature isn't in the checkbox-managed array
+                                      const currentTasks = field.value?.filter(t => t !== 'providerSignature') || [];
                                       return checked
                                         ? field.onChange([
-                                            ...(field.value || []),
+                                            ...currentTasks,
                                             item.id,
                                           ])
                                         : field.onChange(
-                                            field.value?.filter(
+                                            currentTasks.filter(
                                               (value) => value !== item.id
                                             )
                                           );
@@ -284,6 +291,14 @@ export default function VATaskTemplateAdmin() {
                   </FormItem>
                 )}
               />
+
+              {signatureTask && (
+                <div className="space-y-2 pt-4">
+                    <Label>{signatureTask.label}</Label>
+                    <Textarea disabled placeholder="This will be a text input field for the staffing admin on the report form." />
+                    <p className="text-xs text-muted-foreground">The Provider Signature field is always included and will appear as a text box.</p>
+                </div>
+              )}
 
               <DialogFooter>
                 <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
