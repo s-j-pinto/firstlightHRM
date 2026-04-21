@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useMemo, useTransition, useRef, useEffect } from "react";
@@ -86,6 +87,23 @@ const SignaturePadModal = ({
 const FormattedTemplateData = ({ data }: { data: any }) => {
     if (!data) return null;
     
+    const safeFormatDate = (dateValue: any) => {
+        if (!dateValue) return 'N/A';
+        // Firestore timestamps on the client can be objects with toDate()
+        if (dateValue.toDate) {
+            return format(dateValue.toDate(), 'PP');
+        }
+        // Or they can be serialized as objects with seconds/nanoseconds
+        if (dateValue.seconds) {
+            return format(new Date(dateValue.seconds * 1000), 'PP');
+        }
+        // Or it might already be a string
+        if (typeof dateValue === 'string') {
+            return dateValue;
+        }
+        return 'Invalid Date';
+    };
+
     // Check if it's Allstar data by looking for a unique field
     if (data.allstar_route_sheet) {
         const visit = data.allstar_route_sheet;
@@ -94,7 +112,7 @@ const FormattedTemplateData = ({ data }: { data: any }) => {
                 <h4 className="font-semibold text-md">Allstar Health Providers Visit</h4>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2 text-sm">
                     <p><strong>Patient:</strong> {visit.patientName}</p>
-                    <p><strong>Service Date:</strong> {visit.serviceDate}</p>
+                    <p><strong>Service Date:</strong> {safeFormatDate(visit.serviceDate)}</p>
                     <p><strong>Time In:</strong> {visit.timeIn}</p>
                     <p><strong>Time Out:</strong> {visit.timeOut}</p>
                     <p><strong>Visit Type:</strong> {visit.typeOfVisit}</p>
