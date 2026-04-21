@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { collection } from "firebase/firestore";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { Client, ActiveCaregiver, CareLogGroup, CareLog, CareLogTemplate } from "@/lib/types";
+import { Client, ActiveCaregiver, CareLogGroup, CareLog, CareLogTemplate, VATaskTemplate } from "@/lib/types";
 import { saveCareLogGroup, deleteCareLogGroup, reactivateCareLogGroup } from "@/lib/carelog-groups.actions";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -16,7 +16,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -56,6 +56,9 @@ export function CareLogGroupAdmin() {
   
   const templatesRef = useMemoFirebase(() => firestore ? collection(firestore, 'carelog_templates') : null, [firestore]);
   const { data: templates, isLoading: templatesLoading } = useCollection<CareLogTemplate>(templatesRef);
+
+  const vaTemplatesRef = useMemoFirebase(() => firestore ? collection(firestore, 'va_task_templates') : null, [firestore]);
+  const { data: vaTemplates, isLoading: vaTemplatesLoading } = useCollection<VATaskTemplate>(vaTemplatesRef);
   
   const allCareLogsRef = useMemoFirebase(() => firestore ? collection(firestore, 'carelogs') : null, [firestore]);
   const { data: allCareLogs, isLoading: logsLoading } = useCollection<CareLog>(allCareLogsRef);
@@ -151,7 +154,7 @@ export function CareLogGroupAdmin() {
     });
   };
 
-  const isLoading = clientsLoading || caregiversLoading || groupsLoading || logsLoading || templatesLoading;
+  const isLoading = clientsLoading || caregiversLoading || groupsLoading || logsLoading || templatesLoading || vaTemplatesLoading;
 
   return (
     <Card>
@@ -296,9 +299,18 @@ export function CareLogGroupAdmin() {
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="none">None</SelectItem>
-                        {templates?.map(template => (
-                          <SelectItem key={template.id} value={template.id}>{template.name}</SelectItem>
-                        ))}
+                        <SelectGroup>
+                            <SelectLabel>Standard Templates</SelectLabel>
+                            {templates?.map(template => (
+                              <SelectItem key={template.id} value={template.id}>{template.name}</SelectItem>
+                            ))}
+                        </SelectGroup>
+                        <SelectGroup>
+                            <SelectLabel>VA Templates</SelectLabel>
+                            {vaTemplates?.map(template => (
+                              <SelectItem key={template.id} value={template.id}>{template.name}</SelectItem>
+                            ))}
+                        </SelectGroup>
                       </SelectContent>
                     </Select>
                     <FormMessage />
