@@ -5,44 +5,37 @@ import Papa from 'papaparse';
 import { processActiveCaregiverAvailabilityUpload } from '@/lib/active-caregivers.actions';
 import { serverApp } from '@/firebase/server-init';
 
-// --- Parsing logic adapted from the client component ---
-const DAY_COLUMNS = [
-  "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
-];
+const OTHER_DAY_COLUMNS = ["Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
-function extractAvailability(cell: string | null | undefined): string {
-  if (!cell || typeof cell !== "string") return "";
-  const text = cell.replace(/\r/g, "");
-  const availableRegex = /Available\s*\n?\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)\s*To\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)/gi;
-  const scheduledRegex = /Scheduled Availability\s*\n?\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)\s*To\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)/gi;
-  let matches = [];
-  let m;
-  while ((m = availableRegex.exec(text)) !== null) {
-    matches.push(`Available\n${m[1]} To ${m[2]}`);
+/**
+ * Checks if a row from the CSV represents a new caregiver's name.
+ * A name row is defined as a row where:
+ * 1. The 'Monday' column has text that does not look like a schedule time.
+ * 2. All other day columns ('Tuesday' through 'Sunday') are empty.
+ */
+function isCaregiverNameRow(row: Record<string, any>): boolean {
+  const mondayValue = row['Monday'];
+  if (!mondayValue || typeof mondayValue !== 'string' || !mondayValue.trim()) {
+    return false;
   }
-  if (matches.length > 0) {
-    return matches.join("\n\n");
-  }
-  while ((m = scheduledRegex.exec(text)) !== null) {
-    matches.push(`Scheduled Availability\n${m[1]} To ${m[2]}`);
-  }
-  return matches.join("\n\n");
-}
 
-function isCaregiverNameRow(rowObj: Record<string, string>, headerColumns: string[]): boolean {
-  if (!headerColumns || headerColumns.length === 0) return false;
-  const firstColValue = rowObj[headerColumns[0]];
-  if (!firstColValue || !firstColValue.trim() || DAY_COLUMNS.includes(firstColValue.trim())) {
-      return false;
+  // Heuristic to check if the value is a name and not schedule data.
+  // It checks if the string does NOT start with a time-like pattern or availability keywords.
+  const isLikelyName = !/^\d{1,2}:\d{2}:\d{2}/.test(mondayValue.trim()) && !/(available|scheduled)/i.test(mondayValue.trim());
+  if (!isLikelyName) {
+    return false;
   }
-  for (let i = 1; i <= 7; i++) {
-    const colName = headerColumns[i];
-    if (colName && rowObj[colName] && rowObj[colName].trim()) {
-      return false;
+  
+  // A name row should have empty values for all other day columns.
+  for (const day of OTHER_DAY_COLUMNS) {
+    if (row[day] && typeof row[day] === 'string' && row[day].trim()) {
+      return false; // If any other day has data, it's not a name row.
     }
   }
+
   return true;
 }
+
 
 // --- Main API Route ---
 export async function GET(request: NextRequest) {
@@ -66,7 +59,7 @@ export async function GET(request: NextRequest) {
         throw new Error('Failed to parse caregiver availability CSV.');
     }
     
-    const rows: Record<string, string>[] = parseResult.data as Record<string, string>[];
+    const rows: Record<string, any>[] = parseResult.data as Record<string, any>[];
     const headerColumns = parseResult.meta.fields;
     if (!headerColumns) {
         throw new Error('CSV headers are missing.');
@@ -76,33 +69,37 @@ export async function GET(request: NextRequest) {
     let currentCaregiver: { name: string; schedule: Record<string, string> } | null = null;
     
     for (const row of rows) {
-      if (isCaregiverNameRow(row, headerColumns)) {
+      if (!row || typeof row !== 'object' || Object.keys(row).length === 0) {
+        continue;
+      }
+
+      if (isCaregiverNameRow(row)) {
         if (currentCaregiver) {
             caregivers.push(currentCaregiver);
         }
-        const name = row[headerColumns[0]].trim();
+        const name = row['Monday'].trim();
         currentCaregiver = {
             name: name,
-            schedule: {},
+            schedule: {
+                "Monday": "", "Tuesday": "", "Wednesday": "", "Thursday": "", 
+                "Friday": "", "Saturday": "", "Sunday": ""
+            },
         };
-        DAY_COLUMNS.forEach(day => {
-            if (currentCaregiver) currentCaregiver.schedule[day] = "";
-        });
+        // The name row itself contains the name, so we don't process it as schedule data.
         continue;
       }
+
       if (currentCaregiver) {
-          DAY_COLUMNS.forEach((day, i) => {
-              const colName = headerColumns[i]; 
-              if (!colName) return;
-              const cell = row[colName];
-              if (cell && cell.trim()) {
-                  const cleaned = extractAvailability(cell);
-                  if (cleaned) {
-                      if (currentCaregiver.schedule[day]) {
-                          currentCaregiver.schedule[day] += "\n\n" + cleaned;
-                      } else {
-                          currentCaregiver.schedule[day] = cleaned;
-                      }
+          // Iterate over the known day names and use them as keys to access row data
+          ["Monday", ...OTHER_DAY_COLUMNS].forEach(dayName => {
+              const cellValue = row[dayName];
+              
+              if (typeof cellValue === 'string' && cellValue.trim()) {
+                  if (currentCaregiver.schedule[dayName]) {
+                      // Append with a newline for multi-line cells from CSV
+                      currentCaregiver.schedule[dayName] += "\n" + cellValue;
+                  } else {
+                      currentCaregiver.schedule[dayName] = cellValue;
                   }
               }
           });
@@ -116,6 +113,9 @@ export async function GET(request: NextRequest) {
     if (caregivers.length === 0) {
         throw new Error("Could not find any valid caregiver schedules in the provided format.");
     }
+    
+    // DEBUG: Log the exact data being sent for processing.
+    console.log('[DEBUG] Data being sent to processActiveCaregiverAvailabilityUpload:', JSON.stringify(caregivers, null, 2));
 
     const result = await processActiveCaregiverAvailabilityUpload(caregivers);
 
@@ -126,6 +126,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: true, message: result.message });
   } catch (error: any) {
     console.error('[CRON-ERROR] /api/cron/sync-availability:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: `An error occurred during the upload: ${error.message}` }, { status: 500 });
   }
 }
