@@ -1,0 +1,18 @@
+name: Daily VA CareLog Sync
+
+on:
+  schedule:
+    # Runs at 4:00 AM UTC every day.
+    - cron: '0 4 * * *'
+  workflow_dispatch: # Allows manual triggering for testing
+
+jobs:
+  sync_va_carelogs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync VA Teletrack CareLogs
+        run: |
+          curl --request GET \
+          --url https://care-connect-360--firstlighthomecare-hrm.us-central1.hosted.app/api/cron/sync-va-carelogs \
+          --header 'Authorization: Bearer ${{ secrets.CRON_SECRET }}' \
+          --fail

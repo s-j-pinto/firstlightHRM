@@ -490,7 +490,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "CareLog",
       "type": "object",
-      "description": "Stores a single care log entry from a caregiver for a specific client group.",
+      "description": "Stores a single care log entry from a caregiver for a specific client group. For an Allstar Routesheet, the templateData field will contain a single visit's information under the 'allstar_route_sheet' key.",
       "properties": {
         "careLogGroupId": { "type": "string", "description": "The document ID of the linked CareLogGroup." },
         "caregiverId": { "type": "string", "format": "email", "description": "The email of the caregiver who submitted the log." },
@@ -605,6 +605,24 @@
         "appliedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["clientId", "referralId", "rewardType", "amount", "status", "createdAt"]
+    },
+    "VAMedicalRecord": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "VA Medical Record",
+      "type": "object",
+      "description": "Stores a single shift record for a VA client from Teletrack.",
+      "properties": {
+        "clientId": { "type": "string" },
+        "clientName": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "day": { "type": "string" },
+        "caregiverName": { "type": "string" },
+        "ratePlan": { "type": "string" },
+        "arrivalTime": { "type": "string" },
+        "departureTime": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["clientId", "clientName", "date", "caregiverName", "arrivalTime", "departureTime", "createdAt"]
     }
   },
   "auth": {
@@ -668,7 +686,7 @@
     },
     "/carelogs/{logId}": {
       "schema": { "$ref": "#/entities/CareLog" },
-      "description": "Stores individual care log entries submitted by caregivers."
+      "description": "Stores individual care log entries submitted by caregivers. Each document represents one entry or visit."
     },
     "/client_additional_care_requests/{requestId}": {
       "schema": { "$ref": "#/entities/ClientCareRequest" },
@@ -693,6 +711,10 @@
     "/rewards/{rewardId}": {
       "schema": { "$ref": "#/entities/Reward" },
       "description": "Stores rewards earned by clients."
+    },
+    "/va_teletrack_shifts/{shiftId}": {
+      "schema": { "$ref": "#/entities/VAMedicalRecord" },
+      "description": "Stores individual VA shift records from Teletrack."
     }
   }
 }
