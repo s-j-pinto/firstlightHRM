@@ -107,6 +107,10 @@ service cloud.firestore {
       allow update: if isAnyAdmin();
       allow delete: if isAnyAdmin();
     }
+     match /va_task_templates/{templateId} {
+      allow read: if isAnyAdmin();
+      allow create, update, delete: if isAnyAdmin();
+    }
     /**
      * @description Controls access to client_signups. Open for all.
      * @path /client_signups/{signupsId}

@@ -15,25 +15,6 @@
         "typeOfVisit": { "type": "string", "enum": ["Follow-up", "SOC", "ROC", "Recert", "Discharge"] }
       }
     },
-    "AllstarRouteSheet": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "AllstarRouteSheet",
-      "type": "object",
-      "description": "Data for the Allstar Health Providers route sheet.",
-      "properties": {
-        "visits": {
-          "type": "array",
-          "items": { "$ref": "#/entities/AllstarVisit" }
-        },
-        "employeeName": { "type": "string" },
-        "title": { "type": "string" },
-        "employeeSignature": { "type": "string", "contentEncoding": "base64" },
-        "dateSubmitted": { "type": "string", "format": "date" },
-        "checkedBy": { "type": "string" },
-        "checkedDate": { "type": "string", "format": "date" },
-        "remarks": { "type": "string" }
-      }
-    },
     "InitialContact": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "title": "InitialContact",
@@ -561,6 +542,24 @@
         },
         "required": ["name", "subsections", "createdAt", "lastUpdatedAt"]
     },
+    "VATaskTemplate": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "VATaskTemplate",
+      "type": "object",
+      "description": "Defines a reusable template for VA-specific tasks.",
+      "properties": {
+        "name": { "type": "string", "description": "The name of the VA template." },
+        "description": { "type": "string", "description": "A brief description of the template's purpose." },
+        "tasks": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "An array of VA-specific task keys to include in this template."
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastUpdatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "tasks", "createdAt", "lastUpdatedAt"]
+    },
     "ReferralProfile": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ReferralProfile",
@@ -700,6 +699,10 @@
       "schema": { "$ref": "#/entities/CareLogTemplate" },
       "description": "Stores reusable templates for structured CareLog entries."
     },
+    "/va_task_templates/{templateId}": {
+      "schema": { "$ref": "#/entities/VATaskTemplate" },
+      "description": "Stores reusable templates for VA CareLog entries."
+    },
     "/referral_profiles/{profileId}": {
       "schema": { "$ref": "#/entities/ReferralProfile" },
       "description": "Stores client referral codes."
@@ -721,3 +724,4 @@
       
 
     
+
