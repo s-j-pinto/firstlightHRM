@@ -1,9 +1,11 @@
 
+
 "use server";
 
 import { revalidatePath } from 'next/cache';
 import { serverDb } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
+import { vaTaskTemplateSchema } from './types';
 
 interface CareLogGroupPayload {
   groupId?: string;
@@ -135,5 +137,42 @@ export async function deleteCareLogTemplate(id: string) {
         return { message: 'Template deleted successfully.' };
     } catch (e: any) {
         return { message: `Error deleting template: ${e.message}`, error: true };
+    }
+}
+
+export async function saveVATaskTemplate(template: any) {
+    const { id, ...data } = template;
+    const validation = vaTaskTemplateSchema.safeParse(data);
+
+    if (!validation.success) {
+        console.error("VA Template Validation Error:", validation.error.flatten());
+        return { message: "Invalid template data.", error: true };
+    }
+
+    const firestore = serverDb;
+    const now = Timestamp.now();
+    try {
+        if (id) {
+            const docRef = firestore.collection('va_task_templates').doc(id);
+            await docRef.update({ ...validation.data, lastUpdatedAt: now });
+        } else {
+            const docRef = firestore.collection('va_task_templates').doc();
+            await docRef.set({ ...validation.data, createdAt: now, lastUpdatedAt: now });
+        }
+        revalidatePath('/staffing-admin');
+        return { message: 'VA Task Template saved successfully.' };
+    } catch (e: any) {
+        return { message: `Error saving VA template: ${e.message}`, error: true };
+    }
+}
+
+export async function deleteVATaskTemplate(id: string) {
+    const firestore = serverDb;
+    try {
+        await firestore.collection('va_task_templates').doc(id).delete();
+        revalidatePath('/staffing-admin');
+        return { message: 'VA Task Template deleted successfully.' };
+    } catch (e: any) {
+        return { message: `Error deleting VA template: ${e.message}`, error: true };
     }
 }
