@@ -483,6 +483,15 @@ export const onboardingSignaturesSchema = z.object({
 });
 export type OnboardingSignatures = z.infer<typeof onboardingSignaturesSchema>;
 
+export const vaTaskTemplateSchema = z.object({
+  name: z.string(),
+  description: z.string().optional(),
+  tasks: z.array(z.string()),
+  createdAt: z.any(),
+  lastUpdatedAt: z.any(),
+});
+export type VATaskTemplate = z.infer<typeof vaTaskTemplateSchema> & { id: string };
+
 
 export const caregiverFormSchema = generalInfoSchema
   .merge(experienceSchema)

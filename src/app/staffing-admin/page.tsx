@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { CareLogGroupAdmin } from '@/components/carelog-group-admin';
 import { CareLogTemplateAdmin } from '@/components/carelog-template-admin';
-import { VATaskTemplateAdmin } from '@/components/va-task-template-admin';
+import VATaskTemplateAdmin from '@/components/va-task-template-admin';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HelpDialog } from '@/components/HelpDialog';
 
