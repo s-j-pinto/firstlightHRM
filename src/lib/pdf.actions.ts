@@ -30,6 +30,7 @@ import { generateCaregiverTelephonyInstructionsPdf as generateCaregiverTelephony
 import { generateEmergencyProcedurePdf as generateEmergencyProcedurePdfInternal } from './pdf-generators/emergency-procedure';
 import { generateVaWeeklyReportPdf as generateVaWeeklyReportPdfInternal } from './pdf-generators/va-weekly-report';
 import { serverDb } from '@/firebase/server-init';
+import { parse, isWithinInterval } from 'date-fns';
 
 export async function generateHcs501Pdf(formData: any) { return generateHcs501PdfInternal(formData); }
 export async function generateEmergencyContactPdf(formData: any) { return generateEmergencyContactPdfInternal(formData); }
@@ -74,37 +75,73 @@ export async function generateAllstarWeeklyReportPdf(data: any) {
     }
 }
 
-export async function generateVaWeeklyReportPdf(data: any) {
+export async function generateVaWeeklyReportPdf(data: {
+    groupId: string;
+    weekOf: string;
+    caregiverName: string;
+    shifts: { id: string; tasks: Record<string, boolean>, providerSignature: string }[];
+}) {
     if (!data.groupId || !data.weekOf || !data.caregiverName) {
         return { error: "Missing required data for PDF generation." };
     }
     
     try {
+        // --- Fetch all data on the server ---
         const groupDoc = await serverDb.collection('carelog_groups').doc(data.groupId).get();
         if(!groupDoc.exists) return { error: "Carelog group not found." };
         const groupData = groupDoc.data();
-        
+
         const clientDoc = groupData?.clientId ? await serverDb.collection('Clients').doc(groupData.clientId).get() : null;
-        
         const templateDoc = groupData?.careLogTemplateId ? await serverDb.collection('va_task_templates').doc(groupData.careLogTemplateId).get() : null;
         if(!templateDoc?.exists) return { error: "VA Task template not found." };
 
+        // Fetch all shifts for the client on the server to get clean data
+        const allClientShiftsQuery = serverDb.collection('va_teletrack_shifts').where('clientName', '==', groupData.clientName);
+        const shiftsSnapshot = await allClientShiftsQuery.get();
+        const allServerShifts = shiftsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // Filter in memory for the correct week and caregiver
+        const [startStr, endStr] = data.weekOf.split(' - ');
+        const weekStart = parse(startStr, 'MM/dd/yy', new Date());
+        const weekEnd = parse(endStr, 'MM/dd/yy', new Date());
+
+        const serverShiftsForReport = allServerShifts.filter(shift => {
+            if (shift.caregiverName !== data.caregiverName) {
+                return false;
+            }
+            if (!shift.date?.toDate) return false;
+            const shiftDate = shift.date.toDate();
+            return isWithinInterval(shiftDate, { start: weekStart, end: weekEnd });
+        });
+
+        // Merge the form updates from the client into the server-fetched shifts
+        const clientShiftUpdates = new Map(data.shifts.map((s: any) => [s.id, { tasks: s.tasks, providerSignature: s.providerSignature }]));
+        
+        const mergedShifts = serverShiftsForReport.map(shift => {
+            const updates = clientShiftUpdates.get(shift.id);
+            return {
+                ...shift,
+                tasks: updates?.tasks || shift.tasks || {},
+                providerSignature: updates?.providerSignature || shift.providerSignature || '',
+            };
+        });
+
+        // --- Construct final payload for the PDF generator ---
         const payload = {
-            // Only use the serializable data from the client
             weekOf: data.weekOf,
             caregiverName: data.caregiverName,
-            shifts: data.shifts,
-
-            // Add the server-fetched data
+            shifts: mergedShifts,
             groupData: groupData,
             clientData: clientDoc?.exists ? clientDoc.data() : {},
             templateData: templateDoc.data(),
         };
 
+        // Call the internal PDF generation function
         const result = await generateVaWeeklyReportPdfInternal(payload);
         return result;
+
     } catch (error: any) {
-        console.error("Error during VA Report PDF generation process:", error);
-        return { error: `Failed to generate PDF: ${error.message}` };
+        console.error("[VA Report PDF Action] Critical error:", error);
+        return { error: `Failed to generate PDF: ${error.message || 'An unknown server error occurred'}` };
     }
 }
