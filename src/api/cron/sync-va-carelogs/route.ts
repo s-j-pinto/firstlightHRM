@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const bucket = getStorage().bucket('gs://firstlighthomecare-hrm.firebasestorage.app');
+    const bucket = getStorage().bucket('firstlighthomecare-hrm.firebasestorage.app');
     const file = bucket.file('CareLogs/VA_CareLogs/TeleTrack-VA-CareLogs.json');
     const [contents] = await file.download();
     const jsonData = JSON.parse(contents.toString());
