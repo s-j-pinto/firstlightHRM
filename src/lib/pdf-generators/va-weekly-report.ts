@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont, PDFPage } from 'pdf-lib';
@@ -80,7 +79,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/VA-report-logo.png?alt=media&token=655fd007-7367-4475-981b-b3a9bb33baab";
         const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer());
         const logoImage = await pdfDoc.embedPng(logoImageBytes);
-        const logoDims = logoImage.scale(0.25);
+        const logoDims = logoImage.scale(0.75);
 
         const leftMargin = 40;
         let y = height - 50;
@@ -93,7 +92,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
             height: logoDims.height,
         });
 
-        drawText(page, "CARE NOTES", { x: leftMargin + logoDims.width + 10, y: y - 35, font: boldFont, size: 14 });
+        drawText(page, "CARE NOTES", { x: leftMargin + logoDims.width + 10, y: y - 35, font: boldFont, size: 12 });
         
         y -= (logoDims.height + 25); 
 
@@ -118,7 +117,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         
         // Add Week date range
         y -= 20;
-        drawText(page, `Week: ${data.weekOf || ''}`, { x: leftMargin, y, font, size: 9 });
+        drawText(page, `Week: ${data.weekOf || ''}`, { x: leftMargin, y: y, font, size: 9 });
 
         y -= 45;
 
@@ -218,8 +217,9 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         const rowHeight = 18 * 1.2;
         taskLabels.forEach((task: string) => {
             const taskLabel = task.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase());
-            const textHeight = font.heightAtSize(8);
-            drawText(page, taskLabel, { x: leftMargin + 5, y: y - (rowHeight / 2) - (textHeight / 2) + 4, font, size: 8 });
+            const textHeight = boldFont.heightAtSize(8);
+            const textY = y - (rowHeight / 2) + (textHeight / 2); // Center vertically
+            drawText(page, taskLabel, { x: leftMargin + 5, y: textY, font: boldFont, size: 8 });
 
             for (let i = 0; i < 7; i++) {
                 const shift = shiftsByDay[i];
