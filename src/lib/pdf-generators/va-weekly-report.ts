@@ -79,7 +79,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/VA-report-logo.png?alt=media&token=655fd007-7367-4475-981b-b3a9bb33baab";
         const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer());
         const logoImage = await pdfDoc.embedPng(logoImageBytes);
-        const logoDims = logoImage.scale(0.8);
+        const logoDims = logoImage.scale(0.8 * 2 * 2);
 
         const leftMargin = 40;
         let y = height - 50;
@@ -92,7 +92,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
             height: logoDims.height,
         });
 
-        drawText(page, "CARE NOTES", { x: leftMargin + logoDims.width + 10, y: y - 35, font: boldFont, size: 20 });
+        drawText(page, "CARE NOTES", { x: leftMargin + logoDims.width + 10, y: y - 35, font: boldFont, size: 16 });
         
         y -= (logoDims.height + 25); 
 
@@ -113,7 +113,12 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         
         drawText(page, "Agency Name: FirstLight Home Care of Rancho Cucamonga", { x: leftMargin, y: y, font, size: 9 });
         y -= 20;
-        drawText(page, "Program Name: Home Maker/HHA Program", { x: leftMargin, y, font, size: 9 });
+        drawText(page, "Program Name: Home Maker/HHA Program", { x: leftMargin, y: y, font, size: 9 });
+        
+        // Add Week date range
+        y -= 20;
+        drawText(page, `Week: ${data.weekOf || ''}`, { x: leftMargin, y, font, size: 9 });
+
         y -= 45;
 
         // --- Shifts Table ---
@@ -153,12 +158,28 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         y -= topTableRowHeight;
 
         // Row 2: Caregiver Name
-        currentY = y - topTableRowHeight / 2 + 4;
+        currentY = y - topTableRowHeight / 2;
         drawText(page, "Caregiver Name", { x: leftMargin + 5, y: currentY, font: boldFont, size: 8 });
+        
+        let formattedCaregiverName = data.caregiverName || '';
+        if (formattedCaregiverName) {
+            if (formattedCaregiverName.includes(',')) {
+                // Assumes "Last, First"
+                const parts = formattedCaregiverName.split(',').map(p => p.trim());
+                formattedCaregiverName = `${parts[1] || ''}\n${parts[0] || ''}`;
+            } else {
+                // Assumes "First Last" or "First Middle Last"
+                const parts = formattedCaregiverName.split(' ');
+                const lastName = parts.pop() || '';
+                const firstName = parts.join(' ');
+                formattedCaregiverName = `${firstName}\n${lastName}`;
+            }
+        }
+        
         for (let i = 0; i < 7; i++) {
             if (shiftsByDay[i]) {
                 const dayX = leftMargin + firstColWidth + (i * dayColWidth);
-                drawText(page, data.caregiverName || '', { x: dayX + 5, y: currentY, font, size: 8 });
+                drawText(page, formattedCaregiverName, { x: dayX + 5, y: currentY + 5, font, size: 8, lineHeight: 9 });
             }
         }
         y -= topTableRowHeight;
@@ -193,7 +214,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         y -= 20;
 
         // Rows
-        const rowHeight = 18; // Increased by 20% from 15
+        const rowHeight = 18;
         taskLabels.forEach((task: string) => {
             const taskLabel = task.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase());
             const textHeight = font.heightAtSize(8);
