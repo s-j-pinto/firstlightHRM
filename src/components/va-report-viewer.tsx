@@ -7,8 +7,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, orderBy, doc } from 'firebase/firestore';
-import type { VATaskTemplate, VAMedicalRecord, ActiveCaregiver, Client } from '@/lib/types';
-import { startOfWeek, endOfWeek, format, subWeeks, parse, isValid, isDate, parseISO, addDays } from 'date-fns';
+import type { VATaskTemplate, VAMedicalRecord, Client } from '@/lib/types';
+import { startOfWeek, endOfWeek, format, subWeeks, parse, isValid, isDate, parseISO, addDays, isWithinInterval } from 'date-fns';
 
 import { Button } from './ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from './ui/card';
@@ -52,7 +52,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
     }, []);
 
     const [selectedWeek, setSelectedWeek] = React.useState(weeks[0]);
-    const [selectedCaregiverId, setSelectedCaregiverId] = React.useState<string>('');
+    const [selectedCaregiverName, setSelectedCaregiverName] = React.useState<string>('');
 
     const groupRef = useMemoFirebase(() => firestore ? doc(firestore, 'carelog_groups', groupId) : null, [groupId, firestore]);
     const { data: groupData, isLoading: groupLoading } = useDoc<any>(groupRef);
@@ -86,28 +86,28 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
     }, [allShifts, selectedWeek]);
 
     const caregiversForWeek = React.useMemo(() => {
-        const caregiverMap = new Map<string, { id: string; name: string }>();
+        const caregiverNames = new Set<string>();
         weeklyShifts.forEach(shift => {
-            if (shift.caregiverId && !caregiverMap.has(shift.caregiverId)) {
-                caregiverMap.set(shift.caregiverId, { id: shift.caregiverId, name: shift.caregiverName });
+            if (shift.caregiverName) {
+                caregiverNames.add(shift.caregiverName);
             }
         });
-        return Array.from(caregiverMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+        return Array.from(caregiverNames).sort((a, b) => a.localeCompare(b));
     }, [weeklyShifts]);
 
     React.useEffect(() => {
-        if (caregiversForWeek.length > 0 && !selectedCaregiverId) {
-            setSelectedCaregiverId(caregiversForWeek[0].id);
-        } else if (caregiversForWeek.length > 0 && !caregiversForWeek.find(c => c.id === selectedCaregiverId)) {
-            setSelectedCaregiverId(caregiversForWeek[0].id);
+        if (caregiversForWeek.length > 0 && !selectedCaregiverName) {
+            setSelectedCaregiverName(caregiversForWeek[0]);
+        } else if (caregiversForWeek.length > 0 && !caregiversForWeek.includes(selectedCaregiverName)) {
+            setSelectedCaregiverName(caregiversForWeek[0]);
         } else if (caregiversForWeek.length === 0) {
-            setSelectedCaregiverId('');
+            setSelectedCaregiverName('');
         }
-    }, [caregiversForWeek, selectedCaregiverId]);
+    }, [caregiversForWeek, selectedCaregiverName]);
     
     const caregiverWeeklyShifts = React.useMemo(() => {
-        return weeklyShifts.filter(shift => shift.caregiverId === selectedCaregiverId);
-    }, [weeklyShifts, selectedCaregiverId]);
+        return weeklyShifts.filter(shift => shift.caregiverName === selectedCaregiverName);
+    }, [weeklyShifts, selectedCaregiverName]);
 
     React.useEffect(() => {
         reset({
@@ -154,8 +154,6 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
         const weekEnd = endOfWeek(weekStart, { weekStartsOn: 0 });
         const weekOf = `${format(weekStart, 'MM/dd/yy')} - ${format(weekEnd, 'MM/dd/yy')}`;
 
-        const selectedCaregiver = caregiversForWeek.find(c => c.id === selectedCaregiverId);
-
         const shiftsToInclude = caregiverWeeklyShifts.map(s => {
             const formShift = form.getValues().shifts.find(fs => fs.id === s.id);
             return {
@@ -169,7 +167,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
             weekOf,
             groupData,
             clientData,
-            caregiverName: selectedCaregiver?.name || 'N/A',
+            caregiverName: selectedCaregiverName || 'N/A',
             templateData,
             shifts: shiftsToInclude,
         };
@@ -213,11 +211,11 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                         </div>
                         <div className="w-full sm:w-auto">
                             <Label>Select Caregiver</Label>
-                             <Select value={selectedCaregiverId} onValueChange={setSelectedCaregiverId}>
+                             <Select value={selectedCaregiverName} onValueChange={setSelectedCaregiverName}>
                                 <SelectTrigger className="w-full max-w-sm"><SelectValue placeholder="Select a caregiver..." /></SelectTrigger>
                                 <SelectContent>
                                     {caregiversForWeek.length > 0 ? (
-                                        caregiversForWeek.map(cg => <SelectItem key={cg.id} value={cg.id}>{cg.name}</SelectItem>)
+                                        caregiversForWeek.map(cgName => <SelectItem key={cgName} value={cgName}>{cgName}</SelectItem>)
                                     ) : (
                                         <div className="p-4 text-sm text-muted-foreground text-center">No caregivers with shifts this week</div>
                                     )}
