@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, orderBy, doc } from 'firebase/firestore';
 import type { VATaskTemplate, VAMedicalRecord, Client } from '@/lib/types';
-import { startOfWeek, endOfWeek, format, subWeeks, parse, isValid, isDate, parseISO, addDays, isWithinInterval } from 'date-fns';
+import { startOfWeek, endOfWeek, format, subWeeks, parseISO, addDays, isWithinInterval } from 'date-fns';
 
 import { Button } from './ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from './ui/card';
@@ -45,7 +45,6 @@ const getInitials = (name: string): string => {
     }
     return name.substring(0, 2).toUpperCase();
 };
-
 
 export function VaReportViewer({ groupId }: VaReportViewerProps) {
     const { toast } = useToast();
@@ -204,7 +203,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
     if (isLoading) {
         return <div className="flex justify-center items-center h-64"><Loader2 className="animate-spin" /></div>;
     }
-
+    
     return (
         <FormProvider {...form}>
             <Card>
