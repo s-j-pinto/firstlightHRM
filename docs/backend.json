@@ -1,5 +1,4 @@
 
-
 {
   "entities": {
     "AllstarVisit": {
@@ -443,6 +442,7 @@
         "Zip": { "type": "string" },
         "Mobile": { "type": "string" },
         "Email": { "type": "string", "format": "email" },
+        "TeletrackID": { "type": "string", "description": "The client's ID from the Teletrack system, if applicable." },
         "ContactName": { "type": "string" },
         "ContactMobile": { "type": "string" },
         "status": { "type": "string", "enum": ["Active", "Inactive"] },
@@ -619,7 +619,9 @@
         "ratePlan": { "type": "string" },
         "arrivalTime": { "type": "string" },
         "departureTime": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "format": "date-time" },
+        "tasks": { "type": "object", "description": "An object storing boolean values for completed tasks from the VA template." },
+        "providerSignature": { "type": "string", "description": "The name of the provider who signed off on the tasks." }
       },
       "required": ["clientId", "clientName", "date", "caregiverName", "arrivalTime", "departureTime", "createdAt"]
     }

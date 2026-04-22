@@ -99,7 +99,7 @@ export function CareLogGroupAdmin() {
     if (!allCareLogs) return new Set();
     return new Set(allCareLogs.map(log => log.careLogGroupId));
   }, [allCareLogs]);
-
+  
   const clientsWithVaShifts = useMemo(() => {
       if (!allVaShifts) return new Set();
       return new Set(allVaShifts.map(shift => shift.clientId));
@@ -193,7 +193,10 @@ export function CareLogGroupAdmin() {
                 const isGroupInactive = group.status === 'Inactive';
                 const isVaTemplate = vaTemplates?.some(t => t.id === group.careLogTemplateId);
                 const hasStandardLogs = groupsWithLogs.has(group.id);
-                const hasVaShifts = clientsWithVaShifts.has(group.clientId);
+                
+                const teletrackId = client?.TeletrackID;
+                const hasVaShifts = isVaTemplate && teletrackId ? clientsWithVaShifts.has(teletrackId) : false;
+
                 const hasLogs = isVaTemplate ? hasVaShifts : hasStandardLogs;
                 const reportLink = isVaTemplate ? `/staffing-admin/reports/va-report/${group.id}` : `/staffing-admin/reports/carelog/${group.id}`;
                 
@@ -383,9 +386,7 @@ export function CareLogGroupAdmin() {
                 )}
               />
               <DialogFooter>
-                <DialogClose asChild>
-                  <Button type="button" variant="outline">Cancel</Button>
-                </DialogClose>
+                <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
                 <Button type="submit" disabled={isPending}>
                   {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Save Group

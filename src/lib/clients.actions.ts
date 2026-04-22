@@ -39,11 +39,10 @@ export async function processClientUpload(data: Record<string, any>[]) {
     let updatedCount = 0;
 
     for (const row of data) {
-      const clientName = row['Name'];
+      const clientName = row['Client Name'];
 
-      // FIX: Ensure the primary identifier 'Name' exists and is a non-empty string.
       if (!clientName || typeof clientName !== 'string' || clientName.trim() === '') {
-        console.warn('[Action] Skipping row due to missing or invalid "Name":', row);
+        console.warn('[Action] Skipping row due to missing or invalid "Client Name":', row);
         continue;
       }
 
@@ -52,7 +51,7 @@ export async function processClientUpload(data: Record<string, any>[]) {
       const city = row['City'];
       const compositeKey = createCompositeKey(clientName, mobile, address, city);
       
-      const clientData = {
+      const clientData: {[key: string]: any} = {
         'Client Name': clientName,
         'DOB': row['DOB'] || '',
         'Address': address || '',
@@ -66,6 +65,10 @@ export async function processClientUpload(data: Record<string, any>[]) {
         status: 'Active',
         lastUpdatedAt: now,
       };
+
+      if (row['TeletrackID']) {
+        clientData['TeletrackID'] = row['TeletrackID'];
+      }
 
       const existingClient = existingClientsMap.get(compositeKey);
 
