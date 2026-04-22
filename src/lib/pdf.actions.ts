@@ -1,5 +1,4 @@
 
-
 'use server';
 
 // This file now acts as a barrel, re-exporting the individual PDF generators.
@@ -81,40 +80,49 @@ export async function generateVaWeeklyReportPdf(data: {
     caregiverName: string;
     shifts: { id: string; tasks: Record<string, boolean>, providerSignature: string }[];
 }) {
+    console.log('[PDF Action] Received request:', JSON.stringify(data, null, 2));
+
     if (!data.groupId || !data.weekOf || !data.caregiverName) {
         return { error: "Missing required data for PDF generation." };
     }
     
     try {
-        // --- Fetch all data on the server ---
+        console.log('[PDF Action] Fetching data from Firestore...');
         const groupDoc = await serverDb.collection('carelog_groups').doc(data.groupId).get();
-        if(!groupDoc.exists) return { error: "Carelog group not found." };
+        if(!groupDoc.exists) {
+            console.error('[PDF Action] Error: Carelog group not found.');
+            return { error: "Carelog group not found." };
+        }
         const groupData = groupDoc.data();
+        console.log('[PDF Action] Fetched groupData.');
 
         const clientDoc = groupData?.clientId ? await serverDb.collection('Clients').doc(groupData.clientId).get() : null;
-        const templateDoc = groupData?.careLogTemplateId ? await serverDb.collection('va_task_templates').doc(groupData.careLogTemplateId).get() : null;
-        if(!templateDoc?.exists) return { error: "VA Task template not found." };
+        console.log('[PDF Action] Fetched clientData:', clientDoc?.exists ? 'Exists' : 'Does not exist');
 
-        // Fetch all shifts for the client on the server to get clean data
+        const templateDoc = groupData?.careLogTemplateId ? await serverDb.collection('va_task_templates').doc(groupData.careLogTemplateId).get() : null;
+        if(!templateDoc?.exists) {
+            console.error('[PDF Action] Error: VA Task template not found.');
+            return { error: "VA Task template not found." };
+        }
+        console.log('[PDF Action] Fetched templateData.');
+
         const allClientShiftsQuery = serverDb.collection('va_teletrack_shifts').where('clientName', '==', groupData.clientName);
         const shiftsSnapshot = await allClientShiftsQuery.get();
         const allServerShifts = shiftsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        console.log(`[PDF Action] Fetched ${allServerShifts.length} total shifts for client.`);
 
-        // Filter in memory for the correct week and caregiver
         const [startStr, endStr] = data.weekOf.split(' - ');
         const weekStart = parse(startStr, 'MM/dd/yy', new Date());
         const weekEnd = parse(endStr, 'MM/dd/yy', new Date());
 
         const serverShiftsForReport = allServerShifts.filter(shift => {
-            if (shift.caregiverName !== data.caregiverName) {
-                return false;
-            }
+            if (shift.caregiverName !== data.caregiverName) return false;
             if (!shift.date?.toDate) return false;
             const shiftDate = shift.date.toDate();
             return isWithinInterval(shiftDate, { start: weekStart, end: weekEnd });
         });
-
-        // Merge the form updates from the client into the server-fetched shifts
+        console.log(`[PDF Action] Filtered to ${serverShiftsForReport.length} shifts for the selected week and caregiver.`);
+        
         const clientShiftUpdates = new Map(data.shifts.map((s: any) => [s.id, { tasks: s.tasks, providerSignature: s.providerSignature }]));
         
         const mergedShifts = serverShiftsForReport.map(shift => {
@@ -125,8 +133,7 @@ export async function generateVaWeeklyReportPdf(data: {
                 providerSignature: updates?.providerSignature || shift.providerSignature || '',
             };
         });
-
-        // --- Construct final payload for the PDF generator ---
+        
         const payload = {
             weekOf: data.weekOf,
             caregiverName: data.caregiverName,
@@ -136,8 +143,9 @@ export async function generateVaWeeklyReportPdf(data: {
             templateData: templateDoc.data(),
         };
 
-        // Call the internal PDF generation function
+        console.log('[PDF Action] Constructed final payload for PDF generator. Calling internal generator...');
         const result = await generateVaWeeklyReportPdfInternal(payload);
+        console.log('[PDF Action] Internal generator finished.');
         return result;
 
     } catch (error: any) {

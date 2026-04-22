@@ -41,18 +41,37 @@ const drawInfoBox = (page: PDFPage, x: number, y: number, width: number, height:
     });
 };
 
+const getInitials = (name: string): string => {
+    if (!name) return '';
+    const cleanedName = name.replace(/,/g, ''); 
+    const parts = cleanedName.split(' ').filter(p => p.length > 0);
+    if (parts.length > 1) {
+        return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+    } else if (parts.length === 1 && parts[0].length > 1) {
+        return parts[0].substring(0, 2).toUpperCase();
+    }
+    return '';
+};
+
 export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: string; error?: string }> {
+    console.log('[PDF Generator] Received data:', JSON.stringify(data, null, 2));
+
     try {
         const pdfDoc = await PDFDocument.create();
         const page = pdfDoc.addPage(PageSizes.Letter);
         const { width, height } = page.getSize();
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
         const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+        const cursiveFont = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
+
+        console.log('[PDF Generator] Fonts embedded successfully.');
 
         const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/VA-report-logo.jpg?alt=media";
         const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer());
         const logoImage = await pdfDoc.embedPng(logoImageBytes);
         const logoDims = logoImage.scale(0.08);
+
+        console.log('[PDF Generator] Logo fetched and embedded.');
 
         const leftMargin = 40;
         let y = height - 50;
@@ -67,7 +86,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
 
         drawText(page, "CARE NOTES", { x: leftMargin + logoDims.width + 10, y: y - 25, font: boldFont, size: 24 });
         
-        y -= (logoDims.height + 25); // Space below logo
+        y -= (logoDims.height + 25); 
 
         // --- Client Info Section ---
         const clientInfoBoxX = leftMargin + 280;
@@ -77,8 +96,8 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         const dob = data.clientData?.DOB ? format(new Date(data.clientData.DOB), 'MM/dd/yyyy') : 'N/A';
         const clientInfoData = [
             { label: "Client Name", value: data.groupData?.clientName || 'N/A' },
-            { label: "Last 4 of SSN", value: "" }, // Not in data
-            { label: "Referral Number", value: "" }, // Not in data
+            { label: "Last 4 of SSN", value: "" }, 
+            { label: "Referral Number", value: "" }, 
             { label: "DOB", value: dob },
         ];
         
@@ -134,7 +153,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         page.drawRectangle({ x: leftMargin, y: currentTableY - 10, width: width - 2 * leftMargin, height: 60, borderColor: rgb(0,0,0), borderWidth: 1 });
         page.drawLine({ start: { x: leftMargin + tableColWidth, y: y+20 }, end: { x: leftMargin + tableColWidth, y: y - 20 }, thickness: 1 });
         page.drawLine({ start: { x: leftMargin, y: y-20 }, end: { x: width-leftMargin, y: y - 20 }, thickness: 1 });
-        y -= 65; // Space between tables
+        y -= 65; 
 
         // --- Tasks Table ---
         const taskLabels = data.templateData?.tasks?.filter((t: string) => t !== 'providerSignature') || [];
@@ -172,7 +191,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
             const shift = shiftsByDay[i];
             if (shift) {
                 const dayX = leftMargin + tableColWidth + (i * tableColWidth);
-                drawText(page, shift.providerSignature || '', { x: dayX + 5, y: y - (rowHeight / 2) + 2, font, size: 8 });
+                drawText(page, shift.providerSignature || '', { x: dayX + 5, y: y - (rowHeight / 2) + 2, font: cursiveFont, size: 10 });
             }
         }
         y -= rowHeight;
@@ -188,11 +207,13 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         }
 
 
+        console.log('[PDF Generator] PDF drawing completed.');
         const pdfBytes = await pdfDoc.save();
+        console.log('[PDF Generator] PDF saved to bytes.');
         return { pdfData: Buffer.from(pdfBytes).toString('base64') };
 
     } catch (error: any) {
-        console.error("Error generating VA Weekly Report PDF:", error);
-        return { error: `Failed to generate PDF: ${error.message}` };
+        console.error("Error in generateVaWeeklyReportPdf:", error);
+        return { error: `Failed to generate PDF: ${error.message || 'An unknown error occurred in the PDF generator.'}` };
     }
 }
