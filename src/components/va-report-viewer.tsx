@@ -37,10 +37,9 @@ type ReportFormData = z.infer<typeof reportSchema>;
 
 const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-// Helper to get initials from a name (e.g., "John Doe" -> "JD")
 const getInitials = (name: string): string => {
     if (!name) return '';
-    const cleanedName = name.replace(/,/g, ''); // remove commas
+    const cleanedName = name.replace(/,/g, ''); 
     const parts = cleanedName.split(' ').filter(p => p.length > 0);
     if (parts.length > 1) {
         return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
@@ -135,14 +134,13 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
     }, [caregiverWeeklyShifts, reset, caregiverInitials]);
 
     const shiftsByDay = React.useMemo(() => {
-        const shiftsMap: { [key: number]: VAMedicalRecord[] } = {};
+        const shiftsMap: { [key: number]: VAMedicalRecord } = {}; // Only one shift per day for this UI
         caregiverWeeklyShifts.forEach(shift => {
             if (!shift.date?.toDate) return;
             const dayIndex = shift.date.toDate().getDay(); // 0 = Sunday
             if (!shiftsMap[dayIndex]) {
-                shiftsMap[dayIndex] = [];
+                shiftsMap[dayIndex] = shift;
             }
-            shiftsMap[dayIndex].push(shift);
         });
         return shiftsMap;
     }, [caregiverWeeklyShifts]);
@@ -240,13 +238,13 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                     </div>
 
                     <form onSubmit={handleSubmit(onSubmit)}>
-                        <div className="overflow-x-auto">
+                        <div className="overflow-x-auto border rounded-lg">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead className="min-w-[150px] align-bottom">Tasks Performed</TableHead>
+                                        <TableHead className="min-w-[180px] align-bottom">Tasks Performed</TableHead>
                                         {daysOfWeek.map((day, dayIndex) => (
-                                            <TableHead key={day} className="text-center min-w-[120px]">
+                                            <TableHead key={day} className="text-center min-w-[140px]">
                                                 {day}<br/>{format(addDays(parseISO(selectedWeek), dayIndex), 'MM/dd')}
                                             </TableHead>
                                         ))}
@@ -256,11 +254,9 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                                         {daysOfWeek.map((day, dayIndex) => (
                                             <TableCell key={`${day}-times`} className="text-center text-xs p-1 align-top bg-muted/50">
                                                 {shiftsByDay[dayIndex] ? (
-                                                    shiftsByDay[dayIndex].map(shift => (
-                                                        <div key={shift.id} className="whitespace-nowrap">
-                                                            {shift.arrivalTime} - {shift.departureTime}
-                                                        </div>
-                                                    ))
+                                                    <div className="whitespace-nowrap">
+                                                        {shiftsByDay[dayIndex].arrivalTime} - {shiftsByDay[dayIndex].departureTime}
+                                                    </div>
                                                 ) : (
                                                     <span className="text-muted-foreground">-</span>
                                                 )}
@@ -273,7 +269,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                                         <TableRow key={task}>
                                             <TableCell className="font-medium">{task.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase())}</TableCell>
                                             {daysOfWeek.map((_, dayIndex) => {
-                                                const shiftForDay = shiftsByDay[dayIndex]?.[0];
+                                                const shiftForDay = shiftsByDay[dayIndex];
                                                 if (!shiftForDay) {
                                                     return <TableCell key={dayIndex} />;
                                                 }
@@ -299,13 +295,13 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                                     <TableRow>
                                         <TableCell className="font-medium">Provider Signature</TableCell>
                                          {daysOfWeek.map((_, dayIndex) => {
-                                            const shiftForDay = shiftsByDay[dayIndex]?.[0];
+                                            const shiftForDay = shiftsByDay[dayIndex];
                                             if (!shiftForDay) {
                                                 return <TableCell key={dayIndex} />;
                                             }
                                             const fieldIndex = fields.findIndex(f => f.id === shiftForDay.id);
                                             return fieldIndex > -1 ? (
-                                                <TableCell key={dayIndex} className="text-center">
+                                                <TableCell key={dayIndex} className="text-center p-1">
                                                     <Controller
                                                         name={`shifts.${fieldIndex}.providerSignature`}
                                                         control={control}
