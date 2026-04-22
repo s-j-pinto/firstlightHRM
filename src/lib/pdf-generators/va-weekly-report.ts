@@ -118,7 +118,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         data.shifts.forEach((shift: any) => {
             if (!shift.date || typeof shift.date.toDate !== 'function') return;
             const shiftDate = shift.date.toDate();
-            const dayIndex = shiftDate.getDay();
+            const dayIndex = shiftDate.getDay(); // 0 = Sunday
             if (!shiftsByDay[dayIndex]) {
                 shiftsByDay[dayIndex] = shift;
             }
@@ -213,7 +213,9 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         return { pdfData: Buffer.from(pdfBytes).toString('base64') };
 
     } catch (error: any) {
+        // Log the full error for server-side debugging
         console.error("Error in generateVaWeeklyReportPdf:", error);
-        return { error: `Failed to generate PDF: ${error.message || 'An unknown error occurred in the PDF generator.'}` };
+        // Return a more informative but still user-friendly error message
+        return { error: `Failed to generate PDF. An error occurred in the PDF generator: ${error.message || 'Unknown error'}` };
     }
 }
