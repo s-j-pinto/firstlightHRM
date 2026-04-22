@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo, useTransition } from "react";
@@ -100,11 +101,6 @@ export function CareLogGroupAdmin() {
     return new Set(allCareLogs.map(log => log.careLogGroupId));
   }, [allCareLogs]);
   
-  const clientsWithVaShifts = useMemo(() => {
-      if (!allVaShifts) return new Set();
-      return new Set(allVaShifts.map(shift => shift.clientId));
-  }, [allVaShifts]);
-
 
   const handleOpenModal = (group: CareLogGroup | null) => {
     setEditingGroup(group);
@@ -194,8 +190,10 @@ export function CareLogGroupAdmin() {
                 const isVaTemplate = vaTemplates?.some(t => t.id === group.careLogTemplateId);
                 const hasStandardLogs = groupsWithLogs.has(group.id);
                 
-                const teletrackId = client?.TeletrackID;
-                const hasVaShifts = isVaTemplate && teletrackId ? clientsWithVaShifts.has(teletrackId) : false;
+                const clientNameFromGroup = client?.['Client Name'];
+                const hasVaShifts = isVaTemplate && clientNameFromGroup 
+                    ? allVaShifts?.some(shift => shift.clientName === clientNameFromGroup) 
+                    : false;
 
                 const hasLogs = isVaTemplate ? hasVaShifts : hasStandardLogs;
                 const reportLink = isVaTemplate ? `/staffing-admin/reports/va-report/${group.id}` : `/staffing-admin/reports/carelog/${group.id}`;

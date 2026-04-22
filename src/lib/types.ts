@@ -1,4 +1,5 @@
 
+
 import { z } from "zod";
 
 const isValidDate = (dateString: string): boolean => {
@@ -585,7 +586,6 @@ export const clientSchema = z.object({
   "Zip": z.string(),
   "Mobile": z.string(),
   "Email": z.string().optional(),
-  "TeletrackID": z.string().optional(),
   "ContactName": z.string().optional(),
   "ContactMobile": z.string().optional(),
   status: z.enum(["Active", "Inactive"]),

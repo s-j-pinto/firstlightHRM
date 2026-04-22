@@ -1,4 +1,5 @@
 
+
 "use server";
 
 import { revalidatePath } from 'next/cache';
@@ -65,10 +66,6 @@ export async function processClientUpload(data: Record<string, any>[]) {
         status: 'Active',
         lastUpdatedAt: now,
       };
-
-      if (row['TeletrackID']) {
-        clientData['TeletrackID'] = row['TeletrackID'];
-      }
 
       const existingClient = existingClientsMap.get(compositeKey);
 
