@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getStorage } from 'firebase-admin/storage';
 import { serverDb } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
-import { parse as parseDate } from 'date-fns';
+import { parse as parseDate, isValid } from 'date-fns';
 
 // Helper to parse the inconsistent client name string
 function parseClientName(fullName: string): string {
@@ -14,16 +14,20 @@ function parseClientName(fullName: string): string {
 
 // Helper to parse date strings like "Mon 4/20/2026"
 function parseTeletrackDate(dateStr: string): Date | null {
-    if (!dateStr) return null;
-    // Remove the day of the week part, e.g., "Mon "
-    const cleanDateStr = dateStr.substring(dateStr.indexOf(' ') + 1);
-    try {
-        const parsed = parseDate(cleanDateStr, 'M/d/yyyy', new Date());
-        return parsed;
-    } catch (e) {
-        console.error(`Failed to parse date: ${dateStr}`);
+    if (!dateStr || typeof dateStr !== 'string') {
+        console.warn(`[SYNC-VA-CARELOGS] Invalid date input provided: ${dateStr}`);
         return null;
     }
+    // Remove the day of the week part, e.g., "Mon "
+    const cleanDateStr = dateStr.substring(dateStr.indexOf(' ') + 1);
+    const parsed = parseDate(cleanDateStr, 'M/d/yyyy', new Date());
+
+    if (isValid(parsed)) {
+        return parsed;
+    }
+    
+    console.warn(`[SYNC-VA-CARELOGS] Could not parse a valid date from "${dateStr}".`);
+    return null;
 }
 
 export async function GET(request: NextRequest) {
@@ -33,7 +37,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const bucket = getStorage().bucket('gs://firstlighthomecare-hrm.firebasestorage.app');
+    const bucket = getStorage(serverApp).bucket('gs://firstlighthomecare-hrm.appspot.com');
     const file = bucket.file('CareLogs/VA_CareLogs/TeleTrack-VA-CareLogs.json');
     const [contents] = await file.download();
     const jsonData = JSON.parse(contents.toString());
