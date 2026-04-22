@@ -79,7 +79,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/VA-report-logo.png?alt=media&token=655fd007-7367-4475-981b-b3a9bb33baab";
         const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer());
         const logoImage = await pdfDoc.embedPng(logoImageBytes);
-        const logoDims = logoImage.scale(0.8 * 2 * 2);
+        const logoDims = logoImage.scale(0.8);
 
         const leftMargin = 40;
         let y = height - 50;
@@ -214,7 +214,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         y -= 20;
 
         // Rows
-        const rowHeight = 18;
+        const rowHeight = 18 * 1.2; // 20% taller
         taskLabels.forEach((task: string) => {
             const taskLabel = task.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase());
             const textHeight = font.heightAtSize(8);
@@ -249,12 +249,12 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         page.drawLine({ start: { x: leftMargin + firstColWidth, y: taskTableTop }, end: { x: leftMargin + firstColWidth, y: taskTableBottom }, thickness: 1 });
         
         for (let i = 0; i < taskLabels.length + 2; i++) {
-            const lineY = taskTableTop - (i * rowHeight);
-            if (i > 0) page.drawLine({start: {x: leftMargin, y: lineY}, end: {x: width - leftMargin, y: lineY}, thickness: 0.5});
+            const rowLineY = taskTableTop - (i * rowHeight);
+            if (i > 0) page.drawLine({start: {x: leftMargin, y: rowLineY}, end: {x: width - leftMargin, y: rowLineY}, thickness: 0.5});
         }
          for (let i = 0; i < 7; i++) {
-            const lineX = leftMargin + firstColWidth + (i * dayColWidth);
-            page.drawLine({start: {x: lineX, y: taskTableTop}, end: {x: lineX, y: taskTableBottom}, thickness: 0.5});
+            const colLineX = leftMargin + firstColWidth + (i * dayColWidth);
+            page.drawLine({start: {x: colLineX, y: taskTableTop}, end: {x: colLineX, y: taskTableBottom}, thickness: 0.5});
         }
         
         const pdfBytes = await pdfDoc.save();
