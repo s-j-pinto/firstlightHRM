@@ -62,9 +62,9 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
         const cursiveFont = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
 
-        const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/VA-report-logo.png?alt=media";
+        const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/VA-report-logo.jpg?alt=media";
         const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer());
-        const logoImage = await pdfDoc.embedPng(logoImageBytes);
+        const logoImage = await pdfDoc.embedJpg(logoImageBytes);
         const logoDims = logoImage.scale(0.08);
 
         const leftMargin = 40;
@@ -125,6 +125,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         drawText(page, "Caregiver Name", { x: leftMargin + 5, y: currentTableY - 12, font: boldFont, size: 8 });
         drawText(page, "Shift Time", { x: leftMargin + 5, y: currentTableY - 32, font: boldFont, size: 8 });
         
+        const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         for (let i = 0; i < 7; i++) {
             const dayX = leftMargin + tableColWidth + (i * tableColWidth);
             const dayDate = addDays(weekStart, i);
