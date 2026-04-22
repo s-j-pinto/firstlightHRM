@@ -65,7 +65,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/VA-report-logo.png?alt=media&token=655fd007-7367-4475-981b-b3a9bb33baab";
         const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer());
         const logoImage = await pdfDoc.embedPng(logoImageBytes);
-        const logoDims = logoImage.scale(0.32); // Increased size by 4x (0.08 * 4)
+        const logoDims = logoImage.scale(0.64); // Doubled from 0.32
 
         const leftMargin = 40;
         let y = height - 50;
@@ -78,7 +78,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
             height: logoDims.height,
         });
 
-        drawText(page, "CARE NOTES", { x: leftMargin + logoDims.width + 10, y: y - 25, font: boldFont, size: 24 });
+        drawText(page, "CARE NOTES", { x: leftMargin + logoDims.width + 10, y: y - 25, font: boldFont, size: 22 }); // Slightly reduced font size
         
         y -= (logoDims.height + 25); 
 
