@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from "react";
@@ -64,7 +63,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
     const { data: templateData, isLoading: templateLoading } = useDoc<VATaskTemplate>(templateRef);
 
     const shiftsQuery = useMemoFirebase(
-        () => groupData && firestore ? query(collection(firestore, 'va_teletrack_shifts'), where('clientId', '==', groupData.clientId)) : null,
+        () => groupData && firestore ? query(collection(firestore, 'va_teletrack_shifts'), where('clientName', '==', groupData.clientName)) : null,
         [groupData, firestore]
     );
     const { data: allShifts, isLoading: shiftsLoading } = useCollection<VAMedicalRecord>(shiftsQuery);
