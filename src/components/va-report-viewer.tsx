@@ -37,13 +37,17 @@ type ReportFormData = z.infer<typeof reportSchema>;
 
 const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+// Helper to get initials from a name (e.g., "John Doe" -> "JD")
 const getInitials = (name: string): string => {
     if (!name) return '';
-    const parts = name.trim().split(' ');
+    const cleanedName = name.replace(/,/g, ''); // remove commas
+    const parts = cleanedName.split(' ').filter(p => p.length > 0);
     if (parts.length > 1) {
         return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+    } else if (parts.length === 1 && parts[0].length > 1) {
+        return parts[0].substring(0, 2).toUpperCase();
     }
-    return name.substring(0, 2).toUpperCase();
+    return '';
 };
 
 export function VaReportViewer({ groupId }: VaReportViewerProps) {
