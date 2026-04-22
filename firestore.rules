@@ -256,9 +256,10 @@ service cloud.firestore {
     }
 
     match /va_teletrack_shifts/{shiftId} {
-        allow get, list: if isAnyAdmin();
-        allow create: if true;
-        allow update, delete: if isAnyAdmin();
+      allow get, list: if isAnyAdmin();
+      allow create: if true; // Allow cron job to write
+      allow update: if isAnyAdmin(); // Allow admin to update tasks
+      allow delete: if isAnyAdmin();
     }
   }
 }

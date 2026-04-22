@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -66,6 +67,31 @@ export async function saveAllstarVisitAndAdminData(payload: {
 
     } catch (error: any) {
         console.error("Error saving Allstar visit data:", error);
+        return { error: `An error occurred: ${error.message}` };
+    }
+}
+
+
+export async function saveVaShiftAdminData(payload: {
+    shiftId: string;
+    tasks: Record<string, boolean>;
+    providerSignature: string;
+}) {
+    const { shiftId, tasks, providerSignature } = payload;
+    const firestore = serverDb;
+
+    try {
+        const shiftRef = firestore.collection('va_teletrack_shifts').doc(shiftId);
+        
+        await shiftRef.update({
+            tasks: tasks || {},
+            providerSignature: providerSignature || '',
+            lastUpdatedAt: Timestamp.now(),
+        });
+        
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error saving VA shift admin data:", error);
         return { error: `An error occurred: ${error.message}` };
     }
 }

@@ -542,6 +542,24 @@
         },
         "required": ["name", "subsections", "createdAt", "lastUpdatedAt"]
     },
+    "VATaskTemplate": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "VATaskTemplate",
+      "type": "object",
+      "description": "Defines a reusable template for VA-specific tasks.",
+      "properties": {
+        "name": { "type": "string", "description": "The name of the VA template." },
+        "description": { "type": "string", "description": "A brief description of the template's purpose." },
+        "tasks": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "An array of VA-specific task keys to include in this template."
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastUpdatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "tasks", "createdAt", "lastUpdatedAt"]
+    },
     "ReferralProfile": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ReferralProfile",
@@ -586,6 +604,26 @@
         "appliedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["clientId", "referralId", "rewardType", "amount", "status", "createdAt"]
+    },
+    "VAMedicalRecord": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "VA Medical Record",
+      "type": "object",
+      "description": "Stores a single shift record for a VA client from Teletrack.",
+      "properties": {
+        "clientId": { "type": "string" },
+        "clientName": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "day": { "type": "string" },
+        "caregiverName": { "type": "string" },
+        "ratePlan": { "type": "string" },
+        "arrivalTime": { "type": "string" },
+        "departureTime": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "tasks": { "type": "object", "description": "An object storing boolean values for completed tasks from the VA template." },
+        "providerSignature": { "type": "string", "description": "The name of the provider who signed off on the tasks." }
+      },
+      "required": ["clientId", "clientName", "date", "caregiverName", "arrivalTime", "departureTime", "createdAt"]
     }
   },
   "auth": {
@@ -663,6 +701,10 @@
       "schema": { "$ref": "#/entities/CareLogTemplate" },
       "description": "Stores reusable templates for structured CareLog entries."
     },
+    "/va_task_templates/{templateId}": {
+      "schema": { "$ref": "#/entities/VATaskTemplate" },
+      "description": "Stores reusable templates for VA CareLog entries."
+    },
     "/referral_profiles/{profileId}": {
       "schema": { "$ref": "#/entities/ReferralProfile" },
       "description": "Stores client referral codes."
@@ -674,9 +716,14 @@
     "/rewards/{rewardId}": {
       "schema": { "$ref": "#/entities/Reward" },
       "description": "Stores rewards earned by clients."
+    },
+    "/va_teletrack_shifts/{shiftId}": {
+      "schema": { "$ref": "#/entities/VAMedicalRecord" },
+      "description": "Stores individual VA shift records from Teletrack."
     }
   }
 }
       
 
     
+

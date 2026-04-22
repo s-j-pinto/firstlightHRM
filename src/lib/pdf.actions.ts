@@ -28,6 +28,8 @@ import { generateCaregiverResponsibilitiesPdf as generateCaregiverResponsibiliti
 import { generateLightHousekeepingPdf as generateLightHousekeepingPdfInternal } from './pdf-generators/light-housekeeping';
 import { generateCaregiverTelephonyInstructionsPdf as generateCaregiverTelephonyInstructionsPdfInternal } from './pdf-generators/caregiver-telephony-instructions';
 import { generateEmergencyProcedurePdf as generateEmergencyProcedurePdfInternal } from './pdf-generators/emergency-procedure';
+import { generateVaWeeklyReportPdf as generateVaWeeklyReportPdfInternal } from './pdf-generators/va-weekly-report';
+import { serverDb } from './server-init';
 
 export async function generateHcs501Pdf(formData: any) { return generateHcs501PdfInternal(formData); }
 export async function generateEmergencyContactPdf(formData: any) { return generateEmergencyContactPdfInternal(formData); }
@@ -58,6 +60,32 @@ export async function generateAllstarWeeklyReportPdf(data: any) {
         return result;
     } catch (error: any) {
         console.error("Error during PDF generation process:", error);
+        return { error: `Failed to generate PDF: ${error.message}` };
+    }
+}
+
+export async function generateVaWeeklyReportPdf(data: any) {
+    if (!data.groupId || !data.weekOf || !data.caregiverName) {
+        return { error: "Missing required data for PDF generation." };
+    }
+    
+    try {
+        const groupDoc = await serverDb.collection('carelog_groups').doc(data.groupId).get();
+        if(!groupDoc.exists) return { error: "Carelog group not found." };
+        
+        const templateDoc = await serverDb.collection('va_task_templates').doc(groupDoc.data()!.careLogTemplateId).get();
+        if(!templateDoc.exists) return { error: "VA Task template not found." };
+
+        const payload = {
+            ...data,
+            groupData: groupDoc.data(),
+            templateData: templateDoc.data(),
+        };
+
+        const result = await generateVaWeeklyReportPdfInternal(payload);
+        return result;
+    } catch (error: any) {
+        console.error("Error during VA Report PDF generation process:", error);
         return { error: `Failed to generate PDF: ${error.message}` };
     }
 }
