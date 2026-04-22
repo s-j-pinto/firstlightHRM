@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont, PDFPage } from 'pdf-lib';
@@ -52,7 +51,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
 
         const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/VA-report-logo.jpg?alt=media";
         const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer());
-        const logoImage = await pdfDoc.embedJpg(logoImageBytes);
+        const logoImage = await pdfDoc.embedPng(logoImageBytes);
         const logoDims = logoImage.scale(0.08);
 
         const leftMargin = 40;
