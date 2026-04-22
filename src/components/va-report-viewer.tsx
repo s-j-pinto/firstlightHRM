@@ -29,7 +29,7 @@ interface VaReportViewerProps {
 const reportSchema = z.object({
   shifts: z.array(z.object({
     id: z.string(),
-    tasks: z.record(z.boolean().nullable().optional()),
+    tasks: z.record(z.boolean().nullable().optional()).optional(),
     providerSignature: z.string().optional().nullable(),
   })),
 });
@@ -68,12 +68,6 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
 
     const groupRef = useMemoFirebase(() => firestore ? doc(firestore, 'carelog_groups', groupId) : null, [groupId, firestore]);
     const { data: groupData, isLoading: groupLoading } = useDoc<any>(groupRef);
-
-    const clientRef = useMemoFirebase(() => groupData && firestore ? doc(firestore, 'Clients', groupData.clientId) : null, [groupData, firestore]);
-    const { data: clientData, isLoading: clientLoading } = useDoc<Client>(clientRef);
-
-    const templateRef = useMemoFirebase(() => groupData?.careLogTemplateId && firestore ? doc(firestore, 'va_task_templates', groupData.careLogTemplateId) : null, [groupData, firestore]);
-    const { data: templateData, isLoading: templateLoading } = useDoc<VATaskTemplate>(templateRef);
 
     const shiftsQuery = useMemoFirebase(
         () => groupData && firestore ? query(collection(firestore, 'va_teletrack_shifts'), where('clientName', '==', groupData.clientName)) : null,
@@ -146,6 +140,9 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
         return shiftsMap;
     }, [caregiverWeeklyShifts]);
 
+    const templateRef = useMemoFirebase(() => groupData?.careLogTemplateId && firestore ? doc(firestore, 'va_task_templates', groupData.careLogTemplateId) : null, [groupData, firestore]);
+    const { data: templateData, isLoading: templateLoading } = useDoc<VATaskTemplate>(templateRef);
+
     const onSubmit = (data: ReportFormData) => {
         startSavingTransition(async () => {
             let successCount = 0;
@@ -154,7 +151,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                 const cleanedTasks: Record<string, boolean> = {};
                 if (shift.tasks) {
                     for (const [key, value] of Object.entries(shift.tasks)) {
-                        cleanedTasks[key] = !!value; // Coerce to boolean to match server type
+                        cleanedTasks[key] = !!value; 
                     }
                 }
                 const result = await saveVaShiftAdminData({
@@ -201,12 +198,8 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
         const payload = {
             weekOf,
             groupId,
-            clientName: groupData?.clientName,
-            clientData,
             caregiverName: selectedCaregiverName || 'N/A',
-            templateData,
             shifts: shiftsToInclude,
-            providerSignature: form.getValues('shifts')?.[0]?.providerSignature || caregiverInitials
         };
 
         startPdfGeneration(async () => {
@@ -223,7 +216,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
         });
     };
 
-    const isLoading = groupLoading || clientLoading || templateLoading || shiftsLoading;
+    const isLoading = groupLoading || shiftsLoading || templateLoading;
     const taskLabels = templateData?.tasks?.filter(t => t !== 'providerSignature') || [];
 
     if (isLoading) {
@@ -281,7 +274,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                                                 <TableCell key={`${day}-times`} className="text-center text-xs p-1 align-top bg-muted/50">
                                                     {shift ? (
                                                         <div className="whitespace-nowrap">
-                                                            {shift.arrivalTime} - {shift.departureTime}
+                                                            {shift.arrivalTime || ''} - {shift.departureTime || ''}
                                                         </div>
                                                     ) : (
                                                         <span className="text-muted-foreground">-</span>

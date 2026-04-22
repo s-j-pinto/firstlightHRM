@@ -90,7 +90,12 @@ export async function generateVaWeeklyReportPdf(data: any) {
         if(!templateDoc?.exists) return { error: "VA Task template not found." };
 
         const payload = {
-            ...data,
+            // Only use the serializable data from the client
+            weekOf: data.weekOf,
+            caregiverName: data.caregiverName,
+            shifts: data.shifts,
+
+            // Add the server-fetched data
             groupData: groupData,
             clientData: clientDoc?.exists ? clientDoc.data() : {},
             templateData: templateDoc.data(),
