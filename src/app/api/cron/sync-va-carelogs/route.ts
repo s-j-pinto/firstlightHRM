@@ -70,15 +70,20 @@ export async function GET(request: NextRequest) {
     const caregiverNameToIdMap = new Map<string, string>();
     caregiversSnap.forEach(doc => {
       const caregiver = doc.data();
-      const name = caregiver.Name; // e.g., "Pinto, Lolita"
+      const name = caregiver.Name;
       if (name) {
-        const parts = name.split(',').map((p: string) => p.trim());
-        if (parts.length === 2) {
-          const normalizedName = `${parts[1]} ${parts[0]}`.toLowerCase(); // "lolita pinto"
+        const trimmedName = name.trim().toLowerCase();
+        // Handle "Last, First" format
+        const parts = trimmedName.split(',').map((p: string) => p.trim());
+        if (parts.length === 2 && parts[0] && parts[1]) {
+          const normalizedName = `${parts[1]} ${parts[0]}`;
           caregiverNameToIdMap.set(normalizedName, doc.id);
         }
+        // Also map the original name in case it's in "First Last" format
+        caregiverNameToIdMap.set(trimmedName, doc.id);
       }
     });
+
 
     let batch = serverDb.batch();
     let operations = 0;
@@ -100,6 +105,10 @@ export async function GET(request: NextRequest) {
 
         const jsonCaregiverName = `${schedule.caregiver.firstName} ${schedule.caregiver.lastName}`;
         const caregiverId = caregiverNameToIdMap.get(jsonCaregiverName.toLowerCase()) || null;
+
+        if (!caregiverId) {
+            console.warn(`[SYNC-VA-CARELOGS] Could not find matching caregiver ID for: "${jsonCaregiverName}"`);
+        }
 
         const shiftDoc = {
           clientId: client.clientId,
