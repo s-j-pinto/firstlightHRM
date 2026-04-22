@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from "react";
@@ -35,6 +36,16 @@ const reportSchema = z.object({
 type ReportFormData = z.infer<typeof reportSchema>;
 
 const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+const getInitials = (name: string): string => {
+    if (!name) return '';
+    const parts = name.trim().split(' ');
+    if (parts.length > 1) {
+        return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+};
+
 
 export function VaReportViewer({ groupId }: VaReportViewerProps) {
     const { toast } = useToast();
@@ -108,15 +119,17 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
         return weeklyShifts.filter(shift => shift.caregiverName === selectedCaregiverName);
     }, [weeklyShifts, selectedCaregiverName]);
 
+    const caregiverInitials = React.useMemo(() => getInitials(selectedCaregiverName), [selectedCaregiverName]);
+
     React.useEffect(() => {
         reset({
             shifts: caregiverWeeklyShifts.map(s => ({
                 id: s.id,
                 tasks: s.tasks || {},
-                providerSignature: s.providerSignature || ''
+                providerSignature: s.providerSignature || caregiverInitials
             }))
         });
-    }, [caregiverWeeklyShifts, reset]);
+    }, [caregiverWeeklyShifts, reset, caregiverInitials]);
 
     const shiftsByDay = React.useMemo(() => {
         const shiftsMap: { [key: number]: VAMedicalRecord[] } = {};
@@ -256,32 +269,53 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                                     {taskLabels.map(task => (
                                         <TableRow key={task}>
                                             <TableCell className="font-medium">{task.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase())}</TableCell>
-                                            {daysOfWeek.map((_, dayIndex) => (
-                                                <TableCell key={dayIndex} className="text-center">
-                                                    {shiftsByDay[dayIndex]?.map(shift => {
-                                                        const fieldIndex = fields.findIndex(f => f.id === shift.id);
-                                                        return fieldIndex > -1 ? (
-                                                            <div key={shift.id} className="py-1">
-                                                                <Controller name={`shifts.${fieldIndex}.tasks.${task}`} control={control} render={({ field }) => <Checkbox checked={field.value} onCheckedChange={field.onChange} />} />
-                                                            </div>
-                                                        ) : null;
-                                                    })}
-                                                </TableCell>
-                                            ))}
+                                            {daysOfWeek.map((_, dayIndex) => {
+                                                const shiftForDay = shiftsByDay[dayIndex]?.[0];
+                                                if (!shiftForDay) {
+                                                    return <TableCell key={dayIndex} />;
+                                                }
+                                                const fieldIndex = fields.findIndex(f => f.id === shiftForDay.id);
+                                                return fieldIndex > -1 ? (
+                                                    <TableCell key={dayIndex} className="text-center">
+                                                        <Controller
+                                                            name={`shifts.${fieldIndex}.tasks.${task}`}
+                                                            control={control}
+                                                            render={({ field }) => (
+                                                                <Checkbox
+                                                                    checked={!!field.value}
+                                                                    onCheckedChange={field.onChange}
+                                                                    className="mx-auto"
+                                                                />
+                                                            )}
+                                                        />
+                                                    </TableCell>
+                                                ) : <TableCell key={dayIndex} />;
+                                            })}
                                         </TableRow>
                                     ))}
                                     <TableRow>
                                         <TableCell className="font-medium">Provider Signature</TableCell>
-                                         {daysOfWeek.map((_, dayIndex) => (
-                                            <TableCell key={dayIndex} className="text-center space-y-1">
-                                                {shiftsByDay[dayIndex]?.map(shift => {
-                                                    const fieldIndex = fields.findIndex(f => f.id === shift.id);
-                                                    return fieldIndex > -1 ? (
-                                                        <Controller key={shift.id} name={`shifts.${fieldIndex}.providerSignature`} control={control} render={({ field }) => <Input {...field} className="h-8 text-xs min-w-[100px]" />} />
-                                                    ) : null;
-                                                })}
-                                            </TableCell>
-                                        ))}
+                                         {daysOfWeek.map((_, dayIndex) => {
+                                            const shiftForDay = shiftsByDay[dayIndex]?.[0];
+                                            if (!shiftForDay) {
+                                                return <TableCell key={dayIndex} />;
+                                            }
+                                            const fieldIndex = fields.findIndex(f => f.id === shiftForDay.id);
+                                            return fieldIndex > -1 ? (
+                                                <TableCell key={dayIndex} className="text-center">
+                                                    <Controller
+                                                        name={`shifts.${fieldIndex}.providerSignature`}
+                                                        control={control}
+                                                        render={({ field }) => (
+                                                            <Input
+                                                                {...field}
+                                                                className="h-8 text-sm min-w-[100px] font-serif italic text-center"
+                                                            />
+                                                        )}
+                                                    />
+                                                </TableCell>
+                                            ) : <TableCell key={dayIndex} />;
+                                        })}
                                     </TableRow>
                                 </TableBody>
                             </Table>
