@@ -1,4 +1,6 @@
 
+'use server';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getStorage } from 'firebase-admin/storage';
 import { serverDb, serverApp } from '@/firebase/server-init';
@@ -53,7 +55,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const bucket = getStorage(serverApp).bucket('gs://firstlighthomecare-hrm.firebasestorage.app');
+    const bucket = getStorage(serverApp).bucket(process.env.GCLOUD_STORAGE_BUCKET || 'gs://firstlighthomecare-hrm.firebasestorage.app');
     const file = bucket.file('CareLogs/VA_CareLogs/TeleTrack-VA-CareLogs.json');
     const [contents] = await file.download();
     const jsonData = JSON.parse(contents.toString());
@@ -63,6 +65,20 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ success: false, error: "Invalid JSON structure in source file." }, { status: 500 });
     }
     const clients = jsonData.clients;
+
+    const caregiversSnap = await serverDb.collection('caregivers_active').get();
+    const caregiverNameToIdMap = new Map<string, string>();
+    caregiversSnap.forEach(doc => {
+      const caregiver = doc.data();
+      const name = caregiver.Name; // e.g., "Pinto, Lolita"
+      if (name) {
+        const parts = name.split(',').map((p: string) => p.trim());
+        if (parts.length === 2) {
+          const normalizedName = `${parts[1]} ${parts[0]}`.toLowerCase(); // "lolita pinto"
+          caregiverNameToIdMap.set(normalizedName, doc.id);
+        }
+      }
+    });
 
     let batch = serverDb.batch();
     let operations = 0;
@@ -82,12 +98,16 @@ export async function GET(request: NextRequest) {
             continue;
         }
 
+        const jsonCaregiverName = `${schedule.caregiver.firstName} ${schedule.caregiver.lastName}`;
+        const caregiverId = caregiverNameToIdMap.get(jsonCaregiverName.toLowerCase()) || null;
+
         const shiftDoc = {
           clientId: client.clientId,
           clientName: parsedClientName,
+          caregiverId: caregiverId,
           date: Timestamp.fromDate(scheduleDate),
           day: schedule.day,
-          caregiverName: `${schedule.caregiver.firstName} ${schedule.caregiver.lastName}`,
+          caregiverName: jsonCaregiverName,
           ratePlan: schedule.ratePlan,
           arrivalTime: schedule.arrivalTime,
           departureTime: schedule.departureTime,
@@ -102,7 +122,6 @@ export async function GET(request: NextRequest) {
         if (operations >= 499) {
             await batch.commit();
             operations = 0;
-            console.log("Committed a batch of VA shift records.");
             batch = serverDb.batch(); // Re-initialize the batch
         }
       }

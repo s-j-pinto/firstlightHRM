@@ -494,6 +494,21 @@ export const vaTaskTemplateSchema = z.object({
 });
 export type VATaskTemplate = z.infer<typeof vaTaskTemplateSchema> & { id: string };
 
+export const vaMedicalRecordSchema = z.object({
+  clientId: z.string(),
+  clientName: z.string(),
+  caregiverId: z.string().optional(),
+  date: z.any(),
+  day: z.string(),
+  caregiverName: z.string(),
+  ratePlan: z.string(),
+  arrivalTime: z.string(),
+  departureTime: z.string(),
+  createdAt: z.any(),
+  tasks: z.record(z.boolean()).optional(),
+  providerSignature: z.string().optional(),
+});
+export type VAMedicalRecord = z.infer<typeof vaMedicalRecordSchema> & { id: string };
 
 export const caregiverFormSchema = generalInfoSchema
   .merge(experienceSchema)

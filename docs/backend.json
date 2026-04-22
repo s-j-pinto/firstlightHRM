@@ -1,4 +1,5 @@
 
+
 {
   "entities": {
     "AllstarVisit": {
@@ -613,6 +614,7 @@
       "properties": {
         "clientId": { "type": "string" },
         "clientName": { "type": "string" },
+        "caregiverId": { "type": "string", "description": "The document ID of the linked caregiver from the 'caregivers_active' collection." },
         "date": { "type": "string", "format": "date-time" },
         "day": { "type": "string" },
         "caregiverName": { "type": "string" },
@@ -726,4 +728,5 @@
       
 
     
+
 
