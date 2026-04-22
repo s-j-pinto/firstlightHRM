@@ -2,7 +2,7 @@
 'use server';
 
 import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont, PDFPage } from 'pdf-lib';
-import { format, isDate, addDays, parse, parseISO } from 'date-fns';
+import { format, isDate, addDays, parse, parseISO, isValid } from 'date-fns';
 import { drawText, drawCheckbox, drawWrappedText } from './utils';
 
 // This function will draw a box with rows, for the client info
@@ -53,6 +53,20 @@ const getInitials = (name: string): string => {
     return '';
 };
 
+function formatShiftTime(start: string, end: string): string {
+    if (!start || !end) return '';
+    try {
+        const startTime = parse(start, 'h:mm:ss a', new Date());
+        const endTime = parse(end, 'h:mm:ss a', new Date());
+        const formattedStart = format(startTime, 'h:mmaaa').toLowerCase().replace(':00', '');
+        const formattedEnd = format(endTime, 'h:mmaaa').toLowerCase().replace(':00', '');
+        return `${formattedStart}-\n${formattedEnd}`;
+    } catch (e) {
+        // Fallback for unexpected formats
+        return `${start} -\n${end}`;
+    }
+}
+
 export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: string; error?: string }> {
     try {
         const pdfDoc = await PDFDocument.create();
@@ -65,7 +79,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/VA-report-logo.png?alt=media&token=655fd007-7367-4475-981b-b3a9bb33baab";
         const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer());
         const logoImage = await pdfDoc.embedPng(logoImageBytes);
-        const logoDims = logoImage.scale(0.64); // Doubled from 0.32
+        const logoDims = logoImage.scale(0.8);
 
         const leftMargin = 40;
         let y = height - 50;
@@ -78,7 +92,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
             height: logoDims.height,
         });
 
-        drawText(page, "CARE NOTES", { x: leftMargin + logoDims.width + 10, y: y - 25, font: boldFont, size: 22 }); // Slightly reduced font size
+        drawText(page, "CARE NOTES", { x: leftMargin + logoDims.width + 10, y: y - 35, font: boldFont, size: 20 });
         
         y -= (logoDims.height + 25); 
 
@@ -102,78 +116,93 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         drawText(page, "Program Name: Home Maker/HHA Program", { x: leftMargin, y, font, size: 9 });
         y -= 45;
 
-        drawText(page, `Week: ${data.weekOf || 'N/A'}`, { x: leftMargin, y, font, size: 10 });
-        y -= 25;
-
         // --- Shifts Table ---
         const shiftsByDay: { [key: number]: any } = {};
         const weekStart = parse(data.weekOf.split(' - ')[0], 'MM/dd/yy', new Date());
 
         data.shifts.forEach((shift: any) => {
             if (!shift.date) return;
-            const shiftDate = new Date(shift.date); // Date is now an ISO string
+            const shiftDate = parseISO(shift.date);
+            if (!isValid(shiftDate)) return;
+
             const dayIndex = shiftDate.getDay(); // 0 = Sunday
             if (!shiftsByDay[dayIndex]) {
                 shiftsByDay[dayIndex] = shift;
             }
         });
         
-        const tableColWidth = (width - 2 * leftMargin) / 8;
+        const contentWidth = width - 2 * leftMargin;
+        const firstColWidth = contentWidth * 0.30;
+        const dayColWidth = (contentWidth - firstColWidth) / 7;
         
-        // Headers
-        let currentTableY = y;
-        drawText(page, "Caregiver Name", { x: leftMargin + 5, y: currentTableY - 12, font: boldFont, size: 8 });
-        drawText(page, "Shift Time", { x: leftMargin + 5, y: currentTableY - 32, font: boldFont, size: 8 });
+        const topTableTopY = y;
+        const topTableRowHeight = 25;
         
-        const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        for (let i = 0; i < 7; i++) {
-            const dayX = leftMargin + tableColWidth + (i * tableColWidth);
+        const dayHeaders = Array.from({ length: 7 }).map((_, i) => {
             const dayDate = addDays(weekStart, i);
-            const headerText = `${format(dayDate, 'EEE')}\n${format(dayDate, 'MM/dd/yy')}`;
-            drawText(page, headerText, { x: dayX + 5, y: currentTableY - 10, font: boldFont, size: 8, lineHeight: 10 });
-        }
-        currentTableY -= 40;
+            return `${format(dayDate, 'EEE')}\n${format(dayDate, 'MM/dd/yy')}`;
+        });
 
-        // Content
-        drawText(page, data.caregiverName || '', { x: leftMargin + 5, y: currentTableY, font, size: 8 });
+        // Row 1: Week/Dates
+        let currentY = y - topTableRowHeight / 2 - 5;
+        drawText(page, "Week", { x: leftMargin + 5, y: currentY, font: boldFont, size: 8 });
+        dayHeaders.forEach((header, i) => {
+            const dayX = leftMargin + firstColWidth + (i * dayColWidth);
+            drawText(page, header, { x: dayX + 5, y: y - 8, font: boldFont, size: 8, lineHeight: 9 });
+        });
+        y -= topTableRowHeight;
+
+        // Row 2: Caregiver Name
+        currentY = y - topTableRowHeight / 2 + 4;
+        drawText(page, "Caregiver Name", { x: leftMargin + 5, y: currentY, font: boldFont, size: 8 });
         for (let i = 0; i < 7; i++) {
-            const dayX = leftMargin + tableColWidth + (i * tableColWidth);
-            const shift = shiftsByDay[i];
-            if (shift) {
-                const timeText = `${shift.arrivalTime || ''} - ${shift.departureTime || ''}`;
-                drawText(page, timeText, { x: dayX + 5, y: currentTableY, font, size: 8 });
+            if (shiftsByDay[i]) {
+                const dayX = leftMargin + firstColWidth + (i * dayColWidth);
+                drawText(page, data.caregiverName || '', { x: dayX + 5, y: currentY, font, size: 8 });
             }
         }
+        y -= topTableRowHeight;
+
+        // Row 3: Shift Time
+        currentY = y - topTableRowHeight / 2 - 2;
+        drawText(page, "Shift Time", { x: leftMargin + 5, y: currentY, font: boldFont, size: 8 });
+         for (let i = 0; i < 7; i++) {
+            const shift = shiftsByDay[i];
+            if (shift) {
+                const dayX = leftMargin + firstColWidth + (i * dayColWidth);
+                const timeText = formatShiftTime(shift.arrivalTime, shift.departureTime);
+                drawText(page, timeText, { x: dayX + 5, y: currentY + 5, font, size: 8, lineHeight: 9 });
+            }
+        }
+        y -= topTableRowHeight;
         
-        page.drawRectangle({ x: leftMargin, y: currentTableY - 10, width: width - 2 * leftMargin, height: 60, borderColor: rgb(0,0,0), borderWidth: 1 });
-        page.drawLine({ start: { x: leftMargin + tableColWidth, y: y+20 }, end: { x: leftMargin + tableColWidth, y: y - 20 }, thickness: 1 });
-        page.drawLine({ start: { x: leftMargin, y: y-20 }, end: { x: width-leftMargin, y: y - 20 }, thickness: 1 });
-        y -= 65; 
+        const topTableBottomY = y;
+        page.drawRectangle({ x: leftMargin, y: topTableBottomY, width: contentWidth, height: topTableTopY - topTableBottomY, borderColor: rgb(0,0,0), borderWidth: 1 });
+        page.drawLine({start: {x: leftMargin + firstColWidth, y: topTableTopY}, end: {x: leftMargin + firstColWidth, y: topTableBottomY}, thickness: 1});
+        [1,2].forEach(i => page.drawLine({start: {x: leftMargin, y: topTableTopY - (i * topTableRowHeight)}, end: {x: width - leftMargin, y: topTableTopY - (i * topTableRowHeight)}, thickness: 0.5}));
+        
+        y -= 25;
 
         // --- Tasks Table ---
         const taskLabels = data.templateData?.tasks?.filter((t: string) => t !== 'providerSignature') || [];
         const taskTableTop = y;
 
         // Headers
-        for (let i = 0; i < 7; i++) {
-            const dayX = leftMargin + tableColWidth + (i * tableColWidth);
-            const dayDate = addDays(weekStart, i);
-            const headerText = `${format(dayDate, 'EEE')}\n${format(dayDate, 'MM/dd/yy')}`;
-            drawText(page, headerText, { x: dayX + 5, y: y - 10, font: boldFont, size: 8, lineHeight: 10 });
-        }
         drawText(page, "TASKS PERFORMED", { x: leftMargin + 5, y: y - 12, font: boldFont, size: 8 });
+        
         y -= 20;
 
         // Rows
-        const rowHeight = 15;
+        const rowHeight = 18; // Increased by 20% from 15
         taskLabels.forEach((task: string) => {
             const taskLabel = task.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase());
-            drawText(page, taskLabel, { x: leftMargin + 5, y: y - (rowHeight / 2) + 2, font, size: 8 });
+            const textHeight = font.heightAtSize(8);
+            drawText(page, taskLabel, { x: leftMargin + 5, y: y - (rowHeight / 2) - (textHeight / 2) + 4, font, size: 8 });
 
             for (let i = 0; i < 7; i++) {
                 const shift = shiftsByDay[i];
                 if (shift) {
-                    const dayX = leftMargin + tableColWidth + (i * tableColWidth) + (tableColWidth / 2) - 5;
+                    const dayX = leftMargin + firstColWidth + (i * dayColWidth) + (dayColWidth / 2) - 5;
                     drawCheckbox(page, shift.tasks?.[task], dayX, y - (rowHeight / 2));
                 }
             }
@@ -182,26 +211,31 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
 
         // Provider Signature Row
         const caregiverInitials = getInitials(data.caregiverName);
-        drawText(page, "Provider Signature", { x: leftMargin + 5, y: y - (rowHeight / 2) + 2, font: boldFont, size: 8 });
+        const providerSigTextHeight = boldFont.heightAtSize(8);
+        drawText(page, "Provider Signature", { x: leftMargin + 5, y: y - (rowHeight / 2) - (providerSigTextHeight / 2) + 4, font: boldFont, size: 8 });
         for (let i = 0; i < 7; i++) {
             const shift = shiftsByDay[i];
             if (shift) {
-                const dayX = leftMargin + tableColWidth + (i * tableColWidth);
-                drawText(page, shift.providerSignature || caregiverInitials, { x: dayX + 5, y: y - (rowHeight / 2) + 2, font: cursiveFont, size: 10 });
+                const dayX = leftMargin + firstColWidth + (i * dayColWidth);
+                drawText(page, shift.providerSignature || caregiverInitials, { x: dayX + 5, y: y - (rowHeight / 2) - (font.heightAtSize(10) / 2) + 4, font: cursiveFont, size: 10 });
             }
         }
         y -= rowHeight;
 
         // Draw table borders
         const taskTableBottom = y;
-        page.drawRectangle({x: leftMargin, y: taskTableBottom, width: width - 2 * leftMargin, height: taskTableTop - taskTableBottom, borderColor: rgb(0,0,0), borderWidth: 1});
-        page.drawLine({ start: { x: leftMargin + tableColWidth, y: taskTableTop }, end: { x: leftMargin + tableColWidth, y: taskTableBottom }, thickness: 1 });
+        page.drawRectangle({x: leftMargin, y: taskTableBottom, width: contentWidth, height: taskTableTop - taskTableBottom, borderColor: rgb(0,0,0), borderWidth: 1});
+        page.drawLine({ start: { x: leftMargin + firstColWidth, y: taskTableTop }, end: { x: leftMargin + firstColWidth, y: taskTableBottom }, thickness: 1 });
         
-        for (let i = 0; i < taskLabels.length + 1; i++) {
-            const lineY = taskTableTop - 20 - (i * rowHeight);
-            page.drawLine({start: {x: leftMargin, y: lineY}, end: {x: width - leftMargin, y: lineY}, thickness: 0.5});
+        for (let i = 0; i < taskLabels.length + 2; i++) {
+            const lineY = taskTableTop - (i * rowHeight);
+            if (i > 0) page.drawLine({start: {x: leftMargin, y: lineY}, end: {x: width - leftMargin, y: lineY}, thickness: 0.5});
         }
-
+         for (let i = 0; i < 7; i++) {
+            const lineX = leftMargin + firstColWidth + (i * dayColWidth);
+            page.drawLine({start: {x: lineX, y: taskTableTop}, end: {x: lineX, y: taskTableBottom}, thickness: 0.5});
+        }
+        
         const pdfBytes = await pdfDoc.save();
         return { pdfData: Buffer.from(pdfBytes).toString('base64') };
 
