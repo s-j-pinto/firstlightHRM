@@ -83,7 +83,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
     
     const form = useForm<ReportFormData>({ resolver: zodResolver(reportSchema), defaultValues: { shifts: [] } });
     const { control, handleSubmit, reset } = form;
-    // By providing a different keyName, we avoid a collision with our own 'id' field.
+    
     const { fields } = useFieldArray({ control, name: "shifts", keyName: "key" });
     
     const weeklyShifts = React.useMemo(() => {
@@ -149,17 +149,32 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
     const onSubmit = (data: ReportFormData) => {
         startSavingTransition(async () => {
             let successCount = 0;
+            let hasError = false;
             for (const shift of data.shifts) {
                 const result = await saveVaShiftAdminData({
                     shiftId: shift.id,
                     tasks: shift.tasks,
                     providerSignature: shift.providerSignature || '',
+                    groupId: groupId,
                 });
-                if (!result.error) {
+                if (result.error) {
+                    toast({
+                        title: 'Save Failed',
+                        description: `Could not save data for shift ${shift.id}: ${result.error}`,
+                        variant: 'destructive',
+                    });
+                    hasError = true;
+                    break; 
+                } else {
                     successCount++;
                 }
             }
-            toast({ title: "Save Complete", description: `Successfully saved data for ${successCount} shifts.` });
+
+            if (!hasError && successCount > 0) {
+                toast({ title: "Save Complete", description: `Successfully saved data for ${successCount} shifts.` });
+            } else if (!hasError && successCount === 0) {
+                toast({ title: "No Changes", description: "No data was changed or saved." });
+            }
         });
     };
 

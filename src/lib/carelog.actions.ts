@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -76,8 +75,9 @@ export async function saveVaShiftAdminData(payload: {
     shiftId: string;
     tasks: Record<string, boolean>;
     providerSignature: string;
+    groupId: string;
 }) {
-    const { shiftId, tasks, providerSignature } = payload;
+    const { shiftId, tasks, providerSignature, groupId } = payload;
     const firestore = serverDb;
 
     try {
@@ -89,6 +89,7 @@ export async function saveVaShiftAdminData(payload: {
             lastUpdatedAt: Timestamp.now(),
         });
         
+        revalidatePath(`/staffing-admin/reports/va-report/${groupId}`);
         return { success: true };
     } catch (error: any) {
         console.error("Error saving VA shift admin data:", error);
