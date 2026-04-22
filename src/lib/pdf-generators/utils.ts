@@ -46,28 +46,23 @@ export function drawCenteredText(page: PDFPage, text: string, font: PDFFont, siz
 
 // Helper to draw a checkbox
 export function drawCheckbox(page: PDFPage, checked: boolean | undefined, x: number, y: number) {
-    if (checked) {
-        page.drawLine({
-            start: { x: x + 2, y: y + 5 },
-            end: { x: x + 5, y: y + 2 },
-            thickness: 1,
-            color: rgb(0, 0, 0),
-        });
-        page.drawLine({
-            start: { x: x + 5, y: y + 2 },
-            end: { x: x + 8, y: y + 8 },
-            thickness: 1,
-            color: rgb(0, 0, 0),
-        });
-    }
+    const boxSize = 8;
+    const boxY = y - boxSize / 2;
+
     page.drawRectangle({
         x: x,
-        y: y,
-        width: 10,
-        height: 10,
+        y: boxY,
+        width: boxSize,
+        height: boxSize,
         borderWidth: 0.5,
         borderColor: rgb(0, 0, 0),
     });
+
+    if (checked) {
+        // Draw an 'X' inside the box
+        page.drawLine({ start: { x, y: boxY }, end: { x: x + boxSize, y: boxY + boxSize }, thickness: 1 });
+        page.drawLine({ start: { x, y: boxY + boxSize }, end: { x: x + boxSize, y: boxY }, thickness: 1 });
+    }
 }
 
 export async function drawSignature(page: PDFPage, dataUrl: string | undefined, x: number, y: number, width: number, height: number, pdfDoc: PDFDocument) {

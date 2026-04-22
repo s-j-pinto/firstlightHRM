@@ -1,4 +1,5 @@
 
+
 'use server';
 
 // This file now acts as a barrel, re-exporting the individual PDF generators.
@@ -81,13 +82,17 @@ export async function generateVaWeeklyReportPdf(data: any) {
     try {
         const groupDoc = await serverDb.collection('carelog_groups').doc(data.groupId).get();
         if(!groupDoc.exists) return { error: "Carelog group not found." };
+        const groupData = groupDoc.data();
         
-        const templateDoc = await serverDb.collection('va_task_templates').doc(groupDoc.data()!.careLogTemplateId).get();
-        if(!templateDoc.exists) return { error: "VA Task template not found." };
+        const clientDoc = groupData?.clientId ? await serverDb.collection('Clients').doc(groupData.clientId).get() : null;
+        
+        const templateDoc = groupData?.careLogTemplateId ? await serverDb.collection('va_task_templates').doc(groupData.careLogTemplateId).get() : null;
+        if(!templateDoc?.exists) return { error: "VA Task template not found." };
 
         const payload = {
             ...data,
-            groupData: groupDoc.data(),
+            groupData: groupData,
+            clientData: clientDoc?.exists ? clientDoc.data() : {},
             templateData: templateDoc.data(),
         };
 
