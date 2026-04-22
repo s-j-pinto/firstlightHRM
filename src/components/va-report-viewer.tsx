@@ -183,6 +183,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
             caregiverName: selectedCaregiverName || 'N/A',
             templateData,
             shifts: shiftsToInclude,
+            providerSignature: form.getValues('shifts')?.[0]?.providerSignature || caregiverInitials
         };
 
         startPdfGeneration(async () => {
