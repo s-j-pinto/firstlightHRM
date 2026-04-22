@@ -54,8 +54,6 @@ const getInitials = (name: string): string => {
 };
 
 export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: string; error?: string }> {
-    console.log('[PDF Generator] Received data:', JSON.stringify(data, null, 2));
-
     try {
         const pdfDoc = await PDFDocument.create();
         const page = pdfDoc.addPage(PageSizes.Letter);
@@ -64,14 +62,10 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
         const cursiveFont = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
 
-        console.log('[PDF Generator] Fonts embedded successfully.');
-
-        const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/VA-report-logo.jpg?alt=media";
+        const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/VA-report-logo.png?alt=media";
         const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer());
         const logoImage = await pdfDoc.embedPng(logoImageBytes);
         const logoDims = logoImage.scale(0.08);
-
-        console.log('[PDF Generator] Logo fetched and embedded.');
 
         const leftMargin = 40;
         let y = height - 50;
@@ -116,8 +110,8 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         const weekStart = parse(data.weekOf.split(' - ')[0], 'MM/dd/yy', new Date());
 
         data.shifts.forEach((shift: any) => {
-            if (!shift.date || typeof shift.date.toDate !== 'function') return;
-            const shiftDate = shift.date.toDate();
+            if (!shift.date) return;
+            const shiftDate = new Date(shift.date); // Date is now an ISO string
             const dayIndex = shiftDate.getDay(); // 0 = Sunday
             if (!shiftsByDay[dayIndex]) {
                 shiftsByDay[dayIndex] = shift;
@@ -186,12 +180,13 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         });
 
         // Provider Signature Row
+        const caregiverInitials = getInitials(data.caregiverName);
         drawText(page, "Provider Signature", { x: leftMargin + 5, y: y - (rowHeight / 2) + 2, font: boldFont, size: 8 });
         for (let i = 0; i < 7; i++) {
             const shift = shiftsByDay[i];
             if (shift) {
                 const dayX = leftMargin + tableColWidth + (i * tableColWidth);
-                drawText(page, shift.providerSignature || '', { x: dayX + 5, y: y - (rowHeight / 2) + 2, font: cursiveFont, size: 10 });
+                drawText(page, shift.providerSignature || caregiverInitials, { x: dayX + 5, y: y - (rowHeight / 2) + 2, font: cursiveFont, size: 10 });
             }
         }
         y -= rowHeight;
@@ -206,16 +201,24 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
             page.drawLine({start: {x: leftMargin, y: lineY}, end: {x: width - leftMargin, y: lineY}, thickness: 0.5});
         }
 
-
-        console.log('[PDF Generator] PDF drawing completed.');
         const pdfBytes = await pdfDoc.save();
-        console.log('[PDF Generator] PDF saved to bytes.');
         return { pdfData: Buffer.from(pdfBytes).toString('base64') };
 
     } catch (error: any) {
-        // Log the full error for server-side debugging
-        console.error("Error in generateVaWeeklyReportPdf:", error);
-        // Return a more informative but still user-friendly error message
-        return { error: `Failed to generate PDF. An error occurred in the PDF generator: ${error.message || 'Unknown error'}` };
+        console.error("[PDF Generator] CRITICAL ERROR:", JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+        
+        let errorMessage = 'An unknown error occurred in the PDF generator.';
+        if (error instanceof Error) {
+            errorMessage = error.message;
+            if (error.stack) {
+                console.error("[PDF Generator] Stack Trace:", error.stack);
+            }
+        } else if (typeof error === 'object' && error !== null) {
+            errorMessage = JSON.stringify(error);
+        } else {
+            errorMessage = String(error);
+        }
+        
+        return { error: `Failed to generate PDF: ${errorMessage}` };
     }
 }

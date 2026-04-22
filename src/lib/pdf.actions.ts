@@ -80,36 +80,27 @@ export async function generateVaWeeklyReportPdf(data: {
     caregiverName: string;
     shifts: { id: string; tasks: Record<string, boolean>, providerSignature: string }[];
 }) {
-    console.log('[PDF Action] Received request:', JSON.stringify(data, null, 2));
-
     if (!data.groupId || !data.weekOf || !data.caregiverName) {
         return { error: "Missing required data for PDF generation." };
     }
     
     try {
-        console.log('[PDF Action] Fetching data from Firestore...');
         const groupDoc = await serverDb.collection('carelog_groups').doc(data.groupId).get();
         if(!groupDoc.exists) {
-            console.error('[PDF Action] Error: Carelog group not found.');
             return { error: "Carelog group not found." };
         }
         const groupData = groupDoc.data();
-        console.log('[PDF Action] Fetched groupData.');
 
         const clientDoc = groupData?.clientId ? await serverDb.collection('Clients').doc(groupData.clientId).get() : null;
-        console.log('[PDF Action] Fetched clientData:', clientDoc?.exists ? 'Exists' : 'Does not exist');
 
         const templateDoc = groupData?.careLogTemplateId ? await serverDb.collection('va_task_templates').doc(groupData.careLogTemplateId).get() : null;
         if(!templateDoc?.exists) {
-            console.error('[PDF Action] Error: VA Task template not found.');
             return { error: "VA Task template not found." };
         }
-        console.log('[PDF Action] Fetched templateData.');
 
         const allClientShiftsQuery = serverDb.collection('va_teletrack_shifts').where('clientName', '==', groupData.clientName);
         const shiftsSnapshot = await allClientShiftsQuery.get();
         const allServerShifts = shiftsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        console.log(`[PDF Action] Fetched ${allServerShifts.length} total shifts for client.`);
 
         const [startStr, endStr] = data.weekOf.split(' - ');
         const weekStart = parse(startStr, 'MM/dd/yy', new Date());
@@ -121,14 +112,17 @@ export async function generateVaWeeklyReportPdf(data: {
             const shiftDate = shift.date.toDate();
             return isWithinInterval(shiftDate, { start: weekStart, end: weekEnd });
         });
-        console.log(`[PDF Action] Filtered to ${serverShiftsForReport.length} shifts for the selected week and caregiver.`);
         
         const clientShiftUpdates = new Map(data.shifts.map((s: any) => [s.id, { tasks: s.tasks, providerSignature: s.providerSignature }]));
         
-        const mergedShifts = serverShiftsForReport.map(shift => {
+        const mergedAndSanitizedShifts = serverShiftsForReport.map(shift => {
             const updates = clientShiftUpdates.get(shift.id);
+            const { date, createdAt, lastUpdatedAt, ...restOfShift } = shift;
             return {
-                ...shift,
+                ...restOfShift,
+                date: date.toDate().toISOString(), // Sanitize timestamp to ISO string
+                createdAt: createdAt.toDate().toISOString(),
+                lastUpdatedAt: lastUpdatedAt.toDate().toISOString(),
                 tasks: updates?.tasks || shift.tasks || {},
                 providerSignature: updates?.providerSignature || shift.providerSignature || '',
             };
@@ -137,15 +131,13 @@ export async function generateVaWeeklyReportPdf(data: {
         const payload = {
             weekOf: data.weekOf,
             caregiverName: data.caregiverName,
-            shifts: mergedShifts,
+            shifts: mergedAndSanitizedShifts,
             groupData: groupData,
             clientData: clientDoc?.exists ? clientDoc.data() : {},
             templateData: templateDoc.data(),
         };
 
-        console.log('[PDF Action] Constructed final payload for PDF generator. Calling internal generator...');
         const result = await generateVaWeeklyReportPdfInternal(payload);
-        console.log('[PDF Action] Internal generator finished.');
         return result;
 
     } catch (error: any) {
