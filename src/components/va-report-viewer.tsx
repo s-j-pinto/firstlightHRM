@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, orderBy, doc } from 'firebase/firestore';
 import type { VATaskTemplate, VAMedicalRecord, Client } from '@/lib/types';
-import { startOfWeek, endOfWeek, format, subWeeks, parseISO, addDays, isWithinInterval } from 'date-fns';
+import { startOfWeek, endOfWeek, format, subWeeks, parse, isValid, isDate, parseISO, addDays, isWithinInterval } from 'date-fns';
 
 import { Button } from './ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from './ui/card';
@@ -145,9 +145,29 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
 
     const onSubmit = (data: ReportFormData) => {
         startSavingTransition(async () => {
+            const schemaWithTasks = z.object({
+                shifts: z.array(z.object({
+                    id: z.string(),
+                    tasks: z.record(z.boolean().nullable().optional()).optional(),
+                    providerSignature: z.string().optional().nullable(),
+                })),
+            });
+
+            const validation = schemaWithTasks.safeParse(data);
+            if (!validation.success) {
+                toast({
+                    title: "Validation Error",
+                    description: "There was an issue with the form data. Please check the console.",
+                    variant: 'destructive',
+                });
+                console.error("Form validation error on submit:", validation.error.flatten());
+                return;
+            }
+            
+            const cleanedData = validation.data;
             let successCount = 0;
             let hasError = false;
-            for (const shift of data.shifts) {
+            for (const shift of cleanedData.shifts) {
                 const cleanedTasks: Record<string, boolean> = {};
                 if (shift.tasks) {
                     for (const [key, value] of Object.entries(shift.tasks)) {
@@ -189,7 +209,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
         const shiftsToInclude = caregiverWeeklyShifts.map(s => {
             const formShift = form.getValues().shifts.find(fs => fs.id === s.id);
             return {
-                ...s,
+                id: s.id, // Only include the ID
                 tasks: formShift?.tasks || {},
                 providerSignature: formShift?.providerSignature || ''
             };
