@@ -46,8 +46,18 @@ export async function generateAcknowledgmentFormPdf(formData: any) { return gene
 export async function generateConfidentialityAgreementPdf(formData: any) { return generateConfidentialityAgreementPdfInternal(formData); }
 export async function generateTrainingAcknowledgementPdf(formData: any) { return generateTrainingAcknowledgementPdfInternal(formData); }
 export async function generateOfferLetterPdf(formData: any) { return generateOfferLetterPdfInternal(formData); }
-export async function generateClientIntakePdf(formData: any, formType?: 'private' | 'tpp') { return generateClientIntakePdfInternal(formData); }
-export async function generateTppCsaPdf(formData: any) { return generateTppCsaPdfInternal(formData); }
+export async function generateClientIntakePdf(formData: any, formType?: 'private' | 'tpp') {
+  if (formType === 'tpp') {
+    const pdfBytes = await generateTppCsaPdfInternal(formData);
+    return { pdfData: Buffer.from(pdfBytes).toString('base64') };
+  }
+  const pdfBytes = await generateClientIntakePdfInternal(formData);
+  return { pdfData: Buffer.from(pdfBytes).toString('base64') };
+}
+export async function generateTppCsaPdf(formData: any) { 
+    const pdfBytes = await generateTppCsaPdfInternal(formData);
+    return { pdfData: Buffer.from(pdfBytes).toString('base64') };
+}
 export async function generateCaregiverResponsibilitiesPdf(formData: any) { return generateCaregiverResponsibilitiesPdfInternal(formData); }
 export async function generateLightHousekeepingPdf() { return generateLightHousekeepingPdfInternal(); }
 export async function generateCaregiverTelephonyInstructionsPdf(formData: any) { return generateCaregiverTelephonyInstructionsPdfInternal(formData); }

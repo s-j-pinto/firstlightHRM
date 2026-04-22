@@ -5,7 +5,7 @@ import { useState, useMemo, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import Link from 'next/link';
 import { zodResolver } from "@hookform/resolvers/zod";
-import { collection } from "firebase/firestore";
+import { collection, query, orderBy } from "firebase/firestore";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { Client, ActiveCaregiver, CareLogGroup, CareLog, CareLogTemplate, VATaskTemplate } from "@/lib/types";
 import { saveCareLogGroup, deleteCareLogGroup, reactivateCareLogGroup } from "@/lib/carelog-groups.actions";
@@ -63,6 +63,9 @@ export function CareLogGroupAdmin() {
   const allCareLogsRef = useMemoFirebase(() => firestore ? collection(firestore, 'carelogs') : null, [firestore]);
   const { data: allCareLogs, isLoading: logsLoading } = useCollection<CareLog>(allCareLogsRef);
 
+  const vaShiftsRef = useMemoFirebase(() => firestore ? collection(firestore, 'va_teletrack_shifts') : null, [firestore]);
+  const { data: allVaShifts, isLoading: vaShiftsLoading } = useCollection<any>(vaShiftsRef);
+
   const activeClients = useMemo(() => clients?.filter(c => c.status === 'Active') || [], [clients]);
   
   const activeCaregivers = useMemo(() => {
@@ -96,6 +99,11 @@ export function CareLogGroupAdmin() {
     if (!allCareLogs) return new Set();
     return new Set(allCareLogs.map(log => log.careLogGroupId));
   }, [allCareLogs]);
+
+  const clientsWithVaShifts = useMemo(() => {
+      if (!allVaShifts) return new Set();
+      return new Set(allVaShifts.map(shift => shift.clientId));
+  }, [allVaShifts]);
 
 
   const handleOpenModal = (group: CareLogGroup | null) => {
@@ -154,7 +162,7 @@ export function CareLogGroupAdmin() {
     });
   };
 
-  const isLoading = clientsLoading || caregiversLoading || groupsLoading || logsLoading || templatesLoading || vaTemplatesLoading;
+  const isLoading = clientsLoading || caregiversLoading || groupsLoading || logsLoading || templatesLoading || vaTemplatesLoading || vaShiftsLoading;
 
   return (
     <Card>
@@ -183,6 +191,11 @@ export function CareLogGroupAdmin() {
                 const client = clientsMap.get(group.clientId);
                 const isClientInactive = client?.status === 'Inactive';
                 const isGroupInactive = group.status === 'Inactive';
+                const isVaTemplate = vaTemplates?.some(t => t.id === group.careLogTemplateId);
+                const hasStandardLogs = groupsWithLogs.has(group.id);
+                const hasVaShifts = clientsWithVaShifts.has(group.clientId);
+                const hasLogs = isVaTemplate ? hasVaShifts : hasStandardLogs;
+                const reportLink = isVaTemplate ? `/staffing-admin/reports/va-report/${group.id}` : `/staffing-admin/reports/carelog/${group.id}`;
                 
                 return (
                   <Card key={group.id} className={cn("flex flex-col sm:flex-row justify-between items-start sm:items-center p-4", (isClientInactive || isGroupInactive) && "bg-destructive/10 border-destructive/50")}>
@@ -209,9 +222,9 @@ export function CareLogGroupAdmin() {
                       </div>
                     </div>
                     <div className="flex gap-2 shrink-0">
-                        {groupsWithLogs.has(group.id) && (
+                        {hasLogs && (
                             <Button asChild variant="outline" size="icon">
-                                <Link href={`/staffing-admin/reports/carelog/${group.id}`}>
+                                <Link href={reportLink}>
                                     <FileText className="h-4 w-4" />
                                 </Link>
                             </Button>
@@ -298,7 +311,7 @@ export function CareLogGroupAdmin() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="none">None (Standard Text Notes)</SelectItem>
                         <SelectGroup>
                             <SelectLabel>Standard Templates</SelectLabel>
                             {templates?.map(template => (
