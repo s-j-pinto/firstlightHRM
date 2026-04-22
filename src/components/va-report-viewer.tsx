@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, orderBy, doc } from 'firebase/firestore';
 import type { VATaskTemplate, VAMedicalRecord, ActiveCaregiver, Client } from '@/lib/types';
-import { startOfWeek, endOfWeek, format, subWeeks, parseISO, isWithinInterval } from 'date-fns';
+import { startOfWeek, endOfWeek, format, subWeeks, parseISO, isWithinInterval, addDays } from 'date-fns';
 
 import { Button } from './ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from './ui/card';
@@ -36,7 +36,7 @@ const reportSchema = z.object({
 });
 type ReportFormData = z.infer<typeof reportSchema>;
 
-const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat'];
+const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export function VaReportViewer({ groupId }: VaReportViewerProps) {
     const { toast } = useToast();
@@ -70,25 +70,10 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
     );
     const { data: allShifts, isLoading: shiftsLoading } = useCollection<VAMedicalRecord>(shiftsQuery);
     
-    const caregiversRef = useMemoFirebase(() => firestore ? collection(firestore, 'caregivers_active') : null, [firestore]);
-    const { data: allCaregiversData, isLoading: caregiversLoading } = useCollection<ActiveCaregiver>(caregiversRef);
-
     const form = useForm<ReportFormData>({ resolver: zodResolver(reportSchema), defaultValues: { shifts: [] } });
     const { control, handleSubmit, reset } = form;
     const { fields } = useFieldArray({ control, name: "shifts" });
     
-    const caregiversInGroup = React.useMemo(() => {
-        if (!groupData || !allCaregiversData) return [];
-        const caregiverEmailSet = new Set(groupData.caregiverEmails);
-        return allCaregiversData.filter(cg => caregiverEmailSet.has(cg.Email) && cg.status === 'Active');
-    }, [groupData, allCaregiversData]);
-
-    React.useEffect(() => {
-        if (caregiversInGroup.length > 0 && !selectedCaregiverId) {
-            setSelectedCaregiverId(caregiversInGroup[0].id);
-        }
-    }, [caregiversInGroup, selectedCaregiverId]);
-
     const weeklyShifts = React.useMemo(() => {
         if (!allShifts) return [];
         const weekStart = parseISO(selectedWeek);
@@ -96,31 +81,55 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
 
         return allShifts.filter(shift => {
             const shiftDate = shift.date.toDate();
-            return shift.caregiverId === selectedCaregiverId && isWithinInterval(shiftDate, { start: weekStart, end: weekEnd });
+            return isWithinInterval(shiftDate, { start: weekStart, end: weekEnd });
         });
-    }, [allShifts, selectedWeek, selectedCaregiverId]);
+    }, [allShifts, selectedWeek]);
+
+    const caregiversForWeek = React.useMemo(() => {
+        const caregiverMap = new Map<string, { id: string; name: string }>();
+        weeklyShifts.forEach(shift => {
+            if (shift.caregiverId && !caregiverMap.has(shift.caregiverId)) {
+                caregiverMap.set(shift.caregiverId, { id: shift.caregiverId, name: shift.caregiverName });
+            }
+        });
+        return Array.from(caregiverMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+    }, [weeklyShifts]);
+
+    React.useEffect(() => {
+        if (caregiversForWeek.length > 0 && !selectedCaregiverId) {
+            setSelectedCaregiverId(caregiversForWeek[0].id);
+        } else if (caregiversForWeek.length > 0 && !caregiversForWeek.find(c => c.id === selectedCaregiverId)) {
+            setSelectedCaregiverId(caregiversForWeek[0].id);
+        } else if (caregiversForWeek.length === 0) {
+            setSelectedCaregiverId('');
+        }
+    }, [caregiversForWeek, selectedCaregiverId]);
+    
+    const caregiverWeeklyShifts = React.useMemo(() => {
+        return weeklyShifts.filter(shift => shift.caregiverId === selectedCaregiverId);
+    }, [weeklyShifts, selectedCaregiverId]);
 
     React.useEffect(() => {
         reset({
-            shifts: weeklyShifts.map(s => ({
+            shifts: caregiverWeeklyShifts.map(s => ({
                 id: s.id,
                 tasks: s.tasks || {},
                 providerSignature: s.providerSignature || ''
             }))
         });
-    }, [weeklyShifts, reset]);
+    }, [caregiverWeeklyShifts, reset]);
 
     const shiftsByDay = React.useMemo(() => {
         const shiftsMap: { [key: number]: VAMedicalRecord[] } = {};
-        weeklyShifts.forEach(shift => {
-            const dayIndex = shift.date.toDate().getDay(); // 0 = Sunday, 1 = Monday...
+        caregiverWeeklyShifts.forEach(shift => {
+            const dayIndex = shift.date.toDate().getDay(); // 0 = Sunday
             if (!shiftsMap[dayIndex]) {
                 shiftsMap[dayIndex] = [];
             }
             shiftsMap[dayIndex].push(shift);
         });
         return shiftsMap;
-    }, [weeklyShifts]);
+    }, [caregiverWeeklyShifts]);
 
     const onSubmit = (data: ReportFormData) => {
         startSavingTransition(async () => {
@@ -144,9 +153,9 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
         const weekEnd = endOfWeek(weekStart, { weekStartsOn: 0 });
         const weekOf = `${format(weekStart, 'MM/dd/yy')} - ${format(weekEnd, 'MM/dd/yy')}`;
 
-        const selectedCaregiver = caregiversInGroup.find(c => c.id === selectedCaregiverId);
+        const selectedCaregiver = caregiversForWeek.find(c => c.id === selectedCaregiverId);
 
-        const shiftsToInclude = weeklyShifts.map(s => {
+        const shiftsToInclude = caregiverWeeklyShifts.map(s => {
             const formShift = form.getValues().shifts.find(fs => fs.id === s.id);
             return {
                 ...s,
@@ -159,7 +168,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
             weekOf,
             groupData,
             clientData,
-            caregiverName: selectedCaregiver?.Name || 'N/A',
+            caregiverName: selectedCaregiver?.name || 'N/A',
             templateData,
             shifts: shiftsToInclude,
         };
@@ -178,7 +187,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
         });
     };
 
-    const isLoading = groupLoading || clientLoading || templateLoading || shiftsLoading || caregiversLoading;
+    const isLoading = groupLoading || clientLoading || templateLoading || shiftsLoading;
     const taskLabels = templateData?.tasks?.filter(t => t !== 'providerSignature') || [];
 
     if (isLoading) {
@@ -196,16 +205,22 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                     <div className="flex flex-col sm:flex-row items-end gap-4">
                         <div className="w-full sm:w-auto">
                             <Label>Select Week</Label>
-                            <Select value={selectedWeek} onValueChange={setSelectedWeek}>
+                             <Select value={selectedWeek} onValueChange={setSelectedWeek}>
                                 <SelectTrigger className="w-full max-w-sm"><SelectValue /></SelectTrigger>
                                 <SelectContent>{weeks.map(w => <SelectItem key={w} value={w}>{`${format(parseISO(w), 'MMM d')} - ${format(endOfWeek(parseISO(w), { weekStartsOn: 0 }), 'MMM d, yyyy')}`}</SelectItem>)}</SelectContent>
                             </Select>
                         </div>
                         <div className="w-full sm:w-auto">
                             <Label>Select Caregiver</Label>
-                            <Select value={selectedCaregiverId} onValueChange={setSelectedCaregiverId}>
-                                <SelectTrigger className="w-full max-w-sm"><SelectValue placeholder="Select caregiver..." /></SelectTrigger>
-                                <SelectContent>{caregiversInGroup.map(cg => <SelectItem key={cg.id} value={cg.id}>{cg.Name}</SelectItem>)}</SelectContent>
+                             <Select value={selectedCaregiverId} onValueChange={setSelectedCaregiverId}>
+                                <SelectTrigger className="w-full max-w-sm"><SelectValue placeholder="Select a caregiver..." /></SelectTrigger>
+                                <SelectContent>
+                                    {caregiversForWeek.length > 0 ? (
+                                        caregiversForWeek.map(cg => <SelectItem key={cg.id} value={cg.id}>{cg.name}</SelectItem>)
+                                    ) : (
+                                        <SelectItem value="" disabled>No caregivers with shifts this week</SelectItem>
+                                    )}
+                                </SelectContent>
                             </Select>
                         </div>
                     </div>
@@ -215,11 +230,27 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead className="min-w-[150px]">Tasks Performed</TableHead>
+                                        <TableHead className="min-w-[150px] align-bottom">Tasks Performed</TableHead>
                                         {daysOfWeek.map((day, dayIndex) => (
                                             <TableHead key={day} className="text-center min-w-[120px]">
-                                                {day}<br/>{format(startOfWeek(parseISO(selectedWeek), { weekStartsOn: dayIndex }), 'MM/dd/yy')}
+                                                {day}<br/>{format(addDays(parseISO(selectedWeek), dayIndex), 'MM/dd')}
                                             </TableHead>
+                                        ))}
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableHead className="font-normal text-xs">Shift Times</TableHead>
+                                        {daysOfWeek.map((day, dayIndex) => (
+                                            <TableCell key={`${day}-times`} className="text-center text-xs p-1 align-top bg-muted/50">
+                                                {shiftsByDay[dayIndex] ? (
+                                                    shiftsByDay[dayIndex].map(shift => (
+                                                        <div key={shift.id} className="whitespace-nowrap">
+                                                            {shift.arrivalTime} - {shift.departureTime}
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <span className="text-muted-foreground">-</span>
+                                                )}
+                                            </TableCell>
                                         ))}
                                     </TableRow>
                                 </TableHeader>
@@ -232,7 +263,9 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                                                     {shiftsByDay[dayIndex]?.map(shift => {
                                                         const fieldIndex = fields.findIndex(f => f.id === shift.id);
                                                         return fieldIndex > -1 ? (
-                                                            <Controller key={shift.id} name={`shifts.${fieldIndex}.tasks.${task}`} control={control} render={({ field }) => <Checkbox checked={field.value} onCheckedChange={field.onChange} />} />
+                                                            <div key={shift.id} className="py-1">
+                                                                <Controller name={`shifts.${fieldIndex}.tasks.${task}`} control={control} render={({ field }) => <Checkbox checked={field.value} onCheckedChange={field.onChange} />} />
+                                                            </div>
                                                         ) : null;
                                                     })}
                                                 </TableCell>
@@ -242,11 +275,11 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                                     <TableRow>
                                         <TableCell className="font-medium">Provider Signature</TableCell>
                                          {daysOfWeek.map((_, dayIndex) => (
-                                            <TableCell key={dayIndex} className="text-center">
+                                            <TableCell key={dayIndex} className="text-center space-y-1">
                                                 {shiftsByDay[dayIndex]?.map(shift => {
                                                     const fieldIndex = fields.findIndex(f => f.id === shift.id);
                                                     return fieldIndex > -1 ? (
-                                                        <Controller key={shift.id} name={`shifts.${fieldIndex}.providerSignature`} control={control} render={({ field }) => <Input {...field} className="h-8 text-xs" />} />
+                                                        <Controller key={shift.id} name={`shifts.${fieldIndex}.providerSignature`} control={control} render={({ field }) => <Input {...field} className="h-8 text-xs min-w-[100px]" />} />
                                                     ) : null;
                                                 })}
                                             </TableCell>
