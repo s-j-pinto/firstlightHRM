@@ -62,7 +62,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
         const cursiveFont = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
 
-        const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/VA-report-logo.png?alt=media";
+        const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/VA-report-logo.png?alt=media&token=655fd007-7367-4475-981b-b3a9bb33baab";
         const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer());
         const logoImage = await pdfDoc.embedPng(logoImageBytes);
         const logoDims = logoImage.scale(0.08);

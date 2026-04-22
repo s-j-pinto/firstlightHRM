@@ -38,10 +38,6 @@ service firebase.storage {
        allow read: if true;
        allow write: if isAnyAdmin();
     }
-    match /VA-report-logo.png {
-      allow read: if true;
-      allow write: if isAnyAdmin();
-    }
     match /waivers/{allPaths=**} {
       allow read: if true;
       allow write: if isAnyAdmin();
