@@ -8,8 +8,18 @@ import { parse as parseDate, isValid } from 'date-fns';
 // Helper to parse the inconsistent client name string
 function parseClientName(fullName: string): string {
     if (!fullName) return "Unknown Client";
-    // Takes the part before the first parenthesis, which usually contains the name
-    return fullName.split('(')[0].replace(/,\s*$/, '').trim();
+    // Find the first parenthesis that is likely part of a phone number, which is preceded by a space.
+    const separatorIndex = fullName.search(/\s+\(\d/);
+    if (separatorIndex > 0) {
+        // Return the substring before this pattern
+        return fullName.substring(0, separatorIndex).trim();
+    }
+    // Fallback for cases where the pattern isn't found, e.g., no phone number
+    const fallbackIndex = fullName.indexOf('(');
+    if (fallbackIndex > 0) {
+       return fullName.substring(0, fallbackIndex).replace(/,\s*$/, '').trim();
+    }
+    return fullName.trim();
 }
 
 // Helper to parse date strings like "Mon 4/20/2026"
@@ -18,8 +28,14 @@ function parseTeletrackDate(dateStr: string): Date | null {
         console.warn(`[SYNC-VA-CARELOGS] Invalid date input provided: ${dateStr}`);
         return null;
     }
-    // Remove the day of the week part, e.g., "Mon "
-    const cleanDateStr = dateStr.substring(dateStr.indexOf(' ') + 1);
+    // Use a regex to find the date pattern, making it robust against spacing issues.
+    const dateMatch = dateStr.match(/\d{1,2}\/\d{1,2}\/\d{4}/);
+    if (!dateMatch) {
+        console.warn(`[SYNC-VA-CARELOGS] Could not find a date pattern in "${dateStr}".`);
+        return null;
+    }
+
+    const cleanDateStr = dateMatch[0];
     const parsed = parseDate(cleanDateStr, 'M/d/yyyy', new Date());
 
     if (isValid(parsed)) {
@@ -40,8 +56,12 @@ export async function GET(request: NextRequest) {
     const bucket = getStorage(serverApp).bucket('gs://firstlighthomecare-hrm.firebasestorage.app');
     const file = bucket.file('CareLogs/VA_CareLogs/TeleTrack-VA-CareLogs.json');
     const [contents] = await file.download();
-    console.log('Recieved VA CareLogs JSON file.' + contents.toString())
     const jsonData = JSON.parse(contents.toString());
+    
+    if (!jsonData || !Array.isArray(jsonData.clients)) {
+        console.error("Parsed JSON does not contain a 'clients' array.");
+        return NextResponse.json({ success: false, error: "Invalid JSON structure in source file." }, { status: 500 });
+    }
     const clients = jsonData.clients;
 
     let batch = serverDb.batch();
