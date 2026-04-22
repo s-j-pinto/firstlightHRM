@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getStorage } from 'firebase-admin/storage';
-import { serverDb } from '@/firebase/server-init';
+import { serverDb, serverApp } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
 import { parse as parseDate, isValid } from 'date-fns';
 
