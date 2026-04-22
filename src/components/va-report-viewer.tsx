@@ -83,7 +83,8 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
     
     const form = useForm<ReportFormData>({ resolver: zodResolver(reportSchema), defaultValues: { shifts: [] } });
     const { control, handleSubmit, reset } = form;
-    const { fields } = useFieldArray({ control, name: "shifts" });
+    // By providing a different keyName, we avoid a collision with our own 'id' field.
+    const { fields } = useFieldArray({ control, name: "shifts", keyName: "key" });
     
     const weeklyShifts = React.useMemo(() => {
         if (!allShifts) return [];
@@ -178,7 +179,8 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
         
         const payload = {
             weekOf,
-            groupData,
+            groupId,
+            clientName: groupData?.clientName,
             clientData,
             caregiverName: selectedCaregiverName || 'N/A',
             templateData,
@@ -252,17 +254,20 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                                     </TableRow>
                                     <TableRow>
                                         <TableHead className="font-normal text-xs">Shift Times</TableHead>
-                                        {daysOfWeek.map((day, dayIndex) => (
-                                            <TableCell key={`${day}-times`} className="text-center text-xs p-1 align-top bg-muted/50">
-                                                {shiftsByDay[dayIndex] ? (
-                                                    <div className="whitespace-nowrap">
-                                                        {shiftsByDay[dayIndex].arrivalTime} - {shiftsByDay[dayIndex].departureTime}
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-muted-foreground">-</span>
-                                                )}
-                                            </TableCell>
-                                        ))}
+                                        {daysOfWeek.map((day, dayIndex) => {
+                                            const shift = shiftsByDay[dayIndex];
+                                            return (
+                                                <TableCell key={`${day}-times`} className="text-center text-xs p-1 align-top bg-muted/50">
+                                                    {shift ? (
+                                                        <div className="whitespace-nowrap">
+                                                            {shift.arrivalTime} - {shift.departureTime}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-muted-foreground">-</span>
+                                                    )}
+                                                </TableCell>
+                                            );
+                                        })}
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -275,6 +280,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                                                     return <TableCell key={dayIndex} />;
                                                 }
                                                 const fieldIndex = fields.findIndex(f => f.id === shiftForDay.id);
+                                                
                                                 return fieldIndex > -1 ? (
                                                     <TableCell key={dayIndex} className="text-center">
                                                         <Controller
@@ -289,7 +295,11 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                                                             )}
                                                         />
                                                     </TableCell>
-                                                ) : <TableCell key={dayIndex} />;
+                                                ) : (
+                                                    <TableCell key={dayIndex} className="text-center">
+                                                        <Checkbox disabled className="mx-auto" />
+                                                    </TableCell>
+                                                );
                                             })}
                                         </TableRow>
                                     ))}
