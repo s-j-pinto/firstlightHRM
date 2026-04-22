@@ -1,5 +1,4 @@
 
-
 'use server';
 
 // This file now acts as a barrel, re-exporting the individual PDF generators.
@@ -29,7 +28,7 @@ import { generateLightHousekeepingPdf as generateLightHousekeepingPdfInternal } 
 import { generateCaregiverTelephonyInstructionsPdf as generateCaregiverTelephonyInstructionsPdfInternal } from './pdf-generators/caregiver-telephony-instructions';
 import { generateEmergencyProcedurePdf as generateEmergencyProcedurePdfInternal } from './pdf-generators/emergency-procedure';
 import { generateVaWeeklyReportPdf as generateVaWeeklyReportPdfInternal } from './pdf-generators/va-weekly-report';
-import { serverDb } from './server-init';
+import { serverDb } from '@/firebase/server-init';
 
 export async function generateHcs501Pdf(formData: any) { return generateHcs501PdfInternal(formData); }
 export async function generateEmergencyContactPdf(formData: any) { return generateEmergencyContactPdfInternal(formData); }
