@@ -29,8 +29,8 @@ interface VaReportViewerProps {
 const reportSchema = z.object({
   shifts: z.array(z.object({
     id: z.string(),
-    tasks: z.record(z.boolean()),
-    providerSignature: z.string().optional(),
+    tasks: z.record(z.boolean().nullable().optional()),
+    providerSignature: z.string().optional().nullable(),
   })),
 });
 type ReportFormData = z.infer<typeof reportSchema>;
@@ -151,9 +151,15 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
             let successCount = 0;
             let hasError = false;
             for (const shift of data.shifts) {
+                const cleanedTasks: Record<string, boolean> = {};
+                if (shift.tasks) {
+                    for (const [key, value] of Object.entries(shift.tasks)) {
+                        cleanedTasks[key] = !!value; // Coerce to boolean to match server type
+                    }
+                }
                 const result = await saveVaShiftAdminData({
                     shiftId: shift.id,
-                    tasks: shift.tasks,
+                    tasks: cleanedTasks,
                     providerSignature: shift.providerSignature || '',
                     groupId: groupId,
                 });
