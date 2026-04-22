@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont, PDFPage } from 'pdf-lib';
@@ -79,7 +80,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/VA-report-logo.png?alt=media&token=655fd007-7367-4475-981b-b3a9bb33baab";
         const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer());
         const logoImage = await pdfDoc.embedPng(logoImageBytes);
-        const logoDims = logoImage.scale(0.8);
+        const logoDims = logoImage.scale(0.25);
 
         const leftMargin = 40;
         let y = height - 50;
@@ -92,20 +93,20 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
             height: logoDims.height,
         });
 
-        drawText(page, "CARE NOTES", { x: leftMargin + logoDims.width + 10, y: y - 35, font: boldFont, size: 16 });
+        drawText(page, "CARE NOTES", { x: leftMargin + logoDims.width + 10, y: y - 35, font: boldFont, size: 14 });
         
         y -= (logoDims.height + 25); 
 
         // --- Client Info Section ---
         const clientInfoBoxX = leftMargin + 280;
         const clientInfoBoxWidth = width - clientInfoBoxX - leftMargin;
-        const clientInfoBoxHeight = 60;
+        const clientInfoBoxHeight = 80;
         
         const dob = data.clientData?.DOB ? format(new Date(data.clientData.DOB), 'MM/dd/yyyy') : 'N/A';
         const clientInfoData = [
             { label: "Client Name", value: data.groupData?.clientName || 'N/A' },
-            { label: "Last 4 of SSN", value: "" }, 
-            { label: "Referral Number", value: "" }, 
+            { label: "Last 4 of SSN", value: data.groupData?.vaLast4SSN || '' },
+            { label: "Referral Number", value: data.groupData?.vaReferralNumber || '' },
             { label: "DOB", value: dob },
         ];
         
@@ -158,7 +159,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         y -= topTableRowHeight;
 
         // Row 2: Caregiver Name
-        currentY = y - topTableRowHeight / 2;
+        currentY = y - topTableRowHeight / 2 - 5;
         drawText(page, "Caregiver Name", { x: leftMargin + 5, y: currentY, font: boldFont, size: 8 });
         
         let formattedCaregiverName = data.caregiverName || '';
@@ -214,7 +215,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         y -= 20;
 
         // Rows
-        const rowHeight = 18 * 1.2; // 20% taller
+        const rowHeight = 18 * 1.2;
         taskLabels.forEach((task: string) => {
             const taskLabel = task.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase());
             const textHeight = font.heightAtSize(8);

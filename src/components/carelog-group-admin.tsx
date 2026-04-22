@@ -23,6 +23,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, PlusCircle, Trash2, Edit, Users, RotateCw, FileText, Flag } from "lucide-react";
+import { Input } from "./ui/input";
 
 const careLogGroupSchema = z.object({
   groupId: z.string().optional(),
@@ -30,6 +31,8 @@ const careLogGroupSchema = z.object({
   caregiverEmails: z.array(z.string().email()).min(1, "At least one caregiver must be selected."),
   careLogTemplateId: z.string().optional(),
   clientAccessEnabled: z.boolean().optional().default(false),
+  vaLast4SSN: z.string().optional(),
+  vaReferralNumber: z.string().optional(),
 });
 
 type CareLogGroupFormData = z.infer<typeof careLogGroupSchema>;
@@ -58,7 +61,7 @@ export function CareLogGroupAdmin() {
   const templatesRef = useMemoFirebase(() => firestore ? collection(firestore, 'carelog_templates') : null, [firestore]);
   const { data: templates, isLoading: templatesLoading } = useCollection<CareLogTemplate>(templatesRef);
 
-  const vaTemplatesRef = useMemoFirebase(() => firestore ? collection(firestore, 'va_task_templates') : null, [firestore]);
+  const vaTemplatesRef = useMemoFirebase(() => firestore ? query(collection(firestore, 'va_task_templates')) : null, [firestore]);
   const { data: vaTemplates, isLoading: vaTemplatesLoading } = useCollection<VATaskTemplate>(vaTemplatesRef);
   
   const allCareLogsRef = useMemoFirebase(() => firestore ? collection(firestore, 'carelogs') : null, [firestore]);
@@ -87,8 +90,16 @@ export function CareLogGroupAdmin() {
       caregiverEmails: [],
       careLogTemplateId: "",
       clientAccessEnabled: false,
+      vaLast4SSN: "",
+      vaReferralNumber: "",
     },
   });
+
+  const selectedTemplateId = form.watch("careLogTemplateId");
+  const isVaTemplateSelected = useMemo(() => {
+    if (!selectedTemplateId || !vaTemplates) return false;
+    return vaTemplates.some(t => t.id === selectedTemplateId);
+  }, [selectedTemplateId, vaTemplates]);
 
   const allCaregiversByEmailMap = useMemo(() => {
     if (!allCaregiversData) return new Map();
@@ -111,6 +122,8 @@ export function CareLogGroupAdmin() {
         caregiverEmails: group.caregiverEmails || [],
         careLogTemplateId: group.careLogTemplateId || "",
         clientAccessEnabled: group.clientAccessEnabled || false,
+        vaLast4SSN: group.vaLast4SSN || "",
+        vaReferralNumber: group.vaReferralNumber || "",
       });
     } else {
       form.reset({
@@ -119,6 +132,8 @@ export function CareLogGroupAdmin() {
         caregiverEmails: [],
         careLogTemplateId: "",
         clientAccessEnabled: false,
+        vaLast4SSN: "",
+        vaReferralNumber: "",
       });
     }
     setIsModalOpen(true);
@@ -331,6 +346,38 @@ export function CareLogGroupAdmin() {
                   </FormItem>
                 )}
               />
+
+              {isVaTemplateSelected && (
+                <div className="grid grid-cols-2 gap-4 border p-4 rounded-md">
+                    <FormField
+                        control={form.control}
+                        name="vaLast4SSN"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Last 4 of SSN</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="1234" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="vaReferralNumber"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Referral Number</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Enter VA referral number" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
+              )}
+
               <FormField
                 control={form.control}
                 name="caregiverEmails"

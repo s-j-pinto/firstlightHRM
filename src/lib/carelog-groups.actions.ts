@@ -13,10 +13,12 @@ interface CareLogGroupPayload {
   caregiverEmails: string[];
   careLogTemplateId?: string;
   clientAccessEnabled?: boolean;
+  vaLast4SSN?: string;
+  vaReferralNumber?: string;
 }
 
 export async function saveCareLogGroup(payload: CareLogGroupPayload) {
-  const { groupId, clientId, caregiverEmails, careLogTemplateId, clientAccessEnabled } = payload;
+  const { groupId, clientId, caregiverEmails, careLogTemplateId, clientAccessEnabled, vaLast4SSN, vaReferralNumber } = payload;
 
   if (!clientId) {
     return { message: "Client must be selected.", error: true };
@@ -41,6 +43,8 @@ export async function saveCareLogGroup(payload: CareLogGroupPayload) {
       clientAccessEnabled: !!clientAccessEnabled,
       status: 'Active',
       lastUpdatedAt: Timestamp.now(),
+      vaLast4SSN: vaLast4SSN || null,
+      vaReferralNumber: vaReferralNumber || null,
     };
 
     if (careLogTemplateId && careLogTemplateId !== 'none') {
