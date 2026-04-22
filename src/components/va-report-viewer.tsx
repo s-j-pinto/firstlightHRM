@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import * as React from "react";
@@ -9,7 +8,7 @@ import { z } from 'zod';
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, orderBy, doc } from 'firebase/firestore';
 import type { VATaskTemplate, VAMedicalRecord, ActiveCaregiver, Client } from '@/lib/types';
-import { startOfWeek, endOfWeek, format, subWeeks, parseISO, isWithinInterval, addDays } from 'date-fns';
+import { startOfWeek, endOfWeek, format, subWeeks, parse, isValid, isDate, parseISO, addDays } from 'date-fns';
 
 import { Button } from './ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from './ui/card';
@@ -80,6 +79,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
         const weekEnd = endOfWeek(weekStart, { weekStartsOn: 0 });
 
         return allShifts.filter(shift => {
+            if (!shift.date?.toDate) return false;
             const shiftDate = shift.date.toDate();
             return isWithinInterval(shiftDate, { start: weekStart, end: weekEnd });
         });
@@ -122,6 +122,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
     const shiftsByDay = React.useMemo(() => {
         const shiftsMap: { [key: number]: VAMedicalRecord[] } = {};
         caregiverWeeklyShifts.forEach(shift => {
+            if (!shift.date?.toDate) return;
             const dayIndex = shift.date.toDate().getDay(); // 0 = Sunday
             if (!shiftsMap[dayIndex]) {
                 shiftsMap[dayIndex] = [];
@@ -218,7 +219,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                                     {caregiversForWeek.length > 0 ? (
                                         caregiversForWeek.map(cg => <SelectItem key={cg.id} value={cg.id}>{cg.name}</SelectItem>)
                                     ) : (
-                                        <SelectItem value="" disabled>No caregivers with shifts this week</SelectItem>
+                                        <div className="p-4 text-sm text-muted-foreground text-center">No caregivers with shifts this week</div>
                                     )}
                                 </SelectContent>
                             </Select>
