@@ -645,6 +645,9 @@ export const careLogGroupSchema = z.object({
   careLogTemplateId: z.string().optional(),
   clientAccessEnabled: z.boolean().default(false),
   status: z.enum(["Active", "Inactive"]).optional(),
+  vaClientId: z.string().optional(),
+  vaLast4SSN: z.string().optional(),
+  vaReferralNumber: z.string().optional(),
   createdAt: z.any(),
   lastUpdatedAt: z.any(),
 });

@@ -4,6 +4,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { serverDb } from '@/firebase/server-init';
+import { getStorage } from 'firebase-admin/storage';
 import { Timestamp } from 'firebase-admin/firestore';
 import { vaTaskTemplateSchema } from './types';
 
@@ -13,12 +14,49 @@ interface CareLogGroupPayload {
   caregiverEmails: string[];
   careLogTemplateId?: string;
   clientAccessEnabled?: boolean;
+  vaClientId?: string;
   vaLast4SSN?: string;
   vaReferralNumber?: string;
 }
 
+async function updateVaClientsJson(clientInfo: { firestoreClientId: string; vaClientId?: string; clientName?: string }, action: 'add-or-update' | 'remove') {
+    const bucket = getStorage().bucket('gs://firstlighthomecare-hrm.firebasestorage.app');
+    const file = bucket.file('CareLogs/VA_CareLogs/VA-Clients.json');
+    let clientsJson: { clients: Array<{ firestoreClientId: string; clientId: string; clientName: string }> } = { clients: [] };
+
+    try {
+        const [contents] = await file.download();
+        clientsJson = JSON.parse(contents.toString());
+    } catch (error: any) {
+        if (error.code !== 404) {
+            console.error("Error downloading VA-Clients.json:", error);
+            throw new Error("Could not read the VA Clients JSON file from storage.");
+        }
+        console.log("VA-Clients.json not found, will create a new one.");
+    }
+    
+    if (!Array.isArray(clientsJson.clients)) {
+        clientsJson.clients = [];
+    }
+
+    clientsJson.clients = clientsJson.clients.filter(c => c.firestoreClientId !== clientInfo.firestoreClientId);
+
+    if (action === 'add-or-update' && 'vaClientId' in clientInfo && clientInfo.vaClientId && clientInfo.clientName) {
+        clientsJson.clients.push({
+            firestoreClientId: clientInfo.firestoreClientId,
+            clientId: clientInfo.vaClientId,
+            clientName: clientInfo.clientName
+        });
+    }
+
+    await file.save(Buffer.from(JSON.stringify(clientsJson, null, 2)), {
+        contentType: 'application/json',
+    });
+}
+
+
 export async function saveCareLogGroup(payload: CareLogGroupPayload) {
-  const { groupId, clientId, caregiverEmails, careLogTemplateId, clientAccessEnabled, vaLast4SSN, vaReferralNumber } = payload;
+  const { groupId, clientId, caregiverEmails, careLogTemplateId, clientAccessEnabled, vaClientId, vaLast4SSN, vaReferralNumber } = payload;
 
   if (!clientId) {
     return { message: "Client must be selected.", error: true };
@@ -30,6 +68,8 @@ export async function saveCareLogGroup(payload: CareLogGroupPayload) {
   const firestore = serverDb;
 
   try {
+    const isVaTemplate = careLogTemplateId ? (await firestore.collection('va_task_templates').doc(careLogTemplateId).get()).exists : false;
+
     const clientDoc = await firestore.collection('Clients').doc(clientId).get();
     if (!clientDoc.exists) {
       return { message: "Selected client not found.", error: true };
@@ -46,22 +86,42 @@ export async function saveCareLogGroup(payload: CareLogGroupPayload) {
       vaLast4SSN: vaLast4SSN || null,
       vaReferralNumber: vaReferralNumber || null,
     };
+    
+    if (isVaTemplate) {
+        if (!vaClientId) {
+            return { message: "VA Client ID is required for VA templates.", error: true };
+        }
+        groupData.vaClientId = vaClientId;
+    } else {
+        groupData.vaClientId = null;
+    }
+
 
     if (careLogTemplateId && careLogTemplateId !== 'none') {
         groupData.careLogTemplateId = careLogTemplateId;
     } else {
-        groupData.careLogTemplateId = null; // Ensure it's explicitly set to null if empty or "none"
+        groupData.careLogTemplateId = null;
     }
 
+    let docId = groupId;
+    let wasVaGroup = false;
 
-    if (groupId) {
-      // Update existing group
-      const groupRef = firestore.collection('carelog_groups').doc(groupId);
-      await groupRef.update(groupData);
+    if (docId) {
+      const existingDoc = await firestore.collection('carelog_groups').doc(docId).get();
+      if (existingDoc.exists) {
+          wasVaGroup = !!existingDoc.data()?.vaClientId;
+      }
+      await firestore.collection('carelog_groups').doc(docId).update(groupData);
     } else {
-      // Create new group
       const groupRef = firestore.collection('carelog_groups').doc();
+      docId = groupRef.id;
       await groupRef.set({ ...groupData, createdAt: Timestamp.now() });
+    }
+
+    if (isVaTemplate) {
+        await updateVaClientsJson({ firestoreClientId: docId!, vaClientId: vaClientId!, clientName }, 'add-or-update');
+    } else if (wasVaGroup) {
+        await updateVaClientsJson({ firestoreClientId: docId! }, 'remove');
     }
 
     revalidatePath('/staffing-admin');
@@ -80,6 +140,15 @@ export async function deleteCareLogGroup(groupId: string) {
   const firestore = serverDb;
   try {
     const groupRef = firestore.collection('carelog_groups').doc(groupId);
+    const groupDoc = await groupRef.get();
+    
+    if (groupDoc.exists) {
+        const groupData = groupDoc.data()!;
+        if (groupData.vaClientId) {
+            await updateVaClientsJson({ firestoreClientId: groupId }, 'remove');
+        }
+    }
+
     await groupRef.update({
         status: 'Inactive',
         lastUpdatedAt: Timestamp.now(),
@@ -101,6 +170,19 @@ export async function reactivateCareLogGroup(groupId: string) {
   const firestore = serverDb;
   try {
     const groupRef = firestore.collection('carelog_groups').doc(groupId);
+    
+    const groupDoc = await groupRef.get();
+    if (groupDoc.exists) {
+        const groupData = groupDoc.data()!;
+        if (groupData.vaClientId) {
+            await updateVaClientsJson({ 
+                firestoreClientId: groupId, 
+                vaClientId: groupData.vaClientId, 
+                clientName: groupData.clientName 
+            }, 'add-or-update');
+        }
+    }
+    
     await groupRef.update({
         status: 'Active',
         lastUpdatedAt: Timestamp.now(),

@@ -31,6 +31,7 @@ const careLogGroupSchema = z.object({
   caregiverEmails: z.array(z.string().email()).min(1, "At least one caregiver must be selected."),
   careLogTemplateId: z.string().optional(),
   clientAccessEnabled: z.boolean().optional().default(false),
+  vaClientId: z.string().optional(),
   vaLast4SSN: z.string().optional(),
   vaReferralNumber: z.string().optional(),
 });
@@ -90,6 +91,7 @@ export function CareLogGroupAdmin() {
       caregiverEmails: [],
       careLogTemplateId: "",
       clientAccessEnabled: false,
+      vaClientId: "",
       vaLast4SSN: "",
       vaReferralNumber: "",
     },
@@ -122,6 +124,7 @@ export function CareLogGroupAdmin() {
         caregiverEmails: group.caregiverEmails || [],
         careLogTemplateId: group.careLogTemplateId || "",
         clientAccessEnabled: group.clientAccessEnabled || false,
+        vaClientId: group.vaClientId || "",
         vaLast4SSN: group.vaLast4SSN || "",
         vaReferralNumber: group.vaReferralNumber || "",
       });
@@ -132,6 +135,7 @@ export function CareLogGroupAdmin() {
         caregiverEmails: [],
         careLogTemplateId: "",
         clientAccessEnabled: false,
+        vaClientId: "",
         vaLast4SSN: "",
         vaReferralNumber: "",
       });
@@ -155,9 +159,9 @@ export function CareLogGroupAdmin() {
     startTransition(async () => {
       const result = await deleteCareLogGroup(groupId);
       if (result.error) {
-        toast({ title: "Error", description: result.message, variant: "destructive" });
+        toast({ title: 'Error', description: result.message, variant: 'destructive' });
       } else {
-        toast({ title: "Success", description: result.message });
+        toast({ title: 'Success', description: result.message });
       }
     });
   };
@@ -348,7 +352,20 @@ export function CareLogGroupAdmin() {
               />
 
               {isVaTemplateSelected && (
-                <div className="grid grid-cols-2 gap-4 border p-4 rounded-md">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 border p-4 rounded-md">
+                    <FormField
+                        control={form.control}
+                        name="vaClientId"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>VA Client ID</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Enter VA Client ID" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
                     <FormField
                         control={form.control}
                         name="vaLast4SSN"
