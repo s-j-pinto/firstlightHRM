@@ -1,5 +1,4 @@
 
-
 "use server";
 
 import { revalidatePath } from 'next/cache';
@@ -40,10 +39,10 @@ export async function processClientUpload(data: Record<string, any>[]) {
     let updatedCount = 0;
 
     for (const row of data) {
-      const clientName = row['Client Name'];
+      const clientName = row['Name'];
 
       if (!clientName || typeof clientName !== 'string' || clientName.trim() === '') {
-        console.warn('[Action] Skipping row due to missing or invalid "Client Name":', row);
+        console.warn('[Action] Skipping row due to missing or invalid "Name":', row);
         continue;
       }
 
@@ -56,13 +55,13 @@ export async function processClientUpload(data: Record<string, any>[]) {
         'Client Name': clientName,
         'DOB': row['DOB'] || '',
         'Address': address || '',
-        'aptUnit': row['aptUnit'] || '',
+        'aptUnit': row['Apt/Unit'] || '',
         'City': city || '',
         'Zip': row['Zip'] || '',
         'Mobile': mobile,
         'Email': row['Email'] || '',
-        'ContactName': row['ContactName'] || '',
-        'ContactMobile': row['ContactMobile'] || '',
+        'ContactName': row['Contact Name'] || '',
+        'ContactMobile': row['Contact Mobile'] || '',
         status: 'Active',
         lastUpdatedAt: now,
       };
