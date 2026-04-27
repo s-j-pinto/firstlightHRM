@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from "react";
@@ -116,16 +117,16 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
     }, [weeklyShifts, reset]);
 
     const shiftsByDay = React.useMemo(() => {
-        const dayOrder: { [key: string]: number } = {
-            'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6
-        };
+        const pacificTimeZone = 'America/Los_Angeles';
         const shiftsMap: { [key: number]: VAMedicalRecord[] } = {};
         
         weeklyShifts.forEach(shift => {
-            if (!shift.day) return;
-            // The 'day' field is like "Sunday", "Monday", etc.
-            const dayIndex = dayOrder[shift.day];
-            if (dayIndex === undefined) return; // Skip if day is not valid
+            if (!shift.date?.toDate) return;
+            const shiftDateUTC = shift.date.toDate();
+
+            // Get day of week in Pacific Time. 'i' gives ISO day (1=Mon, 7=Sun)
+            const dayOfWeekString = formatInTimeZone(shiftDateUTC, 'i', { timeZone: pacificTimeZone });
+            const dayIndex = Number(dayOfWeekString) % 7; // Convert to JS standard (0=Sun, 6=Sat)
 
             if (!shiftsMap[dayIndex]) {
                 shiftsMap[dayIndex] = [];
