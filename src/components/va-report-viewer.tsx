@@ -96,13 +96,16 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
     const weeklyShifts = React.useMemo(() => {
         if (!allShifts) return [];
         const pacificTimeZone = 'America/Los_Angeles';
-        const weekStart = fromZonedTime(`${selectedWeek}T00:00:00`, pacificTimeZone);
-        const weekEnd = endOfWeek(weekStart, { weekStartsOn: 0 });
+        // The start of the selected week in Pacific Time
+        const weekStartInPT = fromZonedTime(`${selectedWeek}T00:00:00`, pacificTimeZone);
+        // The end of the selected week in Pacific Time
+        const weekEndInPT = endOfWeek(weekStartInPT, { weekStartsOn: 0 });
 
         return allShifts.filter(shift => {
             if (!shift.date?.toDate) return false;
-            const shiftDate = shift.date.toDate();
-            return isWithinInterval(shiftDate, { start: weekStart, end: weekEnd });
+            const shiftDateUTC = shift.date.toDate(); // This is a UTC Date object
+            // Check if the UTC time falls within the range defined by the PT week start/end
+            return isWithinInterval(shiftDateUTC, { start: weekStartInPT, end: weekEndInPT });
         });
     }, [allShifts, selectedWeek]);
     
@@ -123,8 +126,10 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
         weeklyShifts.forEach(shift => {
             if (!shift.date?.toDate) return;
             const shiftUtcDate = shift.date.toDate();
-            const shiftInPT = toZonedTime(shiftUtcDate, pacificTimeZone);
-            const dayIndex = getDay(shiftInPT);
+            // Get the ISO day of the week (1 for Monday, ..., 7 for Sunday) IN the specified timezone
+            const isoDayOfWeek = parseInt(formatInTimeZone(shiftUtcDate, pacificTimeZone, 'i'), 10);
+            // Convert to 0-indexed day (0 for Sunday, 1 for Monday, ...)
+            const dayIndex = isoDayOfWeek % 7;
 
             if (!shiftsMap[dayIndex]) {
                 shiftsMap[dayIndex] = [];
@@ -266,7 +271,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                                             const dayDate = addDays(weekStart, dayIndex);
                                             return (
                                                 <TableHead key={dayIndex} className="text-center min-w-[140px]">
-                                                    {format(dayDate, 'EEE')}<br/>{format(dayDate, 'MM/dd/yy')}
+                                                    {formatInTimeZone(dayDate, 'America/Los_Angeles', 'EEE')}<br/>{formatInTimeZone(dayDate, 'America/Los_Angeles', 'MM/dd/yy')}
                                                 </TableHead>
                                             );
                                         })}
