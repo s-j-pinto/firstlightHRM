@@ -1,10 +1,11 @@
+
 'use server';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getStorage } from 'firebase-admin/storage';
 import { serverDb, serverApp } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
-import { parse, isValid, subWeeks, getDay, addDays, set as setDate, format } from 'date-fns';
+import { isValid, subWeeks, getDay, addDays, set as setDate } from 'date-fns';
 import { toDate as toDateTz, formatInTimeZone, zonedTimeToUtc } from 'date-fns-tz';
 
 // Helper to parse the inconsistent client name string
@@ -27,25 +28,26 @@ function parseTeletrackDate(dateStr: string, timeZone: string): Date | null {
         console.warn(`[SYNC-VA-CARELOGS] Invalid date input provided: ${dateStr}`);
         return null;
     }
-    const dateMatch = dateStr.match(/\d{1,2}\/\d{1,2}\/\d{4}/);
+    // Updated regex to be more robust for M/d/yyyy format
+    const dateMatch = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
     if (!dateMatch) {
         console.warn(`[SYNC-VA-CARELOGS] Could not find a date pattern in "${dateStr}".`);
         return null;
     }
 
-    const cleanDateStr = dateMatch[0]; // e.g., "5/3/2026"
-    // The parse function from date-fns is used to break down the string into components.
-    const parsedDate = parse(cleanDateStr, 'M/d/yyyy', new Date());
-    if (!isValid(parsedDate)) {
-         console.warn(`[SYNC-VA-CARELOGS] Could not parse a valid date from "${cleanDateStr}".`);
-        return null;
+    const [, month, day, year] = dateMatch;
+    // Manually construct YYYY-MM-DD string to avoid timezone issues with `parse`
+    const isoLikeString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    
+    // zonedTimeToUtc correctly interprets the string as a date at midnight in the specified timezone
+    // and returns the corresponding UTC Date object for storage.
+    const date = zonedTimeToUtc(isoLikeString, timeZone);
+    if (isValid(date)) {
+        return date;
     }
 
-    // Create an ISO-like string (YYYY-MM-DD) from the parsed date parts.
-    const isoDateStr = format(parsedDate, 'yyyy-MM-dd');
-    
-    // Interpret this string as a date in the Pacific timezone and convert to a standard UTC Date object for Firestore.
-    return zonedTimeToUtc(isoDateStr, timeZone);
+    console.warn(`[SYNC-VA-CARELOGS] Constructed an invalid date from "${dateStr}".`);
+    return null;
 }
 
 
