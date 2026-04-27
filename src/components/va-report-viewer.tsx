@@ -8,8 +8,8 @@ import { z } from 'zod';
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, orderBy, doc } from 'firebase/firestore';
 import type { VATaskTemplate, VAMedicalRecord, Client } from '@/lib/types';
-import { startOfWeek, endOfWeek, format, subWeeks, parse, parseISO, isValid, isDate, addDays, isWithinInterval, getDay } from 'date-fns';
-import { format as formatInTimeZone } from 'date-fns-tz';
+import { startOfWeek, endOfWeek, format, subWeeks, parse, parseISO, isValid, isDate, addDays, getDay, isWithinInterval } from 'date-fns';
+import { format as formatInTimeZone, toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 import { AllstarRouteSheetForm } from './allstar-route-sheet-form';
 import { Button } from './ui/button';
@@ -36,8 +36,6 @@ const reportSchema = z.object({
   })),
 });
 type ReportFormData = z.infer<typeof reportSchema>;
-
-const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const getInitials = (name: string): string => {
     if (!name) return '';
@@ -97,7 +95,8 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
     
     const weeklyShifts = React.useMemo(() => {
         if (!allShifts) return [];
-        const weekStart = parseISO(selectedWeek);
+        const pacificTimeZone = 'America/Los_Angeles';
+        const weekStart = fromZonedTime(`${selectedWeek}T00:00:00`, pacificTimeZone);
         const weekEnd = endOfWeek(weekStart, { weekStartsOn: 0 });
 
         return allShifts.filter(shift => {
@@ -124,8 +123,8 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
         weeklyShifts.forEach(shift => {
             if (!shift.date?.toDate) return;
             const shiftUtcDate = shift.date.toDate();
-            const dayIndexString = formatInTimeZone(shiftUtcDate, 'i', { timeZone: pacificTimeZone });
-            const dayIndex = Number(dayIndexString) % 7;
+            const shiftInPT = toZonedTime(shiftUtcDate, pacificTimeZone);
+            const dayIndex = getDay(shiftInPT);
 
             if (!shiftsMap[dayIndex]) {
                 shiftsMap[dayIndex] = [];
@@ -262,15 +261,19 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead className="min-w-[180px] align-bottom">Tasks Performed</TableHead>
-                                        {daysOfWeek.map((day, dayIndex) => (
-                                            <TableHead key={day} className="text-center min-w-[140px]">
-                                                {day}<br/>{format(addDays(parseISO(selectedWeek), dayIndex), 'MM/dd/yy')}
-                                            </TableHead>
-                                        ))}
+                                        {Array.from({ length: 7 }).map((_, dayIndex) => {
+                                            const weekStart = fromZonedTime(`${selectedWeek}T00:00:00`, 'America/Los_Angeles');
+                                            const dayDate = addDays(weekStart, dayIndex);
+                                            return (
+                                                <TableHead key={dayIndex} className="text-center min-w-[140px]">
+                                                    {format(dayDate, 'EEE')}<br/>{format(dayDate, 'MM/dd/yy')}
+                                                </TableHead>
+                                            );
+                                        })}
                                     </TableRow>
                                     <TableRow>
                                         <TableHead className="font-normal text-xs">Caregiver Name</TableHead>
-                                         {daysOfWeek.map((day, dayIndex) => {
+                                         {Array.from({ length: 7 }).map((_, dayIndex) => {
                                             const shifts = shiftsByDay[dayIndex];
                                             const caregiverNames = shifts ? shifts.map(shift => {
                                                 if (!shift.caregiverName) return '';
@@ -290,7 +293,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                                             }).join('\n\n') : '';
                                             
                                             return (
-                                                <TableCell key={`${day}-caregiver`} className="text-center text-xs p-1 align-top bg-muted/50">
+                                                <TableCell key={`${dayIndex}-caregiver`} className="text-center text-xs p-1 align-top bg-muted/50">
                                                     {caregiverNames ? (
                                                         <div className="whitespace-pre-wrap">{caregiverNames}</div>
                                                     ) : (
@@ -302,11 +305,11 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                                     </TableRow>
                                     <TableRow>
                                         <TableHead className="font-normal text-xs">Shift Time</TableHead>
-                                        {daysOfWeek.map((day, dayIndex) => {
+                                        {Array.from({ length: 7 }).map((_, dayIndex) => {
                                             const shifts = shiftsByDay[dayIndex];
                                             const timeText = shifts ? shifts.map(s => formatShiftTime(s.arrivalTime, s.departureTime)).join('\n\n') : '';
                                             return (
-                                                <TableCell key={`${day}-times`} className="text-center text-xs p-1 align-top bg-muted/50">
+                                                <TableCell key={`${dayIndex}-times`} className="text-center text-xs p-1 align-top bg-muted/50">
                                                     {timeText ? (
                                                         <div className="whitespace-pre-wrap">{timeText}</div>
                                                     ) : (
@@ -321,7 +324,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                                     {taskLabels.map(task => (
                                         <TableRow key={task}>
                                             <TableCell className="font-medium">{task.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase())}</TableCell>
-                                            {daysOfWeek.map((_, dayIndex) => {
+                                            {Array.from({ length: 7 }).map((_, dayIndex) => {
                                                 const shiftsForDay = shiftsByDay[dayIndex];
                                                 if (!shiftsForDay || shiftsForDay.length === 0) {
                                                     return <TableCell key={dayIndex} />;
@@ -353,7 +356,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                                     ))}
                                     <TableRow>
                                         <TableCell className="font-medium">Provider Signature</TableCell>
-                                         {daysOfWeek.map((_, dayIndex) => {
+                                         {Array.from({ length: 7 }).map((_, dayIndex) => {
                                             const shiftsForDay = shiftsByDay[dayIndex];
                                             const primaryShift = shiftsForDay?.[0];
                                             if (!primaryShift) {
