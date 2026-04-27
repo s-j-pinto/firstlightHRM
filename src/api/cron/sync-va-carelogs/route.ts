@@ -1,12 +1,11 @@
-
 'use server';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getStorage } from 'firebase-admin/storage';
 import { serverDb, serverApp } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
-import { parse as parseDate, isValid, subWeeks, getDay, addDays, set as setDate, format as formatDate } from 'date-fns';
-import { toDate as toDateTz } from 'date-fns-tz';
+import { parse, isValid, subWeeks, getDay, addDays, set as setDate, format } from 'date-fns';
+import { toDate as toDateTz, formatInTimeZone, zonedTimeToUtc } from 'date-fns-tz';
 
 // Helper to parse the inconsistent client name string
 function parseClientName(fullName: string): string {
@@ -22,8 +21,8 @@ function parseClientName(fullName: string): string {
     return fullName.trim();
 }
 
-// Helper to parse date strings like "Mon 4/20/2026"
-function parseTeletrackDate(dateStr: string): Date | null {
+// This function now correctly interprets the date string as a date in the Pacific timezone.
+function parseTeletrackDate(dateStr: string, timeZone: string): Date | null {
     if (!dateStr || typeof dateStr !== 'string') {
         console.warn(`[SYNC-VA-CARELOGS] Invalid date input provided: ${dateStr}`);
         return null;
@@ -34,16 +33,21 @@ function parseTeletrackDate(dateStr: string): Date | null {
         return null;
     }
 
-    const cleanDateStr = dateMatch[0];
-    const parsed = parseDate(cleanDateStr, 'M/d/yyyy', new Date());
-
-    if (isValid(parsed)) {
-        return parsed;
+    const cleanDateStr = dateMatch[0]; // e.g., "5/3/2026"
+    // The parse function from date-fns is used to break down the string into components.
+    const parsedDate = parse(cleanDateStr, 'M/d/yyyy', new Date());
+    if (!isValid(parsedDate)) {
+         console.warn(`[SYNC-VA-CARELOGS] Could not parse a valid date from "${cleanDateStr}".`);
+        return null;
     }
+
+    // Create an ISO-like string (YYYY-MM-DD) from the parsed date parts.
+    const isoDateStr = format(parsedDate, 'yyyy-MM-dd');
     
-    console.warn(`[SYNC-VA-CARELOGS] Could not parse a valid date from "${dateStr}".`);
-    return null;
+    // Interpret this string as a date in the Pacific timezone and convert to a standard UTC Date object for Firestore.
+    return zonedTimeToUtc(isoDateStr, timeZone);
 }
+
 
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
@@ -88,7 +92,8 @@ export async function GET(request: NextRequest) {
         const data = doc.data();
         if (data.date && data.clientId) {
             const shiftDate = data.date.toDate();
-            const formattedDate = formatDate(shiftDate, 'yyyy-MM-dd');
+            // Format the date correctly based on the target timezone
+            const formattedDate = formatInTimeZone(shiftDate, pacificTimeZone, 'yyyy-MM-dd');
             existingShiftsSet.add(`${data.clientId}|${formattedDate}`);
         }
     });
@@ -135,14 +140,14 @@ export async function GET(request: NextRequest) {
       const parsedClientName = parseClientName(client.clientName);
 
       for (const schedule of client.schedules) {
-        const scheduleDate = parseTeletrackDate(schedule.date);
+        const scheduleDate = parseTeletrackDate(schedule.date, pacificTimeZone);
         if (!scheduleDate) {
             console.warn(`[SYNC-VA-CARELOGS] Skipping schedule for client ${client.clientId} due to invalid date: ${schedule.date}`);
             continue;
         }
 
         // 5. Idempotency Check
-        const formattedDateKey = formatDate(scheduleDate, 'yyyy-MM-dd');
+        const formattedDateKey = formatInTimeZone(scheduleDate, pacificTimeZone, 'yyyy-MM-dd');
         const shiftKey = `${client.clientId}|${formattedDateKey}`;
         if (existingShiftsSet.has(shiftKey)) {
             shiftsSkipped++;
