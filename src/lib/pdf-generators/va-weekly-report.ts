@@ -79,7 +79,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/VA-report-logo.png?alt=media&token=655fd007-7367-4475-981b-b3a9bb33baab";
         const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer());
         const logoImage = await pdfDoc.embedPng(logoImageBytes);
-        const logoDims = logoImage.scale(0.3);
+        const logoDims = logoImage.scale(0.6);
 
         const leftMargin = 40;
         let y = height - 50;
@@ -115,16 +115,14 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         y -= 20;
         drawText(page, "Program Name: Home Maker/HHA Program", { x: leftMargin, y: y, font, size: 9 });
         
-        // Add Week date range
         y -= 20;
         drawText(page, `Week: ${data.weekOf || ''}`, { x: leftMargin, y: y, font, size: 9 });
 
         y -= 45;
 
         // --- Shifts Table ---
-        const shiftsByDay: { [key: number]: any } = {};
-        const weekStart = parse(data.weekOf.split(' - ')[0], 'MM/dd/yy', new Date());
-
+        const shiftsByDay: { [key: number]: any[] } = {};
+        
         data.shifts.forEach((shift: any) => {
             if (!shift.date) return;
             const shiftDate = parseISO(shift.date);
@@ -132,8 +130,9 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
 
             const dayIndex = shiftDate.getDay(); // 0 = Sunday
             if (!shiftsByDay[dayIndex]) {
-                shiftsByDay[dayIndex] = shift;
+                shiftsByDay[dayIndex] = [];
             }
+            shiftsByDay[dayIndex].push(shift);
         });
         
         const contentWidth = width - 2 * leftMargin;
@@ -143,6 +142,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         const topTableTopY = y;
         const topTableRowHeight = 25;
         
+        const weekStart = parse(data.weekOf.split(' - ')[0], 'MM/dd/yy', new Date());
         const dayHeaders = Array.from({ length: 7 }).map((_, i) => {
             const dayDate = addDays(weekStart, i);
             return `${format(dayDate, 'EEE')}\n${format(dayDate, 'MM/dd/yy')}`;
@@ -162,24 +162,26 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         drawText(page, "Caregiver Name", { x: leftMargin + 5, y: currentY, font: boldFont, size: 8 });
         
         for (let i = 0; i < 7; i++) {
-            const shift = shiftsByDay[i];
-            if (shift && shift.caregiverName) {
+            const shifts = shiftsByDay[i];
+            if (shifts && shifts.length > 0) {
                 const dayX = leftMargin + firstColWidth + (i * dayColWidth);
-                const nameParts = shift.caregiverName.includes(',') 
-                    ? shift.caregiverName.split(',').map((p:string) => p.trim()) 
-                    : shift.caregiverName.split(' ');
+                const caregiverNames = shifts.map(shift => {
+                    const nameParts = shift.caregiverName.includes(',') 
+                        ? shift.caregiverName.split(',').map((p:string) => p.trim()) 
+                        : shift.caregiverName.split(' ');
+                    
+                    let firstName, lastName;
+                    if (shift.caregiverName.includes(',')) {
+                        lastName = nameParts[0] || '';
+                        firstName = nameParts[1] || '';
+                    } else {
+                        lastName = nameParts.pop() || '';
+                        firstName = nameParts.join(' ');
+                    }
+                    return `${firstName}\n${lastName}`;
+                }).join('\n\n'); // Separate multiple caregivers with more space
                 
-                let firstName, lastName;
-                if (shift.caregiverName.includes(',')) {
-                    lastName = nameParts[0] || '';
-                    firstName = nameParts[1] || '';
-                } else {
-                    lastName = nameParts.pop() || '';
-                    firstName = nameParts.join(' ');
-                }
-                
-                const formattedName = `${firstName}\n${lastName}`;
-                drawText(page, formattedName, { x: dayX + 5, y: currentY + 5, font, size: 8, lineHeight: 9 });
+                drawText(page, caregiverNames, { x: dayX + 5, y: currentY + 12, font, size: 8, lineHeight: 9 });
             }
         }
         y -= topTableRowHeight;
@@ -187,12 +189,12 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         // Row 3: Shift Time
         currentY = y - topTableRowHeight / 2 - 2;
         drawText(page, "Shift Time", { x: leftMargin + 5, y: currentY, font: boldFont, size: 8 });
-         for (let i = 0; i < 7; i++) {
-            const shift = shiftsByDay[i];
-            if (shift) {
+        for (let i = 0; i < 7; i++) {
+            const shifts = shiftsByDay[i];
+            if (shifts && shifts.length > 0) {
                 const dayX = leftMargin + firstColWidth + (i * dayColWidth);
-                const timeText = formatShiftTime(shift.arrivalTime, shift.departureTime);
-                drawText(page, timeText, { x: dayX + 5, y: currentY + 5, font, size: 8, lineHeight: 9 });
+                const timeText = shifts.map(shift => formatShiftTime(shift.arrivalTime, shift.departureTime)).join('\n\n');
+                drawText(page, timeText, { x: dayX + 5, y: currentY + 12, font, size: 8, lineHeight: 9 });
             }
         }
         y -= topTableRowHeight;
@@ -208,38 +210,34 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         const taskLabels = data.templateData?.tasks?.filter((t: string) => t !== 'providerSignature') || [];
         const taskTableTop = y;
 
-        // Headers
         drawText(page, "TASKS PERFORMED", { x: leftMargin + 5, y: y - 12, font: boldFont, size: 8 });
         
         y -= 20;
 
-        // Rows
         const rowHeight = 18 * 1.2;
         taskLabels.forEach((task: string) => {
             const taskLabel = task.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase());
             const textHeight = boldFont.heightAtSize(8);
-            const textY = y - (rowHeight / 2) + (textHeight / 2); // Center vertically
+            const textY = y - (rowHeight / 2) + (textHeight / 2);
             drawText(page, taskLabel, { x: leftMargin + 5, y: textY, font: boldFont, size: 8 });
 
             for (let i = 0; i < 7; i++) {
-                const shift = shiftsByDay[i];
-                if (shift) {
-                    const dayX = leftMargin + firstColWidth + (i * dayColWidth) + (dayColWidth / 2) - 5;
-                    drawCheckbox(page, shift.tasks?.[task], dayX, y - (rowHeight / 2));
-                }
+                const shifts = shiftsByDay[i];
+                const dayX = leftMargin + firstColWidth + (i * dayColWidth) + (dayColWidth / 2) - 5;
+                const isTaskDone = shifts?.some(s => s.tasks?.[task]);
+                drawCheckbox(page, !!isTaskDone, dayX, y - (rowHeight / 2));
             }
             y -= rowHeight;
         });
 
-        // Provider Signature Row
         const providerSigTextHeight = boldFont.heightAtSize(8);
         drawText(page, "Provider Signature", { x: leftMargin + 5, y: y - (rowHeight / 2) - (providerSigTextHeight / 2) + 4, font: boldFont, size: 8 });
         for (let i = 0; i < 7; i++) {
-            const shiftForDay = shiftsByDay[i];
-            if (shiftForDay) {
+            const shifts = shiftsByDay[i];
+            if (shifts && shifts.length > 0) {
                 const dayX = leftMargin + firstColWidth + (i * dayColWidth);
-                const providerSignature = shiftForDay.providerSignature || getInitials(shiftForDay.caregiverName);
-                drawText(page, providerSignature, { x: dayX + 5, y: y - (rowHeight / 2) - (font.heightAtSize(10) / 2) + 4, font: cursiveFont, size: 10 });
+                const signatures = shifts.map(s => s.providerSignature || getInitials(s.caregiverName)).join(', ');
+                drawText(page, signatures, { x: dayX + 5, y: y - (rowHeight / 2) - (font.heightAtSize(10) / 2) + 4, font: cursiveFont, size: 10 });
             }
         }
         y -= rowHeight;
@@ -279,3 +277,5 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         return { error: `Failed to generate PDF: ${errorMessage}` };
     }
 }
+
+    

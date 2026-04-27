@@ -12,7 +12,7 @@ import { startOfWeek, endOfWeek, format, subWeeks, parse, isValid, isDate, parse
 
 import { Button } from './ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from './ui/card';
-import { Loader2, Save, Printer } from 'lucide-react';
+import { Loader2, Save, Printer, Calendar as CalendarIcon, X } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Label } from './ui/label';
 import { useToast } from '@/hooks/use-toast';
@@ -116,13 +116,14 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
     }, [weeklyShifts, reset]);
 
     const shiftsByDay = React.useMemo(() => {
-        const shiftsMap: { [key: number]: VAMedicalRecord } = {}; // Only one shift per day for this UI
+        const shiftsMap: { [key: number]: VAMedicalRecord[] } = {};
         weeklyShifts.forEach(shift => {
             if (!shift.date?.toDate) return;
             const dayIndex = shift.date.toDate().getDay(); // 0 = Sunday
             if (!shiftsMap[dayIndex]) {
-                shiftsMap[dayIndex] = shift;
+                shiftsMap[dayIndex] = [];
             }
+            shiftsMap[dayIndex].push(shift);
         });
         return shiftsMap;
     }, [weeklyShifts]);
@@ -262,11 +263,27 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                                     <TableRow>
                                         <TableHead className="font-normal text-xs">Caregiver Name</TableHead>
                                          {daysOfWeek.map((day, dayIndex) => {
-                                            const shift = shiftsByDay[dayIndex];
+                                            const shifts = shiftsByDay[dayIndex];
+                                            const caregiverNames = shifts ? shifts.map(shift => {
+                                                const nameParts = shift.caregiverName.includes(',') 
+                                                    ? shift.caregiverName.split(',').map((p:string) => p.trim()) 
+                                                    : shift.caregiverName.split(' ');
+                                                
+                                                let firstName, lastName;
+                                                if (shift.caregiverName.includes(',')) {
+                                                    lastName = nameParts[0] || '';
+                                                    firstName = nameParts[1] || '';
+                                                } else {
+                                                    lastName = nameParts.pop() || '';
+                                                    firstName = nameParts.join(' ');
+                                                }
+                                                return `${firstName}\n${lastName}`;
+                                            }).join('\n\n') : '';
+                                            
                                             return (
                                                 <TableCell key={`${day}-caregiver`} className="text-center text-xs p-1 align-top bg-muted/50">
-                                                    {shift ? (
-                                                        <div className="whitespace-pre-wrap">{shift.caregiverName}</div>
+                                                    {caregiverNames ? (
+                                                        <div className="whitespace-pre-wrap">{caregiverNames}</div>
                                                     ) : (
                                                         <span className="text-muted-foreground">-</span>
                                                     )}
@@ -275,15 +292,14 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                                         })}
                                     </TableRow>
                                     <TableRow>
-                                        <TableHead className="font-normal text-xs">Shift Times</TableHead>
+                                        <TableHead className="font-normal text-xs">Shift Time</TableHead>
                                         {daysOfWeek.map((day, dayIndex) => {
-                                            const shift = shiftsByDay[dayIndex];
+                                            const shifts = shiftsByDay[dayIndex];
+                                            const timeText = shifts ? shifts.map(s => formatShiftTime(s.arrivalTime, s.departureTime)).join('\n\n') : '';
                                             return (
                                                 <TableCell key={`${day}-times`} className="text-center text-xs p-1 align-top bg-muted/50">
-                                                    {shift ? (
-                                                        <div className="whitespace-nowrap">
-                                                            {shift.arrivalTime || ''} - {shift.departureTime || ''}
-                                                        </div>
+                                                    {timeText ? (
+                                                        <div className="whitespace-nowrap">{timeText}</div>
                                                     ) : (
                                                         <span className="text-muted-foreground">-</span>
                                                     )}
@@ -297,12 +313,21 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                                         <TableRow key={task}>
                                             <TableCell className="font-medium">{task.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase())}</TableCell>
                                             {daysOfWeek.map((_, dayIndex) => {
-                                                const shiftForDay = shiftsByDay[dayIndex];
-                                                if (!shiftForDay) {
+                                                const shiftsForDay = shiftsByDay[dayIndex];
+                                                if (!shiftsForDay || shiftsForDay.length === 0) {
                                                     return <TableCell key={dayIndex} />;
                                                 }
-                                                const fieldIndex = fields.findIndex(f => f.id === shiftForDay.id);
+                                                // For the checkbox, we just check if *any* shift on that day has the task.
+                                                const isTaskDone = shiftsForDay.some(shift => {
+                                                    const fieldIndex = fields.findIndex(f => f.id === shift.id);
+                                                    return fieldIndex > -1 && form.getValues().shifts[fieldIndex]?.tasks?.[task];
+                                                });
                                                 
+                                                // Since UI can only show one checkbox, we'll control the first shift's data.
+                                                // This is a limitation of the current table layout. A more complex UI would be needed for per-shift task editing on the same day.
+                                                const primaryShift = shiftsForDay[0];
+                                                const fieldIndex = fields.findIndex(f => f.id === primaryShift.id);
+
                                                 return fieldIndex > -1 ? (
                                                     <TableCell key={dayIndex} className="text-center">
                                                         <Controller
@@ -328,11 +353,13 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                                     <TableRow>
                                         <TableCell className="font-medium">Provider Signature</TableCell>
                                          {daysOfWeek.map((_, dayIndex) => {
-                                            const shiftForDay = shiftsByDay[dayIndex];
-                                            if (!shiftForDay) {
+                                            const shiftsForDay = shiftsByDay[dayIndex];
+                                            // Similar to checkboxes, we'll display signatures from the first shift if multiple exist.
+                                            const primaryShift = shiftsForDay?.[0];
+                                            if (!primaryShift) {
                                                 return <TableCell key={dayIndex} />;
                                             }
-                                            const fieldIndex = fields.findIndex(f => f.id === shiftForDay.id);
+                                            const fieldIndex = fields.findIndex(f => f.id === primaryShift.id);
                                             return fieldIndex > -1 ? (
                                                 <TableCell key={dayIndex} className="text-center p-1">
                                                     <Controller
@@ -366,3 +393,5 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
         </FormProvider>
     );
 }
+
+    
