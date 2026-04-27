@@ -133,7 +133,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
             if (!isValid(shiftUtcDate)) return;
 
             const dayIndexString = formatInTimeZone(shiftUtcDate, 'i', { timeZone: pacificTimeZone });
-            const dayIndex = Number(dayIndexString) % 7;
+            const dayIndex = Number(dayIndexString) % 7; 
             
             if (!shiftsByDay[dayIndex]) {
                 shiftsByDay[dayIndex] = [];
@@ -143,21 +143,20 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         
         const contentWidth = width - 2 * leftMargin;
         const firstColWidth = contentWidth * 0.30;
-        const dayColWidth = (contentWidth - firstColWidth) / 7;
         
         const topTableTopY = y;
         const topTableRowHeight = 25;
         
         const dayHeaders = Array.from({ length: 7 }).map((_, i) => {
             const dayDate = addDays(weekStartForHeader, i);
-            return `${format(dayDate, 'EEE')}\n${format(dayDate, 'MM/dd/yy')}`;
+            return `${formatInTimeZone(dayDate, 'EEE', { timeZone: pacificTimeZone })}\n${formatInTimeZone(dayDate, 'MM/dd/yy', { timeZone: pacificTimeZone })}`;
         });
 
         // Row 1: Week/Dates
         let currentY = y - topTableRowHeight / 2 - 5;
         drawText(page, "Week", { x: leftMargin + 5, y: currentY, font: boldFont, size: 8 });
         dayHeaders.forEach((header, i) => {
-            const dayX = leftMargin + firstColWidth + (i * dayColWidth);
+            const dayX = leftMargin + firstColWidth + (i * ((contentWidth - firstColWidth) / 7));
             drawText(page, header, { x: dayX + 5, y: y - 8, font: boldFont, size: 8, lineHeight: 9 });
         });
         y -= topTableRowHeight;
@@ -169,7 +168,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         for (let i = 0; i < 7; i++) {
             const shifts = shiftsByDay[i];
             if (shifts && shifts.length > 0) {
-                const dayX = leftMargin + firstColWidth + (i * dayColWidth);
+                const dayX = leftMargin + firstColWidth + (i * ((contentWidth - firstColWidth) / 7));
                 const caregiverNames = shifts.map(shift => {
                     if (!shift.caregiverName) return '';
                     const nameParts = shift.caregiverName.includes(',') 
@@ -198,7 +197,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         for (let i = 0; i < 7; i++) {
             const shifts = shiftsByDay[i];
             if (shifts && shifts.length > 0) {
-                const dayX = leftMargin + firstColWidth + (i * dayColWidth);
+                const dayX = leftMargin + firstColWidth + (i * ((contentWidth - firstColWidth) / 7));
                 const timeText = shifts.map(s => formatShiftTime(s.arrivalTime, s.departureTime)).join('\n\n');
                 drawText(page, timeText, { x: dayX + 5, y: currentY + 12, font, size: 8, lineHeight: 9 });
             }
@@ -229,7 +228,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
 
             for (let i = 0; i < 7; i++) {
                 const shiftsForDay = shiftsByDay[i];
-                const dayX = leftMargin + firstColWidth + (i * dayColWidth) + (dayColWidth / 2) - 5;
+                const dayX = leftMargin + firstColWidth + (i * ((contentWidth - firstColWidth) / 7)) + (((contentWidth - firstColWidth) / 7) / 2) - 5;
                 if (shiftsForDay && shiftsForDay.length > 0) {
                     const isTaskDone = shiftsForDay.some(s => s.tasks?.[task]);
                     drawCheckbox(page, !!isTaskDone, dayX, y - (rowHeight / 2));
@@ -243,7 +242,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         for (let i = 0; i < 7; i++) {
             const shiftsForDay = shiftsByDay[i];
             if (shiftsForDay && shiftsForDay.length > 0) {
-                const dayX = leftMargin + firstColWidth + (i * dayColWidth);
+                const dayX = leftMargin + firstColWidth + (i * ((contentWidth - firstColWidth) / 7));
                 const signatures = shiftsForDay.map(s => s.providerSignature || getInitials(s.caregiverName)).join(', ');
                 drawText(page, signatures, { x: dayX + 5, y: y - (rowHeight / 2) - (font.heightAtSize(10) / 2) + 4, font: cursiveFont, size: 10 });
             }
@@ -260,7 +259,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
             if (i > 0) page.drawLine({start: {x: leftMargin, y: rowLineY}, end: {x: width - leftMargin, y: rowLineY}, thickness: 0.5});
         }
          for (let i = 0; i < 7; i++) {
-            const colLineX = leftMargin + firstColWidth + (i * dayColWidth);
+            const colLineX = leftMargin + firstColWidth + (i * ((contentWidth - firstColWidth) / 7));
             page.drawLine({start: {x: colLineX, y: taskTableTop}, end: {x: colLineX, y: taskTableBottom}, thickness: 0.5});
         }
         
