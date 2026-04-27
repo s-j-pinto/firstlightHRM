@@ -123,10 +123,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
         weeklyShifts.forEach(shift => {
             if (!shift.date?.toDate) return;
             const shiftDateUTC = shift.date.toDate();
-            // Use formatInTimeZone to get the day of the week IN the target timezone.
-            // 'i' returns the ISO day of the week (1 for Monday, 7 for Sunday)
-            const dayOfWeekString = formatInTimeZone(shiftDateUTC, pacificTimeZone, 'i');
-            // Convert ISO day (1-7) to JS day (0-6, where Sunday is 0)
+            const dayOfWeekString = formatInTimeZone(shiftDateUTC, 'i', { timeZone: pacificTimeZone });
             const dayIndex = Number(dayOfWeekString) % 7; 
             
             if (!shiftsMap[dayIndex]) {
