@@ -132,7 +132,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
             const shiftUtcDate = parseISO(shift.date);
             if (!isValid(shiftUtcDate)) return;
 
-            const dayIndexString = formatInTimeZone(shiftUtcDate, 'i', { timeZone: pacificTimeZone });
+            const dayIndexString = formatInTimeZone(shiftUtcDate, pacificTimeZone, 'i');
             const dayIndex = Number(dayIndexString) % 7; 
             
             if (!shiftsByDay[dayIndex]) {
@@ -149,7 +149,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         
         const dayHeaders = Array.from({ length: 7 }).map((_, i) => {
             const dayDate = addDays(weekStartForHeader, i);
-            return `${formatInTimeZone(dayDate, 'EEE', { timeZone: pacificTimeZone })}\n${formatInTimeZone(dayDate, 'MM/dd/yy', { timeZone: pacificTimeZone })}`;
+            return `${formatInTimeZone(dayDate, 'America/Los_Angeles', 'EEE')}\n${formatInTimeZone(dayDate, 'America/Los_Angeles', 'MM/dd/yy')}`;
         });
 
         // Row 1: Week/Dates
