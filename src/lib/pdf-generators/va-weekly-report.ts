@@ -117,22 +117,23 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         drawText(page, "Program Name: Home Maker/HHA Program", { x: leftMargin, y: y, font, size: 9 });
         
         y -= 20;
-        const weekStartForHeader = fromZonedTime(`${data.selectedWeek}T00:00:00`, 'America/Los_Angeles');
+        const pacificTimeZone = 'America/Los_Angeles';
+        const weekStartForHeader = fromZonedTime(`${data.selectedWeek}T00:00:00`, pacificTimeZone);
         const weekEndForHeader = addDays(weekStartForHeader, 6);
         drawText(page, `Week: ${format(weekStartForHeader, 'MM/dd/yy')} - ${format(weekEndForHeader, 'MM/dd/yy')}`, { x: leftMargin, y: y, font, size: 9 });
 
         y -= 45;
 
         // --- Shifts Table ---
-        const pacificTimeZone = 'America/Los_Angeles';
         const shiftsByDay: { [key: number]: any[] } = {};
         
         data.shifts.forEach((shift: any) => {
             if (!shift.date) return;
+            // The date from the server action is already an ISO string
             const shiftUtcDate = parseISO(shift.date);
             if (!isValid(shiftUtcDate)) return;
 
-            const dayIndexString = formatInTimeZone(shiftUtcDate, 'i', { timeZone: 'America/Los_Angeles' });
+            const dayIndexString = formatInTimeZone(shiftUtcDate, 'i', { timeZone: pacificTimeZone });
             const dayIndex = Number(dayIndexString) % 7; 
             
             if (!shiftsByDay[dayIndex]) {
@@ -149,7 +150,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         
         const dayHeaders = Array.from({ length: 7 }).map((_, i) => {
             const dayDate = addDays(weekStartForHeader, i);
-            return `${formatInTimeZone(dayDate, 'EEE', { timeZone: 'America/Los_Angeles' })}\n${formatInTimeZone(dayDate, 'MM/dd/yy', { timeZone: 'America/Los_Angeles' })}`;
+            return `${formatInTimeZone(dayDate, 'EEE', { timeZone: pacificTimeZone })}\n${formatInTimeZone(dayDate, 'MM/dd/yy', { timeZone: pacificTimeZone })}`;
         });
 
         // Row 1: Week/Dates

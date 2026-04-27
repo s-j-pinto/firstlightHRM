@@ -38,15 +38,18 @@ function parseTeletrackDate(dateStr: string, timeZone: string): Date | null {
     const [, month, day, year] = dateMatch;
     // Manually construct YYYY-MM-DD string to avoid locale parsing issues
     const isoLikeString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T00:00:00`;
+    console.log(`[SYNC-VA-CARELOGS-DEBUG] Parsing date string "${dateStr}" as iso string "${isoLikeString}" in timezone "${timeZone}"`);
+
     
     // fromZonedTime interprets the string as being in the specified timezone and returns the correct UTC instant.
     const date = fromZonedTime(isoLikeString, timeZone);
     
     if (isValid(date)) {
+        console.log(`[SYNC-VA-CARELOGS-DEBUG] Parsed date corresponds to UTC: ${date.toISOString()}`);
         return date;
     }
 
-    console.warn(`[SYNC-VA-CARELOGS] Constructed an invalid date from "${dateStr}".`);
+    console.warn(`[SYNC-VA-CARELOGS-DEBUG] Constructed an invalid date from "${dateStr}".`);
     return null;
 }
 
