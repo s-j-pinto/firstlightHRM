@@ -2,8 +2,8 @@
 'use server';
 
 import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont, PDFPage } from 'pdf-lib';
-import { format, isDate, addDays, parse, parseISO, isValid } from 'date-fns';
-import { format as formatInTimeZone } from 'date-fns-tz';
+import { format, isDate, addDays, parse, parseISO, isValid, isWithinInterval, getDay } from 'date-fns';
+import { format as formatInTimeZone, toZonedTime } from 'date-fns-tz';
 import { drawText, drawCheckbox, drawWrappedText } from './utils';
 
 // This function will draw a box with rows, for the client info
@@ -130,10 +130,9 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
             const shiftUtcDate = parseISO(shift.date);
             if (!isValid(shiftUtcDate)) return;
 
-            // Get day index in pacific time
-            // 'i' returns ISO day of week: 1 for Monday, ..., 7 for Sunday.
+            // 'i' format returns day of week 1 (Mon) to 7 (Sun). We use % 7 to map Sunday to 0.
             const dayIndexString = formatInTimeZone(shiftUtcDate, 'i', { timeZone: pacificTimeZone });
-            const dayIndex = parseInt(dayIndexString, 10) % 7; // Convert to 0=Sun, 1=Mon, ...
+            const dayIndex = Number(dayIndexString) % 7;
             
             if (!shiftsByDay[dayIndex]) {
                 shiftsByDay[dayIndex] = [];
@@ -199,7 +198,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
             const shifts = shiftsByDay[i];
             if (shifts && shifts.length > 0) {
                 const dayX = leftMargin + firstColWidth + (i * dayColWidth);
-                const timeText = shifts.map(shift => formatShiftTime(shift.arrivalTime, shift.departureTime)).join('\n\n');
+                const timeText = shifts.map(s => formatShiftTime(s.arrivalTime, s.departureTime)).join('\n\n');
                 drawText(page, timeText, { x: dayX + 5, y: currentY + 12, font, size: 8, lineHeight: 9 });
             }
         }

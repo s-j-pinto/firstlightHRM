@@ -10,16 +10,17 @@ import { collection, query, where, orderBy, doc } from 'firebase/firestore';
 import type { VATaskTemplate, VAMedicalRecord, Client } from '@/lib/types';
 import { startOfWeek, endOfWeek, format, subWeeks, parse, isValid, isDate, parseISO, addDays, isWithinInterval } from 'date-fns';
 
+import { AllstarRouteSheetForm } from './allstar-route-sheet-form';
 import { Button } from './ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from './ui/card';
 import { Loader2, Save, Printer, Calendar as CalendarIcon, X } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Label } from './ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Checkbox } from './ui/checkbox';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { saveVaShiftAdminData } from "@/lib/carelog.actions";
 import { generateVaWeeklyReportPdf } from "@/lib/pdf.actions";
+import { Checkbox } from './ui/checkbox';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Input } from "./ui/input";
 
 interface VaReportViewerProps {
@@ -197,7 +198,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
         const shiftsToInclude = weeklyShifts.map(s => {
             const formShift = form.getValues().shifts.find(fs => fs.id === s.id);
             return {
-                id: s.id,
+                ...s,
                 tasks: formShift?.tasks || {},
                 providerSignature: formShift?.providerSignature || ''
             };
@@ -393,5 +394,3 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
         </FormProvider>
     );
 }
-
-    
