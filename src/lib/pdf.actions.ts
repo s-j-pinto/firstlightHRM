@@ -1,4 +1,5 @@
 
+
 'use server';
 
 // This file now acts as a barrel, re-exporting the individual PDF generators.
@@ -29,7 +30,7 @@ import { generateCaregiverTelephonyInstructionsPdf as generateCaregiverTelephony
 import { generateEmergencyProcedurePdf as generateEmergencyProcedurePdfInternal } from './pdf-generators/emergency-procedure';
 import { generateVaWeeklyReportPdf as generateVaWeeklyReportPdfInternal } from './pdf-generators/va-weekly-report';
 import { serverDb } from '@/firebase/server-init';
-import { isWithinInterval, endOfWeek, parseISO, format } from 'date-fns';
+import { isWithinInterval, endOfWeek, parseISO, format, startOfWeek } from 'date-fns';
 import { fromZonedTime } from 'date-fns-tz';
 
 export async function generateHcs501Pdf(formData: any) { return generateHcs501PdfInternal(formData); }
@@ -99,7 +100,7 @@ export async function generateVaWeeklyReportPdf(data: {
         }
         
         const pacificTimeZone = 'America/Los_Angeles';
-        const weekStartInPT = fromZonedTime(`${data.selectedWeek}T00:00:00`, pacificTimeZone);
+        const weekStartInPT = startOfWeek(fromZonedTime(`${data.selectedWeek}T00:00:00`, pacificTimeZone), { weekStartsOn: 0 });
         const weekEndInPT = endOfWeek(weekStartInPT, { weekStartsOn: 0 });
         const filterInterval = { start: weekStartInPT, end: weekEndInPT };
 
@@ -120,9 +121,9 @@ export async function generateVaWeeklyReportPdf(data: {
             const { date, createdAt, lastUpdatedAt, ...restOfShift } = shift;
             return {
                 ...restOfShift,
-                date: date.toDate().toISOString(), // Sanitize timestamp to ISO string
-                createdAt: createdAt.toDate().toISOString(),
-                lastUpdatedAt: lastUpdatedAt.toDate().toISOString(),
+                date: date.toDate().toISOString(), // 'date' is required
+                createdAt: createdAt.toDate().toISOString(), // 'createdAt' is required
+                lastUpdatedAt: lastUpdatedAt ? lastUpdatedAt.toDate().toISOString() : new Date().toISOString(),
                 tasks: updates?.tasks || shift.tasks || {},
                 providerSignature: updates?.providerSignature || shift.providerSignature || '',
             };
