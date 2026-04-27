@@ -1,10 +1,9 @@
 
-
 'use server';
 
 import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont, PDFPage } from 'pdf-lib';
-import { format, isDate, addDays, parse, parseISO, isValid, isWithinInterval, startOfWeek, endOfWeek } from 'date-fns';
-import { utcToZonedTime } from 'date-fns-tz';
+import { format, isDate, addDays, parse, parseISO, isValid } from 'date-fns';
+import { format as formatInTimeZone } from 'date-fns-tz';
 import { drawText, drawCheckbox, drawWrappedText } from './utils';
 
 // This function will draw a box with rows, for the client info
@@ -81,7 +80,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/VA-report-logo.png?alt=media&token=655fd007-7367-4475-981b-b3a9bb33baab";
         const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer());
         const logoImage = await pdfDoc.embedPng(logoImageBytes);
-        const logoDims = logoImage.scale(0.4);
+        const logoDims = logoImage.scale(0.8);
 
         const leftMargin = 40;
         let y = height - 50;
@@ -131,10 +130,11 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
             const shiftUtcDate = parseISO(shift.date);
             if (!isValid(shiftUtcDate)) return;
 
-            // Convert UTC date from Firestore to the target timezone
-            const shiftZonedDate = utcToZonedTime(shiftUtcDate, pacificTimeZone);
+            // Get day index in pacific time
+            // 'i' returns ISO day of week: 1 for Monday, ..., 7 for Sunday.
+            const dayIndexString = formatInTimeZone(shiftUtcDate, 'i', { timeZone: pacificTimeZone });
+            const dayIndex = parseInt(dayIndexString, 10) % 7; // Convert to 0=Sun, 1=Mon, ...
             
-            const dayIndex = shiftZonedDate.getDay(); // 0 = Sunday
             if (!shiftsByDay[dayIndex]) {
                 shiftsByDay[dayIndex] = [];
             }
