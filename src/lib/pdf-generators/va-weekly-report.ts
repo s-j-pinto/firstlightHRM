@@ -3,7 +3,7 @@
 
 import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont, PDFPage } from 'pdf-lib';
 import { format, isDate, addDays, parse, parseISO, isValid, isWithinInterval, getDay, startOfWeek } from 'date-fns';
-import { format as formatInTimeZone, toZonedTime } from 'date-fns-tz';
+import { format as formatInTimeZone, toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { drawText, drawCheckbox, drawWrappedText } from './utils';
 
 // This function will draw a box with rows, for the client info
@@ -117,7 +117,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         drawText(page, "Program Name: Home Maker/HHA Program", { x: leftMargin, y: y, font, size: 9 });
         
         y -= 20;
-        const weekStartForHeader = parseISO(data.selectedWeek);
+        const weekStartForHeader = fromZonedTime(`${data.selectedWeek}T00:00:00`, 'America/Los_Angeles');
         const weekEndForHeader = addDays(weekStartForHeader, 6);
         drawText(page, `Week: ${format(weekStartForHeader, 'MM/dd/yy')} - ${format(weekEndForHeader, 'MM/dd/yy')}`, { x: leftMargin, y: y, font, size: 9 });
 
