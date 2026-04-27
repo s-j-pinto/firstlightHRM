@@ -3,7 +3,8 @@
 'use server';
 
 import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont, PDFPage } from 'pdf-lib';
-import { format, isDate, addDays, parse, parseISO, isValid, isWithinInterval } from 'date-fns';
+import { format, isDate, addDays, parse, parseISO, isValid, isWithinInterval, startOfWeek, endOfWeek } from 'date-fns';
+import { utcToZonedTime } from 'date-fns-tz';
 import { drawText, drawCheckbox, drawWrappedText } from './utils';
 
 // This function will draw a box with rows, for the client info
@@ -122,14 +123,18 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         y -= 45;
 
         // --- Shifts Table ---
+        const pacificTimeZone = 'America/Los_Angeles';
         const shiftsByDay: { [key: number]: any[] } = {};
         
         data.shifts.forEach((shift: any) => {
             if (!shift.date) return;
-            const shiftDate = parseISO(shift.date);
-            if (!isValid(shiftDate)) return;
+            const shiftUtcDate = parseISO(shift.date);
+            if (!isValid(shiftUtcDate)) return;
 
-            const dayIndex = shiftDate.getDay(); // 0 = Sunday
+            // Convert UTC date from Firestore to the target timezone
+            const shiftZonedDate = utcToZonedTime(shiftUtcDate, pacificTimeZone);
+            
+            const dayIndex = shiftZonedDate.getDay(); // 0 = Sunday
             if (!shiftsByDay[dayIndex]) {
                 shiftsByDay[dayIndex] = [];
             }
@@ -139,7 +144,6 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         const contentWidth = width - 2 * leftMargin;
         const firstColWidth = contentWidth * 0.30;
         const dayColWidth = (contentWidth - firstColWidth) / 7;
-        const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         
         const topTableTopY = y;
         const topTableRowHeight = 25;
