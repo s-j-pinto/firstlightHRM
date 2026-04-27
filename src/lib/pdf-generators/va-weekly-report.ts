@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont, PDFPage } from 'pdf-lib';
@@ -79,7 +80,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/VA-report-logo.png?alt=media&token=655fd007-7367-4475-981b-b3a9bb33baab";
         const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer());
         const logoImage = await pdfDoc.embedPng(logoImageBytes);
-        const logoDims = logoImage.scale(0.6);
+        const logoDims = logoImage.scale(0.4);
 
         const leftMargin = 40;
         let y = height - 50;
@@ -138,6 +139,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         const contentWidth = width - 2 * leftMargin;
         const firstColWidth = contentWidth * 0.30;
         const dayColWidth = (contentWidth - firstColWidth) / 7;
+        const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         
         const topTableTopY = y;
         const topTableRowHeight = 25;
@@ -222,10 +224,12 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
             drawText(page, taskLabel, { x: leftMargin + 5, y: textY, font: boldFont, size: 8 });
 
             for (let i = 0; i < 7; i++) {
-                const shifts = shiftsByDay[i];
+                const shiftsForDay = shiftsByDay[i];
                 const dayX = leftMargin + firstColWidth + (i * dayColWidth) + (dayColWidth / 2) - 5;
-                const isTaskDone = shifts?.some(s => s.tasks?.[task]);
-                drawCheckbox(page, !!isTaskDone, dayX, y - (rowHeight / 2));
+                if (shiftsForDay && shiftsForDay.length > 0) {
+                    const isTaskDone = shiftsForDay.some(s => s.tasks?.[task]);
+                    drawCheckbox(page, !!isTaskDone, dayX, y - (rowHeight / 2));
+                }
             }
             y -= rowHeight;
         });
@@ -233,10 +237,10 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         const providerSigTextHeight = boldFont.heightAtSize(8);
         drawText(page, "Provider Signature", { x: leftMargin + 5, y: y - (rowHeight / 2) - (providerSigTextHeight / 2) + 4, font: boldFont, size: 8 });
         for (let i = 0; i < 7; i++) {
-            const shifts = shiftsByDay[i];
-            if (shifts && shifts.length > 0) {
+            const shiftsForDay = shiftsByDay[i];
+            if (shiftsForDay && shiftsForDay.length > 0) {
                 const dayX = leftMargin + firstColWidth + (i * dayColWidth);
-                const signatures = shifts.map(s => s.providerSignature || getInitials(s.caregiverName)).join(', ');
+                const signatures = shiftsForDay.map(s => s.providerSignature || getInitials(s.caregiverName)).join(', ');
                 drawText(page, signatures, { x: dayX + 5, y: y - (rowHeight / 2) - (font.heightAtSize(10) / 2) + 4, font: cursiveFont, size: 10 });
             }
         }
@@ -277,5 +281,3 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         return { error: `Failed to generate PDF: ${errorMessage}` };
     }
 }
-
-    
