@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from "react";
@@ -96,15 +95,12 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
     const weeklyShifts = React.useMemo(() => {
         if (!allShifts) return [];
         const pacificTimeZone = 'America/Los_Angeles';
-        // The start of the selected week in Pacific Time
         const weekStartInPT = fromZonedTime(`${selectedWeek}T00:00:00`, pacificTimeZone);
-        // The end of the selected week in Pacific Time
         const weekEndInPT = endOfWeek(weekStartInPT, { weekStartsOn: 0 });
 
         return allShifts.filter(shift => {
             if (!shift.date?.toDate) return false;
-            const shiftDateUTC = shift.date.toDate(); // This is a UTC Date object
-            // Check if the UTC time falls within the range defined by the PT week start/end
+            const shiftDateUTC = shift.date.toDate();
             return isWithinInterval(shiftDateUTC, { start: weekStartInPT, end: weekEndInPT });
         });
     }, [allShifts, selectedWeek]);
@@ -126,10 +122,8 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
         weeklyShifts.forEach(shift => {
             if (!shift.date?.toDate) return;
             const shiftUtcDate = shift.date.toDate();
-            // Get the ISO day of the week (1 for Monday, ..., 7 for Sunday) IN the specified timezone
-            const isoDayOfWeek = parseInt(formatInTimeZone(shiftUtcDate, pacificTimeZone, 'i'), 10);
-            // Convert to 0-indexed day (0 for Sunday, 1 for Monday, ...)
-            const dayIndex = isoDayOfWeek % 7;
+            // Get the ISO day of the week (0 for Sunday, 1 for Monday, etc) IN the specified timezone
+            const dayIndex = getDay(toZonedTime(shiftUtcDate, pacificTimeZone));
 
             if (!shiftsMap[dayIndex]) {
                 shiftsMap[dayIndex] = [];
@@ -267,11 +261,11 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                                     <TableRow>
                                         <TableHead className="min-w-[180px] align-bottom">Tasks Performed</TableHead>
                                         {Array.from({ length: 7 }).map((_, dayIndex) => {
-                                            const weekStart = fromZonedTime(`${selectedWeek}T00:00:00`, 'America/Los_Angeles');
-                                            const dayDate = addDays(weekStart, dayIndex);
+                                            const weekStartInPT = fromZonedTime(`${selectedWeek}T00:00:00`, 'America/Los_Angeles');
+                                            const dayDate = addDays(weekStartInPT, dayIndex);
                                             return (
                                                 <TableHead key={dayIndex} className="text-center min-w-[140px]">
-                                                    {formatInTimeZone(dayDate, 'America/Los_Angeles', 'EEE')}<br/>{formatInTimeZone(dayDate, 'America/Los_Angeles', 'MM/dd/yy')}
+                                                    {formatInTimeZone(dayDate, 'EEE', { timeZone: 'America/Los_Angeles' })}<br/>{formatInTimeZone(dayDate, 'MM/dd/yy', { timeZone: 'America/Los_Angeles' })}
                                                 </TableHead>
                                             );
                                         })}
