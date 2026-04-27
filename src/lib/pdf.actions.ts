@@ -77,10 +77,9 @@ export async function generateAllstarWeeklyReportPdf(data: any) {
 export async function generateVaWeeklyReportPdf(data: {
     groupId: string;
     weekOf: string;
-    caregiverName: string;
     shifts: { id: string; tasks: Record<string, boolean>, providerSignature: string }[];
 }) {
-    if (!data.groupId || !data.weekOf || !data.caregiverName) {
+    if (!data.groupId || !data.weekOf) {
         return { error: "Missing required data for PDF generation." };
     }
     
@@ -107,7 +106,6 @@ export async function generateVaWeeklyReportPdf(data: {
         const weekEnd = parse(endStr, 'MM/dd/yy', new Date());
 
         const serverShiftsForReport = allServerShifts.filter(shift => {
-            if (shift.caregiverName !== data.caregiverName) return false;
             if (!shift.date?.toDate) return false;
             const shiftDate = shift.date.toDate();
             return isWithinInterval(shiftDate, { start: weekStart, end: weekEnd });
@@ -130,7 +128,6 @@ export async function generateVaWeeklyReportPdf(data: {
         
         const payload = {
             weekOf: data.weekOf,
-            caregiverName: data.caregiverName,
             shifts: mergedAndSanitizedShifts,
             groupData: groupData,
             clientData: clientDoc?.exists ? clientDoc.data() : {},

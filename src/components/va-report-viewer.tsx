@@ -49,6 +49,20 @@ const getInitials = (name: string): string => {
     return '';
 };
 
+function formatShiftTime(start: string, end: string): string {
+    if (!start || !end) return '';
+    try {
+        const startTime = parse(start, 'h:mm:ss a', new Date());
+        const endTime = parse(end, 'h:mm:ss a', new Date());
+        const formattedStart = format(startTime, 'h:mmaaa').toLowerCase().replace(':00', '');
+        const formattedEnd = format(endTime, 'h:mmaaa').toLowerCase().replace(':00', '');
+        return `${formattedStart}-\n${formattedEnd}`;
+    } catch (e) {
+        // Fallback for unexpected formats
+        return `${start} -\n${end}`;
+    }
+}
+
 export function VaReportViewer({ groupId }: VaReportViewerProps) {
     const { toast } = useToast();
     const firestore = useFirestore();
@@ -64,7 +78,6 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
     }, []);
 
     const [selectedWeek, setSelectedWeek] = React.useState(weeks[0]);
-    const [selectedCaregiverName, setSelectedCaregiverName] = React.useState<string>('');
 
     const groupRef = useMemoFirebase(() => firestore ? doc(firestore, 'carelog_groups', groupId) : null, [groupId, firestore]);
     const { data: groupData, isLoading: groupLoading } = useDoc<any>(groupRef);
@@ -91,46 +104,20 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
             return isWithinInterval(shiftDate, { start: weekStart, end: weekEnd });
         });
     }, [allShifts, selectedWeek]);
-
-    const caregiversForWeek = React.useMemo(() => {
-        const caregiverNames = new Set<string>();
-        weeklyShifts.forEach(shift => {
-            if (shift.caregiverName) {
-                caregiverNames.add(shift.caregiverName);
-            }
-        });
-        return Array.from(caregiverNames).sort((a, b) => a.localeCompare(b));
-    }, [weeklyShifts]);
-
-    React.useEffect(() => {
-        if (caregiversForWeek.length > 0 && !selectedCaregiverName) {
-            setSelectedCaregiverName(caregiversForWeek[0]);
-        } else if (caregiversForWeek.length > 0 && !caregiversForWeek.includes(selectedCaregiverName)) {
-            setSelectedCaregiverName(caregiversForWeek[0]);
-        } else if (caregiversForWeek.length === 0) {
-            setSelectedCaregiverName('');
-        }
-    }, [caregiversForWeek, selectedCaregiverName]);
     
-    const caregiverWeeklyShifts = React.useMemo(() => {
-        return weeklyShifts.filter(shift => shift.caregiverName === selectedCaregiverName);
-    }, [weeklyShifts, selectedCaregiverName]);
-
-    const caregiverInitials = React.useMemo(() => getInitials(selectedCaregiverName), [selectedCaregiverName]);
-
     React.useEffect(() => {
         reset({
-            shifts: caregiverWeeklyShifts.map(s => ({
+            shifts: weeklyShifts.map(s => ({
                 id: s.id,
                 tasks: s.tasks || {},
-                providerSignature: s.providerSignature || caregiverInitials
+                providerSignature: s.providerSignature || getInitials(s.caregiverName)
             }))
         });
-    }, [caregiverWeeklyShifts, reset, caregiverInitials]);
+    }, [weeklyShifts, reset]);
 
     const shiftsByDay = React.useMemo(() => {
         const shiftsMap: { [key: number]: VAMedicalRecord } = {}; // Only one shift per day for this UI
-        caregiverWeeklyShifts.forEach(shift => {
+        weeklyShifts.forEach(shift => {
             if (!shift.date?.toDate) return;
             const dayIndex = shift.date.toDate().getDay(); // 0 = Sunday
             if (!shiftsMap[dayIndex]) {
@@ -138,7 +125,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
             }
         });
         return shiftsMap;
-    }, [caregiverWeeklyShifts]);
+    }, [weeklyShifts]);
 
     const templateRef = useMemoFirebase(() => groupData?.careLogTemplateId && firestore ? doc(firestore, 'va_task_templates', groupData.careLogTemplateId) : null, [groupData, firestore]);
     const { data: templateData, isLoading: templateLoading } = useDoc<VATaskTemplate>(templateRef);
@@ -206,10 +193,10 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
         const weekEnd = endOfWeek(weekStart, { weekStartsOn: 0 });
         const weekOf = `${format(weekStart, 'MM/dd/yy')} - ${format(weekEnd, 'MM/dd/yy')}`;
 
-        const shiftsToInclude = caregiverWeeklyShifts.map(s => {
+        const shiftsToInclude = weeklyShifts.map(s => {
             const formShift = form.getValues().shifts.find(fs => fs.id === s.id);
             return {
-                id: s.id, // Only include the ID
+                id: s.id,
                 tasks: formShift?.tasks || {},
                 providerSignature: formShift?.providerSignature || ''
             };
@@ -218,14 +205,13 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
         const payload = {
             weekOf,
             groupId,
-            caregiverName: selectedCaregiverName || 'N/A',
             shifts: shiftsToInclude,
         };
 
         startPdfGeneration(async () => {
             const result = await generateVaWeeklyReportPdf(payload);
             if (result.error) {
-                toast({ title: "PDF Generation Failed", description: result.error, variant: 'destructive' });
+                toast({ title: "PDF Generation Failed", description: result.error, variant: "destructive" });
             } else if (result.pdfData) {
                 const byteCharacters = atob(result.pdfData);
                 const byteNumbers = new Array(byteCharacters.length);
@@ -259,19 +245,6 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                                 <SelectContent>{weeks.map(w => <SelectItem key={w} value={w}>{`${format(parseISO(w), 'MMM d')} - ${format(endOfWeek(parseISO(w), { weekStartsOn: 0 }), 'MMM d, yyyy')}`}</SelectItem>)}</SelectContent>
                             </Select>
                         </div>
-                        <div className="w-full sm:w-auto">
-                            <Label>Select Caregiver</Label>
-                             <Select value={selectedCaregiverName} onValueChange={setSelectedCaregiverName}>
-                                <SelectTrigger className="w-full max-w-sm"><SelectValue placeholder="Select a caregiver..." /></SelectTrigger>
-                                <SelectContent>
-                                    {caregiversForWeek.length > 0 ? (
-                                        caregiversForWeek.map(cgName => <SelectItem key={cgName} value={cgName}>{cgName}</SelectItem>)
-                                    ) : (
-                                        <div className="p-4 text-sm text-muted-foreground text-center">No caregivers with shifts this week</div>
-                                    )}
-                                </SelectContent>
-                            </Select>
-                        </div>
                     </div>
 
                     <form onSubmit={handleSubmit(onSubmit)}>
@@ -282,9 +255,24 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                                         <TableHead className="min-w-[180px] align-bottom">Tasks Performed</TableHead>
                                         {daysOfWeek.map((day, dayIndex) => (
                                             <TableHead key={day} className="text-center min-w-[140px]">
-                                                {day}<br/>{format(addDays(parseISO(selectedWeek), dayIndex), 'MM/dd')}
+                                                {day}<br/>{format(addDays(parseISO(selectedWeek), dayIndex), 'MM/dd/yy')}
                                             </TableHead>
                                         ))}
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableHead className="font-normal text-xs">Caregiver Name</TableHead>
+                                         {daysOfWeek.map((day, dayIndex) => {
+                                            const shift = shiftsByDay[dayIndex];
+                                            return (
+                                                <TableCell key={`${day}-caregiver`} className="text-center text-xs p-1 align-top bg-muted/50">
+                                                    {shift ? (
+                                                        <div className="whitespace-pre-wrap">{shift.caregiverName}</div>
+                                                    ) : (
+                                                        <span className="text-muted-foreground">-</span>
+                                                    )}
+                                                </TableCell>
+                                            );
+                                        })}
                                     </TableRow>
                                     <TableRow>
                                         <TableHead className="font-normal text-xs">Shift Times</TableHead>

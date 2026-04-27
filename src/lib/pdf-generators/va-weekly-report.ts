@@ -2,7 +2,7 @@
 'use server';
 
 import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont, PDFPage } from 'pdf-lib';
-import { format, isDate, addDays, parse, parseISO, isValid } from 'date-fns';
+import { format, isDate, addDays, parse, parseISO, isValid, isWithinInterval } from 'date-fns';
 import { drawText, drawCheckbox, drawWrappedText } from './utils';
 
 // This function will draw a box with rows, for the client info
@@ -79,7 +79,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/VA-report-logo.png?alt=media&token=655fd007-7367-4475-981b-b3a9bb33baab";
         const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer());
         const logoImage = await pdfDoc.embedPng(logoImageBytes);
-        const logoDims = logoImage.scale(0.75);
+        const logoDims = logoImage.scale(0.3);
 
         const leftMargin = 40;
         let y = height - 50;
@@ -92,7 +92,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
             height: logoDims.height,
         });
 
-        drawText(page, "CARE NOTES", { x: leftMargin + logoDims.width + 10, y: y - 35, font: boldFont, size: 12 });
+        drawText(page, "CARE NOTES", { x: leftMargin + logoDims.width + 10, y: y - 35, font: boldFont, size: 10 });
         
         y -= (logoDims.height + 25); 
 
@@ -161,25 +161,25 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         currentY = y - topTableRowHeight / 2 - 5;
         drawText(page, "Caregiver Name", { x: leftMargin + 5, y: currentY, font: boldFont, size: 8 });
         
-        let formattedCaregiverName = data.caregiverName || '';
-        if (formattedCaregiverName) {
-            if (formattedCaregiverName.includes(',')) {
-                // Assumes "Last, First"
-                const parts = formattedCaregiverName.split(',').map(p => p.trim());
-                formattedCaregiverName = `${parts[1] || ''}\n${parts[0] || ''}`;
-            } else {
-                // Assumes "First Last" or "First Middle Last"
-                const parts = formattedCaregiverName.split(' ');
-                const lastName = parts.pop() || '';
-                const firstName = parts.join(' ');
-                formattedCaregiverName = `${firstName}\n${lastName}`;
-            }
-        }
-        
         for (let i = 0; i < 7; i++) {
-            if (shiftsByDay[i]) {
+            const shift = shiftsByDay[i];
+            if (shift && shift.caregiverName) {
                 const dayX = leftMargin + firstColWidth + (i * dayColWidth);
-                drawText(page, formattedCaregiverName, { x: dayX + 5, y: currentY + 5, font, size: 8, lineHeight: 9 });
+                const nameParts = shift.caregiverName.includes(',') 
+                    ? shift.caregiverName.split(',').map((p:string) => p.trim()) 
+                    : shift.caregiverName.split(' ');
+                
+                let firstName, lastName;
+                if (shift.caregiverName.includes(',')) {
+                    lastName = nameParts[0] || '';
+                    firstName = nameParts[1] || '';
+                } else {
+                    lastName = nameParts.pop() || '';
+                    firstName = nameParts.join(' ');
+                }
+                
+                const formattedName = `${firstName}\n${lastName}`;
+                drawText(page, formattedName, { x: dayX + 5, y: currentY + 5, font, size: 8, lineHeight: 9 });
             }
         }
         y -= topTableRowHeight;
@@ -232,14 +232,14 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         });
 
         // Provider Signature Row
-        const caregiverInitials = getInitials(data.caregiverName);
         const providerSigTextHeight = boldFont.heightAtSize(8);
         drawText(page, "Provider Signature", { x: leftMargin + 5, y: y - (rowHeight / 2) - (providerSigTextHeight / 2) + 4, font: boldFont, size: 8 });
         for (let i = 0; i < 7; i++) {
-            const shift = shiftsByDay[i];
-            if (shift) {
+            const shiftForDay = shiftsByDay[i];
+            if (shiftForDay) {
                 const dayX = leftMargin + firstColWidth + (i * dayColWidth);
-                drawText(page, shift.providerSignature || caregiverInitials, { x: dayX + 5, y: y - (rowHeight / 2) - (font.heightAtSize(10) / 2) + 4, font: cursiveFont, size: 10 });
+                const providerSignature = shiftForDay.providerSignature || getInitials(shiftForDay.caregiverName);
+                drawText(page, providerSignature, { x: dayX + 5, y: y - (rowHeight / 2) - (font.heightAtSize(10) / 2) + 4, font: cursiveFont, size: 10 });
             }
         }
         y -= rowHeight;
