@@ -116,14 +116,16 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
     }, [weeklyShifts, reset]);
 
     const shiftsByDay = React.useMemo(() => {
-        const pacificTimeZone = 'America/Los_Angeles';
+        const dayOrder: { [key: string]: number } = {
+            'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6
+        };
         const shiftsMap: { [key: number]: VAMedicalRecord[] } = {};
         
         weeklyShifts.forEach(shift => {
-            if (!shift.date?.toDate) return;
-            const shiftUtcDate = shift.date.toDate();
-            // Get the ISO day of the week (0 for Sunday, 1 for Monday, etc) IN the specified timezone
-            const dayIndex = getDay(toZonedTime(shiftUtcDate, pacificTimeZone));
+            if (!shift.day) return;
+            // The 'day' field is like "Sunday", "Monday", etc.
+            const dayIndex = dayOrder[shift.day];
+            if (dayIndex === undefined) return; // Skip if day is not valid
 
             if (!shiftsMap[dayIndex]) {
                 shiftsMap[dayIndex] = [];
@@ -203,7 +205,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
         const shiftsToInclude = weeklyShifts.map(s => {
             const formShift = form.getValues().shifts.find(fs => fs.id === s.id);
             return {
-                id: s.id,
+                ...s,
                 tasks: formShift?.tasks || {},
                 providerSignature: formShift?.providerSignature || ''
             };
