@@ -2,7 +2,7 @@
 'use server';
 
 import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont, PDFPage } from 'pdf-lib';
-import { format, isDate, addDays, parse, parseISO, isValid, isWithinInterval, getDay } from 'date-fns';
+import { format, isDate, addDays, parse, parseISO, isValid, isWithinInterval, getDay, startOfWeek } from 'date-fns';
 import { format as formatInTimeZone, toZonedTime } from 'date-fns-tz';
 import { drawText, drawCheckbox, drawWrappedText } from './utils';
 
@@ -117,7 +117,9 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         drawText(page, "Program Name: Home Maker/HHA Program", { x: leftMargin, y: y, font, size: 9 });
         
         y -= 20;
-        drawText(page, `Week: ${data.weekOf || ''}`, { x: leftMargin, y: y, font, size: 9 });
+        const weekStartForHeader = parseISO(data.selectedWeek);
+        const weekEndForHeader = addDays(weekStartForHeader, 6);
+        drawText(page, `Week: ${format(weekStartForHeader, 'MM/dd/yy')} - ${format(weekEndForHeader, 'MM/dd/yy')}`, { x: leftMargin, y: y, font, size: 9 });
 
         y -= 45;
 
@@ -130,7 +132,6 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
             const shiftUtcDate = parseISO(shift.date);
             if (!isValid(shiftUtcDate)) return;
 
-            // 'i' format returns day of week 1 (Mon) to 7 (Sun). We use % 7 to map Sunday to 0.
             const dayIndexString = formatInTimeZone(shiftUtcDate, 'i', { timeZone: pacificTimeZone });
             const dayIndex = Number(dayIndexString) % 7;
             
@@ -147,9 +148,8 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         const topTableTopY = y;
         const topTableRowHeight = 25;
         
-        const weekStart = parse(data.weekOf.split(' - ')[0], 'MM/dd/yy', new Date());
         const dayHeaders = Array.from({ length: 7 }).map((_, i) => {
-            const dayDate = addDays(weekStart, i);
+            const dayDate = addDays(weekStartForHeader, i);
             return `${format(dayDate, 'EEE')}\n${format(dayDate, 'MM/dd/yy')}`;
         });
 
@@ -171,6 +171,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
             if (shifts && shifts.length > 0) {
                 const dayX = leftMargin + firstColWidth + (i * dayColWidth);
                 const caregiverNames = shifts.map(shift => {
+                    if (!shift.caregiverName) return '';
                     const nameParts = shift.caregiverName.includes(',') 
                         ? shift.caregiverName.split(',').map((p:string) => p.trim()) 
                         : shift.caregiverName.split(' ');
@@ -184,7 +185,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
                         firstName = nameParts.join(' ');
                     }
                     return `${firstName}\n${lastName}`;
-                }).join('\n\n'); // Separate multiple caregivers with more space
+                }).join('\n\n');
                 
                 drawText(page, caregiverNames, { x: dayX + 5, y: currentY + 12, font, size: 8, lineHeight: 9 });
             }

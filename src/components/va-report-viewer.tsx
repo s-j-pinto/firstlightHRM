@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, orderBy, doc } from 'firebase/firestore';
 import type { VATaskTemplate, VAMedicalRecord, Client } from '@/lib/types';
-import { startOfWeek, endOfWeek, format, subWeeks, parse, isValid, isDate, parseISO, addDays, isWithinInterval, getDay } from 'date-fns';
+import { startOfWeek, endOfWeek, format, subWeeks, parse, parseISO, isValid, isDate, addDays, isWithinInterval, getDay } from 'date-fns';
 import { format as formatInTimeZone } from 'date-fns-tz';
 
 import { AllstarRouteSheetForm } from './allstar-route-sheet-form';
@@ -124,7 +124,6 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
         weeklyShifts.forEach(shift => {
             if (!shift.date?.toDate) return;
             const shiftUtcDate = shift.date.toDate();
-            // 'i' format returns day of week 1 (Mon) to 7 (Sun). We use % 7 to map Sunday to 0.
             const dayIndexString = formatInTimeZone(shiftUtcDate, 'i', { timeZone: pacificTimeZone });
             const dayIndex = Number(dayIndexString) % 7;
 
@@ -198,10 +197,11 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
     };
 
     const handleGeneratePdf = async () => {
-        const weekStart = parseISO(selectedWeek);
-        const weekEnd = endOfWeek(weekStart, { weekStartsOn: 0 });
-        const weekOf = `${format(weekStart, 'MM/dd/yy')} - ${format(weekEnd, 'MM/dd/yy')}`;
-
+        if (weeklyShifts.length === 0) {
+            toast({ title: "No Data", description: "No visits found for the selected week to generate a report.", variant: 'destructive' });
+            return;
+        }
+    
         const shiftsToInclude = weeklyShifts.map(s => {
             const formShift = form.getValues().shifts.find(fs => fs.id === s.id);
             return {
@@ -212,11 +212,11 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
         });
         
         const payload = {
-            weekOf,
             groupId,
+            selectedWeek, // Pass the 'yyyy-MM-dd' string
             shifts: shiftsToInclude,
         };
-
+    
         startPdfGeneration(async () => {
             const result = await generateVaWeeklyReportPdf(payload);
             if (result.error) {
@@ -273,6 +273,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                                          {daysOfWeek.map((day, dayIndex) => {
                                             const shifts = shiftsByDay[dayIndex];
                                             const caregiverNames = shifts ? shifts.map(shift => {
+                                                if (!shift.caregiverName) return '';
                                                 const nameParts = shift.caregiverName.includes(',') 
                                                     ? shift.caregiverName.split(',').map((p:string) => p.trim()) 
                                                     : shift.caregiverName.split(' ');
@@ -325,14 +326,6 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                                                 if (!shiftsForDay || shiftsForDay.length === 0) {
                                                     return <TableCell key={dayIndex} />;
                                                 }
-                                                // For the checkbox, we just check if *any* shift on that day has the task.
-                                                const isTaskDone = shiftsForDay.some(shift => {
-                                                    const fieldIndex = fields.findIndex(f => f.id === shift.id);
-                                                    return fieldIndex > -1 && form.getValues().shifts[fieldIndex]?.tasks?.[task];
-                                                });
-                                                
-                                                // Since UI can only show one checkbox, we'll control the first shift's data.
-                                                // This is a limitation of the current table layout. A more complex UI would be needed for per-shift task editing on the same day.
                                                 const primaryShift = shiftsForDay[0];
                                                 const fieldIndex = fields.findIndex(f => f.id === primaryShift.id);
 
@@ -362,7 +355,6 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                                         <TableCell className="font-medium">Provider Signature</TableCell>
                                          {daysOfWeek.map((_, dayIndex) => {
                                             const shiftsForDay = shiftsByDay[dayIndex];
-                                            // Similar to checkboxes, we'll display signatures from the first shift if multiple exist.
                                             const primaryShift = shiftsForDay?.[0];
                                             if (!primaryShift) {
                                                 return <TableCell key={dayIndex} />;

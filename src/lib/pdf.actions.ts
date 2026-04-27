@@ -29,7 +29,8 @@ import { generateCaregiverTelephonyInstructionsPdf as generateCaregiverTelephony
 import { generateEmergencyProcedurePdf as generateEmergencyProcedurePdfInternal } from './pdf-generators/emergency-procedure';
 import { generateVaWeeklyReportPdf as generateVaWeeklyReportPdfInternal } from './pdf-generators/va-weekly-report';
 import { serverDb } from '@/firebase/server-init';
-import { parse, isWithinInterval } from 'date-fns';
+import { isWithinInterval, endOfWeek, parseISO, format } from 'date-fns';
+import { fromZonedTime } from 'date-fns-tz';
 
 export async function generateHcs501Pdf(formData: any) { return generateHcs501PdfInternal(formData); }
 export async function generateEmergencyContactPdf(formData: any) { return generateEmergencyContactPdfInternal(formData); }
@@ -76,10 +77,10 @@ export async function generateAllstarWeeklyReportPdf(data: any) {
 
 export async function generateVaWeeklyReportPdf(data: {
     groupId: string;
-    weekOf: string;
+    selectedWeek: string;
     shifts: { id: string; tasks: Record<string, boolean>, providerSignature: string }[];
 }) {
-    if (!data.groupId || !data.weekOf) {
+    if (!data.groupId || !data.selectedWeek) {
         return { error: "Missing required data for PDF generation." };
     }
     
@@ -96,19 +97,20 @@ export async function generateVaWeeklyReportPdf(data: {
         if(!templateDoc?.exists) {
             return { error: "VA Task template not found." };
         }
+        
+        const pacificTimeZone = 'America/Los_Angeles';
+        const weekStartInPT = fromZonedTime(`${data.selectedWeek}T00:00:00`, pacificTimeZone);
+        const weekEndInPT = endOfWeek(weekStartInPT, { weekStartsOn: 0 });
+        const filterInterval = { start: weekStartInPT, end: weekEndInPT };
 
         const allClientShiftsQuery = serverDb.collection('va_teletrack_shifts').where('clientName', '==', groupData.clientName);
         const shiftsSnapshot = await allClientShiftsQuery.get();
         const allServerShifts = shiftsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        const [startStr, endStr] = data.weekOf.split(' - ');
-        const weekStart = parse(startStr, 'MM/dd/yy', new Date());
-        const weekEnd = parse(endStr, 'MM/dd/yy', new Date());
-
         const serverShiftsForReport = allServerShifts.filter(shift => {
             if (!shift.date?.toDate) return false;
-            const shiftDate = shift.date.toDate();
-            return isWithinInterval(shiftDate, { start: weekStart, end: weekEnd });
+            const shiftDate = shift.date.toDate(); // This is a UTC date object
+            return isWithinInterval(shiftDate, filterInterval);
         });
         
         const clientShiftUpdates = new Map(data.shifts.map((s: any) => [s.id, { tasks: s.tasks, providerSignature: s.providerSignature }]));
@@ -127,7 +129,7 @@ export async function generateVaWeeklyReportPdf(data: {
         });
         
         const payload = {
-            weekOf: data.weekOf,
+            selectedWeek: data.selectedWeek,
             shifts: mergedAndSanitizedShifts,
             groupData: groupData,
             clientData: clientDoc?.exists ? clientDoc.data() : {},
