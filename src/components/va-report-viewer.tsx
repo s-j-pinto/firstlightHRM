@@ -8,7 +8,8 @@ import { z } from 'zod';
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, orderBy, doc } from 'firebase/firestore';
 import type { VATaskTemplate, VAMedicalRecord, Client } from '@/lib/types';
-import { startOfWeek, endOfWeek, format, subWeeks, parse, isValid, isDate, parseISO, addDays, isWithinInterval } from 'date-fns';
+import { startOfWeek, endOfWeek, format, subWeeks, parse, isValid, isDate, parseISO, addDays, isWithinInterval, getDay } from 'date-fns';
+import { format as formatInTimeZone } from 'date-fns-tz';
 
 import { AllstarRouteSheetForm } from './allstar-route-sheet-form';
 import { Button } from './ui/button';
@@ -117,10 +118,16 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
     }, [weeklyShifts, reset]);
 
     const shiftsByDay = React.useMemo(() => {
+        const pacificTimeZone = 'America/Los_Angeles';
         const shiftsMap: { [key: number]: VAMedicalRecord[] } = {};
+        
         weeklyShifts.forEach(shift => {
             if (!shift.date?.toDate) return;
-            const dayIndex = shift.date.toDate().getDay(); // 0 = Sunday
+            const shiftUtcDate = shift.date.toDate();
+            // 'i' format returns day of week 1 (Mon) to 7 (Sun). We use % 7 to map Sunday to 0.
+            const dayIndexString = formatInTimeZone(shiftUtcDate, 'i', { timeZone: pacificTimeZone });
+            const dayIndex = Number(dayIndexString) % 7;
+
             if (!shiftsMap[dayIndex]) {
                 shiftsMap[dayIndex] = [];
             }
@@ -198,7 +205,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
         const shiftsToInclude = weeklyShifts.map(s => {
             const formShift = form.getValues().shifts.find(fs => fs.id === s.id);
             return {
-                ...s,
+                id: s.id,
                 tasks: formShift?.tasks || {},
                 providerSignature: formShift?.providerSignature || ''
             };
@@ -300,7 +307,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                                             return (
                                                 <TableCell key={`${day}-times`} className="text-center text-xs p-1 align-top bg-muted/50">
                                                     {timeText ? (
-                                                        <div className="whitespace-nowrap">{timeText}</div>
+                                                        <div className="whitespace-pre-wrap">{timeText}</div>
                                                     ) : (
                                                         <span className="text-muted-foreground">-</span>
                                                     )}
