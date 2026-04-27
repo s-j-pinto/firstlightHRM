@@ -6,7 +6,7 @@ import { getStorage } from 'firebase-admin/storage';
 import { serverDb, serverApp } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
 import { isValid, subWeeks, getDay, addDays, set as setDate } from 'date-fns';
-import { toDate as toDateTz, formatInTimeZone, zonedTimeToUtc } from 'date-fns-tz';
+import { toDate as toDateTz, formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 
 // Helper to parse the inconsistent client name string
 function parseClientName(fullName: string): string {
@@ -36,12 +36,12 @@ function parseTeletrackDate(dateStr: string, timeZone: string): Date | null {
     }
 
     const [, month, day, year] = dateMatch;
-    // Manually construct YYYY-MM-DD string to avoid timezone issues with `parse`
-    const isoLikeString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    // Manually construct YYYY-MM-DD string to avoid locale parsing issues
+    const isoLikeString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T00:00:00`;
     
-    // zonedTimeToUtc correctly interprets the string as a date at midnight in the specified timezone
-    // and returns the corresponding UTC Date object for storage.
-    const date = zonedTimeToUtc(isoLikeString, timeZone);
+    // fromZonedTime interprets the string as being in the specified timezone and returns the correct UTC instant.
+    const date = fromZonedTime(isoLikeString, timeZone);
+    
     if (isValid(date)) {
         return date;
     }
