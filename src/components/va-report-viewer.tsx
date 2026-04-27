@@ -89,7 +89,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
     const { data: allShifts, isLoading: shiftsLoading } = useCollection<VAMedicalRecord>(shiftsQuery);
     
     const form = useForm<ReportFormData>({ resolver: zodResolver(reportSchema), defaultValues: { shifts: [] } });
-    const { control, handleSubmit, reset } = form;
+    const { control, handleSubmit, reset, getValues } = form;
     
     const { fields } = useFieldArray({ control, name: "shifts", keyName: "key" });
     
@@ -118,15 +118,19 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
 
     const shiftsByDay = React.useMemo(() => {
         const pacificTimeZone = 'America/Los_Angeles';
+        const dayMap: { [key: number]: number } = { 0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6 }; // Sunday is 0
         const shiftsMap: { [key: number]: VAMedicalRecord[] } = {};
         
         weeklyShifts.forEach(shift => {
-            if (!shift.date?.toDate) return;
-            const shiftDateUTC = shift.date.toDate();
-
-            // Get day of week in Pacific Time. 'i' gives ISO day (1=Mon, 7=Sun)
-            const dayOfWeekString = formatInTimeZone(shiftDateUTC, 'i', { timeZone: pacificTimeZone });
-            const dayIndex = Number(dayOfWeekString) % 7; // Convert to JS standard (0=Sun, 6=Sat)
+            if (!shift.day || dayMap[shift.day.toLowerCase() as keyof typeof dayMap] === undefined) {
+                 const shiftDateUTC = shift.date?.toDate ? shift.date.toDate() : new Date();
+                 const dayIndexString = formatInTimeZone(shiftDateUTC, 'i', { timeZone: pacificTimeZone });
+                 const dayIndex = Number(dayIndexString) % 7; 
+                 if (!shiftsMap[dayIndex]) shiftsMap[dayIndex] = [];
+                 shiftsMap[dayIndex].push(shift);
+                 return;
+            };
+            const dayIndex = dayMap[shift.day.toLowerCase() as keyof typeof dayMap];
 
             if (!shiftsMap[dayIndex]) {
                 shiftsMap[dayIndex] = [];
@@ -203,19 +207,12 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
             return;
         }
     
-        const shiftsToInclude = weeklyShifts.map(s => {
-            const formShift = form.getValues().shifts.find(fs => fs.id === s.id);
-            return {
-                ...s,
-                tasks: formShift?.tasks || {},
-                providerSignature: formShift?.providerSignature || ''
-            };
-        });
+        const formValues = getValues();
         
         const payload = {
             groupId,
-            selectedWeek, // Pass the 'yyyy-MM-dd' string
-            shifts: shiftsToInclude,
+            selectedWeek,
+            shifts: formValues.shifts,
         };
     
         startPdfGeneration(async () => {
@@ -268,7 +265,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                                             const dayDate = addDays(weekStartInPT, dayIndex);
                                             return (
                                                 <TableHead key={dayIndex} className="text-center min-w-[140px]">
-                                                    {formatInTimeZone(dayDate, 'EEE', { timeZone: 'America/Los_Angeles' })}<br/>{formatInTimeZone(dayDate, 'MM/dd/yy', { timeZone: 'America/Los_Angeles' })}
+                                                    {formatInTimeZone(dayDate, 'EEE', {timeZone: 'America/Los_Angeles'})}<br/>{formatInTimeZone(dayDate, 'MM/dd/yy', {timeZone: 'America/Los_Angeles'})}
                                                 </TableHead>
                                             );
                                         })}
