@@ -86,6 +86,7 @@ const hiringStatuses: CandidateStatus[] = [
 ];
 
 const searchSchema = z.object({
+    candidateName: z.string().optional(),
     skills: z.array(z.string()),
     hiringStatus: z.string(),
     skillMatching: z.enum(['any', 'all']),
@@ -246,7 +247,7 @@ const safeToDateForStatus = (value: any): Date | undefined => {
 export default function AdvancedSearchClient() {
     const form = useForm<FormData>({
         resolver: zodResolver(searchSchema),
-        defaultValues: { skills: [], hiringStatus: 'any', skillMatching: 'any', shiftAvailability: 'any', dateFrom: '', dateTo: '' }
+        defaultValues: { candidateName: "", skills: [], hiringStatus: 'any', skillMatching: 'any', shiftAvailability: 'any', dateFrom: '', dateTo: '' }
     });
     const { handleSubmit, control, reset } = form;
     const [filteredResults, setFilteredResults] = useState<EnrichedCandidate[]>([]);
@@ -386,6 +387,13 @@ export default function AdvancedSearchClient() {
         startSearchTransition(() => {
             let results = [...candidates];
             
+            if (data.candidateName && data.candidateName.trim() !== '') {
+                const lowercasedTerm = data.candidateName.toLowerCase();
+                results = results.filter(candidate => 
+                    candidate.fullName.toLowerCase().includes(lowercasedTerm)
+                );
+            }
+
             // Filter by skills
             if (data.skills.length > 0) {
                 if (data.skillMatching === 'all') {
@@ -438,15 +446,15 @@ export default function AdvancedSearchClient() {
     
     useEffect(() => {
         if (candidates.length > 0 && !hasSearched) {
-            onSubmit({ skills: [], hiringStatus: 'any', skillMatching: 'any', shiftAvailability: 'any', dateFrom: '', dateTo: '' });
+            onSubmit({ candidateName: "", skills: [], hiringStatus: 'any', skillMatching: 'any', shiftAvailability: 'any', dateFrom: '', dateTo: '' });
         }
     }, [candidates, hasSearched, onSubmit]);
     
     const handleClearFilters = () => {
-        reset({ skills: [], hiringStatus: 'any', skillMatching: 'any', shiftAvailability: 'any', dateFrom: '', dateTo: '' });
+        reset({ candidateName: "", skills: [], hiringStatus: 'any', skillMatching: 'any', shiftAvailability: 'any', dateFrom: '', dateTo: '' });
         setFilteredResults([]);
         setHasSearched(false);
-        onSubmit({ skills: [], hiringStatus: 'any', skillMatching: 'any', shiftAvailability: 'any', dateFrom: '', dateTo: '' });
+        onSubmit({ candidateName: "", skills: [], hiringStatus: 'any', skillMatching: 'any', shiftAvailability: 'any', dateFrom: '', dateTo: '' });
     }
 
     const sortedResults = useMemo(() => {
@@ -600,6 +608,16 @@ export default function AdvancedSearchClient() {
                         <div className="flex flex-wrap items-center justify-between gap-4">
                            <CardTitle className="flex items-center gap-2 flex-shrink-0"><SlidersHorizontal /> Query Builder</CardTitle>
                            <div className="flex flex-wrap items-end gap-4 flex-grow">
+                               <div className="space-y-2 flex-grow min-w-[180px]">
+                                    <Label>Candidate Name</Label>
+                                    <Controller
+                                        name="candidateName"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <Input placeholder="Search by name..." {...field} />
+                                        )}
+                                    />
+                                </div>
                                 <div className="space-y-2 flex-grow min-w-[180px]">
                                     <Label>Hiring Status</Label>
                                     <Controller
@@ -872,4 +890,3 @@ export default function AdvancedSearchClient() {
     );
 }
 
-    
