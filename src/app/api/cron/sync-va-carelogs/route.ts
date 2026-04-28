@@ -1,42 +1,22 @@
 
+
 'use server';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getStorage } from 'firebase-admin/storage';
 import { serverDb, serverApp } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
-import { startOfWeek, subWeeks, endOfWeek, parse } from 'date-fns';
-import { format as formatInTimeZone, fromZonedTime } from 'date-fns-tz';
+import { startOfWeek, subWeeks, endOfWeek, parse, isValid } from 'date-fns';
+import { format as formatInTimeZone, zonedTimeToUtc } from 'date-fns-tz';
 
-// Helper to parse the inconsistent client name string
-function parseClientName(fullName: string): string {
-    if (!fullName) return "Unknown Client";
-    // Find the first parenthesis that is likely part of a phone number, which is preceded by a space.
-    const separatorIndex = fullName.search(/\s+\(\d/);
-    if (separatorIndex > 0) {
-        // Return the substring before this pattern
-        return fullName.substring(0, separatorIndex).trim();
-    }
-    // Fallback for cases where the pattern isn't found, e.g., no phone number
-    const fallbackIndex = fullName.indexOf('(');
-    if (fallbackIndex > 0) {
-       return fullName.substring(0, fallbackIndex).replace(/,\s*$/, '').trim();
-    }
-    return fullName.trim();
-}
+const pacificTimeZone = 'America/Los_Angeles';
 
-/**
- * Parses a date string like "Sun 5/3/2026" and correctly interprets it as a date
- * in the 'America/Los_Angeles' timezone, returning a UTC Date object.
- * @param dateStr The date string from the Teletrack JSON.
- * @returns A Date object representing the start of that day in UTC, or null.
- */
+// This function now explicitly uses a timezone when parsing the date.
 function parseTeletrackDate(dateStr: string, logMessages: string[]): Date | null {
     if (!dateStr || typeof dateStr !== 'string') {
         logMessages.push(`[WARN] Invalid date input provided: ${dateStr}`);
         return null;
     }
-    const pacificTimeZone = 'America/Los_Angeles';
 
     // Matches dates like "Sun 5/3/2026" or "5/3/2026"
     const dateMatch = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
@@ -46,14 +26,12 @@ function parseTeletrackDate(dateStr: string, logMessages: string[]): Date | null
     }
 
     const [, month, day, year] = dateMatch;
-    // Construct a standard, unambiguous date string
-    const localDateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const localDateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')} 00:00:00`;
     
     try {
-        // This correctly creates a Date object representing midnight in the specified timezone
-        const zonedDate = fromZonedTime(localDateString, pacificTimeZone);
-        logMessages.push(`[DEBUG] Parsed "${dateStr}" as Pacific Time. Resulting UTC timestamp: ${zonedDate.toISOString()}`);
-        return zonedDate;
+        const utcDate = zonedTimeToUtc(localDateString, pacificTimeZone);
+        logMessages.push(`[DEBUG] Parsed "${dateStr}" as zoned time. Resulting UTC timestamp: ${utcDate.toISOString()}`);
+        return utcDate;
     } catch (e: any) {
         logMessages.push(`[ERROR] Error parsing date string "${localDateString}" for timezone "${pacificTimeZone}": ${e.message}`);
         return null;
@@ -61,8 +39,10 @@ function parseTeletrackDate(dateStr: string, logMessages: string[]): Date | null
 }
 
 
-async function getExistingShiftsMap(clientName: string, weekStart: Date, weekEnd: Date): Promise<Set<string>> {
+async function getExistingShiftsMap(clientName: string, weekStart: Date, weekEnd: Date, logMessages: string[]): Promise<Set<string>> {
     const existingShifts = new Set<string>();
+    logMessages.push(`[DEBUG] Checking for existing shifts for '${clientName}' between ${weekStart.toISOString()} and ${weekEnd.toISOString()}`);
+
     const shiftsSnap = await serverDb.collection('va_teletrack_shifts')
         .where('clientName', '==', clientName)
         .where('date', '>=', weekStart)
@@ -72,8 +52,7 @@ async function getExistingShiftsMap(clientName: string, weekStart: Date, weekEnd
     shiftsSnap.forEach(doc => {
         const shift = doc.data();
         const shiftDate = shift.date.toDate();
-        // Convert to YYYY-MM-DD in Pacific Time for a consistent key
-        const key = formatInTimeZone(shiftDate, 'yyyy-MM-dd', { timeZone: 'America/Los_Angeles' });
+        const key = formatInTimeZone(shiftDate, 'yyyy-MM-dd', { timeZone: pacificTimeZone });
         existingShifts.add(key);
     });
     return existingShifts;
@@ -121,11 +100,11 @@ export async function GET(request: NextRequest) {
       }
     });
     logMessages.push(`Created a map of ${caregiverNameToIdMap.size} active caregivers.`);
-
+    
     const now = new Date();
-    // Corrected logic: Go back 4 weeks from the start of the current week.
-    const startOfCurrentWeek = startOfWeek(now, { weekStartsOn: 0 });
-    const weekStart = subWeeks(startOfCurrentWeek, 4);
+    // The check spans from the end of the current week back exactly 4 weeks.
+    const weekEnd = endOfWeek(now, { weekStartsOn: 0 });
+    const weekStart = subWeeks(weekEnd, 4);
 
     logMessages.push("Checking for and deleting records older than 5 weeks...");
     const cutoffDate = endOfWeek(subWeeks(now, 5), { weekStartsOn: 0 });
@@ -158,11 +137,11 @@ export async function GET(request: NextRequest) {
         continue;
       }
       
-      const parsedClientName = parseClientName(client.clientName);
-      logMessages.push(`\n--- Processing client: ${parsedClientName} ---`);
+      const clientName = client.clientName.trim();
+      logMessages.push(`\n--- Processing client: ${clientName} ---`);
       
-      const existingShifts = await getExistingShiftsMap(parsedClientName, weekStart, now);
-      logMessages.push(`[${parsedClientName}] Found ${existingShifts.size} existing shift keys in DB for the current and past 4 weeks: [${[...existingShifts].join(', ')}]`);
+      const existingShifts = await getExistingShiftsMap(clientName, weekStart, weekEnd, logMessages);
+      logMessages.push(`[${clientName}] Found ${existingShifts.size} existing shift keys in DB for the check window: [${[...existingShifts].join(', ')}]`);
 
       for (const schedule of client.schedules) {
         const scheduleDate = parseTeletrackDate(schedule.date, logMessages);
@@ -171,13 +150,13 @@ export async function GET(request: NextRequest) {
             continue;
         }
         
-        const dateKey = formatInTimeZone(scheduleDate, 'yyyy-MM-dd', { timeZone: 'America/Los_Angeles' });
+        const dateKey = formatInTimeZone(scheduleDate, 'yyyy-MM-dd', { timeZone: pacificTimeZone });
         if (existingShifts.has(dateKey)) {
             shiftsSkipped++;
-            logMessages.push(` -> [${parsedClientName}] Processing date ${schedule.date}: Key '${dateKey}' - MATCH FOUND. Skipping duplicate shift.`);
+            logMessages.push(` -> [${clientName}] Processing date ${schedule.date}: Key '${dateKey}' - MATCH FOUND. Skipping duplicate shift.`);
             continue;
         } else {
-             logMessages.push(` -> [${parsedClientName}] Processing date ${schedule.date}: Key '${dateKey}' - NO MATCH. Adding new shift.`);
+             logMessages.push(` -> [${clientName}] Processing date ${schedule.date}: Key '${dateKey}' - NO MATCH. Adding new shift.`);
         }
 
         const jsonCaregiverName = `${schedule.caregiver.firstName} ${schedule.caregiver.lastName}`;
@@ -189,7 +168,7 @@ export async function GET(request: NextRequest) {
 
         const shiftDoc = {
           clientId: client.clientId,
-          clientName: parsedClientName,
+          clientName: clientName,
           caregiverId: caregiverId,
           date: Timestamp.fromDate(scheduleDate),
           day: schedule.day,
@@ -247,3 +226,4 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
+
