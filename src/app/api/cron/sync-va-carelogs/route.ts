@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -7,7 +6,7 @@ import { getStorage } from 'firebase-admin/storage';
 import { serverDb, serverApp } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
 import { startOfWeek, subWeeks, endOfWeek, parse, isValid } from 'date-fns';
-import { format as formatInTimeZone, zonedTimeToUtc } from 'date-fns-tz';
+import { format as formatInTimeZone, toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 const pacificTimeZone = 'America/Los_Angeles';
 
@@ -26,12 +25,12 @@ function parseTeletrackDate(dateStr: string, logMessages: string[]): Date | null
     }
 
     const [, month, day, year] = dateMatch;
-    const localDateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')} 00:00:00`;
+    const localDateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     
     try {
-        const utcDate = zonedTimeToUtc(localDateString, pacificTimeZone);
-        logMessages.push(`[DEBUG] Parsed "${dateStr}" as zoned time. Resulting UTC timestamp: ${utcDate.toISOString()}`);
-        return utcDate;
+        const zonedDate = fromZonedTime(localDateString, pacificTimeZone);
+        logMessages.push(`[DEBUG] Parsed "${dateStr}" as zoned time. Resulting UTC timestamp: ${zonedDate.toISOString()}`);
+        return zonedDate;
     } catch (e: any) {
         logMessages.push(`[ERROR] Error parsing date string "${localDateString}" for timezone "${pacificTimeZone}": ${e.message}`);
         return null;
@@ -102,9 +101,12 @@ export async function GET(request: NextRequest) {
     logMessages.push(`Created a map of ${caregiverNameToIdMap.size} active caregivers.`);
     
     const now = new Date();
-    // The check spans from the end of the current week back exactly 4 weeks.
-    const weekEnd = endOfWeek(now, { weekStartsOn: 0 });
-    const weekStart = subWeeks(weekEnd, 4);
+    // The check spans from the end of the current week back exactly 2 weeks.
+    const weekEnd = endOfWeek(now, { weekStartsOn: 0 }); // Sunday 23:59:59.999
+    const weekStart = subWeeks(weekEnd, 2);
+
+    logMessages.push(`[DEBUG] Checking for existing shifts in date range: ${weekStart.toISOString()} to ${weekEnd.toISOString()}`);
+    
 
     logMessages.push("Checking for and deleting records older than 5 weeks...");
     const cutoffDate = endOfWeek(subWeeks(now, 5), { weekStartsOn: 0 });
@@ -226,4 +228,3 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
-
