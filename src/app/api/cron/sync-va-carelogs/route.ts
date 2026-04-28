@@ -6,7 +6,7 @@ import { getStorage } from 'firebase-admin/storage';
 import { serverDb, serverApp } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
 import { startOfWeek, subWeeks, endOfWeek } from 'date-fns';
-import { toZonedTime, fromZonedTime, formatInTimeZone } from 'date-fns-tz';
+import { formatInTimeZone, zonedTimeToUtc } from 'date-fns-tz';
 
 // Helper to parse the inconsistent client name string
 function parseClientName(fullName: string): string {
@@ -45,23 +45,20 @@ function parseTeletrackDate(dateStr: string): Date | null {
     }
 
     const [, month, day, year] = dateMatch;
-    // IMPORTANT FIX: Using "YYYY-MM-DD HH:mm:ss" format, which is less ambiguous for time-zone-aware parsing
-    // than the "T" separator, to represent midnight on the given day.
-    const localDateTimeString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')} 00:00:00`;
+    // A string representing the local "wall clock" time. The 'T' is important for parsing.
+    const localDateTimeString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T00:00:00`;
 
     try {
-        // fromZonedTime correctly interprets the localDateTimeString as a "wall clock" time
-        // within the specified timezone and returns the corresponding UTC Date object.
-        const utcDate = fromZonedTime(localDateTimeString, pacificTimeZone);
-        
+        // This correctly tells the library: "Here is a wall clock time in LA, give me the corresponding UTC Date object."
+        const utcDate = zonedTimeToUtc(localDateTimeString, pacificTimeZone);
         console.log(`[SYNC-VA-CARELOGS] Parsed "${dateStr}" as Pacific Time. Resulting UTC timestamp: ${utcDate.toISOString()}`);
-        
         return utcDate;
     } catch (e) {
         console.error(`[SYNC-VA-CARELOGS] Error parsing date string "${localDateTimeString}" for timezone "${pacificTimeZone}"`, e);
         return null;
     }
 }
+
 
 async function getExistingShiftsMap(clientName: string, weekStart: Date, weekEnd: Date): Promise<Set<string>> {
     const existingShifts = new Set<string>();
@@ -75,7 +72,7 @@ async function getExistingShiftsMap(clientName: string, weekStart: Date, weekEnd
         const shift = doc.data();
         const shiftDate = shift.date.toDate();
         // Convert to YYYY-MM-DD in Pacific Time for a consistent key
-        const key = formatInTimeZone(shiftDate, 'America/Los_Angeles', 'yyyy-MM-dd');
+        const key = formatInTimeZone(shiftDate, 'yyyy-MM-dd', { timeZone: 'America/Los_Angeles' });
         existingShifts.add(key);
     });
     return existingShifts;
@@ -161,7 +158,7 @@ export async function GET(request: NextRequest) {
             continue;
         }
         
-        const dateKey = formatInTimeZone(scheduleDate, 'America/Los_Angeles', 'yyyy-MM-dd');
+        const dateKey = formatInTimeZone(scheduleDate, 'yyyy-MM-dd', { timeZone: 'America/Los_Angeles' });
         if (existingShifts.has(dateKey)) {
             shiftsSkipped++;
             continue;
