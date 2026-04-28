@@ -6,7 +6,7 @@ import { getStorage } from 'firebase-admin/storage';
 import { serverDb, serverApp } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
 import { startOfWeek, subWeeks, endOfWeek, parse } from 'date-fns';
-import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
+import { format as formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 
 // Helper to parse the inconsistent client name string
 function parseClientName(fullName: string): string {
@@ -50,6 +50,7 @@ function parseTeletrackDate(dateStr: string, logMessages: string[]): Date | null
     const localDateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     
     try {
+        // This correctly creates a Date object representing midnight in the specified timezone
         const zonedDate = fromZonedTime(localDateString, pacificTimeZone);
         logMessages.push(`[DEBUG] Parsed "${dateStr}" as Pacific Time. Resulting UTC timestamp: ${zonedDate.toISOString()}`);
         return zonedDate;
@@ -72,7 +73,7 @@ async function getExistingShiftsMap(clientName: string, weekStart: Date, weekEnd
         const shift = doc.data();
         const shiftDate = shift.date.toDate();
         // Convert to YYYY-MM-DD in Pacific Time for a consistent key
-        const key = formatInTimeZone(shiftDate, 'America/Los_Angeles', 'yyyy-MM-dd');
+        const key = formatInTimeZone(shiftDate, 'yyyy-MM-dd', { timeZone: 'America/Los_Angeles' });
         existingShifts.add(key);
     });
     return existingShifts;
@@ -122,7 +123,9 @@ export async function GET(request: NextRequest) {
     logMessages.push(`Created a map of ${caregiverNameToIdMap.size} active caregivers.`);
 
     const now = new Date();
-    const weekStart = startOfWeek(subWeeks(now, 4), { weekStartsOn: 0 }); 
+    // Corrected logic: Go back 4 weeks from the start of the current week.
+    const startOfCurrentWeek = startOfWeek(now, { weekStartsOn: 0 });
+    const weekStart = subWeeks(startOfCurrentWeek, 4);
 
     logMessages.push("Checking for and deleting records older than 5 weeks...");
     const cutoffDate = endOfWeek(subWeeks(now, 5), { weekStartsOn: 0 });
@@ -159,7 +162,7 @@ export async function GET(request: NextRequest) {
       logMessages.push(`\n--- Processing client: ${parsedClientName} ---`);
       
       const existingShifts = await getExistingShiftsMap(parsedClientName, weekStart, now);
-      logMessages.push(`[${parsedClientName}] Found ${existingShifts.size} existing shift keys in DB for the last 4 weeks: [${[...existingShifts].join(', ')}]`);
+      logMessages.push(`[${parsedClientName}] Found ${existingShifts.size} existing shift keys in DB for the current and past 4 weeks: [${[...existingShifts].join(', ')}]`);
 
       for (const schedule of client.schedules) {
         const scheduleDate = parseTeletrackDate(schedule.date, logMessages);
@@ -168,7 +171,7 @@ export async function GET(request: NextRequest) {
             continue;
         }
         
-        const dateKey = formatInTimeZone(scheduleDate, 'America/Los_Angeles', 'yyyy-MM-dd');
+        const dateKey = formatInTimeZone(scheduleDate, 'yyyy-MM-dd', { timeZone: 'America/Los_Angeles' });
         if (existingShifts.has(dateKey)) {
             shiftsSkipped++;
             logMessages.push(` -> [${parsedClientName}] Processing date ${schedule.date}: Key '${dateKey}' - MATCH FOUND. Skipping duplicate shift.`);
