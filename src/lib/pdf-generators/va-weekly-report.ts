@@ -112,9 +112,15 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         
         drawInfoBox(page, clientInfoBoxX, y - clientInfoBoxHeight, clientInfoBoxWidth, clientInfoBoxHeight, clientInfoData, font, boldFont);
         
-        drawText(page, "Agency Name: FirstLight Home Care of Rancho Cucamonga", { x: leftMargin, y: y, font, size: 9 });
+        const firstShift = data.shifts.length > 0
+            ? [...data.shifts].sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())[0]
+            : null;
+        
+        const programName = firstShift ? firstShift.ratePlan : "Home Maker/HHA Program";
+
+        drawText(page, `Agency Name: FirstLight Home Care of Rancho Cucamonga`, { x: leftMargin, y: y, font, size: 9 });
         y -= 20;
-        drawText(page, "Program Name: Home Maker/HHA Program", { x: leftMargin, y: y, font, size: 9 });
+        drawText(page, `Program Name: ${programName}`, { x: leftMargin, y: y, font, size: 9 });
         
         y -= 20;
         const pacificTimeZone = 'America/Los_Angeles';
@@ -162,12 +168,10 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         });
         y -= topTableRowHeight;
 
-        // Row 2: Caregiver Name
-        currentY = y - topTableRowHeight / 2 - 5;
-        drawText(page, "Caregiver Name", { x: leftMargin + 5, y: currentY, font: boldFont, size: 8 });
-        
+        // Row 2: Caregiver Name (top-aligned)
+        drawText(page, "Caregiver Name", { x: leftMargin + 5, y: y - 8, font: boldFont, size: 8 }); // Align with top
         for (let i = 0; i < 7; i++) {
-            const shifts = shiftsByDay[i];
+             const shifts = shiftsByDay[i];
             if (shifts && shifts.length > 0) {
                 const dayX = leftMargin + firstColWidth + (i * ((contentWidth - firstColWidth) / 7));
                 const caregiverNames = shifts.map(shift => {
@@ -187,20 +191,22 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
                     return `${firstName}\n${lastName}`;
                 }).join('\n\n');
                 
-                drawText(page, caregiverNames, { x: dayX + 5, y: currentY + 12, font, size: 8, lineHeight: 9 });
+                drawText(page, caregiverNames, { x: dayX + 5, y: y - 8, font, size: 8, lineHeight: 9 }); // Start drawing from top
             }
         }
         y -= topTableRowHeight;
 
-        // Row 3: Shift Time
-        currentY = y - topTableRowHeight / 2 - 2;
-        drawText(page, "Shift Time", { x: leftMargin + 5, y: currentY, font: boldFont, size: 8 });
+        // Row 3: Shift Time (bottom-aligned)
+        const shiftTimeRowBottomY = y - topTableRowHeight;
+        drawText(page, "Shift Time", { x: leftMargin + 5, y: shiftTimeRowBottomY + 8, font: boldFont, size: 8 }); // Align label to bottom
         for (let i = 0; i < 7; i++) {
             const shifts = shiftsByDay[i];
             if (shifts && shifts.length > 0) {
                 const dayX = leftMargin + firstColWidth + (i * ((contentWidth - firstColWidth) / 7));
                 const timeText = shifts.map(s => formatShiftTime(s.arrivalTime, s.departureTime)).join('\n\n');
-                drawText(page, timeText, { x: dayX + 5, y: currentY + 12, font, size: 8, lineHeight: 9 });
+                const numLines = (timeText.match(/\n/g) || []).length + 1;
+                const textHeight = numLines * 9; // lineHeight is 9
+                drawText(page, timeText, { x: dayX + 5, y: shiftTimeRowBottomY + textHeight - 2, font, size: 8, lineHeight: 9 });
             }
         }
         y -= topTableRowHeight;
@@ -223,13 +229,12 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         const rowHeight = 18 * 1.2;
         taskLabels.forEach((task: string) => {
             const taskLabel = task.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase());
-            const textHeight = boldFont.heightAtSize(8);
-            const textY = y - (rowHeight / 2) + (textHeight / 2);
+            const textY = y - (rowHeight / 2) + 3; // Center align text
             drawText(page, taskLabel, { x: leftMargin + 5, y: textY, font: boldFont, size: 8 });
 
             for (let i = 0; i < 7; i++) {
                 const shiftsForDay = shiftsByDay[i];
-                const dayX = leftMargin + firstColWidth + (i * ((contentWidth - firstColWidth) / 7)) + (((contentWidth - firstColWidth) / 7) / 2) - 5;
+                const dayX = leftMargin + firstColWidth + (i * ((contentWidth - firstColWidth) / 7)) + (((contentWidth - firstColWidth) / 7) / 2) - 4; // Checkbox center
                 if (shiftsForDay && shiftsForDay.length > 0) {
                     const isTaskDone = shiftsForDay.some(s => s.tasks?.[task]);
                     drawCheckbox(page, !!isTaskDone, dayX, y - (rowHeight / 2));
@@ -238,14 +243,15 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
             y -= rowHeight;
         });
 
-        const providerSigTextHeight = boldFont.heightAtSize(8);
-        drawText(page, "Provider Signature", { x: leftMargin + 5, y: y - (rowHeight / 2) - (providerSigTextHeight / 2) + 4, font: boldFont, size: 8 });
+        const providerSigY = y - (rowHeight / 2) + 3; // Center align text
+        drawText(page, "Provider Signature", { x: leftMargin + 5, y: providerSigY, font: boldFont, size: 8 });
         for (let i = 0; i < 7; i++) {
             const shiftsForDay = shiftsByDay[i];
             if (shiftsForDay && shiftsForDay.length > 0) {
                 const dayX = leftMargin + firstColWidth + (i * ((contentWidth - firstColWidth) / 7));
                 const signatures = shiftsForDay.map(s => s.providerSignature || getInitials(s.caregiverName)).join(', ');
-                drawText(page, signatures, { x: dayX + 5, y: y - (rowHeight / 2) - (font.heightAtSize(10) / 2) + 4, font: cursiveFont, size: 10 });
+                const sigY = y - (rowHeight / 2) + 4;
+                drawText(page, signatures, { x: dayX + 5, y: sigY, font: cursiveFont, size: 10 });
             }
         }
         y -= rowHeight;
