@@ -5,8 +5,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getStorage } from 'firebase-admin/storage';
 import { serverDb, serverApp } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
-import { startOfWeek, subWeeks, endOfWeek } from 'date-fns';
-import { formatInTimeZone, zonedTimeToUtc } from 'date-fns-tz';
+import { startOfWeek, subWeeks, endOfWeek, parse } from 'date-fns';
+import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 
 // Helper to parse the inconsistent client name string
 function parseClientName(fullName: string): string {
@@ -38,23 +38,23 @@ function parseTeletrackDate(dateStr: string): Date | null {
     }
     const pacificTimeZone = 'America/Los_Angeles';
 
+    // Matches dates like "Sun 5/3/2026" or "5/3/2026"
     const dateMatch = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
     if (!dateMatch) {
-        console.warn(`[SYNC-VA-CARELOGS] Could not find a date pattern in "${dateStr}".`);
+        console.warn(`[SYNC-VA-CARELOGS] Could not find a valid date pattern in "${dateStr}".`);
         return null;
     }
 
     const [, month, day, year] = dateMatch;
-    // A string representing the local "wall clock" time. The 'T' is important for parsing.
-    const localDateTimeString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T00:00:00`;
-
+    const localDateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    
     try {
-        // This correctly tells the library: "Here is a wall clock time in LA, give me the corresponding UTC Date object."
-        const utcDate = zonedTimeToUtc(localDateTimeString, pacificTimeZone);
+        // This explicitly creates a Date object representing midnight in the specified timezone
+        const utcDate = fromZonedTime(`${localDateString} 00:00:00`, pacificTimeZone);
         console.log(`[SYNC-VA-CARELOGS] Parsed "${dateStr}" as Pacific Time. Resulting UTC timestamp: ${utcDate.toISOString()}`);
         return utcDate;
-    } catch (e) {
-        console.error(`[SYNC-VA-CARELOGS] Error parsing date string "${localDateTimeString}" for timezone "${pacificTimeZone}"`, e);
+    } catch (e: any) {
+        console.error(`[SYNC-VA-CARELOGS] Error parsing date string "${localDateString}" for timezone "${pacificTimeZone}"`, e);
         return null;
     }
 }
@@ -72,7 +72,7 @@ async function getExistingShiftsMap(clientName: string, weekStart: Date, weekEnd
         const shift = doc.data();
         const shiftDate = shift.date.toDate();
         // Convert to YYYY-MM-DD in Pacific Time for a consistent key
-        const key = formatInTimeZone(shiftDate, 'yyyy-MM-dd', { timeZone: 'America/Los_Angeles' });
+        const key = formatInTimeZone(shiftDate, 'America/Los_Angeles', 'yyyy-MM-dd');
         existingShifts.add(key);
     });
     return existingShifts;
@@ -158,7 +158,7 @@ export async function GET(request: NextRequest) {
             continue;
         }
         
-        const dateKey = formatInTimeZone(scheduleDate, 'yyyy-MM-dd', { timeZone: 'America/Los_Angeles' });
+        const dateKey = formatInTimeZone(scheduleDate, 'America/Los_Angeles', 'yyyy-MM-dd');
         if (existingShifts.has(dateKey)) {
             shiftsSkipped++;
             continue;
