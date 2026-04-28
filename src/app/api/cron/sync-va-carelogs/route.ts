@@ -31,9 +31,9 @@ function parseClientName(fullName: string): string {
  * @param dateStr The date string from the Teletrack JSON.
  * @returns A Date object representing the start of that day in UTC, or null.
  */
-function parseTeletrackDate(dateStr: string): Date | null {
+function parseTeletrackDate(dateStr: string, logMessages: string[]): Date | null {
     if (!dateStr || typeof dateStr !== 'string') {
-        console.warn(`[SYNC-VA-CARELOGS] Invalid date input provided: ${dateStr}`);
+        logMessages.push(`[WARN] Invalid date input provided: ${dateStr}`);
         return null;
     }
     const pacificTimeZone = 'America/Los_Angeles';
@@ -41,20 +41,20 @@ function parseTeletrackDate(dateStr: string): Date | null {
     // Matches dates like "Sun 5/3/2026" or "5/3/2026"
     const dateMatch = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
     if (!dateMatch) {
-        console.warn(`[SYNC-VA-CARELOGS] Could not find a valid date pattern in "${dateStr}".`);
+        logMessages.push(`[WARN] Could not find a valid date pattern in "${dateStr}".`);
         return null;
     }
 
     const [, month, day, year] = dateMatch;
+    // Construct a standard, unambiguous date string
     const localDateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     
     try {
-        // This explicitly creates a Date object representing midnight in the specified timezone
-        const utcDate = fromZonedTime(`${localDateString} 00:00:00`, pacificTimeZone);
-        console.log(`[SYNC-VA-CARELOGS] Parsed "${dateStr}" as Pacific Time. Resulting UTC timestamp: ${utcDate.toISOString()}`);
-        return utcDate;
+        const zonedDate = fromZonedTime(localDateString, pacificTimeZone);
+        logMessages.push(`[DEBUG] Parsed "${dateStr}" as Pacific Time. Resulting UTC timestamp: ${zonedDate.toISOString()}`);
+        return zonedDate;
     } catch (e: any) {
-        console.error(`[SYNC-VA-CARELOGS] Error parsing date string "${localDateString}" for timezone "${pacificTimeZone}"`, e);
+        logMessages.push(`[ERROR] Error parsing date string "${localDateString}" for timezone "${pacificTimeZone}": ${e.message}`);
         return null;
     }
 }
@@ -80,23 +80,30 @@ async function getExistingShiftsMap(clientName: string, weekStart: Date, weekEnd
 
 
 export async function GET(request: NextRequest) {
+  const logMessages: string[] = [`[SYNC-VA-CARELOGS] Job started at ${new Date().toISOString()}`];
+  
   const authHeader = request.headers.get('authorization');
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    logMessages.push('[ERROR] Unauthorized access attempt.');
+    // Even on auth error, we might want to save the log, but for now, we just return.
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
+    logMessages.push("Fetching VA CareLogs JSON from storage...");
     const bucket = getStorage(serverApp).bucket(process.env.GCLOUD_STORAGE_BUCKET || 'gs://firstlighthomecare-hrm.firebasestorage.app');
     const file = bucket.file('CareLogs/VA_CareLogs/TeleTrack-VA-CareLogs.json');
     const [contents] = await file.download();
     const jsonData = JSON.parse(contents.toString());
+    logMessages.push("Successfully fetched and parsed JSON.");
     
     if (!jsonData || !Array.isArray(jsonData.clients)) {
-        console.error("[SYNC-VA-CARELOGS] Parsed JSON does not contain a 'clients' array.");
-        return NextResponse.json({ success: false, error: "Invalid JSON structure in source file." }, { status: 500 });
+        throw new Error("Parsed JSON does not contain a 'clients' array.");
     }
     const clients = jsonData.clients;
+    logMessages.push(`Found ${clients.length} clients in the JSON file.`);
 
+    logMessages.push("Fetching active caregivers from Firestore...");
     const caregiversSnap = await serverDb.collection('caregivers_active').get();
     const caregiverNameToIdMap = new Map<string, string>();
     caregiversSnap.forEach(doc => {
@@ -112,13 +119,13 @@ export async function GET(request: NextRequest) {
         caregiverNameToIdMap.set(trimmedName, doc.id);
       }
     });
+    logMessages.push(`Created a map of ${caregiverNameToIdMap.size} active caregivers.`);
 
     const now = new Date();
-    // Use Sunday as the start of the week for calculations.
     const weekStart = startOfWeek(subWeeks(now, 4), { weekStartsOn: 0 }); 
 
-    // Delete records older than the cutoff
-    const cutoffDate = endOfWeek(subWeeks(now, 5), { weekStartsOn: 0 }); // End of Saturday 5 weeks ago
+    logMessages.push("Checking for and deleting records older than 5 weeks...");
+    const cutoffDate = endOfWeek(subWeeks(now, 5), { weekStartsOn: 0 });
     const shiftsToDeleteQuery = serverDb.collection('va_teletrack_shifts').where('date', '<=', cutoffDate);
     const shiftsToDeleteSnapshot = await shiftsToDeleteQuery.get();
     
@@ -136,7 +143,7 @@ export async function GET(request: NextRequest) {
     if (deleteOps > 0) {
         await deleteBatch.commit();
     }
-    console.log(`[SYNC-VA-CARELOGS] Deleted ${shiftsToDeleteSnapshot.size} old shift records.`);
+    logMessages.push(`Deleted ${shiftsToDeleteSnapshot.size} old shift records.`);
 
     let addBatch = serverDb.batch();
     let addOps = 0;
@@ -149,26 +156,32 @@ export async function GET(request: NextRequest) {
       }
       
       const parsedClientName = parseClientName(client.clientName);
+      logMessages.push(`\n--- Processing client: ${parsedClientName} ---`);
+      
       const existingShifts = await getExistingShiftsMap(parsedClientName, weekStart, now);
+      logMessages.push(`[${parsedClientName}] Found ${existingShifts.size} existing shift keys in DB for the last 4 weeks: [${[...existingShifts].join(', ')}]`);
 
       for (const schedule of client.schedules) {
-        const scheduleDate = parseTeletrackDate(schedule.date);
+        const scheduleDate = parseTeletrackDate(schedule.date, logMessages);
         if (!scheduleDate) {
-            console.warn(`[SYNC-VA-CARELOGS] Skipping schedule for client ${client.clientId} due to invalid date: ${schedule.date}`);
+            logMessages.push(`[WARN] Skipping schedule for client ${client.clientId} due to invalid date: ${schedule.date}`);
             continue;
         }
         
         const dateKey = formatInTimeZone(scheduleDate, 'America/Los_Angeles', 'yyyy-MM-dd');
         if (existingShifts.has(dateKey)) {
             shiftsSkipped++;
+            logMessages.push(` -> [${parsedClientName}] Processing date ${schedule.date}: Key '${dateKey}' - MATCH FOUND. Skipping duplicate shift.`);
             continue;
+        } else {
+             logMessages.push(` -> [${parsedClientName}] Processing date ${schedule.date}: Key '${dateKey}' - NO MATCH. Adding new shift.`);
         }
 
         const jsonCaregiverName = `${schedule.caregiver.firstName} ${schedule.caregiver.lastName}`;
         const caregiverId = caregiverNameToIdMap.get(jsonCaregiverName.toLowerCase()) || null;
 
         if (!caregiverId) {
-            console.warn(`[SYNC-VA-CARELOGS] Could not find matching caregiver ID for: "${jsonCaregiverName}"`);
+            logMessages.push(`[WARN] Could not find matching caregiver ID for: "${jsonCaregiverName}"`);
         }
 
         const shiftDoc = {
@@ -202,10 +215,32 @@ export async function GET(request: NextRequest) {
     }
     
     const message = `Sync complete. Added: ${shiftsAdded}, Skipped (Duplicates): ${shiftsSkipped}, Deleted (Old): ${shiftsToDeleteSnapshot.size}.`;
-    console.log(`[SYNC-VA-CARELOGS] ${message}`);
+    logMessages.push(`\n[SYNC-VA-CARELOGS] ${message}`);
+    
+    try {
+        const bucket = getStorage(serverApp).bucket(process.env.GCLOUD_STORAGE_BUCKET || 'gs://firstlighthomecare-hrm.firebasestorage.app');
+        const file = bucket.file('CareLogs/VA_CareLogs/run.log');
+        await file.save(logMessages.join('\n'));
+        console.log('[SYNC-VA-CARELOGS] Log file saved to storage.');
+    } catch (logError: any) {
+        console.error('[SYNC-VA-CARELOGS] FAILED TO SAVE LOG FILE:', logError);
+    }
+    
     return NextResponse.json({ success: true, message });
+
   } catch (error: any) {
+    logMessages.push(`\n[CRON-ERROR] Job failed unexpectedly: ${error.message}`);
     console.error('[CRON-ERROR] /api/cron/sync-va-carelogs:', error);
+    
+    try {
+        const bucket = getStorage(serverApp).bucket(process.env.GCLOUD_STORAGE_BUCKET || 'gs://firstlighthomecare-hrm.firebasestorage.app');
+        const file = bucket.file('CareLogs/VA_CareLogs/run.log');
+        await file.save(logMessages.join('\n'));
+        console.log('[SYNC-VA-CARELOGS] Error log file saved to storage.');
+    } catch (logError: any) {
+        console.error('[SYNC-VA-CARELOGS] FAILED TO SAVE ERROR LOG FILE:', logError);
+    }
+
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
