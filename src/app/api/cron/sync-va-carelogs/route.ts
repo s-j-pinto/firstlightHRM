@@ -5,7 +5,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getStorage } from 'firebase-admin/storage';
 import { serverDb, serverApp } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
-import { parse as parseDate, isValid } from 'date-fns';
+import { startOfWeek, subWeeks, endOfWeek } from 'date-fns';
+import { toZonedTime, fromZonedTime, formatInTimeZone } from 'date-fns-tz';
 
 // Helper to parse the inconsistent client name string
 function parseClientName(fullName: string): string {
@@ -24,29 +25,62 @@ function parseClientName(fullName: string): string {
     return fullName.trim();
 }
 
-// Helper to parse date strings like "Mon 4/20/2026"
+/**
+ * Parses a date string like "Sun 5/3/2026" and correctly interprets it as a date
+ * in the 'America/Los_Angeles' timezone, returning a UTC Date object.
+ * @param dateStr The date string from the Teletrack JSON.
+ * @returns A Date object representing the start of that day in UTC, or null.
+ */
 function parseTeletrackDate(dateStr: string): Date | null {
     if (!dateStr || typeof dateStr !== 'string') {
         console.warn(`[SYNC-VA-CARELOGS] Invalid date input provided: ${dateStr}`);
         return null;
     }
-    // Use a regex to find the date pattern, making it robust against spacing issues.
-    const dateMatch = dateStr.match(/\d{1,2}\/\d{1,2}\/\d{4}/);
+    const pacificTimeZone = 'America/Los_Angeles';
+
+    const dateMatch = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
     if (!dateMatch) {
         console.warn(`[SYNC-VA-CARELOGS] Could not find a date pattern in "${dateStr}".`);
         return null;
     }
 
-    const cleanDateStr = dateMatch[0];
-    const parsed = parseDate(cleanDateStr, 'M/d/yyyy', new Date());
+    const [, month, day, year] = dateMatch;
+    // IMPORTANT FIX: Using "YYYY-MM-DD HH:mm:ss" format, which is less ambiguous for time-zone-aware parsing
+    // than the "T" separator, to represent midnight on the given day.
+    const localDateTimeString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')} 00:00:00`;
 
-    if (isValid(parsed)) {
-        return parsed;
+    try {
+        // fromZonedTime correctly interprets the localDateTimeString as a "wall clock" time
+        // within the specified timezone and returns the corresponding UTC Date object.
+        const utcDate = fromZonedTime(localDateTimeString, pacificTimeZone);
+        
+        console.log(`[SYNC-VA-CARELOGS] Parsed "${dateStr}" as Pacific Time. Resulting UTC timestamp: ${utcDate.toISOString()}`);
+        
+        return utcDate;
+    } catch (e) {
+        console.error(`[SYNC-VA-CARELOGS] Error parsing date string "${localDateTimeString}" for timezone "${pacificTimeZone}"`, e);
+        return null;
     }
-    
-    console.warn(`[SYNC-VA-CARELOGS] Could not parse a valid date from "${dateStr}".`);
-    return null;
 }
+
+async function getExistingShiftsMap(clientName: string, weekStart: Date, weekEnd: Date): Promise<Set<string>> {
+    const existingShifts = new Set<string>();
+    const shiftsSnap = await serverDb.collection('va_teletrack_shifts')
+        .where('clientName', '==', clientName)
+        .where('date', '>=', weekStart)
+        .where('date', '<=', weekEnd)
+        .get();
+
+    shiftsSnap.forEach(doc => {
+        const shift = doc.data();
+        const shiftDate = shift.date.toDate();
+        // Convert to YYYY-MM-DD in Pacific Time for a consistent key
+        const key = formatInTimeZone(shiftDate, 'America/Los_Angeles', 'yyyy-MM-dd');
+        existingShifts.add(key);
+    });
+    return existingShifts;
+}
+
 
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
@@ -61,7 +95,7 @@ export async function GET(request: NextRequest) {
     const jsonData = JSON.parse(contents.toString());
     
     if (!jsonData || !Array.isArray(jsonData.clients)) {
-        console.error("Parsed JSON does not contain a 'clients' array.");
+        console.error("[SYNC-VA-CARELOGS] Parsed JSON does not contain a 'clients' array.");
         return NextResponse.json({ success: false, error: "Invalid JSON structure in source file." }, { status: 500 });
     }
     const clients = jsonData.clients;
@@ -73,21 +107,44 @@ export async function GET(request: NextRequest) {
       const name = caregiver.Name;
       if (name) {
         const trimmedName = name.trim().toLowerCase();
-        // Handle "Last, First" format
         const parts = trimmedName.split(',').map((p: string) => p.trim());
         if (parts.length === 2 && parts[0] && parts[1]) {
           const normalizedName = `${parts[1]} ${parts[0]}`;
           caregiverNameToIdMap.set(normalizedName, doc.id);
         }
-        // Also map the original name in case it's in "First Last" format
         caregiverNameToIdMap.set(trimmedName, doc.id);
       }
     });
 
+    const now = new Date();
+    // Use Sunday as the start of the week for calculations.
+    const weekStart = startOfWeek(subWeeks(now, 4), { weekStartsOn: 0 }); 
 
-    let batch = serverDb.batch();
-    let operations = 0;
+    // Delete records older than the cutoff
+    const cutoffDate = endOfWeek(subWeeks(now, 5), { weekStartsOn: 0 }); // End of Saturday 5 weeks ago
+    const shiftsToDeleteQuery = serverDb.collection('va_teletrack_shifts').where('date', '<=', cutoffDate);
+    const shiftsToDeleteSnapshot = await shiftsToDeleteQuery.get();
+    
+    let deleteBatch = serverDb.batch();
+    let deleteOps = 0;
+    shiftsToDeleteSnapshot.forEach(doc => {
+        deleteBatch.delete(doc.ref);
+        deleteOps++;
+        if (deleteOps >= 499) {
+            deleteBatch.commit();
+            deleteBatch = serverDb.batch();
+            deleteOps = 0;
+        }
+    });
+    if (deleteOps > 0) {
+        await deleteBatch.commit();
+    }
+    console.log(`[SYNC-VA-CARELOGS] Deleted ${shiftsToDeleteSnapshot.size} old shift records.`);
+
+    let addBatch = serverDb.batch();
+    let addOps = 0;
     let shiftsAdded = 0;
+    let shiftsSkipped = 0;
 
     for (const client of clients) {
       if (!client.schedules || client.schedules.length === 0) {
@@ -95,11 +152,18 @@ export async function GET(request: NextRequest) {
       }
       
       const parsedClientName = parseClientName(client.clientName);
+      const existingShifts = await getExistingShiftsMap(parsedClientName, weekStart, now);
 
       for (const schedule of client.schedules) {
         const scheduleDate = parseTeletrackDate(schedule.date);
         if (!scheduleDate) {
-            console.warn(`Skipping schedule for client ${client.clientId} due to invalid date: ${schedule.date}`);
+            console.warn(`[SYNC-VA-CARELOGS] Skipping schedule for client ${client.clientId} due to invalid date: ${schedule.date}`);
+            continue;
+        }
+        
+        const dateKey = formatInTimeZone(scheduleDate, 'America/Los_Angeles', 'yyyy-MM-dd');
+        if (existingShifts.has(dateKey)) {
+            shiftsSkipped++;
             continue;
         }
 
@@ -123,25 +187,26 @@ export async function GET(request: NextRequest) {
           createdAt: Timestamp.now(),
         };
 
-        const docRef = serverDb.collection('va_teletrack_shifts').doc(); // Auto-generate ID
-        batch.set(docRef, shiftDoc);
-        operations++;
+        const docRef = serverDb.collection('va_teletrack_shifts').doc(); 
+        addBatch.set(docRef, shiftDoc);
+        addOps++;
         shiftsAdded++;
         
-        if (operations >= 499) {
-            await batch.commit();
-            operations = 0;
-            batch = serverDb.batch(); // Re-initialize the batch
+        if (addOps >= 499) {
+            await addBatch.commit();
+            addOps = 0;
+            addBatch = serverDb.batch();
         }
       }
     }
 
-    if (operations > 0) {
-      await batch.commit();
-      console.log("Committed final batch of VA shift records.");
+    if (addOps > 0) {
+      await addBatch.commit();
     }
-
-    return NextResponse.json({ success: true, message: `Successfully synced ${shiftsAdded} VA Teletrack shifts.` });
+    
+    const message = `Sync complete. Added: ${shiftsAdded}, Skipped (Duplicates): ${shiftsSkipped}, Deleted (Old): ${shiftsToDeleteSnapshot.size}.`;
+    console.log(`[SYNC-VA-CARELOGS] ${message}`);
+    return NextResponse.json({ success: true, message });
   } catch (error: any) {
     console.error('[CRON-ERROR] /api/cron/sync-va-carelogs:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
