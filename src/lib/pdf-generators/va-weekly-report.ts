@@ -116,7 +116,15 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
             ? [...data.shifts].sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())[0]
             : null;
         
-        const programName = firstShift ? firstShift.ratePlan : "Home Maker/HHA Program";
+        const ratePlan = firstShift ? firstShift.ratePlan : null;
+        let programName = "Not specified";
+        if (ratePlan === "VA-Homemaker") {
+            programName = "HomeMaker/HHA Program";
+        } else if (ratePlan === "VA-Respite") {
+            programName = "In-Home Respite Program";
+        } else if (ratePlan) {
+            programName = ratePlan;
+        }
 
         drawText(page, `Agency Name: FirstLight Home Care of Rancho Cucamonga`, { x: leftMargin, y: y, font, size: 9 });
         y -= 20;
@@ -291,3 +299,5 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         return { error: `Failed to generate PDF: ${errorMessage}` };
     }
 }
+
+    
