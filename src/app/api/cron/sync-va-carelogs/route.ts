@@ -1,11 +1,10 @@
-
 'use server';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getStorage } from 'firebase-admin/storage';
 import { serverDb, serverApp } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
-import { startOfDay, endOfDay, subDays, parse, isValid, endOfWeek } from 'date-fns';
+import { startOfDay, endOfWeek, subDays, parse, isValid } from 'date-fns';
 import { format as formatInTimeZone, toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 const pacificTimeZone = 'America/Los_Angeles';
@@ -103,7 +102,7 @@ export async function GET(request: NextRequest) {
     
     const now = new Date();
     // The duplicate check window ends on the upcoming Sunday at 11:59:59 PM.
-    const weekEnd = endOfWeek(now, { weekStartsOn: 1 }); // weekStartsOn: 1 makes Sunday the last day of the week.
+    const weekEnd = endOfWeek(now, { weekStartsOn: 1 }); // weekStartsOn: 1 makes Monday the start of the week, so Sunday is the end.
     // The window starts 14 days prior to the end date, creating a 15-day inclusive window.
     const weekStart = startOfDay(subDays(weekEnd, 14));
 
@@ -140,7 +139,13 @@ export async function GET(request: NextRequest) {
         continue;
       }
       
-      const clientName = client.clientName.trim();
+      let clientName = client.clientName;
+      const phoneMatch = clientName.match(/\s{2,}\(\d{3}\)/);
+      if (phoneMatch && typeof phoneMatch.index === 'number') {
+          clientName = clientName.substring(0, phoneMatch.index);
+      }
+      clientName = clientName.replace(/Â/g, '').trim();
+
       logMessages.push(`\n--- Processing client: ${clientName} ---`);
       
       const existingShifts = await getExistingShiftsMap(clientName, weekStart, weekEnd, logMessages);
