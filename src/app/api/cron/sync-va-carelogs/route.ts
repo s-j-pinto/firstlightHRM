@@ -28,9 +28,10 @@ function parseTeletrackDate(dateStr: string, logMessages: string[]): Date | null
     const localDateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     
     try {
-        const zonedDate = fromZonedTime(localDateString, pacificTimeZone);
-        logMessages.push(`[DEBUG] Parsed "${dateStr}" as zoned time. Resulting UTC timestamp: ${zonedDate.toISOString()}`);
-        return zonedDate;
+        // This correctly interprets the date string as belonging to the pacific time zone
+        const utcDate = zonedTimeToUtc(`${localDateString} 00:00:00`, pacificTimeZone);
+        logMessages.push(`[DEBUG] Parsed "${dateStr}" as zoned time. Resulting UTC timestamp: ${utcDate.toISOString()}`);
+        return utcDate;
     } catch (e: any) {
         logMessages.push(`[ERROR] Error parsing date string "${localDateString}" for timezone "${pacificTimeZone}": ${e.message}`);
         return null;
@@ -102,7 +103,8 @@ export async function GET(request: NextRequest) {
     
     const now = new Date();
     // The check spans from the end of the current week back exactly 2 weeks.
-    const weekEnd = endOfWeek(now, { weekStartsOn: 0 }); // Sunday 23:59:59.999
+    // By setting weekStartsOn: 1, Sunday is correctly considered the end of the week.
+    const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
     const weekStart = subWeeks(weekEnd, 2);
 
     logMessages.push(`[DEBUG] Checking for existing shifts in date range: ${weekStart.toISOString()} to ${weekEnd.toISOString()}`);
