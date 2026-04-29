@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getStorage } from 'firebase-admin/storage';
 import { serverDb, serverApp } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
-import { startOfDay, endOfDay, subDays, parse, isValid } from 'date-fns';
+import { startOfDay, endOfDay, subDays, parse, isValid, endOfWeek } from 'date-fns';
 import { format as formatInTimeZone, toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 const pacificTimeZone = 'America/Los_Angeles';
@@ -102,9 +102,9 @@ export async function GET(request: NextRequest) {
     logMessages.push(`Created a map of ${caregiverNameToIdMap.size} active caregivers.`);
     
     const now = new Date();
-    // The duplicate check window ends on the previous day (Sunday) at 23:59:59.
-    const weekEnd = endOfDay(subDays(now, 1));
-    // The window starts 14 days prior to the end date, creating a 15-day inclusive window (e.g., Sun to Sun).
+    // The duplicate check window ends on the upcoming Sunday at 11:59:59 PM.
+    const weekEnd = endOfWeek(now, { weekStartsOn: 1 }); // weekStartsOn: 1 makes Sunday the last day of the week.
+    // The window starts 14 days prior to the end date, creating a 15-day inclusive window.
     const weekStart = startOfDay(subDays(weekEnd, 14));
 
     logMessages.push(`[DEBUG] Duplicate check window: ${weekStart.toISOString()} to ${weekEnd.toISOString()}`);
