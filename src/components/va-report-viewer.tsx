@@ -107,12 +107,28 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
     }, [allShifts, selectedWeek]);
     
     React.useEffect(() => {
+        const defaultTasks = {
+            shower: true,
+            shampooHair: true,
+            grooming: true,
+            incontinenceCare: true,
+            skinCare: true,
+            dressing: true,
+            mealsPrep: true,
+            assistWithWalker: true,
+        };
+
         reset({
-            shifts: weeklyShifts.map(s => ({
-                id: s.id,
-                tasks: s.tasks || {},
-                providerSignature: s.providerSignature || getInitials(s.caregiverName)
-            }))
+            shifts: weeklyShifts.map(s => {
+                const existingTasks = s.tasks || {};
+                const hasExistingTasks = Object.keys(existingTasks).length > 0;
+
+                return {
+                    id: s.id,
+                    tasks: hasExistingTasks ? existingTasks : defaultTasks,
+                    providerSignature: s.providerSignature || getInitials(s.caregiverName)
+                };
+            })
         });
     }, [weeklyShifts, reset]);
 
