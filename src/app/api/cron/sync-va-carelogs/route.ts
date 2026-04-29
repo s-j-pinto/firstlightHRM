@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getStorage } from 'firebase-admin/storage';
 import { serverDb, serverApp } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
-import { startOfWeek, subWeeks, endOfWeek, parse, isValid } from 'date-fns';
+import { startOfDay, endOfDay, subDays, parse, isValid } from 'date-fns';
 import { format as formatInTimeZone, toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 const pacificTimeZone = 'America/Los_Angeles';
@@ -29,7 +29,7 @@ function parseTeletrackDate(dateStr: string, logMessages: string[]): Date | null
     
     try {
         // This correctly interprets the date string as belonging to the pacific time zone
-        const utcDate = zonedTimeToUtc(`${localDateString} 00:00:00`, pacificTimeZone);
+        const utcDate = fromZonedTime(localDateString, pacificTimeZone);
         logMessages.push(`[DEBUG] Parsed "${dateStr}" as zoned time. Resulting UTC timestamp: ${utcDate.toISOString()}`);
         return utcDate;
     } catch (e: any) {
@@ -102,16 +102,15 @@ export async function GET(request: NextRequest) {
     logMessages.push(`Created a map of ${caregiverNameToIdMap.size} active caregivers.`);
     
     const now = new Date();
-    // The check spans from the end of the current week back exactly 2 weeks.
-    // By setting weekStartsOn: 1, Sunday is correctly considered the end of the week.
-    const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
-    const weekStart = subWeeks(weekEnd, 2);
+    // The duplicate check window ends on the previous day (Sunday) at 23:59:59.
+    const weekEnd = endOfDay(subDays(now, 1));
+    // The window starts 14 days prior to the end date, creating a 15-day inclusive window (e.g., Sun to Sun).
+    const weekStart = startOfDay(subDays(weekEnd, 14));
 
-    logMessages.push(`[DEBUG] Checking for existing shifts in date range: ${weekStart.toISOString()} to ${weekEnd.toISOString()}`);
-    
+    logMessages.push(`[DEBUG] Duplicate check window: ${weekStart.toISOString()} to ${weekEnd.toISOString()}`);
 
     logMessages.push("Checking for and deleting records older than 5 weeks...");
-    const cutoffDate = endOfWeek(subWeeks(now, 5), { weekStartsOn: 0 });
+    const cutoffDate = endOfDay(subDays(now, 35));
     const shiftsToDeleteQuery = serverDb.collection('va_teletrack_shifts').where('date', '<=', cutoffDate);
     const shiftsToDeleteSnapshot = await shiftsToDeleteQuery.get();
     
