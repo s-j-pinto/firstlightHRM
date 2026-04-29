@@ -115,7 +115,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
             skinCare: true,
             dressing: true,
             mealsPrep: true,
-            assistWithWalker: true,
+            transferToBedOrWheelchair: true,
         };
 
         reset({
@@ -240,7 +240,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
     };
 
     const isLoading = groupLoading || shiftsLoading || templateLoading;
-    const taskLabels = templateData?.tasks?.filter(t => t !== 'providerSignature') || [];
+    const taskLabels = templateData?.tasks?.filter((t: string) => t !== 'providerSignature') || [];
 
     if (isLoading) {
         return <div className="flex justify-center items-center h-64"><Loader2 className="animate-spin" /></div>;
@@ -275,7 +275,7 @@ export function VaReportViewer({ groupId }: VaReportViewerProps) {
                                             const dayDate = addDays(weekStartInPT, dayIndex);
                                             return (
                                                 <TableHead key={dayIndex} className="text-center min-w-[140px]">
-                                                    {formatInTimeZone(dayDate, 'EEE', {timeZone: 'America/Los_Angeles'})}<br/>{formatInTimeZone(dayDate, 'MM/dd/yy', {timeZone: 'America/Los_Angeles'})}
+                                                    {formatInTimeZone(dayDate, 'EEE', { timeZone: 'America/Los_Angeles' })}<br/>{formatInTimeZone(dayDate, 'MM/dd/yy', { timeZone: 'America/Los_Angeles' })}
                                                 </TableHead>
                                             );
                                         })}

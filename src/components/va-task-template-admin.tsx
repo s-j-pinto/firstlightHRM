@@ -61,7 +61,7 @@ const vaTasks = [
   { id: 'incontinenceCare', label: 'Incontinence Care' },
   { id: 'mealsPrep', label: 'Meals Prep' },
   { id: 'feedAssist', label: 'Feed Assist' },
-  { id: 'assistWithWalker', label: 'Assist with Walker/Ambulation' },
+  { id: 'transferToBedOrWheelchair', label: 'Transfer to Bed or Wheelchair/Ambulation' },
   { id: 'providerSignature', label: 'Provider Signature' },
 ];
 
