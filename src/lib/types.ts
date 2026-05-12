@@ -1197,3 +1197,14 @@ export const teleTrackCalloffWeeklyCaregiversListSchema = z.object({
     syncedAt: z.any(),
 });
 export type TeleTrackCalloffWeeklyCaregiversList = z.infer<typeof teleTrackCalloffWeeklyCaregiversListSchema> & { id: string };
+
+export const replacementRecommendationSchema = z.object({
+    caregiverId: z.string(),
+    caregiverName: z.string(),
+    score: z.number(),
+    reasons: z.array(z.string()),
+    isPriorCaregiver: z.boolean(),
+    overtimeHoursAvailable: z.number(),
+    dailyAvailability: z.string(),
+});
+export type ReplacementRecommendation = z.infer<typeof replacementRecommendationSchema>;

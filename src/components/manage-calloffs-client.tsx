@@ -1,11 +1,12 @@
 
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useTransition } from "react";
 import { collection, query, where, limit, orderBy } from "firebase/firestore";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { format, startOfWeek, addDays, parseISO, isValid } from "date-fns";
-import type { TeleTrackWeeklyShiftsInventory } from "@/lib/types";
+import type { TeleTrackWeeklyShiftsInventory, ReplacementRecommendation } from "@/lib/types";
+import { getReplacementRecommendations } from "@/lib/calloff.actions";
 
 import {
   Card,
@@ -25,11 +26,13 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Calendar, Clock, User, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Loader2, Calendar, Clock, User, AlertCircle, CheckCircle2, Sparkles, Star, History, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ManageCalloffsClient() {
   const firestore = useFirestore();
+  const { toast } = useToast();
 
   // --- Week Selection Logic ---
   const weeks = useMemo(() => {
@@ -46,6 +49,9 @@ export default function ManageCalloffsClient() {
   const [selectedWeek, setSelectedWeek] = useState<string>(weeks[0].value);
   const [selectedClientName, setSelectedClientName] = useState<string>("");
   const [selectedShiftId, setSelectedShiftId] = useState<string | null>(null);
+  
+  const [recommendations, setRecommendations] = useState<ReplacementRecommendation[]>([]);
+  const [isRecommending, startRecommendationTransition] = useTransition();
 
   // --- Firestore Data Fetching ---
   const inventoryQuery = useMemoFirebase(
@@ -79,6 +85,7 @@ export default function ManageCalloffsClient() {
   useEffect(() => {
     setSelectedClientName("");
     setSelectedShiftId(null);
+    setRecommendations([]);
   }, [selectedWeek]);
 
   const formatCaregiverName = (name: string) => {
@@ -87,8 +94,35 @@ export default function ManageCalloffsClient() {
     return `${first} ${last}`;
   };
 
+  const handleGetRecommendations = () => {
+    if (!selectedShiftId || !selectedClientName) return;
+
+    startRecommendationTransition(async () => {
+        const result = await getReplacementRecommendations({
+            shiftId: selectedShiftId,
+            weekStart: selectedWeek,
+            clientName: selectedClientName,
+        });
+
+        if (result.error) {
+            toast({
+                title: "Recommendation Error",
+                description: result.error,
+                variant: "destructive",
+            });
+        } else if (result.recommendations) {
+            setRecommendations(result.recommendations);
+            // Scroll to results
+            setTimeout(() => {
+                const element = document.getElementById('recommendation-results');
+                if (element) element.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+        }
+    });
+  };
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-12">
       <Card className="border-accent/20">
         <CardHeader className="bg-accent/5">
           <CardTitle>Step 1: Select Week & Client</CardTitle>
@@ -156,7 +190,10 @@ export default function ManageCalloffsClient() {
                       "cursor-pointer transition-all hover:ring-2 hover:ring-accent/50",
                       selectedShiftId === shift.scheduleId ? "ring-2 ring-accent bg-accent/5" : "bg-muted/30"
                     )}
-                    onClick={() => setSelectedShiftId(shift.scheduleId)}
+                    onClick={() => {
+                        setSelectedShiftId(shift.scheduleId);
+                        setRecommendations([]);
+                    }}
                   >
                     <CardContent className="p-4 space-y-3">
                       <div className="flex justify-between items-start">
@@ -204,12 +241,87 @@ export default function ManageCalloffsClient() {
         </Card>
       )}
 
-      {selectedShiftId && (
+      {selectedShiftId && !recommendations.length && (
         <div className="flex justify-center pt-4 animate-in zoom-in-95 duration-300">
-           <Button size="lg" className="px-12 bg-accent hover:bg-accent/90 shadow-xl">
-             Find Replacement Recommendations
+           <Button size="lg" className="px-12 bg-accent hover:bg-accent/90 shadow-xl" onClick={handleGetRecommendations} disabled={isRecommending}>
+             {isRecommending ? (
+                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Analyzing Replacement Data...</>
+             ) : (
+                 "Find Replacement Recommendations"
+             )}
            </Button>
         </div>
+      )}
+
+      {recommendations.length > 0 && (
+          <div id="recommendation-results" className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
+              <div className="flex items-center gap-2 border-b pb-2">
+                  <Sparkles className="h-6 w-6 text-accent animate-pulse" />
+                  <h2 className="text-2xl font-bold font-headline">AI-Powered Replacement Recommendations</h2>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {recommendations.map((rec, index) => (
+                    <Card key={rec.caregiverId} className={cn("relative overflow-hidden", index === 0 && "ring-2 ring-accent")}>
+                        {index === 0 && (
+                            <div className="absolute top-0 right-0 bg-accent text-white px-3 py-1 text-xs font-bold rounded-bl-lg">
+                                BEST MATCH
+                            </div>
+                        )}
+                        <CardHeader>
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <CardTitle className="text-xl">{formatCaregiverName(rec.caregiverName)}</CardTitle>
+                                    <div className="flex gap-2 mt-2">
+                                        {rec.isPriorCaregiver && (
+                                            <Badge className="bg-green-100 text-green-800 border-green-200">
+                                                <History className="mr-1 h-3 w-3" /> Continuity Match
+                                            </Badge>
+                                        )}
+                                        <Badge variant="outline" className="bg-muted">
+                                            Score: {rec.score}/100
+                                        </Badge>
+                                    </div>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                                    <CheckCircle2 className="h-3 w-3" /> AI Reasoning
+                                </Label>
+                                <ul className="space-y-1">
+                                    {rec.reasons.map((reason, rIndex) => (
+                                        <li key={rIndex} className="text-sm text-muted-foreground flex items-start gap-2">
+                                            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-accent" />
+                                            {reason}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 pt-2 border-t">
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] text-muted-foreground uppercase">Workload Capacity</Label>
+                                    <div className="flex items-center gap-2">
+                                        <Zap className={cn("h-4 w-4", rec.overtimeHoursAvailable > 0 ? "text-yellow-500" : "text-red-500")} />
+                                        <span className="text-sm font-semibold">{rec.overtimeHoursAvailable} hrs buffer</span>
+                                    </div>
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] text-muted-foreground uppercase">Daily Schedule</Label>
+                                    <p className="text-xs font-mono line-clamp-2">{rec.dailyAvailability}</p>
+                                </div>
+                            </div>
+                            
+                            <Button className="w-full mt-2" variant="outline">
+                                Assign for Replacement
+                            </Button>
+                        </CardContent>
+                    </Card>
+                ))}
+              </div>
+          </div>
       )}
 
       {inventoryLoading && (
