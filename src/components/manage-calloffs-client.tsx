@@ -24,6 +24,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Calendar, Clock, User, AlertCircle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -206,7 +207,7 @@ export default function ManageCalloffsClient() {
       {selectedShiftId && (
         <div className="flex justify-center pt-4 animate-in zoom-in-95 duration-300">
            <Button size="lg" className="px-12 bg-accent hover:bg-accent/90 shadow-xl">
-             Find Replacement Recommendations <Loader2 className="ml-2 h-4 w-4 animate-spin hidden" />
+             Find Replacement Recommendations
            </Button>
         </div>
       )}
