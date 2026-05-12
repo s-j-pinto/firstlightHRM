@@ -2,9 +2,8 @@
 'use server';
 
 import { serverDb } from '@/firebase/server-init';
-import { format, parseISO, isValid } from 'date-fns';
-import { recommendReplacementCaregivers } from '@/ai/flows/recommend-replacement-caregiver-flow';
-import type { TeleTrackWeeklyShiftsInventory, TeleTrackCalloffWeeklyCaregiversList, ActiveCaregiver } from './types';
+import { format, parseISO, isValid, parse } from 'date-fns';
+import type { TeleTrackWeeklyShiftsInventory, TeleTrackCalloffWeeklyCaregiversList, ActiveCaregiver, ReplacementRecommendation } from './types';
 
 interface GetRecommendationsPayload {
     shiftId: string;
@@ -12,6 +11,22 @@ interface GetRecommendationsPayload {
     clientName: string;
 }
 
+/**
+ * Parses time strings like "7:00:00 AM" into comparable minute-of-day integers.
+ */
+function timeToMinutes(timeStr: string): number {
+    try {
+        const cleaned = timeStr.trim().toUpperCase().replace(' TO ', '');
+        const date = parse(cleaned, 'h:mm:ss a', new Date());
+        return date.getHours() * 60 + date.getMinutes();
+    } catch (e) {
+        return -1;
+    }
+}
+
+/**
+ * Rules Engine for ranking replacement caregivers.
+ */
 export async function getReplacementRecommendations(payload: GetRecommendationsPayload) {
     const { shiftId, weekStart, clientName } = payload;
     const firestore = serverDb;
@@ -20,6 +35,7 @@ export async function getReplacementRecommendations(payload: GetRecommendationsP
         // 1. Get the specific shift details
         const inventorySnap = await firestore.collection('teletrack_weekly_shifts_inventory')
             .where('weekStart', '==', weekStart)
+            .orderBy('syncedAt', 'desc')
             .limit(1)
             .get();
         
@@ -29,6 +45,8 @@ export async function getReplacementRecommendations(payload: GetRecommendationsP
         if (!shift) return { error: "Selected shift details not found." };
 
         const dayName = format(parseISO(shift.date), 'eeee').toLowerCase();
+        const shiftStartMins = timeToMinutes(shift.arrivalTime);
+        const shiftEndMins = timeToMinutes(shift.departureTime);
 
         // 2. Get prior caregivers for this client
         const calloffListSnap = await firestore.collection('teletrack_calloff_weekly_caregivers_list')
@@ -48,62 +66,100 @@ export async function getReplacementRecommendations(payload: GetRecommendationsP
         // 3. Find caregivers already working during this time range
         const conflictingCaregivers = new Set(
             inventory.shifts
-                .filter(s => s.scheduleId !== shiftId && s.date === shift.date) // Same day, different shift
+                .filter(s => s.scheduleId !== shiftId && s.date === shift.date)
                 .filter(s => {
-                    // Simple overlap check (could be more robust with full Date objects)
-                    return s.arrivalTime === shift.arrivalTime || s.departureTime === shift.departureTime;
+                    const sStart = timeToMinutes(s.arrivalTime);
+                    const sEnd = timeToMinutes(s.departureTime);
+                    // Check for any overlap
+                    return (shiftStartMins < sEnd && shiftEndMins > sStart);
                 })
                 .map(s => s.caregiver.name)
         );
 
-        // 4. Fetch all active caregivers and their availability
+        // 4. Fetch all active caregivers and score them
         const activeCaregiversSnap = await firestore.collection('caregivers_active')
             .where('status', '==', 'Active')
             .get();
         
-        const candidates: any[] = [];
+        const recommendations: ReplacementRecommendation[] = [];
 
         for (const doc of activeCaregiversSnap.docs) {
             const caregiver = doc.data() as ActiveCaregiver;
             
-            // Skip if they are already working during this time
+            // Filter: No conflicts
             if (conflictingCaregivers.has(caregiver.Name)) continue;
 
-            // Fetch availability subcollection
+            // Filter: Fetch availability
             const availDoc = await doc.ref.collection('availability').doc('current_week').get();
             if (!availDoc.exists) continue;
 
             const availability = availDoc.data();
             const dayAvail = availability?.[dayName];
 
-            if (dayAvail && dayAvail.hasAvailabilityBlock) {
-                candidates.push({
-                    id: doc.id,
-                    name: caregiver.Name,
-                    isPriorCaregiver: priorCaregiverNames.includes(caregiver.Name),
-                    availabilityText: dayAvail.schedule || '',
-                    nonOvertimeHours: dayAvail.nonOvertimeHours || 0,
-                });
+            // Filter: Must have availability block
+            if (!dayAvail || !dayAvail.hasAvailabilityBlock) continue;
+
+            let score = 0;
+            const reasons: string[] = [];
+
+            // RULE 1: Continuity of Care (50 pts)
+            const isPrior = priorCaregiverNames.includes(caregiver.Name);
+            if (isPrior) {
+                score += 50;
+                reasons.push("Prior relationship: This caregiver has worked with the client before (+50 pts).");
+            } else {
+                reasons.push("No prior history found with this client.");
             }
+
+            // RULE 2: Availability Match (30 pts)
+            // Extract times from "Available\n7:00:00 AM To 3:00:00 PM"
+            const availRegex = /Available\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)\s*To\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)/gi;
+            let bestAvailScore = 0;
+            let match;
+            while ((match = availRegex.exec(dayAvail.schedule || "")) !== null) {
+                const aStart = timeToMinutes(match[1]);
+                const aEnd = timeToMinutes(match[2]);
+                
+                if (aStart <= shiftStartMins && aEnd >= shiftEndMins) {
+                    bestAvailScore = 30; // Full match
+                } else if (aStart < shiftEndMins && aEnd > shiftStartMins) {
+                    bestAvailScore = Math.max(bestAvailScore, 10); // Partial match
+                }
+            }
+            score += bestAvailScore;
+            reasons.push(bestAvailScore === 30 ? "Full Schedule Match: Shift fits perfectly in availability window (+30 pts)." : 
+                         bestAvailScore === 10 ? "Partial Schedule Match: Caregiver available for part of the shift (+10 pts)." : 
+                         "Availability overlap requires manual verification.");
+
+            // RULE 3: Overtime Risk (20 pts)
+            const otBuffer = dayAvail.nonOvertimeHours || 0;
+            if (otBuffer >= shift.hours) {
+                score += 20;
+                reasons.push(`Workload Capacity: Can work entire shift (${shift.hours}h) without hitting daily overtime (${otBuffer}h buffer) (+20 pts).`);
+            } else if (otBuffer > 0) {
+                reasons.push(`Overtime Risk: Shift (${shift.hours}h) exceeds remaining regular hours (${otBuffer}h). Partial overtime required.`);
+            } else {
+                reasons.push("Overtime Risk: Caregiver is already at or near overtime capacity for today.");
+            }
+
+            recommendations.push({
+                caregiverId: doc.id,
+                caregiverName: caregiver.Name,
+                score,
+                reasons,
+                isPriorCaregiver: isPrior,
+                overtimeHoursAvailable: parseFloat(otBuffer.toFixed(2)),
+                dailyAvailability: dayAvail.schedule || "Not specified",
+            });
         }
 
-        if (candidates.length === 0) {
-            return { error: "No active caregivers found with availability for this day." };
-        }
-
-        // 5. Run the Genkit Flow
-        const result = await recommendReplacementCaregivers({
-            clientName,
-            shiftDate: shift.date,
-            shiftTime: `${shift.arrivalTime} to ${shift.departureTime}`,
-            shiftHours: shift.hours,
-            candidates
-        });
-
-        return result;
+        // 5. Sort by score descending
+        return {
+            recommendations: recommendations.sort((a, b) => b.score - a.score).slice(0, 10)
+        };
 
     } catch (error: any) {
-        console.error("[Action Error] getReplacementRecommendations:", error);
+        console.error("[Rules Engine Error] getReplacementRecommendations:", error);
         return { error: `Failed to generate recommendations: ${error.message}` };
     }
 }
