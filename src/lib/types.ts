@@ -1,5 +1,4 @@
 
-
 import { z } from "zod";
 
 const isValidDate = (dateString: string): boolean => {
@@ -1144,6 +1143,8 @@ export const ClientCareNeedsSchema = z.object({
     companionCare_mealPreparation: z.boolean().optional(),
     companionCare_cleanKitchen: z.boolean().optional(),
     companionCare_assistWithLaundry: z.boolean().optional(),
+    companionCare_dustFurniture: z.boolean().optional(),
+    companionCare_assistWithEating: z.boolean().optional(),
     companionCare_provideAlzheimersRedirection: z.boolean().optional(),
     companionCare_escortAndTransportation: z.boolean().optional(),
     personalCare_provideAlzheimersCare: z.boolean().optional(),
@@ -1169,3 +1170,30 @@ export const CaregiverForRecommendationSchema = z.object({
     availability: z.any(),
 });
 export type CaregiverForRecommendation = z.infer<typeof CaregiverForRecommendationSchema>;
+
+export const teleTrackWeeklyShiftsInventorySchema = z.object({
+    weekStart: z.string(),
+    weekEnd: z.string(),
+    shifts: z.array(z.object({
+        scheduleId: z.string(),
+        date: z.string(),
+        caregiver: z.object({ name: z.string() }),
+        client: z.object({ clientId: z.string(), name: z.string() }),
+        arrivalTime: z.string(),
+        departureTime: z.string(),
+        hours: z.number(),
+    })),
+    syncedAt: z.any(),
+});
+export type TeleTrackWeeklyShiftsInventory = z.infer<typeof teleTrackWeeklyShiftsInventorySchema> & { id: string };
+
+export const teleTrackCalloffWeeklyCaregiversListSchema = z.object({
+    clients: z.array(z.object({
+        clientName: z.string(),
+        caregivers: z.array(z.object({ caregiverName: z.string() }))
+    })),
+    totalClients: z.number(),
+    extractedAt: z.string(),
+    syncedAt: z.any(),
+});
+export type TeleTrackCalloffWeeklyCaregiversList = z.infer<typeof teleTrackCalloffWeeklyCaregiversListSchema> & { id: string };

@@ -612,5 +612,27 @@
         ]
       }
     ]
+  },
+  "manageCalloffs": {
+    "title": "Calloff Management Guide",
+    "content": [
+      {
+        "type": "paragraph",
+        "text": "This feature helps you manage unexpected caregiver calloffs by identifying the affected shifts and finding the best available replacements."
+      },
+      {
+        "type": "heading",
+        "text": "Workflow"
+      },
+      {
+        "type": "list",
+        "items": [
+          "<strong>1. Select a Week:</strong> Choose between the current week or the next week (Sunday to Saturday).",
+          "<strong>2. Select a Client:</strong> The dropdown list will show all clients who have scheduled shifts in that week's inventory.",
+          "<strong>3. Identify the Shift:</strong> View all scheduled shifts for that client. Click on the card of the shift where the caregiver has called off.",
+          "<strong>4. Replacement Recommendations:</strong> Once a shift is selected, click the button to find available caregivers who are a good match for the client's needs and proximity."
+        ]
+      }
+    ]
   }
 }
