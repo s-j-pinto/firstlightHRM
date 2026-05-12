@@ -1,5 +1,4 @@
 
-
 {
   "entities": {
     "AllstarVisit": {
@@ -463,6 +462,7 @@
         "caregiverEmails": { "type": "array", "items": { "type": "string", "format": "email" }, "description": "An array of emails for the linked caregivers from the 'caregivers_active' collection." },
         "careLogTemplateId": { "type": "string", "description": "The document ID of the linked CareLogTemplate." },
         "clientAccessEnabled": { "type": "boolean", "description": "If true, the client associated with this group can log in to view care logs." },
+        "vaClientId": { "type": "string", "description": "The client's specific ID for VA reporting." },
         "vaLast4SSN": { "type": "string", "description": "Last 4 digits of the client's SSN for VA reporting." },
         "vaReferralNumber": { "type": "string", "description": "The referral number for VA reporting." },
         "createdAt": { "type": "string", "format": "date-time" },
@@ -628,6 +628,51 @@
         "providerSignature": { "type": "string", "description": "The name of the provider who signed off on the tasks." }
       },
       "required": ["clientId", "clientName", "date", "caregiverName", "arrivalTime", "departureTime", "createdAt"]
+    },
+    "TeleTrackWeeklyShiftsInventory": {
+        "title": "TeleTrackWeeklyShiftsInventory",
+        "type": "object",
+        "description": "Stores the weekly shift inventory scraped from Teletrack.",
+        "properties": {
+            "weekStart": { "type": "string", "format": "date" },
+            "weekEnd": { "type": "string", "format": "date" },
+            "shifts": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "scheduleId": { "type": "string" },
+                        "date": { "type": "string", "format": "date" },
+                        "caregiver": { "type": "object", "properties": { "name": { "type": "string" } } },
+                        "client": { "type": "object", "properties": { "clientId": { "type": "string" }, "name": { "type": "string" } } },
+                        "arrivalTime": { "type": "string" },
+                        "departureTime": { "type": "string" },
+                        "hours": { "type": "number" }
+                    }
+                }
+            },
+            "syncedAt": { "type": "string", "format": "date-time" }
+        }
+    },
+    "TeleTrackCalloffWeeklyCaregiversList": {
+        "title": "TeleTrackCalloffWeeklyCaregiversList",
+        "type": "object",
+        "description": "Stores the list of unique caregivers per client who have provided care.",
+        "properties": {
+            "clients": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "clientName": { "type": "string" },
+                        "caregivers": { "type": "array", "items": { "type": "object", "properties": { "caregiverName": { "type": "string" } } } }
+                    }
+                }
+            },
+            "totalClients": { "type": "number" },
+            "extractedAt": { "type": "string", "format": "date-time" },
+            "syncedAt": { "type": "string", "format": "date-time" }
+        }
     }
   },
   "auth": {
@@ -724,12 +769,14 @@
     "/va_teletrack_shifts/{shiftId}": {
       "schema": { "$ref": "#/entities/VAMedicalRecord" },
       "description": "Stores individual VA shift records from Teletrack."
+    },
+    "/teletrack_weekly_shifts_inventory/{docId}": {
+        "schema": { "$ref": "#/entities/TeleTrackWeeklyShiftsInventory" },
+        "description": "Stores the weekly shift inventory scraped from Teletrack."
+    },
+    "/teletrack_calloff_weekly_caregivers_list/{docId}": {
+        "schema": { "$ref": "#/entities/TeleTrackCalloffWeeklyCaregiversList" },
+        "description": "Stores the list of unique caregivers per client who have provided care."
     }
   }
 }
-      
-
-    
-
-
-

@@ -69,7 +69,16 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error: any) {
+    logMessages.push(`[ERROR] Job failed: ${error.message}`);
     console.error('[CRON-ERROR] /api/cron/sync-calloff-inventory:', error);
+    
+    // Attempt to save error log
+    try {
+        const bucket = getStorage(serverApp).bucket('gs://firstlighthomecare-hrm.firebasestorage.app');
+        const logFile = bucket.file('caregiver-scheduling/sync-calloff-run.log');
+        await logFile.save(logMessages.join('\n'), { contentType: 'text/plain' });
+    } catch (logError) {}
+
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
