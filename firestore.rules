@@ -81,27 +81,11 @@ service cloud.firestore {
       allow update: if isAnyAdmin();
       allow delete: if isAnyAdmin();
     }
-    /**
-     * @description Controls access to client_additional_care_requests. Open for all.
-     * @path /client_additional_care_requests/{requestId}
-     * @allow (get, list) - Any user can view care logs.
-     * @allow (create) - Any authenticated user can create a care log.
-     * @deny (update, delete) - No user can update or delete a care log.
-     * @principle Open read access.
-     */
     match /client_additional_care_requests/{requestId} {
       allow get, list: if true;
       allow create: if isSignedIn();
       allow update, delete: if isAnyAdmin();
     }
-    /**
-     * @description Controls access to carelog_templates. Open for all.
-     * @path /carelog_templates/{templateId}
-     * @allow (get, list) - Any user can view care logs.
-     * @allow (create) - Any authenticated user can create a carelog_templates.
-     * @deny (update, delete) - No user can update or delete a carelog_templates.
-     * @principle Open read access.
-     */
     match /carelog_templates/{templateId} {
       allow get, list: if true;
       allow create: if isAnyAdmin();
@@ -112,144 +96,56 @@ service cloud.firestore {
       allow read: if isAnyAdmin();
       allow create, update, delete: if isAnyAdmin();
     }
-    /**
-     * @description Controls access to client_signups. Open for all.
-     * @path /client_signups/{signupsId}
-     * @allow (get, list) - Any user can view care logs.
-     * @allow (create) - Any authenticated user can create a client_signups.
-     * @deny (update, delete) - No user can update or delete a client_signups.
-     * @principle Open read access.
-     */
     match /client_signups/{signupsId} {
       allow get, list: if true;
       allow create, update: if isSignedIn();
       allow delete: if isAnyAdmin();
     }
-    /**
-     * @description Controls access to initial_contacts. Open for all.
-     * @path /initial_contacts/{initialContactId}
-     * @allow (get, list) - Any user can view care logs.
-     * @allow (create) - Any authenticated user can create a initial_contacts.
-     * @deny (update, delete) - No user can update or delete a initial_contacts.
-     * @principle Open read access.
-     */
     match /initial_contacts/{initialContactId} {
       allow get, list: if true;
       allow create, update: if isSignedIn();
       allow delete: if isAnyAdmin();
     }
-    /**
-     * @description Controls access to video_checkin_requests. Open for all.
-     * @path /video_checkin_requests/{videoCheckinRequestId}
-     * @allow (get, list) - Any user can video_checkin_requests.
-     * @allow (create) - Any authenticated user can create a video_checkin_requests.
-     * @deny (update, delete) - No user can update or delete a video_checkin_requests.
-     * @principle Open read access.
-     */
     match /video_checkin_requests/{videoCheckinRequestId} {
       allow get, list: if true;
       allow create, update: if isSignedIn();
       allow delete: if isAnyAdmin();
     }
-    /**
-     * @description Controls access to rewards. Open for all.
-     * @path /rewards/{rewardsId}
-     * @allow (get, list) - Any user can rewards.
-     * @allow (create) - Any authenticated user can create a rewards.
-     * @deny (update, delete) - No user can update or delete a rewards.
-     * @principle Open read access.
-     */
     match /rewards/{rewardsId} {
       allow get, list: if true;
       allow create, update: if isAnyAdmin();
       allow delete: if isAnyAdmin();
     }
-    /**
-     * @description Controls access to referrals. Open for all.
-     * @path /referrals/{referralsId}
-     * @allow (get, list) - Any user can referrals.
-     * @allow (create) - Any authenticated user can create a referrals.
-     * @deny (update, delete) - No user can update or delete a referrals.
-     * @principle Open read access.
-     */
     match /referrals/{referralsId} {
       allow get, list: if true;
       allow create, update: if isAnyAdmin();
       allow delete: if isAnyAdmin();
     }
-    /**
-     * @description Controls access to referrals. Open for all.
-     * @path /referral_profiles/{profileId}
-     * @allow (get, list) - Any user can referral_profiles.
-     * @allow (create) - Any authenticated user can create a referral_profiles.
-     * @deny (update, delete) - No user can update or delete a referral_profiles.
-     * @principle Open read access.
-     */
     match /referral_profiles/{profileId} {
       allow get, list: if true;
       allow create, update: if isAnyAdmin();
       allow delete: if isAnyAdmin();
     }
-    /**
-     * @description Controls access to campaign templates. Open for all.
-     * @path /campaign_templates/{campaignTemplatesId}
-     * @allow (get, list) - Any user can campaign_templates.
-     * @allow (create) - Any authenticated user can create a campaign_templates.
-     * @deny (update, delete) - No user can update or delete a campaign_templates.
-     * @principle Open read access.
-     */
     match /campaign_templates/{campaignTemplatesId} {
       allow get, list: if true;
       allow create, update: if isAnyAdmin();
       allow delete: if isAnyAdmin();
     }
-    /**
-     * @description Controls access to level_of_care_assessments. Open for all.
-     * @path /level_of_care_assessments/{assessmentsId}
-     * @allow (get, list) - Any user can level_of_care_assessments.
-     * @allow (create) - Any authenticated user can create a level_of_care_assessments.
-     * @deny (update, delete) - No user can update or delete a level_of_care_assessments.
-     * @principle Open read access.
-     */
     match /level_of_care_assessments/{assessmentsId} {
       allow get, list: if true;
       allow create, update: if isSignedIn();
       allow delete: if isAnyAdmin();
     }
-    /**
-     * @description Controls access to sms_history. Open for all.
-     * @path /initial_contacts/{initialContactId}/sms_history/{smsHistoryId}
-     * @allow (get, list) - Any user can sms_history.
-     * @allow (create) - Any authenticated user can create a sms_history.
-     * @deny (update, delete) - No user can update or delete a sms_history.
-     * @principle Open read access.
-     */
     match /initial_contacts/{initialContactId}/sms_history/{smsHistoryId} {
       allow get, list: if true;
       allow create, update: if isSignedIn();
       allow delete: if isAnyAdmin();
     }
-    /**
-     * @description Controls access to mail. Open for all.
-     * @path /mail/{mailId}
-     * @allow (get, list) - Any user can mail.
-     * @allow (create) - Any authenticated user can create a mail.
-     * @deny (update, delete) - No user can update or delete a mail.
-     * @principle Open read access.
-     */
     match /mail/{mailId} {
       allow get, list: if true;
       allow create, update: if isSignedIn();
       allow delete: if isAnyAdmin();
     }
-    /**
-     * @description Controls access to caregiver_availability. Open for all.
-     * @path /caregiver_availability/{Id}
-     * @allow (get, list) - Any user can caregiver_availability.
-     * @allow (create) - Any authenticated user can create a caregiver_availability.
-     * @deny (update, delete) - No user can update or delete a caregiver_availability.
-     * @principle Open read access.
-     */
     match /caregiver_availability/{Id} {
       allow get, list: if true;
       allow create, update: if isSignedIn();
@@ -258,9 +154,19 @@ service cloud.firestore {
 
     match /va_teletrack_shifts/{shiftId} {
       allow get, list: if isAnyAdmin();
-      allow create: if true; // Allow cron job to write
-      allow update: if isAnyAdmin(); // Allow admin to update tasks
+      allow create: if true;
+      allow update: if isAnyAdmin();
       allow delete: if isAnyAdmin();
+    }
+
+    // Calloff Inventory rules
+    match /teletrack_weekly_shifts_inventory/{docId} {
+      allow read: if isAnyAdmin();
+      allow create: if true; // Allow cron job
+    }
+    match /teletrack_calloff_weekly_caregivers_list/{docId} {
+      allow read: if isAnyAdmin();
+      allow create: if true; // Allow cron job
     }
   }
 }

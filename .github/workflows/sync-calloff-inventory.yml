@@ -1,0 +1,19 @@
+
+name: Sync Calloff Weekly Inventory
+
+on:
+  schedule:
+    # Runs at 11:00 PM UTC every Saturday.
+    - cron: '0 23 * * 6'
+  workflow_dispatch: # Allows manual triggering for testing
+
+jobs:
+  sync_calloff_data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync Weekly Shifts and Caregiver Lists
+        run: |
+          curl --request GET \
+          --url https://care-connect-360--firstlighthomecare-hrm.us-central1.hosted.app/api/cron/sync-calloff-inventory \
+          --header 'Authorization: Bearer ${{ secrets.CRON_SECRET }}' \
+          --fail

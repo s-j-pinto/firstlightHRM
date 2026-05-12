@@ -1,5 +1,4 @@
 
-
 {
   "entities": {
     "AllstarVisit": {
@@ -629,6 +628,51 @@
         "providerSignature": { "type": "string", "description": "The name of the provider who signed off on the tasks." }
       },
       "required": ["clientId", "clientName", "date", "caregiverName", "arrivalTime", "departureTime", "createdAt"]
+    },
+    "TeleTrackWeeklyShiftsInventory": {
+        "title": "TeleTrackWeeklyShiftsInventory",
+        "type": "object",
+        "description": "Stores the weekly shift inventory scraped from Teletrack.",
+        "properties": {
+            "weekStart": { "type": "string", "format": "date" },
+            "weekEnd": { "type": "string", "format": "date" },
+            "shifts": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "scheduleId": { "type": "string" },
+                        "date": { "type": "string", "format": "date" },
+                        "caregiver": { "type": "object", "properties": { "name": { "type": "string" } } },
+                        "client": { "type": "object", "properties": { "clientId": { "type": "string" }, "name": { "type": "string" } } },
+                        "arrivalTime": { "type": "string" },
+                        "departureTime": { "type": "string" },
+                        "hours": { "type": "number" }
+                    }
+                }
+            },
+            "syncedAt": { "type": "string", "format": "date-time" }
+        }
+    },
+    "TeleTrackCalloffWeeklyCaregiversList": {
+        "title": "TeleTrackCalloffWeeklyCaregiversList",
+        "type": "object",
+        "description": "Stores the list of unique caregivers per client who have provided care.",
+        "properties": {
+            "clients": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "clientName": { "type": "string" },
+                        "caregivers": { "type": "array", "items": { "type": "object", "properties": { "caregiverName": { "type": "string" } } } }
+                    }
+                }
+            },
+            "totalClients": { "type": "number" },
+            "extractedAt": { "type": "string", "format": "date-time" },
+            "syncedAt": { "type": "string", "format": "date-time" }
+        }
     }
   },
   "auth": {
@@ -725,9 +769,14 @@
     "/va_teletrack_shifts/{shiftId}": {
       "schema": { "$ref": "#/entities/VAMedicalRecord" },
       "description": "Stores individual VA shift records from Teletrack."
+    },
+    "/teletrack_weekly_shifts_inventory/{docId}": {
+        "schema": { "$ref": "#/entities/TeleTrackWeeklyShiftsInventory" },
+        "description": "Stores the weekly shift inventory scraped from Teletrack."
+    },
+    "/teletrack_calloff_weekly_caregivers_list/{docId}": {
+        "schema": { "$ref": "#/entities/TeleTrackCalloffWeeklyCaregiversList" },
+        "description": "Stores the list of unique caregivers per client who have provided care."
     }
   }
 }
-      
-
-    
