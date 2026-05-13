@@ -10,9 +10,47 @@ const DAY_COLUMNS = [
   "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
 ];
 
+/**
+ * Scans a CSV cell and extracts only the relevant schedule patterns.
+ * Normalizes availability to "Available [Time] To [Time]" 
+ * and keeps shifts as "[Time] - [Time]".
+ */
+function extractSchedulePatterns(cell: string | null | undefined): string {
+  if (!cell || typeof cell !== "string") return "";
+
+  // 1. Stretch the text to handle compressed formats (e.g., "AMAvailable" -> "AM Available")
+  const stretched = cell
+    .replace(/([0-9])([AP]M)/gi, '$1 $2') // Digit followed by AM/PM
+    .replace(/([AP]M)([0-9])/gi, '$1 $2') // AM/PM followed by Digit
+    .replace(/([AP]M)([A-Z])/gi, '$1 $2') // AM/PM followed by a Letter
+    .replace(/\s+/g, ' '); // Collapse whitespace
+
+  // 2. Define patterns for Availability (To) and Shifts (-)
+  // Supports HH:MM:SS or HH:MM
+  const timePattern = '(\\d{1,2}:\\d{2}(?::\\d{2})?\\s*[AP]M)';
+  const availRegex = new RegExp(`${timePattern}\\s*To\\s*${timePattern}`, 'gi');
+  const shiftRegex = new RegExp(`${timePattern}\\s*-\\s*${timePattern}`, 'gi');
+
+  const results: string[] = [];
+  let match;
+
+  // 3. Extract Availability blocks
+  while ((match = availRegex.exec(stretched)) !== null) {
+    results.push(`Available ${match[1]} To ${match[2]}`);
+  }
+
+  // 4. Extract Shift blocks
+  while ((match = shiftRegex.exec(stretched)) !== null) {
+    results.push(`${match[1]} - ${match[2]}`);
+  }
+
+  return results.join("\n\n");
+}
+
 function isCaregiverNameRow(rowObj: Record<string, string>, headerColumns: string[]): boolean {
   if (!headerColumns || headerColumns.length === 0) return false;
   const firstColValue = rowObj[headerColumns[0]];
+  // Name row: column 0 has a value, but columns 1-7 are empty
   if (!firstColValue || !firstColValue.trim() || DAY_COLUMNS.includes(firstColValue.trim())) {
       return false;
   }
@@ -73,18 +111,19 @@ export async function GET(request: NextRequest) {
       }
       if (currentCaregiver) {
           DAY_COLUMNS.forEach((day, i) => {
-              const colName = headerColumns[i]; 
+              // The caregiver name is index 0, so days start at index 1.
+              const colName = headerColumns[i + 1]; 
               if (!colName) return;
               const cell = row[colName];
               
-              // CRITICAL: We no longer "extract" or "clean" here.
-              // We pass the full cell content so the server action can parse both Availability AND Shifts.
               if (cell && cell.trim()) {
-                  const trimmed = cell.trim();
-                  if (currentCaregiver!.schedule[day]) {
-                      currentCaregiver!.schedule[day] += "\n\n" + trimmed;
-                  } else {
-                      currentCaregiver!.schedule[day] = trimmed;
+                  const cleanedPatterns = extractSchedulePatterns(cell.trim());
+                  if (cleanedPatterns) {
+                      if (currentCaregiver!.schedule[day]) {
+                          currentCaregiver!.schedule[day] += "\n\n" + cleanedPatterns;
+                      } else {
+                          currentCaregiver!.schedule[day] = cleanedPatterns;
+                      }
                   }
               }
           });

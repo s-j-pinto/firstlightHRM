@@ -93,23 +93,19 @@ export async function processActiveCaregiverAvailabilityUpload(caregiversData: {
                 continue;
             }
 
-            // --- Aggressive Sanitization & Stretching ---
-            // Handles cases like "Availability6:00:00 AM", "PMAvailable", etc.
+            // 1. Stretches the text to handle compressed formats (AMAvailable, etc.)
             let cellText = rawCellText.replace(/\r/g, "")
-                .replace(/([0-9])([AP]M)/gi, '$1 $2') // Digit before AM/PM
-                .replace(/([AP]M)([A-Z])/gi, '$1 $2') // AM/PM before word (e.g., PMAvailable)
+                .replace(/([0-9])([AP]M)/gi, '$1 $2') // Digit followed by AM/PM
+                .replace(/([AP]M)([0-9])/gi, '$1 $2') // AM/PM followed by a Number
+                .replace(/([AP]M)([A-Z])/gi, '$1 $2') // AM/PM followed by a Letter
                 .replace(/Scheduled\s*Availability/gi, ' Scheduled Availability ')
                 .replace(/Available/gi, ' Available ')
                 .replace(/To/gi, ' To ')
                 .replace(/\s*-\s*/g, ' - ')
-                .replace(/\s+/g, ' '); // Collapse extra whitespace
+                .replace(/\s+/g, ' ');
 
-            console.log(`[Availability Sync] Parsing: ${caregiver.name} | ${day} | Formatted: ${cellText}`);
-
-            // Regex for Availability (must use "To")
+            // 2. Regex patterns
             const availabilityRegex = /(?:Scheduled\s+Availability|Available)\s*(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)\s*To\s*(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)/gi;
-            
-            // Regex for Shifts (must use a hyphen "-")
             const shiftRegex = /(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)\s*-\s*(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)/gi;
 
             let totalAvailabilityHours = 0;
@@ -117,19 +113,22 @@ export async function processActiveCaregiverAvailabilityUpload(caregiversData: {
             while ((m = availabilityRegex.exec(cellText)) !== null) {
                 const duration = calculateDurationInHours(m[1], m[2]);
                 totalAvailabilityHours += duration;
-                console.log(`[Availability Sync] FOUND AVAILABILITY: ${m[1]} To ${m[2]} (${duration.toFixed(2)}h)`);
+                console.log(`[Availability Sync] ${caregiver.name} - ${day}: FOUND AVAILABILITY: ${m[1]} To ${m[2]} (${duration.toFixed(2)}h)`);
             }
             
             const hasAvailabilityBlock = totalAvailabilityHours > 0;
+            // Cap the contribution to non-overtime budget at 9 hours per day
             const cappedAvailability = Math.min(totalAvailabilityHours, 9);
 
             let totalShiftHours = 0;
             while ((m = shiftRegex.exec(cellText)) !== null) {
                 const duration = calculateDurationInHours(m[1], m[2]);
                 totalShiftHours += duration;
-                console.log(`[Availability Sync] FOUND SHIFT: ${m[1]} - ${m[2]} (${duration.toFixed(2)}h)`);
+                console.log(`[Availability Sync] ${caregiver.name} - ${day}: FOUND SHIFT: ${m[1]} - ${m[2]} (${duration.toFixed(2)}h)`);
             }
             
+            // If they have availability blocks, subtract shifts from the 9h cap.
+            // If they have NO availability blocks, shifts result in a negative "budget" (overtime debt).
             const nonOvertimeHours = hasAvailabilityBlock ? (cappedAvailability - totalShiftHours) : (0 - totalShiftHours);
             
             availabilityData[day.toLowerCase()] = {
