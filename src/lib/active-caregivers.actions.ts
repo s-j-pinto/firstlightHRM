@@ -109,7 +109,7 @@ export async function processActiveCaregiverAvailabilityUpload(caregiversData: {
             // Regex for Availability (prefixed by keyword, uses "To")
             const availabilityRegex = /(?:Scheduled\s+Availability|Available)\s*(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)\s*To\s*(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)/gi;
             
-            // Regex for Shifts (just the range, uses "-")
+            // Regex for Shifts (just the range, uses " - ")
             const shiftRegex = /(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)\s*-\s*(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)/gi;
 
             let totalAvailabilityHours = 0;
