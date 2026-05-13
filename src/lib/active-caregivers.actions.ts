@@ -113,7 +113,7 @@ export async function processActiveCaregiverAvailabilityUpload(caregiversData: {
             while ((m = availabilityRegex.exec(cellText)) !== null) {
                 const duration = calculateDurationInHours(m[1], m[2]);
                 totalAvailabilityHours += duration;
-                console.log(`[Availability Sync] ${caregiver.name} - ${day}: FOUND AVAILABILITY: ${m[1]} To ${m[2]} (${duration.toFixed(2)}h)`);
+                //console.log(`[Availability Sync] ${caregiver.name} - ${day}: FOUND AVAILABILITY: ${m[1]} To ${m[2]} (${duration.toFixed(2)}h)`);
             }
             
             const hasAvailabilityBlock = totalAvailabilityHours > 0;
@@ -123,7 +123,7 @@ export async function processActiveCaregiverAvailabilityUpload(caregiversData: {
             while ((m = shiftRegex.exec(cellText)) !== null) {
                 const duration = calculateDurationInHours(m[1], m[2]);
                 totalShiftHours += duration;
-                console.log(`[Availability Sync] ${caregiver.name} - ${day}: FOUND SHIFT: ${m[1]} - ${m[2]} (${duration.toFixed(2)}h)`);
+                //console.log(`[Availability Sync] ${caregiver.name} - ${day}: FOUND SHIFT: ${m[1]} - ${m[2]} (${duration.toFixed(2)}h)`);
             }
             
             const nonOvertimeHours = hasAvailabilityBlock ? (cappedAvailability - totalShiftHours) : (0 - totalShiftHours);
