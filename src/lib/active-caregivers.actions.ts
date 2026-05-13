@@ -93,23 +93,23 @@ export async function processActiveCaregiverAvailabilityUpload(caregiversData: {
                 continue;
             }
 
-            // --- Aggressive Sanitization ---
-            // 1. Standardize AM/PM spacing
-            // 2. Force spaces around keywords to handle compressed text like "Available6:00:00 AM"
+            // --- Aggressive Sanitization & Stretching ---
+            // Handles cases like "Availability6:00:00 AM", "PMAvailable", etc.
             let cellText = rawCellText.replace(/\r/g, "")
-                .replace(/([0-9])([AP]M)/gi, '$1 $2')
+                .replace(/([0-9])([AP]M)/gi, '$1 $2') // Digit before AM/PM
+                .replace(/([AP]M)([A-Z])/gi, '$1 $2') // AM/PM before word (e.g., PMAvailable)
                 .replace(/Scheduled\s*Availability/gi, ' Scheduled Availability ')
                 .replace(/Available/gi, ' Available ')
                 .replace(/To/gi, ' To ')
                 .replace(/\s*-\s*/g, ' - ')
                 .replace(/\s+/g, ' '); // Collapse extra whitespace
 
-            console.log(`[Availability Sync] Processing ${caregiver.name} | ${day} | Text: ${cellText}`);
+            console.log(`[Availability Sync] Parsing: ${caregiver.name} | ${day} | Formatted: ${cellText}`);
 
-            // Regex for Availability (prefixed by keyword, uses "To")
+            // Regex for Availability (must use "To")
             const availabilityRegex = /(?:Scheduled\s+Availability|Available)\s*(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)\s*To\s*(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)/gi;
             
-            // Regex for Shifts (just the range, uses " - ")
+            // Regex for Shifts (must use a hyphen "-")
             const shiftRegex = /(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)\s*-\s*(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)/gi;
 
             let totalAvailabilityHours = 0;

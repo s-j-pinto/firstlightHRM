@@ -5,29 +5,10 @@ import Papa from 'papaparse';
 import { processActiveCaregiverAvailabilityUpload } from '@/lib/active-caregivers.actions';
 import { serverApp } from '@/firebase/server-init';
 
-// --- Parsing logic adapted from the client component ---
+// --- Parsing logic helpers ---
 const DAY_COLUMNS = [
   "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
 ];
-
-function extractAvailability(cell: string | null | undefined): string {
-  if (!cell || typeof cell !== "string") return "";
-  const text = cell.replace(/\r/g, "");
-  const availableRegex = /Available\s*\n?\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)\s*To\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)/gi;
-  const scheduledRegex = /Scheduled Availability\s*\n?\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)\s*To\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)/gi;
-  let matches = [];
-  let m;
-  while ((m = availableRegex.exec(text)) !== null) {
-    matches.push(`Available\n${m[1]} To ${m[2]}`);
-  }
-  if (matches.length > 0) {
-    return matches.join("\n\n");
-  }
-  while ((m = scheduledRegex.exec(text)) !== null) {
-    matches.push(`Scheduled Availability\n${m[1]} To ${m[2]}`);
-  }
-  return matches.join("\n\n");
-}
 
 function isCaregiverNameRow(rowObj: Record<string, string>, headerColumns: string[]): boolean {
   if (!headerColumns || headerColumns.length === 0) return false;
@@ -95,14 +76,15 @@ export async function GET(request: NextRequest) {
               const colName = headerColumns[i]; 
               if (!colName) return;
               const cell = row[colName];
+              
+              // CRITICAL: We no longer "extract" or "clean" here.
+              // We pass the full cell content so the server action can parse both Availability AND Shifts.
               if (cell && cell.trim()) {
-                  const cleaned = extractAvailability(cell);
-                  if (cleaned) {
-                      if (currentCaregiver.schedule[day]) {
-                          currentCaregiver.schedule[day] += "\n\n" + cleaned;
-                      } else {
-                          currentCaregiver.schedule[day] = cleaned;
-                      }
+                  const trimmed = cell.trim();
+                  if (currentCaregiver!.schedule[day]) {
+                      currentCaregiver!.schedule[day] += "\n\n" + trimmed;
+                  } else {
+                      currentCaregiver!.schedule[day] = trimmed;
                   }
               }
           });
