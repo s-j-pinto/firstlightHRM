@@ -12,11 +12,23 @@ const DAY_COLUMNS = [
 
 function parse12Hour(timeStr: string): Date | null {
   try {
-    return parse(timeStr, 'h:mm:ss a', new Date());
+    // Robustly handle varying formats: "7:00:00 AM", "07:00:00 AM", "7:00 AM"
+    let cleaned = timeStr.trim().toUpperCase();
+    
+    // If it's HH:mm AM, add the :00 for seconds to match the parser
+    if (/^\d{1,2}:\d{2}\s+[AP]M$/.test(cleaned)) {
+        cleaned = cleaned.replace(/(\d{1,2}:\d{2})\s+([AP]M)/, '$1:00 $2');
+    }
+    
+    const parsed = parse(cleaned, 'h:mm:ss a', new Date());
+    return isValidDate(parsed) ? parsed : null;
   } catch (e) {
-    console.warn(`[Time Parser] Failed to parse time: "${timeStr}"`);
     return null;
   }
+}
+
+function isValidDate(d: any) {
+  return d instanceof Date && !isNaN(d.getTime());
 }
 
 function calculateDurationInHours(startStr: string, endStr: string): number {
@@ -41,6 +53,8 @@ export async function processActiveCaregiverAvailabilityUpload(caregiversData: {
   if (!caregiversData || caregiversData.length === 0) {
     return { message: "No valid caregiver data was processed from the CSV.", error: true };
   }
+
+  console.log(`[Availability Sync] Starting sync for ${caregiversData.length} caregivers.`);
 
   try {
     const allCaregiversSnap = await firestore.collection('caregivers_active').where('status', '==', 'Active').get();
@@ -75,7 +89,6 @@ export async function processActiveCaregiverAvailabilityUpload(caregiversData: {
     for (const caregiver of caregiversData) {
         const caregiverRef = profileMap.get(caregiver.name.trim());
         if (!caregiverRef) {
-            console.warn(`[Action] Could not find active caregiver profile for name: "${caregiver.name.trim()}"`);
             continue;
         }
 
@@ -86,42 +99,60 @@ export async function processActiveCaregiverAvailabilityUpload(caregiversData: {
         };
 
         for (const day of DAY_COLUMNS) {
-            let cellText = (caregiver.schedule[day] || '').trim();
-            if (!cellText) {
+            let rawCellText = (caregiver.schedule[day] || '').trim();
+            if (!rawCellText) {
                 availabilityData[day.toLowerCase()] = { schedule: '', nonOvertimeHours: 0, totalShiftHours: 0, hasAvailabilityBlock: false };
                 continue;
             }
 
-            // Sanitize to handle messy CSV data by adding spaces
-            cellText = cellText
-                .replace(/([a-zA-Z])(\d{1,2}:\d{2}:\d{2})/g, '$1 $2') // Add space between letters and numbers
-                .replace(/([AP]M)(?=[a-zA-Z\d])/g, '$1 ') // Add space after AM/PM if followed by letter/number
-                .replace(/\s*-\s*/g, ' - '); // Ensure spaces around hyphens
+            // --- Sanitization for robust parsing ---
+            // 1. Remove carriage returns
+            // 2. Standardize "To" vs "-"
+            // 3. Ensure space before AM/PM
+            let cellText = rawCellText.replace(/\r/g, "")
+                .replace(/([0-9])([AP]M)/gi, '$1 $2') // Ensure space: "7:00:00AM" -> "7:00:00 AM"
+                .replace(/\s*-\s*/g, ' - ') // Standardize hyphen spacing
+                .replace(/\s*TO\s*/gi, ' To '); // Standardize "To" spacing
 
             let totalAvailabilityHours = 0;
-            const availabilityRegex = /Scheduled Availability\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)\s*To\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)/gi;
+            // Matches "Available [TIME] To [TIME]" or "Scheduled Availability [TIME] To [TIME]"
+            const availabilityRegex = /(?:Scheduled\s+Availability|Available)\s*(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)\s*To\s*(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)/gi;
+            
             let availabilityMatch;
             while ((availabilityMatch = availabilityRegex.exec(cellText)) !== null) {
-                totalAvailabilityHours += calculateDurationInHours(availabilityMatch[1], availabilityMatch[2]);
+                const duration = calculateDurationInHours(availabilityMatch[1], availabilityMatch[2]);
+                totalAvailabilityHours += duration;
+                console.log(`[Availability Sync] FOUND AVAILABILITY: ${caregiver.name} on ${day}: ${availabilityMatch[1]} To ${availabilityMatch[2]} (${duration}h)`);
             }
+            
             const hasAvailabilityBlock = totalAvailabilityHours > 0;
             const cappedAvailability = Math.min(totalAvailabilityHours, 9);
 
             let totalShiftHours = 0;
-            const shiftRegex = /(\d{1,2}:\d{2}:\d{2}\s*[AP]M)\s*-\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)/gi;
+            // Matches "[TIME] - [TIME]" but NOT if prefixed by "Available" or "Scheduled"
+            // We achieve this by looking for time ranges that DON'T follow the keywords,
+            // or simply using the sanitized string and ensuring the hyphen matches are distinct.
+            const shiftRegex = /(?<!Available\s|Availability\s)(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)\s*-\s*(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)/gi;
+            
             let shiftMatch;
             while ((shiftMatch = shiftRegex.exec(cellText)) !== null) {
-                totalShiftHours += calculateDurationInHours(shiftMatch[1], shiftMatch[2]);
+                const duration = calculateDurationInHours(shiftMatch[1], shiftMatch[2]);
+                totalShiftHours += duration;
+                console.log(`[Availability Sync] FOUND SHIFT: ${caregiver.name} on ${day}: ${shiftMatch[1]} - ${shiftMatch[2]} (${duration}h)`);
             }
             
             const nonOvertimeHours = hasAvailabilityBlock ? (cappedAvailability - totalShiftHours) : (0 - totalShiftHours);
             
             availabilityData[day.toLowerCase()] = {
-              schedule: cellText.replace(/\r/g, ""),
+              schedule: cellText,
               nonOvertimeHours: parseFloat(nonOvertimeHours.toFixed(2)),
               totalShiftHours: parseFloat(totalShiftHours.toFixed(2)),
               hasAvailabilityBlock: hasAvailabilityBlock,
             };
+            
+            if (totalShiftHours > 0) {
+                 console.log(`[Availability Sync] Summary ${caregiver.name} ${day}: Avail=${totalAvailabilityHours}h (capped ${cappedAvailability}h), Shifts=${totalShiftHours}h, Net=${nonOvertimeHours}h`);
+            }
         }
         
         const availabilityDocRef = firestore.collection('caregivers_active').doc(caregiverRef.id).collection('availability').doc('current_week');
@@ -134,11 +165,12 @@ export async function processActiveCaregiverAvailabilityUpload(caregiversData: {
         await batch.commit();
     }
     
+    console.log(`[Availability Sync] COMPLETED. Updated ${caregiversUpdatedCount} caregivers.`);
     revalidatePath('/staffing-admin/manage-active-caregivers');
-    return { message: `Upload finished. Processed availability for ${caregiversData.length} caregivers. Updated ${caregiversUpdatedCount} records.` };
+    return { message: `Upload finished. Updated ${caregiversUpdatedCount} availability records.` };
 
   } catch (error: any) {
-      console.error('[Action Error] Critical error during availability upload:', error);
+      console.error('[Availability Sync Error] Critical failure:', error);
       return { message: `An error occurred during the upload: ${error.message}`, error: true };
   }
 }
