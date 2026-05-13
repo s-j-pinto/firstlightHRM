@@ -111,8 +111,7 @@ export async function GET(request: NextRequest) {
       }
       if (currentCaregiver) {
           DAY_COLUMNS.forEach((day, i) => {
-              // The caregiver name is index 0, so days start at index 1.
-              const colName = headerColumns[i + 1]; 
+              const colName = headerColumns[i]; 
               if (!colName) return;
               const cell = row[colName];
               

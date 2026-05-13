@@ -117,7 +117,6 @@ export async function processActiveCaregiverAvailabilityUpload(caregiversData: {
             }
             
             const hasAvailabilityBlock = totalAvailabilityHours > 0;
-            // Cap the contribution to non-overtime budget at 9 hours per day
             const cappedAvailability = Math.min(totalAvailabilityHours, 9);
 
             let totalShiftHours = 0;
@@ -127,8 +126,6 @@ export async function processActiveCaregiverAvailabilityUpload(caregiversData: {
                 console.log(`[Availability Sync] ${caregiver.name} - ${day}: FOUND SHIFT: ${m[1]} - ${m[2]} (${duration.toFixed(2)}h)`);
             }
             
-            // If they have availability blocks, subtract shifts from the 9h cap.
-            // If they have NO availability blocks, shifts result in a negative "budget" (overtime debt).
             const nonOvertimeHours = hasAvailabilityBlock ? (cappedAvailability - totalShiftHours) : (0 - totalShiftHours);
             
             availabilityData[day.toLowerCase()] = {
@@ -265,7 +262,6 @@ export async function processActiveCaregiverProfiles(data: Record<string, any>[]
     return { message: `An error occurred: ${error.message}`, error: true };
   }
 }
-
 
 export async function processActiveCaregiverPreferencesUpload(data: Record<string, any>[]) {
     const firestore = serverDb;
