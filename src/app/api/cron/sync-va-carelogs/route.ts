@@ -141,12 +141,20 @@ export async function GET(request: NextRequest) {
       }
       
       let clientName = client.clientName;
-      const phoneMatch = clientName.match(/\s{2,}\(\d{3}\)/);
-      if (phoneMatch && typeof phoneMatch.index === 'number') {
-          clientName = clientName.substring(0, phoneMatch.index);
-      }
-      clientName = clientName.replace(/Â/g, '').trim();
+      //const phoneMatch = clientName.match(/\s{2,}\(\d{3}\)/);
+      //if (phoneMatch && typeof phoneMatch.index === 'number') {
+      //    clientName = clientName.substring(0, phoneMatch.index);
+      //}
+      //clientName = clientName.replace(/Â/g, '').trim();
 
+      // Remove weird encoding chars first
+      clientName = clientName.replace(/Â/g, '');
+
+      // Remove anything starting with multiple spaces + (
+      clientName = clientName.replace(/\s{2,}\(.*/, '');
+
+      clientName = clientName.trim();
+      
       logMessages.push(`\n--- Processing client: ${clientName} ---`);
       
       const existingShifts = await getExistingShiftsMap(clientName, weekStart, weekEnd, logMessages);
