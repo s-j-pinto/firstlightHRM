@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
@@ -256,7 +254,7 @@ export default function AdvancedSearchClient() {
     const [viewingCandidate, setViewingCandidate] = useState<EnrichedCandidate | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
-    const rowsPerPage = 20;
+    const rowsPerPage = 10;
     const router = useRouter();
     const { toast } = useToast();
     const firestore = useFirestore();
@@ -889,4 +887,3 @@ export default function AdvancedSearchClient() {
         </div>
     );
 }
-
