@@ -26,7 +26,7 @@ export async function submitCaregiverProfile(data: z.infer<typeof caregiverFormS
     const existingProfileDoc = existingProfileQuery.docs[0];
     const existingProfile = existingProfileDoc.data();
 
-    // Now check if this profile is in "Applied" status
+    // Now check if this profile is in "Applied" or "Phonescreen Invite Needed" status
     const appointmentsRef = serverDb.collection('appointments');
     const appointmentsQuery = await appointmentsRef.where('caregiverId', '==', existingProfileDoc.id).get();
 
@@ -36,9 +36,36 @@ export async function submitCaregiverProfile(data: z.infer<typeof caregiverFormS
     const hiredRef = serverDb.collection('caregiver_employees');
     const hiredQuery = await hiredRef.where('caregiverProfileId', '==', existingProfileDoc.id).get();
 
-    const isApplied = appointmentsQuery.empty && interviewsQuery.empty && hiredQuery.empty;
+    // Determine the status of the candidate matching candidate-status-report logic
+    let candidateStatus = 'Applied';
+    if (!hiredQuery.empty) {
+      candidateStatus = 'Hired';
+    } else if (!interviewsQuery.empty) {
+      const interview = interviewsQuery.docs[0].data();
+      if (interview.rejectionReason) candidateStatus = interview.rejectionReason;
+      else if (interview.phoneScreenPassed === 'No') candidateStatus = 'Phone Screen Failed';
+      else if (interview.finalInterviewStatus === 'Rejected at Orientation') candidateStatus = 'Rejected at Orientation';
+      else if (interview.finalInterviewStatus === 'No Show') candidateStatus = 'No Show';
+      else if (interview.finalInterviewStatus === 'Process Terminated') candidateStatus = 'Process Terminated';
+      else if (interview.orientationScheduled) candidateStatus = 'Orientation Scheduled';
+      else if (interview.finalInterviewStatus === 'Passed') candidateStatus = 'Final Interview Passed';
+      else if (interview.finalInterviewStatus === 'Failed') candidateStatus = 'Final Interview Failed';
+      else candidateStatus = 'Final Interview Pending';
+    } else {
+      const activeAppointments = appointmentsQuery.docs.filter(
+        (doc) => doc.data().appointmentStatus !== 'cancelled'
+      );
+      if (activeAppointments.length > 0) {
+        const hasScheduledAppointment = activeAppointments.some(
+          (doc) => doc.data().inviteSent === true
+        );
+        candidateStatus = hasScheduledAppointment ? 'Phonescreen Scheduled' : 'Phonescreen Invite Needed';
+      }
+    }
 
-    if (isApplied) {
+    const isBlocked = candidateStatus === 'Applied' || candidateStatus === 'Phonescreen Invite Needed';
+
+    if (isBlocked) {
       const applicationDate = existingProfile.createdAt.toDate();
       const formattedDate = format(applicationDate, "MMMM do, yyyy");
       return { error: `Your application was already received on ${formattedDate} and is being processed by FirstLight Homecare hiring Manager.` };
