@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
@@ -651,8 +650,18 @@ export default function ManageInterviewsClient() {
             });
             
             if (!result.error) {
+                // Fix: Properly construct ISO date for fromZonedTime (MM/DD/YYYY to YYYY-MM-DD)
+                const [month, day, year] = data.orientationDate.split('/');
+                const isoDate = `${year}-${month}-${day}`;
+                const zonedTime = fromZonedTime(`${isoDate}T${data.orientationTime}`, 'America/Los_Angeles');
+
                 // Manually update local state to trigger hiring form visibility
-                 setExistingInterview(prev => prev ? { ...prev, orientationScheduled: true, orientationDateTime: fromZonedTime(`${data.orientationDate}T${data.orientationTime}`, 'America/Los_Angeles') } : null);
+                 setExistingInterview(prev => prev ? { 
+                    ...prev, 
+                    orientationScheduled: true, 
+                    orientationDateTime: zonedTime,
+                    finalInterviewStatus: data.includeReferenceForm ? 'Pending reference checks' : prev.finalInterviewStatus
+                 } : null);
             }
         });
     }
@@ -1208,7 +1217,7 @@ export default function ManageInterviewsClient() {
                                         )}
                                         <div className="flex-grow"></div>
                                         <Button type="submit" disabled={isAssessmentSaving}>
-                                            {isAssessmentSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                                            {isAssessmentSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2" />}
                                             Save Assessment
                                         </Button>
                                     </div>
@@ -1347,7 +1356,10 @@ export default function ManageInterviewsClient() {
                                     <AlertDescription>
                                         Status: <span className="font-semibold text-green-600">Scheduled</span>
                                         <br />
-                                        Date: {format((existingInterview.orientationDateTime instanceof Date ? existingInterview.orientationDateTime : (existingInterview.orientationDateTime as any).toDate()), 'PPpp')}
+                                        Date: {(() => {
+                                            const orientDate = safeToDate(existingInterview.orientationDateTime);
+                                            return orientDate ? format(orientDate, 'PPpp') : 'Invalid Date';
+                                        })()}
                                     </AlertDescription>
                                 </Alert>
                             )}
@@ -1561,5 +1573,3 @@ function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: strin
     </div>
   );
 }
-
-    
