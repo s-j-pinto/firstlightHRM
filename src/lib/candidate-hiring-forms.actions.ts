@@ -1,12 +1,11 @@
-
-
 'use server';
 
 import { revalidatePath } from 'next/cache';
 import { serverDb } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
-import { parse } from 'date-fns';
+import { parse, isValid } from 'date-fns';
+import { fromZonedTime } from 'date-fns-tz';
 import { 
     hcs501Schema, 
     emergencyContactSchema, 
@@ -54,6 +53,7 @@ import {
 import type { CaregiverProfile } from './types';
 import JSZip from 'jszip';
 
+const pacificTimeZone = 'America/Los_Angeles';
 
 // Helper to convert MM/DD/YYYY date strings to Firestore Timestamps
 function convertDatesToTimestamps(data: any): any {
@@ -61,8 +61,11 @@ function convertDatesToTimestamps(data: any): any {
     for (const [key, value] of Object.entries(data)) {
         if (typeof value === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
             try {
-                const date = parse(value, 'MM/dd/yyyy', new Date());
-                if (!isNaN(date.getTime())) {
+                // Convert MM/DD/YYYY to YYYY-MM-DD for fromZonedTime to handle specific timezone
+                const [m, d, y] = value.split('/');
+                const isoDate = `${y}-${m}-${d}`;
+                const date = fromZonedTime(isoDate, pacificTimeZone);
+                if (isValid(date)) {
                     dataWithTimestamps[key] = Timestamp.fromDate(date);
                     continue;
                 }

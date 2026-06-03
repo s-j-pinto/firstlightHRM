@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useRef, useEffect, useTransition, useState } from "react";
@@ -7,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { doc } from "firebase/firestore";
 import { format } from "date-fns";
+import { formatInTimeZone } from 'date-fns-tz';
 import SignatureCanvas from 'react-signature-canvas';
 import Image from "next/image";
 
@@ -26,6 +26,7 @@ import { saveHcs501Data } from "@/lib/candidate-hiring-forms.actions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DateInput } from "@/components/ui/date-input";
 
+const pacificTimeZone = 'America/Los_Angeles';
 
 // Helper to safely convert Firestore Timestamps or serialized strings to Date objects
 const safeToDate = (value: any): Date | undefined => {
@@ -215,7 +216,7 @@ export default function HCS501Page() {
                     const value = (existingData as any)[key];
                     if (dateFields.includes(key) && value) {
                         const date = safeToDate(value);
-                        (formData as any)[key] = date ? format(date, 'MM/dd/yyyy') : '';
+                        (formData as any)[key] = date ? formatInTimeZone(date, pacificTimeZone, 'MM/dd/yyyy') : '';
                     } else {
                         (formData as any)[key] = value;
                     }
@@ -232,7 +233,7 @@ export default function HCS501Page() {
             if (!formData.driversLicenseNumber && existingData.driversLicenseNumber) formData.driversLicenseNumber = existingData.driversLicenseNumber;
             if (!formData.dob && existingData.dob) {
                 const date = safeToDate(existingData.dob);
-                (formData as any).dob = date ? format(date, 'MM/dd/yyyy') : '';
+                (formData as any).dob = date ? formatInTimeZone(date, pacificTimeZone, 'MM/dd/yyyy') : '';
             }
 
             form.reset({
