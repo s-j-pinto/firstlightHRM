@@ -11,7 +11,10 @@ import { Timestamp } from 'firebase-admin/firestore';
 import { format, formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
 
 interface SaveInterviewPayload {
-  caregiverProfile: CaregiverProfile;
+  caregiverProfile: {
+    fullName: string;
+    email: string;
+  };
   eventDate: string; // Keep as string yyyy-MM-dd
   eventTime: string; // Keep as string HH:mm
   interviewId: string;
@@ -26,7 +29,7 @@ interface SaveInterviewPayload {
   includeReferenceForm?: boolean;
 }
 
-export async function saveInterviewAndSchedule(payload: SaveInterviewPayload) {
+export async function saveInterviewAndSchedule(payload: SaveInterviewPayload): Promise<{ message: string; error?: boolean; authUrl?: string | null }> {
   const { 
     caregiverProfile, 
     eventDate,

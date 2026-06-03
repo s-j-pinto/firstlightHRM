@@ -550,7 +550,10 @@ export default function ManageInterviewsClient() {
 
     startScheduleSubmitTransition(async () => {
        const result = await saveInterviewAndSchedule({
-         caregiverProfile: selectedCaregiver,
+         caregiverProfile: {
+           fullName: selectedCaregiver.fullName || '',
+           email: selectedCaregiver.email || '',
+         },
          eventDate: data.eventDate,
          eventTime: data.eventTime,
          interviewId: existingInterview.id,
@@ -618,7 +621,10 @@ export default function ManageInterviewsClient() {
 
         startOrientationSubmitTransition(async () => {
             const result = await saveInterviewAndSchedule({
-                caregiverProfile: selectedCaregiver,
+                caregiverProfile: {
+                    fullName: selectedCaregiver.fullName || '',
+                    email: selectedCaregiver.email || '',
+                },
                 eventDate: data.orientationDate,
                 eventTime: data.orientationTime,
                 interviewId: existingInterview.id,
