@@ -348,7 +348,7 @@ export async function rejectCandidate(payload: {
         finalInterviewStatus: status,
         rejectionReason: reason,
         rejectionNotes: notes,
-        rejectionDate: now,
+        rejectionDate: now.toDate(),
         lastUpdatedAt: now,
         phoneScreenPassed: 'No',
     };
@@ -359,7 +359,7 @@ export async function rejectCandidate(payload: {
         batch.set(interviewRef, {
             ...interviewPayload,
             interviewType: "Phone",
-            interviewDateTime: now,
+            interviewDateTime: now.toDate(),
             createdAt: now,
         });
     }
