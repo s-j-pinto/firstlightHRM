@@ -1,3 +1,4 @@
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -58,8 +59,10 @@ const pacificTimeZone = 'America/Los_Angeles';
 // Helper to convert MM/DD/YYYY date strings to Firestore Timestamps
 function convertDatesToTimestamps(data: any): any {
     const dataWithTimestamps: { [key: string]: any } = {};
+    const skipKeys = ['employmentDates1', 'employmentDates2']; // Explicitly skip text fields that might contain date strings
+    
     for (const [key, value] of Object.entries(data)) {
-        if (typeof value === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
+        if (!skipKeys.includes(key) && typeof value === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
             try {
                 // Convert MM/DD/YYYY to YYYY-MM-DD for fromZonedTime to handle specific timezone
                 const [m, d, y] = value.split('/');
