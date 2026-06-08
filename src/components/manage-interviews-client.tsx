@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
@@ -160,7 +159,7 @@ export default function ManageInterviewsClient() {
     resolver: zodResolver(phoneScreenSchema),
     defaultValues: {
       interviewNotes: '',
-      phoneScreenPassed: 'No',
+      phoneScreenPassed: 'Yes',
     },
   });
 
@@ -206,7 +205,7 @@ export default function ManageInterviewsClient() {
     setAiInsight(null);
     phoneScreenForm.reset({
       interviewNotes: '',
-      phoneScreenPassed: 'No',
+      phoneScreenPassed: 'Yes',
     });
     assessmentForm.reset({
         candidateRating: 'C',
@@ -267,7 +266,7 @@ export default function ManageInterviewsClient() {
             
             phoneScreenForm.reset({
                 interviewNotes: interviewData.interviewNotes || '',
-                phoneScreenPassed: interviewData.phoneScreenPassed as 'Yes' | 'No' || 'No',
+                phoneScreenPassed: interviewData.phoneScreenPassed as 'Yes' | 'No' || 'Yes',
             });
 
             assessmentForm.reset({
