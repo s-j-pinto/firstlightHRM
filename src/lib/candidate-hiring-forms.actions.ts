@@ -59,12 +59,11 @@ const pacificTimeZone = 'America/Los_Angeles';
 // Helper to convert MM/DD/YYYY date strings to Firestore Timestamps
 function convertDatesToTimestamps(data: any): any {
     const dataWithTimestamps: { [key: string]: any } = {};
-    const skipKeys = ['employmentDates1', 'employmentDates2']; // Explicitly skip text fields that might contain date strings
+    const skipKeys = ['employmentDates1', 'employmentDates2']; 
     
     for (const [key, value] of Object.entries(data)) {
         if (!skipKeys.includes(key) && typeof value === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
             try {
-                // Convert MM/DD/YYYY to YYYY-MM-DD for fromZonedTime to handle specific timezone
                 const [m, d, y] = value.split('/');
                 const isoDate = `${y}-${m}-${d}`;
                 const date = fromZonedTime(isoDate, pacificTimeZone);
@@ -72,373 +71,225 @@ function convertDatesToTimestamps(data: any): any {
                     dataWithTimestamps[key] = Timestamp.fromDate(date);
                     continue;
                 }
-            } catch (e) {
-                // Ignore parse errors, keep original value
-            }
+            } catch (e) {}
         }
         dataWithTimestamps[key] = value;
     }
     return dataWithTimestamps;
 }
 
+// Optimization: Separate signature fields (heavy base64) from textual data
+function extractSignatures(data: any): { textual: any, signatures: any } {
+    const signatureFields = [
+        'hcs501EmployeeSignature',
+        'applicantSignature1',
+        'applicantSignature2',
+        'lic508Signature',
+        'soc341aSignature',
+        'arbitrationAgreementSignature',
+        'drugAlcoholPolicySignature',
+        'drugAlcoholPolicyRepSignature',
+        'jobDescriptionSignature',
+        'clientAbandonmentSignature',
+        'clientAbandonmentWitnessSignature',
+        'orientationAgreementSignature',
+        'orientationAgreementWitnessSignature',
+        'acknowledgmentSignature',
+        'confidentialityAgreementEmployeeSignature',
+        'confidentialityAgreementRepSignature',
+        'trainingAcknowledgementSignature',
+        'offerLetterSignature',
+        'caregiverResponsibilitiesSignature',
+        'emergencyProcedureSignature'
+    ];
 
-export async function saveHcs501Data(profileId: string, data: any) {
-  const validatedFields = hcs501Schema.safeParse(data);
+    const textual: any = {};
+    const signatures: any = {};
 
-  if (!validatedFields.success) {
-    console.error("HCS501 Save Validation Error:", validatedFields.error.flatten());
-    return { error: 'Invalid data provided.' };
-  }
+    for (const key in data) {
+        if (signatureFields.includes(key)) {
+            signatures[key] = data[key];
+        } else {
+            textual[key] = data[key];
+        }
+    }
+    return { textual, signatures };
+}
 
-  try {
-    const dataToSave = convertDatesToTimestamps(validatedFields.data);
+async function saveThinData(profileId: string, data: any) {
+    const { textual, signatures } = extractSignatures(data);
+    const dataToSave = convertDatesToTimestamps(textual);
     
-    await serverDb.collection('caregiver_profiles').doc(profileId).set(dataToSave, { merge: true });
-    
-    revalidatePath(`/candidate-hiring-forms/hcs501?id=${profileId}`);
-    revalidatePath('/candidate-hiring-forms');
-    
-    return { success: true, message: 'HCS 501 form saved successfully.' };
-  } catch (error: any) {
-    console.error("Error saving HCS 501 data:", error);
-    return { error: 'Failed to save form data.' };
-  }
+    const batch = serverDb.batch();
+    const profileRef = serverDb.collection('caregiver_profiles').doc(profileId);
+    const signaturesRef = profileRef.collection('signatures').doc('onboarding_main');
+
+    if (Object.keys(dataToSave).length > 0) {
+        batch.set(profileRef, dataToSave, { merge: true });
+    }
+    if (Object.keys(signatures).length > 0) {
+        batch.set(signaturesRef, signatures, { merge: true });
+    }
+
+    await batch.commit();
 }
 
 
+export async function saveHcs501Data(profileId: string, data: any) {
+  const validatedFields = hcs501Schema.safeParse(data);
+  if (!validatedFields.success) return { error: 'Invalid data provided.' };
+  try {
+    await saveThinData(profileId, validatedFields.data);
+    revalidatePath('/candidate-hiring-forms');
+    return { success: true, message: 'HCS 501 form saved successfully.' };
+  } catch (error: any) { return { error: 'Failed to save form data.' }; }
+}
+
 export async function saveEmergencyContactData(profileId: string, data: any) {
   const validatedFields = emergencyContactSchema.safeParse(data);
-
-  if (!validatedFields.success) {
-    console.error("Emergency Contact Save Validation Error:", validatedFields.error.flatten());
-    return { error: 'Invalid data provided.' };
-  }
-
+  if (!validatedFields.success) return { error: 'Invalid data provided.' };
   try {
-    await serverDb.collection('caregiver_profiles').doc(profileId).set(validatedFields.data, { merge: true });
-    
-    revalidatePath(`/candidate-hiring-forms/emergency-contact?id=${profileId}`);
+    await saveThinData(profileId, validatedFields.data);
     revalidatePath('/candidate-hiring-forms');
-    
     return { success: true, message: 'Emergency Contacts have been saved.' };
-  } catch (error: any) {
-    console.error("Error saving Emergency Contact data:", error);
-    return { error: 'Failed to save form data.' };
-  }
+  } catch (error: any) { return { error: 'Failed to save form data.' }; }
 }
 
 export async function saveLic508Data(profileId: string, data: any) {
   const validatedFields = lic508Object.passthrough().safeParse(data);
-
-  if (!validatedFields.success) {
-    console.error("LIC508 Save Validation Error:", validatedFields.error.flatten());
-    return { error: 'Invalid data provided.' };
-  }
-
+  if (!validatedFields.success) return { error: 'Invalid data provided.' };
   try {
-    const dataToSave = convertDatesToTimestamps(validatedFields.data);
-    await serverDb.collection('caregiver_profiles').doc(profileId).set(dataToSave, { merge: true });
-    
-    revalidatePath(`/candidate-hiring-forms/lic508?id=${profileId}`);
+    await saveThinData(profileId, validatedFields.data);
     revalidatePath('/candidate-hiring-forms');
-    
     return { success: true, message: 'LIC 508 form saved successfully.' };
-  } catch (error: any) {
-    console.error("Error saving LIC 508 data:", error);
-    return { error: 'Failed to save form data.' };
-  }
+  } catch (error: any) { return { error: 'Failed to save form data.' }; }
 }
 
 export async function saveSoc341aData(profileId: string, data: any) {
   const validatedFields = soc341aSchema.safeParse(data);
-
-  if (!validatedFields.success) {
-    console.error("SOC341A Save Validation Error:", validatedFields.error.flatten());
-    return { error: 'Invalid data provided.' };
-  }
-
+  if (!validatedFields.success) return { error: 'Invalid data provided.' };
   try {
-    const dataToSave = convertDatesToTimestamps(validatedFields.data);
-    
-    await serverDb.collection('caregiver_profiles').doc(profileId).set(dataToSave, { merge: true });
-    
-    revalidatePath(`/candidate-hiring-forms/soc341a?id=${profileId}`);
+    await saveThinData(profileId, validatedFields.data);
     revalidatePath('/candidate-hiring-forms');
-    
     return { success: true, message: 'SOC 341A form saved successfully.' };
-  } catch (error: any) {
-    console.error("Error saving SOC 341A data:", error);
-    return { error: 'Failed to save form data.' };
-  }
+  } catch (error: any) { return { error: 'Failed to save form data.' }; }
 }
 
 export async function saveReferenceVerification1Data(profileId: string, data: any) {
   const validatedFields = referenceVerification1Schema.safeParse(data);
-
-  if (!validatedFields.success) {
-    console.error("Reference Verification 1 Save Validation Error:", validatedFields.error.flatten());
-    return { error: 'Invalid data provided.' };
-  }
-
+  if (!validatedFields.success) return { error: 'Invalid data provided.' };
   try {
-    const dataToSave = convertDatesToTimestamps(validatedFields.data);
-
-    await serverDb.collection('caregiver_profiles').doc(profileId).set(dataToSave, { merge: true });
-    
-    revalidatePath(`/candidate-hiring-forms/reference-verification-1?id=${profileId}`);
+    await saveThinData(profileId, validatedFields.data);
     revalidatePath('/candidate-hiring-forms');
-    
     return { success: true, message: 'Reference Verification 1 form saved successfully.' };
-  } catch (error: any) {
-    console.error("Error saving Reference Verification 1 data:", error);
-    return { error: 'Failed to save form data.' };
-  }
+  } catch (error: any) { return { error: 'Failed to save form data.' }; }
 }
 
 export async function saveReferenceVerification2Data(profileId: string, data: any) {
   const validatedFields = referenceVerification2Schema.safeParse(data);
-
-  if (!validatedFields.success) {
-    console.error("Reference Verification 2 Save Validation Error:", validatedFields.error.flatten());
-    return { error: 'Invalid data provided.' };
-  }
-
+  if (!validatedFields.success) return { error: 'Invalid data provided.' };
   try {
-    const dataToSave = convertDatesToTimestamps(validatedFields.data);
-
-    await serverDb.collection('caregiver_profiles').doc(profileId).set(dataToSave, { merge: true });
-    
-    revalidatePath(`/candidate-hiring-forms/reference-verification-2?id=${profileId}`);
+    await saveThinData(profileId, validatedFields.data);
     revalidatePath('/candidate-hiring-forms');
-    
     return { success: true, message: 'Reference Verification 2 form saved successfully.' };
-  } catch (error: any) {
-    console.error("Error saving Reference Verification 2 data:", error);
-    return { error: 'Failed to save form data.' };
-  }
+  } catch (error: any) { return { error: 'Failed to save form data.' }; }
 }
 
 export async function saveArbitrationAgreementData(profileId: string, data: any) {
   const validatedFields = arbitrationAgreementSchema.safeParse(data);
-
-  if (!validatedFields.success) {
-    console.error("Arbitration Agreement Save Validation Error:", validatedFields.error.flatten());
-    return { error: 'Invalid data provided.' };
-  }
-
+  if (!validatedFields.success) return { error: 'Invalid data provided.' };
   try {
-    const dataToSave = convertDatesToTimestamps(validatedFields.data);
-    
-    await serverDb.collection('caregiver_profiles').doc(profileId).set(dataToSave, { merge: true });
-    
-    revalidatePath(`/candidate-hiring-forms/arbitration-agreement?id=${profileId}`);
+    await saveThinData(profileId, validatedFields.data);
     revalidatePath('/candidate-hiring-forms');
-    
     return { success: true, message: 'Mutual Arbitration Agreement saved successfully.' };
-  } catch (error: any) {
-    console.error("Error saving Mutual Arbitration Agreement data:", error);
-    return { error: 'Failed to save form data.' };
-  }
+  } catch (error: any) { return { error: 'Failed to save form data.' }; }
 }
 
 export async function saveDrugAlcoholPolicyData(profileId: string, data: any) {
   const validatedFields = drugAlcoholPolicySchema.safeParse(data);
-
-  if (!validatedFields.success) {
-    console.error("Drug Alcohol Policy Save Validation Error:", validatedFields.error.flatten());
-    return { error: 'Invalid data provided.' };
-  }
-
+  if (!validatedFields.success) return { error: 'Invalid data provided.' };
   try {
-    const dataToSave = convertDatesToTimestamps(validatedFields.data);
-    
-    await serverDb.collection('caregiver_profiles').doc(profileId).set(dataToSave, { merge: true });
-    
-    revalidatePath(`/candidate-hiring-forms/drug-alcohol-policy?id=${profileId}`);
+    await saveThinData(profileId, validatedFields.data);
     revalidatePath('/candidate-hiring-forms');
-    
     return { success: true, message: 'Drug and/or Alcohol Testing Consent Form saved successfully.' };
-  } catch (error: any) {
-    console.error("Error saving Drug and/or Alcohol Testing Consent Form data:", error);
-    return { error: 'Failed to save form data.' };
-  }
+  } catch (error: any) { return { error: 'Failed to save form data.' }; }
 }
 
 export async function saveHcaJobDescriptionData(profileId: string, data: any) {
   const validatedFields = hcaJobDescriptionSchema.safeParse(data);
-
-  if (!validatedFields.success) {
-    console.error("HCA Job Description Save Validation Error:", validatedFields.error.flatten());
-    return { error: 'Invalid data provided.' };
-  }
-
+  if (!validatedFields.success) return { error: 'Invalid data provided.' };
   try {
-    const dataToSave = convertDatesToTimestamps(validatedFields.data);
-    
-    await serverDb.collection('caregiver_profiles').doc(profileId).set(dataToSave, { merge: true });
-    
-    revalidatePath(`/candidate-hiring-forms/hca-job-description?id=${profileId}`);
+    await saveThinData(profileId, validatedFields.data);
     revalidatePath('/candidate-hiring-forms');
-    
     return { success: true, message: 'HCA Job Description form saved successfully.' };
-  } catch (error: any) {
-    console.error("Error saving HCA Job Description data:", error);
-    return { error: 'Failed to save form data.' };
-  }
+  } catch (error: any) { return { error: 'Failed to save form data.' }; }
 }
 
 export async function saveClientAbandonmentData(profileId: string, data: any) {
   const validatedFields = clientAbandonmentSchema.safeParse(data);
-
-  if (!validatedFields.success) {
-    console.error("Client Abandonment Save Validation Error:", validatedFields.error.flatten());
-    return { error: 'Invalid data provided.' };
-  }
-
+  if (!validatedFields.success) return { error: 'Invalid data provided.' };
   try {
-    const dataToSave = convertDatesToTimestamps(validatedFields.data);
-    
-    await serverDb.collection('caregiver_profiles').doc(profileId).set(dataToSave, { merge: true });
-    
-    revalidatePath(`/candidate-hiring-forms/client-abandonment?id=${profileId}`);
+    await saveThinData(profileId, validatedFields.data);
     revalidatePath('/candidate-hiring-forms');
-    
     return { success: true, message: 'Client Abandonment form saved successfully.' };
-  } catch (error: any) {
-    console.error("Error saving Client Abandonment data:", error);
-    return { error: 'Failed to save form data.' };
-  }
+  } catch (error: any) { return { error: 'Failed to save form data.' }; }
 }
 
 export async function saveEmployeeOrientationAgreementData(profileId: string, data: any) {
   const validatedFields = employeeOrientationAgreementSchema.safeParse(data);
-
-  if (!validatedFields.success) {
-    console.error("Employee Orientation Agreement Save Validation Error:", validatedFields.error.flatten());
-    return { error: 'Invalid data provided.' };
-  }
-
+  if (!validatedFields.success) return { error: 'Invalid data provided.' };
   try {
-    const dataToSave = convertDatesToTimestamps(validatedFields.data);
-    
-    await serverDb.collection('caregiver_profiles').doc(profileId).set(dataToSave, { merge: true });
-    
-    revalidatePath(`/candidate-hiring-forms/employee-orientation-agreement?id=${profileId}`);
+    await saveThinData(profileId, validatedFields.data);
     revalidatePath('/candidate-hiring-forms');
-    
     return { success: true, message: 'Employee Orientation Agreement saved successfully.' };
-  } catch (error: any) {
-    console.error("Error saving Employee Orientation Agreement data:", error);
-    return { error: 'Failed to save form data.' };
-  }
+  } catch (error: any) { return { error: 'Failed to save form data.' }; }
 }
 
 export async function saveAcknowledgmentFormData(profileId: string, data: any) {
   const validatedFields = acknowledgmentFormSchema.safeParse(data);
-
-  if (!validatedFields.success) {
-    console.error("Acknowledgment Form Save Validation Error:", validatedFields.error.flatten());
-    return { error: 'Invalid data provided.' };
-  }
-
+  if (!validatedFields.success) return { error: 'Invalid data provided.' };
   try {
-    const dataToSave = convertDatesToTimestamps(validatedFields.data);
-    
-    await serverDb.collection('caregiver_profiles').doc(profileId).set(dataToSave, { merge: true });
-    
-    revalidatePath(`/candidate-hiring-forms/acknowledgment-form?id=${profileId}`);
+    await saveThinData(profileId, validatedFields.data);
     revalidatePath('/candidate-hiring-forms');
-    
     return { success: true, message: 'Acknowledgment form saved successfully.' };
-  } catch (error: any) {
-    console.error("Error saving Acknowledgment form data:", error);
-    return { error: 'Failed to save form data.' };
-  }
+  } catch (error: any) { return { error: 'Failed to save form data.' }; }
 }
 
 export async function saveConfidentialityAgreementData(profileId: string, data: any) {
   const validatedFields = confidentialityAgreementSchema.safeParse(data);
-
-  if (!validatedFields.success) {
-    console.error("Confidentiality Agreement Save Validation Error:", validatedFields.error.flatten());
-    return { error: 'Invalid data provided.' };
-  }
-
+  if (!validatedFields.success) return { error: 'Invalid data provided.' };
   try {
-    const candidateData = {
-      confidentialityAgreementEmployeeSignature: validatedFields.data.confidentialityAgreementEmployeeSignature,
-      confidentialityAgreementEmployeeSignatureDate: validatedFields.data.confidentialityAgreementEmployeeSignatureDate,
-    };
-    
-    const dataToSave = convertDatesToTimestamps(candidateData);
-    
-    await serverDb.collection('caregiver_profiles').doc(profileId).set(dataToSave, { merge: true });
-    
-    revalidatePath(`/candidate-hiring-forms/confidentiality-agreement?id=${profileId}`);
+    await saveThinData(profileId, validatedFields.data);
     revalidatePath('/candidate-hiring-forms');
-    
     return { success: true, message: 'Confidentiality Agreement saved successfully.' };
-  } catch (error: any) {
-    console.error("Error saving Confidentiality Agreement data:", error);
-    return { error: `An unexpected server error occurred: ${error.message}` };
-  }
+  } catch (error: any) { return { error: `An unexpected server error occurred: ${error.message}` }; }
 }
 
 export async function saveTrainingAcknowledgementData(profileId: string, data: any) {
   const validatedFields = trainingAcknowledgementSchema.safeParse(data);
-
-  if (!validatedFields.success) {
-    console.error("Training Acknowledgement Save Validation Error:", validatedFields.error.flatten());
-    return { error: 'Invalid data provided.' };
-  }
-
+  if (!validatedFields.success) return { error: 'Invalid data provided.' };
   try {
-    const dataToSave = convertDatesToTimestamps(validatedFields.data);
-    
-    await serverDb.collection('caregiver_profiles').doc(profileId).set(dataToSave, { merge: true });
-    
-    revalidatePath(`/candidate-hiring-forms/training-acknowledgement?id=${profileId}`);
+    await saveThinData(profileId, validatedFields.data);
     revalidatePath('/candidate-hiring-forms');
-    
     return { success: true, message: 'Training Acknowledgement form saved successfully.' };
-  } catch (error: any) {
-    console.error("Error saving Training Acknowledgement form data:", error);
-    return { error: 'Failed to save form data.' };
-  }
+  } catch (error: any) { return { error: 'Failed to save form data.' }; }
 }
 
 export async function saveOfferLetterData(profileId: string, data: any) {
   const validatedFields = offerLetterSchema.safeParse(data);
-
-  if (!validatedFields.success) {
-    console.error("Offer Letter Save Validation Error:", validatedFields.error.flatten());
-    return { error: 'Invalid data provided.' };
-  }
-
+  if (!validatedFields.success) return { error: 'Invalid data provided.' };
   try {
-    const dataToSave = convertDatesToTimestamps(validatedFields.data);
-    
-    await serverDb.collection('caregiver_profiles').doc(profileId).set(dataToSave, { merge: true });
-    
-    revalidatePath(`/candidate-hiring-forms/offer-letter?id=${profileId}`);
+    await saveThinData(profileId, validatedFields.data);
     revalidatePath('/candidate-hiring-forms');
-    
     return { success: true, message: 'Offer Letter saved successfully.' };
-  } catch (error: any) {
-    console.error("Error saving Offer Letter data:", error);
-    return { error: 'Failed to save form data.' };
-  }
+  } catch (error: any) { return { error: 'Failed to save form data.' }; }
 }
 
 export async function saveCaregiverResponsibilitiesData(profileId: string, data: any) {
     const validatedFields = caregiverResponsibilitiesSchema.safeParse(data);
-    if (!validatedFields.success) {
-        return { error: 'Invalid data provided.' };
-    }
+    if (!validatedFields.success) return { error: 'Invalid data provided.' };
     try {
-        const dataToSave = convertDatesToTimestamps(validatedFields.data);
-        await serverDb.collection('caregiver_profiles').doc(profileId).set(dataToSave, { merge: true });
-        revalidatePath(`/candidate-hiring-forms/caregiver-responsibilities?id=${profileId}`);
+        await saveThinData(profileId, validatedFields.data);
         revalidatePath('/candidate-hiring-forms');
         return { success: true, message: 'Caregiver Responsibilities saved successfully.' };
     } catch (e: any) { return { error: `Failed to save: ${e.message}` }; }
@@ -454,12 +305,9 @@ export async function saveLightHousekeepingAcknowledgement(profileId: string) {
 }
 
 export async function saveTelephonyInstructionsData(profileId: string) {
-    if (!profileId) {
-        return { error: 'Profile ID is required.' };
-    }
+    if (!profileId) return { error: 'Profile ID is required.' };
     try {
         await serverDb.collection('caregiver_profiles').doc(profileId).set({ telephonyInstructionsAcknowledged: true }, { merge: true });
-        revalidatePath(`/candidate-hiring-forms/caregiver-telephony-instructions`);
         revalidatePath('/candidate-hiring-forms');
         return { success: true, message: 'Telephony instructions acknowledged.' };
     } catch (e: any) { return { error: `Failed to save: ${e.message}` }; }
@@ -467,380 +315,203 @@ export async function saveTelephonyInstructionsData(profileId: string) {
 
 export async function saveEmergencyProcedureData(profileId: string, data: any) {
   const validatedFields = emergencyProcedureSchema.safeParse(data);
-  if (!validatedFields.success) {
-    return { error: 'Invalid data provided.' };
-  }
-
+  if (!validatedFields.success) return { error: 'Invalid data provided.' };
   try {
-    const dataToSave = convertDatesToTimestamps(validatedFields.data);
-    await serverDb.collection('caregiver_profiles').doc(profileId).collection('signatures').doc('onboarding_main').set(dataToSave, { merge: true });
-    
-    revalidatePath(`/candidate-hiring-forms/emergency-procedure?candidateId=${profileId}`);
+    await saveThinData(profileId, validatedFields.data);
     revalidatePath('/candidate-hiring-forms');
-    
     return { success: true, message: 'Emergency Procedures form saved successfully.' };
-  } catch (error: any) {
-    return { error: `Failed to save form data: ${error.message}` };
-  }
+  } catch (error: any) { return { error: `Failed to save form data: ${error.message}` }; }
 }
 
-
+async function getFullCandidateData(candidateId: string) {
+    const profileDoc = await serverDb.collection('caregiver_profiles').doc(candidateId).get();
+    if (!profileDoc.exists) return null;
+    const signaturesDoc = await profileDoc.ref.collection('signatures').doc('onboarding_main').get();
+    return {
+        ...profileDoc.data(),
+        ...(signaturesDoc.exists ? signaturesDoc.data() : {})
+    };
+}
 
 export async function generateHcs501PdfAction(candidateId: string) {
-    if (!candidateId) {
-        return { error: 'Candidate ID is required.' };
-    }
+    if (!candidateId) return { error: 'Candidate ID is required.' };
     try {
-        const profileDoc = await serverDb.collection('caregiver_profiles').doc(candidateId).get();
-        if (!profileDoc.exists) {
-            return { error: 'Candidate profile not found.' };
-        }
-        
+        const fullData = await getFullCandidateData(candidateId);
+        if (!fullData) return { error: 'Candidate profile not found.' };
         const employeeDoc = await serverDb.collection('caregiver_employees').doc(candidateId).get();
-        
-        const combinedData = {
-            ...profileDoc.data(),
-            ...(employeeDoc.exists ? employeeDoc.data() : {}),
-        };
-
-        const result = await generateHcs501Pdf(combinedData);
-        
-        return result;
-    } catch (error: any) {
-        return { error: `Failed to generate PDF: ${error.message}` };
-    }
+        const combinedData = { ...fullData, ...(employeeDoc.exists ? employeeDoc.data() : {}) };
+        return await generateHcs501Pdf(combinedData);
+    } catch (error: any) { return { error: `Failed to generate PDF: ${error.message}` }; }
 }
 
 export async function generateEmergencyContactPdfAction(candidateId: string) {
-    if (!candidateId) {
-        return { error: 'Candidate ID is required.' };
-    }
+    if (!candidateId) return { error: 'Candidate ID is required.' };
     try {
-        const docSnap = await serverDb.collection('caregiver_profiles').doc(candidateId).get();
-        if (!docSnap.exists) {
-            return { error: 'Candidate profile not found.' };
-        }
-        const formData = docSnap.data();
-        const result = await generateEmergencyContactPdf(formData);
-        
-        return result;
-    } catch (error: any) {
-        return { error: `Failed to generate PDF: ${error.message}` };
-    }
+        const fullData = await getFullCandidateData(candidateId);
+        if (!fullData) return { error: 'Candidate profile not found.' };
+        return await generateEmergencyContactPdf(fullData);
+    } catch (error: any) { return { error: `Failed to generate PDF: ${error.message}` }; }
 }
 
 export async function generateReferenceVerification1PdfAction(candidateId: string) {
-    if (!candidateId) {
-        return { error: 'Candidate ID is required.' };
-    }
+    if (!candidateId) return { error: 'Candidate ID is required.' };
     try {
-        const docSnap = await serverDb.collection('caregiver_profiles').doc(candidateId).get();
-        if (!docSnap.exists) {
-            return { error: 'Candidate profile not found.' };
-        }
-        const formData = docSnap.data();
-        const result = await generateReferenceVerification1Pdf(formData);
-        
-        return result;
-    } catch (error: any) {
-        return { error: `Failed to generate PDF: ${error.message}` };
-    }
+        const fullData = await getFullCandidateData(candidateId);
+        if (!fullData) return { error: 'Candidate profile not found.' };
+        return await generateReferenceVerification1Pdf(fullData);
+    } catch (error: any) { return { error: `Failed to generate PDF: ${error.message}` }; }
 }
 
 export async function generateReferenceVerification2PdfAction(candidateId: string) {
-    if (!candidateId) {
-        return { error: 'Candidate ID is required.' };
-    }
+    if (!candidateId) return { error: 'Candidate ID is required.' };
     try {
-        const docSnap = await serverDb.collection('caregiver_profiles').doc(candidateId).get();
-        if (!docSnap.exists) {
-            return { error: 'Candidate profile not found.' };
-        }
-        const formData = docSnap.data();
-        const result = await generateReferenceVerification2Pdf(formData);
-        
-        return result;
-    } catch (error: any) {
-        return { error: `Failed to generate PDF: ${error.message}` };
-    }
+        const fullData = await getFullCandidateData(candidateId);
+        if (!fullData) return { error: 'Candidate profile not found.' };
+        return await generateReferenceVerification2Pdf(fullData);
+    } catch (error: any) { return { error: `Failed to generate PDF: ${error.message}` }; }
 }
 
-
 export async function generateLic508PdfAction(candidateId: string) {
-    if (!candidateId) {
-        return { error: 'Candidate ID is required.' };
-    }
+    if (!candidateId) return { error: 'Candidate ID is required.' };
     try {
-        const docSnap = await serverDb.collection('caregiver_profiles').doc(candidateId).get();
-        if (!docSnap.exists) {
-            return { error: 'Candidate profile not found.' };
-        }
-        const formData = docSnap.data();
-        const result = await generateLic508Pdf(formData);
-        
-        return result;
-    } catch (error: any) {
-        return { error: `Failed to generate PDF: ${error.message}` };
-    }
+        const fullData = await getFullCandidateData(candidateId);
+        if (!fullData) return { error: 'Candidate profile not found.' };
+        return await generateLic508Pdf(fullData);
+    } catch (error: any) { return { error: `Failed to generate PDF: ${error.message}` }; }
 }
 
 export async function generateSoc341aPdfAction(candidateId: string) {
-    if (!candidateId) {
-        return { error: 'Candidate ID is required.' };
-    }
+    if (!candidateId) return { error: 'Candidate ID is required.' };
     try {
-        const docSnap = await serverDb.collection('caregiver_profiles').doc(candidateId).get();
-        if (!docSnap.exists) {
-            return { error: 'Candidate profile not found.' };
-        }
-        const formData = docSnap.data();
-        const result = await generateSoc341aPdf(formData);
-        
-        return result;
-    } catch (error: any) {
-        return { error: `Failed to generate PDF: ${error.message}` };
-    }
+        const fullData = await getFullCandidateData(candidateId);
+        if (!fullData) return { error: 'Candidate profile not found.' };
+        return await generateSoc341aPdf(fullData);
+    } catch (error: any) { return { error: `Failed to generate PDF: ${error.message}` }; }
 }
 
 export async function generateHcaJobDescriptionPdfAction(candidateId: string) {
-    if (!candidateId) {
-        return { error: 'Candidate ID is required.' };
-    }
+    if (!candidateId) return { error: 'Candidate ID is required.' };
     try {
-        const docSnap = await serverDb.collection('caregiver_profiles').doc(candidateId).get();
-        if (!docSnap.exists) {
-            return { error: 'Candidate profile not found.' };
-        }
-        const formData = docSnap.data();
-        const result = await generateHcaJobDescriptionPdf(formData);
-        
-        return result;
-    } catch (error: any) {
-        return { error: `Failed to generate PDF: ${error.message}` };
-    }
+        const fullData = await getFullCandidateData(candidateId);
+        if (!fullData) return { error: 'Candidate profile not found.' };
+        return await generateHcaJobDescriptionPdf(fullData);
+    } catch (error: any) { return { error: `Failed to generate PDF: ${error.message}` }; }
 }
 
 export async function generateDrugAlcoholPolicyPdfAction(candidateId: string) {
-    if (!candidateId) {
-        return { error: 'Candidate ID is required.' };
-    }
+    if (!candidateId) return { error: 'Candidate ID is required.' };
     try {
-        const docSnap = await serverDb.collection('caregiver_profiles').doc(candidateId).get();
-        if (!docSnap.exists) {
-            return { error: 'Candidate profile not found.' };
-        }
-        const formData = docSnap.data();
-        const result = await generateDrugAlcoholPolicyPdf(formData);
-        
-        return result;
-    } catch (error: any) {
-        console.error("Error generating PDF:", error);
-        return { error: `Failed to generate PDF: ${error.message}` };
-    }
+        const fullData = await getFullCandidateData(candidateId);
+        if (!fullData) return { error: 'Candidate profile not found.' };
+        return await generateDrugAlcoholPolicyPdf(fullData);
+    } catch (error: any) { return { error: `Failed to generate PDF: ${error.message}` }; }
 }
   
 export async function generateClientAbandonmentPdfAction(candidateId: string) {
-    if (!candidateId) {
-        return { error: 'Candidate ID is required.' };
-    }
+    if (!candidateId) return { error: 'Candidate ID is required.' };
     try {
-        const docSnap = await serverDb.collection('caregiver_profiles').doc(candidateId).get();
-        if (!docSnap.exists) {
-            return { error: 'Candidate profile not found.' };
-        }
-        const formData = docSnap.data();
-        const result = await generateClientAbandonmentPdf(formData);
-        
-        return result;
-    } catch (error: any) {
-        console.error("Error generating PDF:", error);
-        return { error: `Failed to generate PDF: ${error.message}` };
-    }
+        const fullData = await getFullCandidateData(candidateId);
+        if (!fullData) return { error: 'Candidate profile not found.' };
+        return await generateClientAbandonmentPdf(fullData);
+    } catch (error: any) { return { error: `Failed to generate PDF: ${error.message}` }; }
 }
 
 export async function generateArbitrationAgreementPdfAction(candidateId: string) {
-    if (!candidateId) {
-        return { error: 'Candidate ID is required.' };
-    }
+    if (!candidateId) return { error: 'Candidate ID is required.' };
     try {
-        const docSnap = await serverDb.collection('caregiver_profiles').doc(candidateId).get();
-        if (!docSnap.exists) {
-            return { error: 'Candidate profile not found.' };
-        }
-        const formData = docSnap.data();
-        const result = await generateArbitrationAgreementPdf(formData);
-        
-        return result;
-    } catch (error: any) {
-        console.error("Error generating PDF:", error);
-        return { error: `Failed to generate PDF: ${error.message}` };
-    }
+        const fullData = await getFullCandidateData(candidateId);
+        if (!fullData) return { error: 'Candidate profile not found.' };
+        return await generateArbitrationAgreementPdf(fullData);
+    } catch (error: any) { return { error: `Failed to generate PDF: ${error.message}` }; }
 }
 
 export async function generateEmployeeOrientationAgreementPdfAction(candidateId: string) {
-    if (!candidateId) {
-        return { error: 'Candidate ID is required.' };
-    }
+    if (!candidateId) return { error: 'Candidate ID is required.' };
     try {
-        const docSnap = await serverDb.collection('caregiver_profiles').doc(candidateId).get();
-        if (!docSnap.exists) {
-            return { error: 'Candidate profile not found.' };
-        }
-        const formData = docSnap.data();
-        const result = await generateEmployeeOrientationAgreementPdf(formData);
-        
-        return result;
-    } catch (error: any) {
-        console.error("Error generating Employee Orientation Agreement PDF:", error);
-        return { error: `Failed to generate PDF: ${error.message}` };
-    }
+        const fullData = await getFullCandidateData(candidateId);
+        if (!fullData) return { error: 'Candidate profile not found.' };
+        return await generateEmployeeOrientationAgreementPdf(fullData);
+    } catch (error: any) { return { error: `Failed to generate PDF: ${error.message}` }; }
 }
 
 export async function generateAcknowledgmentFormPdfAction(candidateId: string) {
-    if (!candidateId) {
-        return { error: 'Candidate ID is required.' };
-    }
+    if (!candidateId) return { error: 'Candidate ID is required.' };
     try {
-        const docSnap = await serverDb.collection('caregiver_profiles').doc(candidateId).get();
-        if (!docSnap.exists) {
-            return { error: 'Candidate profile not found.' };
-        }
-        const formData = docSnap.data();
-        const result = await generateAcknowledgmentFormPdf(formData);
-        
-        return result;
-    } catch (error: any) {
-        console.error("Error generating Acknowledgment Form PDF:", error);
-        return { error: `Failed to generate PDF: ${error.message}` };
-    }
+        const fullData = await getFullCandidateData(candidateId);
+        if (!fullData) return { error: 'Candidate profile not found.' };
+        return await generateAcknowledgmentFormPdf(fullData);
+    } catch (error: any) { return { error: `Failed to generate PDF: ${error.message}` }; }
 }
 
 export async function generateConfidentialityAgreementPdfAction(candidateId: string) {
-    if (!candidateId) {
-        return { error: 'Candidate ID is required.' };
-    }
+    if (!candidateId) return { error: 'Candidate ID is required.' };
     try {
-        const docSnap = await serverDb.collection('caregiver_profiles').doc(candidateId).get();
-        if (!docSnap.exists) {
-            return { error: 'Candidate profile not found.' };
-        }
-        const formData = docSnap.data();
-        const result = await generateConfidentialityAgreementPdf(formData);
-        
-        return result;
-    } catch (error: any) {
-        console.error("Error generating Confidentiality Agreement PDF:", error);
-        return { error: `Failed to generate PDF: ${error.message}` };
-    }
+        const fullData = await getFullCandidateData(candidateId);
+        if (!fullData) return { error: 'Candidate profile not found.' };
+        return await generateConfidentialityAgreementPdf(fullData);
+    } catch (error: any) { return { error: `Failed to generate PDF: ${error.message}` }; }
 }
 
 export async function generateTrainingAcknowledgementPdfAction(candidateId: string) {
-    if (!candidateId) {
-        return { error: 'Candidate ID is required.' };
-    }
+    if (!candidateId) return { error: 'Candidate ID is required.' };
     try {
-        const docSnap = await serverDb.collection('caregiver_profiles').doc(candidateId).get();
-        if (!docSnap.exists) {
-            return { error: 'Candidate profile not found.' };
-        }
-        const formData = docSnap.data();
-        const result = await generateTrainingAcknowledgementPdf(formData);
-        
-        return result;
-    } catch (error: any) {
-        console.error("Error generating Training Acknowledgement PDF:", error);
-        return { error: `Failed to generate PDF: ${error.message}` };
-    }
+        const fullData = await getFullCandidateData(candidateId);
+        if (!fullData) return { error: 'Candidate profile not found.' };
+        return await generateTrainingAcknowledgementPdf(fullData);
+    } catch (error: any) { return { error: `Failed to generate PDF: ${error.message}` }; }
 }
 
 export async function generateOfferLetterPdfAction(candidateId: string) {
-    if (!candidateId) {
-        return { error: 'Candidate ID is required.' };
-    }
+    if (!candidateId) return { error: 'Candidate ID is required.' };
     try {
-        const docSnap = await serverDb.collection('caregiver_profiles').doc(candidateId).get();
-        if (!docSnap.exists) {
-            return { error: 'Candidate profile not found.' };
-        }
-        const formData = docSnap.data();
-        
-        // Fetch settings data
+        const fullData = await getFullCandidateData(candidateId);
+        if (!fullData) return { error: 'Candidate profile not found.' };
         const settingsSnap = await serverDb.collection('settings').doc('hiring_form_fields').get();
         const settingsData = settingsSnap.exists ? settingsSnap.data() : {};
-
-        const combinedData = { ...formData, ...settingsData };
-        
-        const result = await generateOfferLetterPdf(combinedData);
-        
-        return result;
-    } catch (error: any) {
-        console.error("Error generating Offer Letter PDF:", error);
-        return { error: `Failed to generate PDF: ${error.message}` };
-    }
+        const combinedData = { ...fullData, ...settingsData };
+        return await generateOfferLetterPdf(combinedData);
+    } catch (error: any) { return { error: `Failed to generate PDF: ${error.message}` }; }
 }
 
 export async function generateCaregiverResponsibilitiesPdfAction(candidateId: string) {
     if (!candidateId) return { error: 'Candidate ID is required.' };
     try {
-        const docSnap = await serverDb.collection('caregiver_profiles').doc(candidateId).get();
-        if (!docSnap.exists) return { error: 'Candidate profile not found.' };
-        const result = await generateCaregiverResponsibilitiesPdf(docSnap.data());
-        return result;
+        const fullData = await getFullCandidateData(candidateId);
+        if (!fullData) return { error: 'Candidate profile not found.' };
+        return await generateCaregiverResponsibilitiesPdf(fullData);
     } catch (e: any) { return { error: `Failed to generate PDF: ${e.message}` }; }
 }
 
 export async function generateLightHousekeepingPdfAction() {
-    try {
-        const result = await generateLightHousekeepingPdf();
-        return result;
-    } catch (e: any) { return { error: `Failed to generate PDF: ${e.message}` }; }
+    try { return await generateLightHousekeepingPdf(); } catch (e: any) { return { error: `Failed to generate PDF: ${e.message}` }; }
 }
 
 export async function generateCaregiverTelephonyInstructionsPdfAction(candidateId: string) {
     if (!candidateId) return { error: 'Candidate ID is required.' };
     try {
-        const profileSnap = await serverDb.collection('caregiver_profiles').doc(candidateId).get();
-        if (!profileSnap.exists) return { error: 'Candidate profile not found.' };
-        
+        const fullData = await getFullCandidateData(candidateId);
+        if (!fullData) return { error: 'Candidate profile not found.' };
         const employeeSnap = await serverDb.collection('caregiver_employees').doc(candidateId).get();
-        
-        const combinedData = { ...profileSnap.data(), ...employeeSnap.data() };
-        
-        const result = await generateCaregiverTelephonyInstructionsPdf(combinedData);
-        return result;
+        const combinedData = { ...fullData, ...employeeSnap.data() };
+        return await generateCaregiverTelephonyInstructionsPdf(combinedData);
     } catch (e: any) { return { error: `Failed to generate PDF: ${e.message}` }; }
 }
 
 export async function generateEmergencyProcedurePdfAction(candidateId: string) {
-    if (!candidateId) {
-        return { error: 'Candidate ID is required.' };
-    }
+    if (!candidateId) return { error: 'Candidate ID is required.' };
     try {
-        const docSnap = await serverDb.collection('caregiver_profiles').doc(candidateId).collection('signatures').doc('onboarding_main').get();
-        const formData = docSnap.exists ? docSnap.data() : {};
-        const result = await generateEmergencyProcedurePdf(formData);
-        
-        return result;
-    } catch (error: any) {
-        return { error: `Failed to generate PDF: ${error.message}` };
-    }
+        const fullData = await getFullCandidateData(candidateId);
+        if (!fullData) return { error: 'Candidate profile not found.' };
+        return await generateEmergencyProcedurePdf(fullData);
+    } catch (error: any) { return { error: `Failed to generate PDF: ${error.message}` }; }
 }
 
-
-
 export async function generateAllFormsAsZipAction(candidateId: string) {
-    if (!candidateId) {
-        return { error: 'Candidate ID is required.' };
-    }
-
+    if (!candidateId) return { error: 'Candidate ID is required.' };
     try {
-        const docSnap = await serverDb.collection('caregiver_profiles').doc(candidateId).get();
-        if (!docSnap.exists) {
-            return { error: 'Candidate profile not found.' };
-        }
-        const formData = docSnap.data() as CaregiverProfile;
+        const fullData = await getFullCandidateData(candidateId);
+        if (!fullData) return { error: 'Candidate profile not found.' };
         const zip = new JSZip();
-
         const formGenerators = [
             { key: 'hcs501EmployeeSignature', name: 'HCS501 - Personnel Record.pdf', generator: generateHcs501Pdf },
             { key: 'emergencyContact1_name', name: 'Emergency Contact.pdf', generator: generateEmergencyContactPdf },
@@ -862,51 +533,28 @@ export async function generateAllFormsAsZipAction(candidateId: string) {
             { key: 'telephonyInstructionsAcknowledged', name: 'Caregiver Telephony Instructions.pdf', generator: generateCaregiverTelephonyInstructionsPdf },
             { key: 'emergencyProcedureSignature', name: 'Caregiver Emergency Procedures.pdf', generator: generateEmergencyProcedurePdf },
         ];
-        
         const settingsSnap = await serverDb.collection('settings').doc('hiring_form_fields').get();
         const settingsData = settingsSnap.exists ? settingsSnap.data() : {};
-        
-        const signaturesSnap = await serverDb.collection('caregiver_profiles').doc(candidateId).collection('signatures').doc('onboarding_main').get();
-        const signaturesData = signaturesSnap.exists ? signaturesSnap.data() : {};
-        
         let generatedFileCount = 0;
-
         for (const form of formGenerators) {
-            let dataForGenerator: any = { ...formData, ...settingsData, ...signaturesData };
-
-            if (form.key === 'telephonyInstructionsAcknowledged' || form.key === 'hcs501EmployeeSignature') {
-                const employeeSnap = await serverDb.collection('caregiver_employees').doc(candidateId).get();
-                dataForGenerator = { ...dataForGenerator, ...employeeSnap.data() };
-            }
-            
-            let isComplete = !!(formData as any)[form.key] || !!(signaturesData as any)[form.key];
-
+            let isComplete = !!(fullData as any)[form.key];
             if (isComplete) {
                 try {
+                    let dataForGenerator = { ...fullData, ...settingsData };
+                    if (form.key === 'telephonyInstructionsAcknowledged' || form.key === 'hcs501EmployeeSignature') {
+                        const employeeSnap = await serverDb.collection('caregiver_employees').doc(candidateId).get();
+                        dataForGenerator = { ...dataForGenerator, ...employeeSnap.data() };
+                    }
                     const pdfResult = await form.generator(dataForGenerator);
                     if (pdfResult.pdfData) {
                         zip.file(form.name, pdfResult.pdfData, { base64: true });
                         generatedFileCount++;
-                    } else {
-                        console.warn(`Could not generate PDF for ${form.name}: ${pdfResult.error}`);
-                        zip.file(`${form.name}.error.txt`, `Failed to generate PDF: ${pdfResult.error}`);
                     }
-                } catch (pdfError: any) {
-                     console.error(`Critical error generating PDF for ${form.name}:`, pdfError);
-                     zip.file(`${form.name}.error.txt`, `Failed to generate PDF due to a critical error: ${pdfError.message}`);
-                }
+                } catch (pdfError) {}
             }
         }
-        
-        if (generatedFileCount === 0) {
-            return { error: 'No completed forms found to download.' };
-        }
-
+        if (generatedFileCount === 0) return { error: 'No completed forms found to download.' };
         const zipAsBase64 = await zip.generateAsync({ type: 'base64' });
         return { zipData: zipAsBase64 };
-
-    } catch (error: any) {
-        console.error("Error generating all forms zip:", error);
-        return { error: `Failed to generate zip file: ${error.message}` };
-    }
+    } catch (error: any) { return { error: `Failed to generate zip file: ${error.message}` }; }
 }

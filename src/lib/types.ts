@@ -30,7 +30,6 @@ export const requiredDateString = z.string()
     message: "Invalid date. Please use MM/DD/YYYY format.",
   });
   
-// This now represents a single visit within the Allstar route sheet context.
 export const allstarVisitSchema = z.object({
   serviceDate: dateString,
   timeIn: z.string().optional(),
@@ -41,13 +40,10 @@ export const allstarVisitSchema = z.object({
 });
 export type AllstarVisit = z.infer<typeof allstarVisitSchema>;
 
-// The main schema for the Allstar template now directly contains fields for a single visit,
-// plus the employee details that are consistent across all visits in a submission session.
 export const allstarRouteSheetSchema = allstarVisitSchema.extend({
   employeeName: z.string().trim().optional(),
   title: z.enum(["Caregiver", "HCA"]).optional(),
   employeeSignature: z.string().optional(),
-  // Admin fields that will be duplicated across logs for a week upon saving.
   dateSubmitted: dateString,
   checkedBy: z.string().trim().optional(),
   checkedDate: dateString,
@@ -98,32 +94,32 @@ export const initialContactSchema = z.object({
   clientUsesHoyerLift: z.enum(["Yes", "No"]).optional(),
   smokingEnvironment: z.enum(["Yes", "No"]).optional(),
   companionCare_mealPreparation: z.boolean().optional(),
-    companionCare_cleanKitchen: z.boolean().optional(),
-    companionCare_assistWithLaundry: z.boolean().optional(),
-    companionCare_dustFurniture: z.boolean().optional(),
-    companionCare_assistWithEating: z.boolean().optional(),
-    companionCare_provideAlzheimersRedirection: z.boolean().optional(),
-    companionCare_assistWithHomeManagement: z.boolean().optional(),
-    companionCare_preparationForBathing: z.boolean().optional(),
-    companionCare_groceryShopping: z.boolean().optional(),
-    companionCare_cleanBathrooms: z.boolean().optional(),
-    companionCare_changeBedLinens: z.boolean().optional(),
-    companionCare_runErrands: z.boolean().optional(),
-    companionCare_escortAndTransportation: z.boolean().optional(),
-    companionCare_provideRemindersAndAssistWithToileting: z.boolean().optional(),
-    companionCare_provideRespiteCare: z.boolean().optional(),
-    companionCare_stimulateMentalAwareness: z.boolean().optional(),
-    companionCare_assistWithDressingAndGrooming: z.boolean().optional(),
-    companionCare_assistWithShavingAndOralCare: z.boolean().optional(),
-    companionCare_other: z.string().trim().optional(),
-    personalCare_provideAlzheimersCare: z.boolean().optional(),
-    personalCare_provideMedicationReminders: z.boolean().optional(),
-    personalCare_assistWithDressingGrooming: z.boolean().optional(),
-    personalCare_assistWithBathingHairCare: z.boolean().optional(),
-    personalCare_assistWithFeedingSpecialDiets: z.boolean().optional(),
-    personalCare_assistWithMobilityAmbulationTransfer: z.boolean().optional(),
-    personalCare_assistWithIncontinenceCare: z.boolean().optional(),
-    personalCare_assistWithOther: z.string().trim().optional(),
+  companionCare_cleanKitchen: z.boolean().optional(),
+  companionCare_assistWithLaundry: z.boolean().optional(),
+  companionCare_dustFurniture: z.boolean().optional(),
+  companionCare_assistWithEating: z.boolean().optional(),
+  companionCare_provideAlzheimersRedirection: z.boolean().optional(),
+  companionCare_assistWithHomeManagement: z.boolean().optional(),
+  companionCare_preparationForBathing: z.boolean().optional(),
+  companionCare_groceryShopping: z.boolean().optional(),
+  companionCare_cleanBathrooms: z.boolean().optional(),
+  companionCare_changeBedLinens: z.boolean().optional(),
+  companionCare_runErrands: z.boolean().optional(),
+  companionCare_escortAndTransportation: z.boolean().optional(),
+  companionCare_provideRemindersAndAssistWithToileting: z.boolean().optional(),
+  companionCare_provideRespiteCare: z.boolean().optional(),
+  companionCare_stimulateMentalAwareness: z.boolean().optional(),
+  companionCare_assistWithDressingAndGrooming: z.boolean().optional(),
+  companionCare_assistWithShavingAndOralCare: z.boolean().optional(),
+  companionCare_other: z.string().trim().optional(),
+  personalCare_provideAlzheimersCare: z.boolean().optional(),
+  personalCare_provideMedicationReminders: z.boolean().optional(),
+  personalCare_assistWithDressingGrooming: z.boolean().optional(),
+  personalCare_assistWithBathingHairCare: z.boolean().optional(),
+  personalCare_assistWithFeedingSpecialDiets: z.boolean().optional(),
+  personalCare_assistWithMobilityAmbulationTransfer: z.boolean().optional(),
+  personalCare_assistWithIncontinenceCare: z.boolean().optional(),
+  personalCare_assistWithOther: z.string().trim().optional(),
 }).superRefine((data, ctx) => {
     if (data.inHomeVisitSet === "Yes") {
         if (!data.dateOfHomeVisit) {
@@ -480,35 +476,29 @@ export const emergencyProcedureSchema = z.object({
 export type EmergencyProcedureFormData = z.infer<typeof emergencyProcedureSchema>;
 
 export const onboardingSignaturesSchema = z.object({
+    hcs501EmployeeSignature: z.string().optional(),
+    applicantSignature1: z.string().optional(),
+    applicantSignature2: z.string().optional(),
+    lic508Signature: z.string().optional(),
+    soc341aSignature: z.string().optional(),
+    arbitrationAgreementSignature: z.string().optional(),
+    drugAlcoholPolicySignature: z.string().optional(),
+    drugAlcoholPolicyRepSignature: z.string().optional(),
+    jobDescriptionSignature: z.string().optional(),
+    clientAbandonmentSignature: z.string().optional(),
+    clientAbandonmentWitnessSignature: z.string().optional(),
+    orientationAgreementSignature: z.string().optional(),
+    orientationAgreementWitnessSignature: z.string().optional(),
+    acknowledgmentSignature: z.string().optional(),
+    confidentialityAgreementEmployeeSignature: z.string().optional(),
+    confidentialityAgreementRepSignature: z.string().optional(),
+    trainingAcknowledgementSignature: z.string().optional(),
+    offerLetterSignature: z.string().optional(),
+    caregiverResponsibilitiesSignature: z.string().optional(),
     emergencyProcedureSignature: z.string().optional(),
     emergencyProcedureSignatureDate: dateString,
 });
 export type OnboardingSignatures = z.infer<typeof onboardingSignaturesSchema>;
-
-export const vaTaskTemplateSchema = z.object({
-  name: z.string().trim(),
-  description: z.string().trim().optional(),
-  tasks: z.array(z.string()),
-  createdAt: z.any(),
-  lastUpdatedAt: z.any(),
-});
-export type VATaskTemplate = z.infer<typeof vaTaskTemplateSchema> & { id: string };
-
-export const vaMedicalRecordSchema = z.object({
-  clientId: z.string(),
-  clientName: z.string().trim(),
-  caregiverId: z.string().optional(),
-  date: z.any(),
-  day: z.string().trim(),
-  caregiverName: z.string().trim(),
-  ratePlan: z.string().trim(),
-  arrivalTime: z.string().trim(),
-  departureTime: z.string().trim(),
-  createdAt: z.any(),
-  tasks: z.record(z.boolean()).optional(),
-  providerSignature: z.string().trim().optional(),
-});
-export type VAMedicalRecord = z.infer<typeof vaMedicalRecordSchema> & { id: string };
 
 export const caregiverFormSchema = generalInfoSchema
   .merge(experienceSchema)
@@ -661,7 +651,7 @@ const careLogBaseSchema = z.object({
   shiftDateTime: z.any().optional(),
   shiftEndDateTime: z.any().optional(),
   logNotes: z.string().trim().optional(),
-  logImages: z.array(z.string()).optional(), // Array of data URIs
+  logImages: z.array(z.string()).optional(), 
   createdAt: z.any(),
   lastUpdatedAt: z.any(),
 });
@@ -713,21 +703,14 @@ const clientSignupDraftSchema = z.object({
 });
 
 export const clientSignupFormSchema = clientSignupDraftSchema.extend({
-  // TPP CSA Specific
   payor: z.string().trim().optional(),
-
-  // Office Use Only
   officeTodaysDate: dateString,
   officeReferralDate: dateString,
   officeInitialContactDate: dateString,
-
-  // Client Information
   clientAddress: z.string().trim().optional(),
   clientPostalCode: z.string().trim().optional(),
   clientSSN: z.string().trim().optional(),
   clientDOB: dateString,
-  
-  // Emergency Contact
   emergencyContactName: z.string().trim().optional(),
   emergencyContactRelationship: z.string().trim().optional(),
   emergencyContactHomePhone: z.string().trim().optional(),
@@ -735,20 +718,14 @@ export const clientSignupFormSchema = clientSignupDraftSchema.extend({
   secondEmergencyContactName: z.string().trim().optional(),
   secondEmergencyContactRelationship: z.string().trim().optional(),
   secondEmergencyContactPhone: z.string().trim().optional(),
-
-  // Service and Schedule
   homemakerCompanion: z.boolean().optional(),
   personalCare: z.boolean().optional(),
   daysPerWeek: z.string().trim().optional(),
   hoursPerDay: z.string().trim().optional(),
   contractStartDate: dateString,
-
-  // Payments
   hourlyRate: z.coerce.number().optional(),
   minimumHoursPerShift: z.coerce.number().optional(),
   rateCardDate: dateString,
-  
-  // Terms and Conditions
   policyNumber: z.string().trim().optional(),
   policyPeriod: z.string().trim().optional(),
   clientInitials: z.string().trim().optional(),
@@ -757,8 +734,6 @@ export const clientSignupFormSchema = clientSignupDraftSchema.extend({
   receivedTransportationWaiver: z.boolean().optional(),
   receivedPaymentAgreement: z.boolean().optional(),
   receivedAdditionalDisclosures: z.boolean().optional(),
-
-  // Signatures
   clientSignature: z.string().optional(),
   clientPrintedName: z.string().trim().optional(),
   clientSignatureDate: dateString,
@@ -768,8 +743,6 @@ export const clientSignupFormSchema = clientSignupDraftSchema.extend({
   firstLightRepresentativeSignature: z.string().optional(),
   firstLightRepresentativeTitle: z.string().trim().optional(),
   firstLightRepresentativeSignatureDate: dateString,
-
-  // Home Care Service Plan
   companionCare_mealPreparation: z.boolean().optional(),
   companionCare_cleanKitchen: z.boolean().optional(),
   companionCare_assistWithLaundry: z.boolean().optional(),
@@ -798,16 +771,12 @@ export const clientSignupFormSchema = clientSignupDraftSchema.extend({
   personalCare_assistWithIncontinenceCare: z.boolean().optional(),
   personalCare_assistWithOther: z.string().trim().optional(),
   servicePlanClientInitials: z.string().trim().optional(),
-
-  // Agreement
   agreementClientName: z.string().trim().optional(),
   agreementClientSignature: z.string().optional(),
   agreementSignatureDate: dateString,
   agreementRelationship: z.string().trim().optional(),
   agreementRepSignature: z.string().optional(),
   agreementRepDate: dateString,
-
-  // Transportation Waiver
   transportationWaiverClientSignature: z.string().optional(),
   transportationWaiverClientPrintedName: z.string().trim().optional(),
   transportationWaiverWitnessSignature: z.string().optional(),

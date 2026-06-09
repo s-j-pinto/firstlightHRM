@@ -47,36 +47,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { format, isDate } from 'date-fns';
 import { sendHiringDocsNotification } from '@/lib/communication.actions';
-
-const hiringForms: { name: string; href: string; completionKey: keyof CaregiverProfile | keyof OnboardingSignatures; pdfAction: string; adminSchema?: z.ZodObject<any, any, any> | z.ZodEffects<any,any,any> }[] = [
-  { name: "HCS 501 - Personnel Record 2019", href: "/candidate-hiring-forms/hcs501", completionKey: 'hcs501EmployeeSignature', pdfAction: 'hcs501', adminSchema: hcs501AdminSchema },
-  { name: "Caregiver Emergency Contact Numbers", href: "/candidate-hiring-forms/emergency-contact", completionKey: 'emergencyContact1_name', pdfAction: 'emergencyContact' },
-  { name: "Reference Verification 1", href: "/candidate-hiring-forms/reference-verification-1", completionKey: 'applicantSignature1', pdfAction: 'referenceVerification1' },
-  { name: "Reference Verification 2", href: "/candidate-hiring-forms/reference-verification-2", completionKey: 'applicantSignature2', pdfAction: 'referenceVerification2' },
-  { name: "LIC 508 - Criminal Record Statement", href: "/candidate-hiring-forms/lic508", completionKey: 'lic508Signature', pdfAction: 'lic508' },
-  { name: "SOC 341A - Elder Abuse Reporting Form", href: "/candidate-hiring-forms/soc341a", completionKey: 'soc341aSignature', pdfAction: 'soc341a' },
-];
-
-const onboardingForms: { name: string; href: string; completionKey: keyof CaregiverProfile | keyof OnboardingSignatures; pdfAction: string; adminSchema?: z.ZodObject<any, any, any> | z.ZodEffects<any,any,any> }[] = [
-  { name: "Mutual Arbitration Agreement", href: "/candidate-hiring-forms/arbitration-agreement", completionKey: 'arbitrationAgreementSignature', pdfAction: 'arbitrationAgreement' },
-  { name: "Drug and/or Alcohol Testing Consent Form", href: "/candidate-hiring-forms/drug-alcohol-policy", completionKey: 'drugAlcoholPolicySignature', pdfAction: 'drugAlcoholPolicy', adminSchema: drugAlcoholPolicyAdminSchema },
-  { name: "HCA job description-Rancho-Cucamonga", href: "/candidate-hiring-forms/hca-job-description", completionKey: 'jobDescriptionSignature', pdfAction: 'hcaJobDescription' },
-  { name: "Client Abandonment", href: "/candidate-hiring-forms/client-abandonment", completionKey: 'clientAbandonmentSignature', pdfAction: 'clientAbandonment', adminSchema: clientAbandonmentAdminSchema },
-  { name: "EMPLOYEE ORIENTATION AGREEMENT", href: "/candidate-hiring-forms/employee-orientation-agreement", completionKey: 'orientationAgreementSignature', pdfAction: 'employeeOrientationAgreement', adminSchema: employeeOrientationAgreementAdminSchema },
-  { name: "FirstLightHomeCare_AcknowledgmentForm", href: "/candidate-hiring-forms/acknowledgment-form", completionKey: 'acknowledgmentSignature', pdfAction: 'acknowledgmentForm' },
-  { 
-    name: "FirstLightHomeCare_CONFIDENTIALITY_AGREEMENT", 
-    href: "/candidate-hiring-forms/confidentiality-agreement", 
-    completionKey: 'confidentialityAgreementEmployeeSignature', 
-    pdfAction: 'confidentialityAgreement'
-  },
-  { name: "FirstLightHomeCareTrainingAcknowledgement", href: "/candidate-hiring-forms/training-acknowledgement", completionKey: 'trainingAcknowledgementSignature', pdfAction: 'trainingAcknowledgement' },
-  { name: "MASTER-FLHC Offer Letter revised-2-16-26", href: "/candidate-hiring-forms/offer-letter", completionKey: 'offerLetterSignature', pdfAction: 'offerLetter' },
-  { name: "Caregiver Responsibilities", href: "/candidate-hiring-forms/caregiver-responsibilities", completionKey: 'caregiverResponsibilitiesSignature', pdfAction: 'caregiverResponsibilities' },
-  { name: "Light Housekeeping", href: "/candidate-hiring-forms/light-housekeeping", completionKey: 'lightHousekeepingAcknowledged', pdfAction: 'lightHousekeeping' },
-  { name: "Caregiver Telephony Instructions", href: "/candidate-hiring-forms/caregiver-telephony-instructions", completionKey: 'telephonyInstructionsAcknowledged', pdfAction: 'caregiverTelephonyInstructions' },
-  { name: "Caregiver Emergency Procedures", href: "/candidate-hiring-forms/emergency-procedure", completionKey: 'emergencyProcedureSignature', pdfAction: 'emergencyProcedure' },
-];
+import { hiringForms, onboardingForms } from '@/lib/hiring-forms';
 
 
 function CandidateHiringFormsContent() {
@@ -160,22 +131,14 @@ function CandidateHiringFormsContent() {
     }
 
     const formsWithStatus = allAvailableForms.map(form => {
-      let isCandidateCompleted = false;
+      let isCandidateCompleted = !!sanitizedProfileData[form.completionKey];
       
-      // Check for completion based on the key and the appropriate data source
-      if (Object.keys(signaturesData || {}).includes(form.completionKey)) {
-        isCandidateCompleted = !!signaturesData?.[form.completionKey as keyof OnboardingSignatures];
-      } else {
-        isCandidateCompleted = !!profileData[form.completionKey as keyof CaregiverProfile];
-      }
-      
-      let isAdminCompleted = false; // Default to false
-
+      let isAdminCompleted = false;
       if (isAnAdmin) {
-          if (!form.adminSchema) {
-              isAdminCompleted = isCandidateCompleted;
-          } else {
-              if (isCandidateCompleted) {
+          if (isCandidateCompleted) {
+              if (!form.adminSchema) {
+                  isAdminCompleted = true;
+              } else {
                   const result = form.adminSchema.safeParse(sanitizedProfileData);
                   isAdminCompleted = result.success;
               }
@@ -188,7 +151,7 @@ function CandidateHiringFormsContent() {
     const allAdminFieldsComplete = formsWithStatus.every(f => f.isAdminCompleted);
 
     return { allCandidateFormsComplete, allAdminFieldsComplete, formsToRender: formsWithStatus };
-  }, [profileData, signaturesData, isAnAdmin, interview?.onboardingFormsInitiated, allAvailableForms]);
+  }, [profileData, signaturesData, isAnAdmin, allAvailableForms]);
 
   useEffect(() => {
     setIsVerified(false);
@@ -241,9 +204,6 @@ function CandidateHiringFormsContent() {
             result = await generateCaregiverTelephonyInstructionsPdfAction(candidateId);
         } else if (formAction === 'emergencyProcedure') {
             result = await generateEmergencyProcedurePdfAction(candidateId);
-        } else {
-             toast({ title: 'PDF Generation Not Implemented', description: `No PDF generator exists for this form yet.`, variant: 'destructive' });
-             return;
         }
 
         if (result && result.error) {
@@ -285,26 +245,6 @@ function CandidateHiringFormsContent() {
         }
     });
   }
-
-   const sendNotificationEmail = async (candidate: CaregiverProfile) => {
-        setSendingEmailId(candidate.id);
-        const result = await sendHiringDocsNotification({
-            caregiverId: candidate.id,
-            fullName: candidate.fullName,
-            email: candidate.email,
-            phone: candidate.phone,
-        });
-        setSendingEmailId(null);
-        if (result.error) {
-            toast({ title: 'Error', description: result.error, variant: 'destructive' });
-        } else {
-            toast({ title: 'Success', description: 'Hiring documents notification sent.' });
-            // Optionally, navigate back or refresh data.
-            const currentPath = pathname.includes('/admin') ? '/admin/manage-interviews' : '/owner/manage-interviews';
-            router.push(currentPath);
-        }
-    }
-
 
   if (isLoading) {
     return (
@@ -370,7 +310,7 @@ function CandidateHiringFormsContent() {
                              <XCircle className="h-6 w-6 text-destructive" title="Awaiting Admin Completion" />
                         )
                     ) : null}
-                    {isAnAdmin && formCompletionStates.allCandidateFormsComplete && formCompletionStates.allAdminFieldsComplete && (
+                    {isAnAdmin && isCandidateCompleted && (
                         <Button
                             variant="outline"
                             size="sm"

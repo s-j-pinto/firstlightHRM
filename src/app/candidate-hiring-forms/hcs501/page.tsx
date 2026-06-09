@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRef, useEffect, useTransition, useState } from "react";
@@ -21,7 +22,7 @@ import { RefreshCw, Save, X, Loader2, Edit2 } from "lucide-react";
 import { useUser, useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { hcs501Schema, hcs501AdminSchema, hcs501Object, type Hcs501FormData, type CaregiverProfile } from "@/lib/types";
+import { hcs501Schema, hcs501AdminSchema, hcs501Object, type Hcs501FormData, type CaregiverProfile, type OnboardingSignatures } from "@/lib/types";
 import { saveHcs501Data } from "@/lib/candidate-hiring-forms.actions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DateInput } from "@/components/ui/date-input";
@@ -31,11 +32,9 @@ const pacificTimeZone = 'America/Los_Angeles';
 // Helper to safely convert Firestore Timestamps or serialized strings to Date objects
 const safeToDate = (value: any): Date | undefined => {
     if (!value) return undefined;
-    // Check for Firestore Timestamp
     if (value.toDate && typeof value.toDate === 'function') {
         return value.toDate();
     }
-    // Handle ISO date strings or numbers (milliseconds)
     const d = new Date(value);
     if (!isNaN(d.getTime())) {
         return d;
@@ -44,7 +43,6 @@ const safeToDate = (value: any): Date | undefined => {
 };
 
 
-// Define default values to ensure all form fields are controlled from the start.
 const defaultFormValues: Hcs501FormData = {
   perId: '',
   hireDate: '',
@@ -162,6 +160,12 @@ export default function HCS501Page() {
     );
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
 
+    const signaturesRef = useMemoFirebase(
+      () => (profileIdToLoad ? doc(firestore, `caregiver_profiles/${profileIdToLoad}/signatures`, 'onboarding_main') : null),
+      [profileIdToLoad, firestore]
+    );
+    const { data: signaturesData, isLoading: isSignaturesLoading } = useDoc<OnboardingSignatures>(signaturesRef);
+
     const validationSchema = isAnAdmin ? hcs501AdminSchema : hcs501Schema;
 
     const form = useForm<Hcs501FormData>({
@@ -207,13 +211,14 @@ export default function HCS501Page() {
 
     useEffect(() => {
         if (existingData) {
+            const combinedData = { ...existingData, ...signaturesData };
             const formData: Partial<Hcs501FormData> = {};
             const formSchemaKeys = Object.keys(hcs501Object.shape) as Array<keyof Hcs501FormData>;
             const dateFields = ['hireDate', 'separationDate', 'dob', 'tbDate', 'hcs501SignatureDate'];
             
             formSchemaKeys.forEach(key => {
-                if (Object.prototype.hasOwnProperty.call(existingData, key)) {
-                    const value = (existingData as any)[key];
+                if (Object.prototype.hasOwnProperty.call(combinedData, key)) {
+                    const value = (combinedData as any)[key];
                     if (dateFields.includes(key) && value) {
                         const date = safeToDate(value);
                         (formData as any)[key] = date ? formatInTimeZone(date, pacificTimeZone, 'MM/dd/yyyy') : '';
@@ -223,31 +228,16 @@ export default function HCS501Page() {
                 }
             });
 
-            // Also pre-populate from general profile if fields are empty
-            if (!formData.fullName && existingData.fullName) formData.fullName = existingData.fullName;
-            if (!formData.phone && existingData.phone) formData.phone = existingData.phone;
-            if (!formData.address && existingData.address) formData.address = existingData.address;
-            if (!formData.city && existingData.city) formData.city = existingData.city;
-            if (!formData.state && existingData.state) formData.state = existingData.state;
-            if (!formData.zip && existingData.zip) formData.zip = existingData.zip;
-            if (!formData.driversLicenseNumber && existingData.driversLicenseNumber) formData.driversLicenseNumber = existingData.driversLicenseNumber;
-            if (!formData.dob && existingData.dob) {
-                const date = safeToDate(existingData.dob);
-                (formData as any).dob = date ? formatInTimeZone(date, pacificTimeZone, 'MM/dd/yyyy') : '';
-            }
-
             form.reset({
                 ...defaultFormValues,
                 ...formData
             });
             
             if (isAnAdmin) {
-                // After resetting, trigger validation to show any existing errors
-                // on the admin-required fields.
                 form.trigger();
             }
         }
-    }, [existingData, form, isAnAdmin]);
+    }, [existingData, signaturesData, form, isAnAdmin]);
 
     const handleSaveSignature = (dataUrl: string) => {
         if (activeSignature) {
@@ -284,7 +274,7 @@ export default function HCS501Page() {
       }
     }
 
-    if(isUserLoading || isDataLoading) {
+    if(isUserLoading || isDataLoading || isSignaturesLoading) {
       return (
         <div className="flex items-center justify-center min-h-[50vh]">
           <Loader2 className="h-12 w-12 animate-spin text-accent" />
