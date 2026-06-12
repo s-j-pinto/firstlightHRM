@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Suspense, useTransition, useState, useEffect, useMemo, useCallback } from 'react';
@@ -8,13 +9,6 @@ import Link from 'next/link';
 import { useUser, useDoc, useCollection, useMemoFirebase, useFirestore } from '@/firebase';
 import { doc, query, where, collection, limit } from 'firebase/firestore';
 import type { CaregiverProfile, Interview, OnboardingSignatures } from '@/lib/types';
-import { 
-    hcs501AdminSchema,
-    drugAlcoholPolicyAdminSchema,
-    clientAbandonmentAdminSchema,
-    employeeOrientationAgreementAdminSchema
-} from '@/lib/types';
-import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { 
     generateHcs501PdfAction, 
@@ -45,7 +39,6 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { format, isDate } from 'date-fns';
-import { sendHiringDocsNotification } from '@/lib/communication.actions';
 import { hiringForms, onboardingForms } from '@/lib/hiring-forms';
 
 
@@ -61,7 +54,6 @@ function CandidateHiringFormsContent() {
   const [isGeneratingPdf, startPdfGeneration] = useTransition();
   const [isDownloadingAll, startDownloadingAll] = useTransition();
   const [isVerified, setIsVerified] = useState(false);
-  const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -113,7 +105,7 @@ function CandidateHiringFormsContent() {
 
     const sanitizedProfileData: { [key: string]: any } = { ...profileData, ...signaturesData };
     
-    // Sanitize all date-like fields to strings for validation, once.
+    // Sanitize all date-like fields to strings for validation
     for (const key in sanitizedProfileData) {
         if (Object.prototype.hasOwnProperty.call(sanitizedProfileData, key)) {
             const lowerKey = key.toLowerCase();
@@ -130,7 +122,13 @@ function CandidateHiringFormsContent() {
     }
 
     const formsWithStatus = allAvailableForms.map(form => {
-      let isCandidateCompleted = !!sanitizedProfileData[form.completionKey];
+      // Check both textual profile data and the signatures subcollection
+      let isCandidateCompleted = false;
+      if (Object.keys(signaturesData || {}).includes(form.completionKey)) {
+          isCandidateCompleted = !!signaturesData?.[form.completionKey as keyof OnboardingSignatures];
+      } else {
+          isCandidateCompleted = !!profileData[form.completionKey as keyof CaregiverProfile];
+      }
       
       let isAdminCompleted = false;
       if (isAnAdmin) {
