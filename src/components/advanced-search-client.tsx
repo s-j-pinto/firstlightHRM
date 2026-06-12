@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
@@ -17,7 +18,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
@@ -269,7 +269,7 @@ export default function AdvancedSearchClient() {
     const { data: interviews, isLoading: interviewsLoading } = useCollection<Interview>(interviewsRef);
 
     const employeesRef = useMemoFirebase(() => firestore ? collection(firestore, 'caregiver_employees') : null, [firestore]);
-    const { data: employees, isLoading: employeesLoading } = useCollection<CaregiverEmployee>(employeesRef);
+    const { data: allEmployees, isLoading: employeesLoading } = useCollection<CaregiverEmployee>(employeesRef);
     
     const appointmentsRef = useMemoFirebase(() => firestore ? query(collection(firestore, 'appointments')) : null, [firestore]);
     const { data: appointments, isLoading: appointmentsLoading } = useCollection<Appointment>(appointmentsRef);
@@ -330,10 +330,10 @@ export default function AdvancedSearchClient() {
     }, []);
 
     const candidates = useMemo((): EnrichedCandidate[] => {
-        if (!profiles || !interviews || !employees || !appointments) return [];
+        if (!profiles || !interviews || !allEmployees || !appointments) return [];
         
         const interviewsMap = new Map(interviews.map(i => [i.caregiverProfileId, i]));
-        const employeesMap = new Map(employees.map(e => [e.caregiverProfileId, e]));
+        const employeesMap = new Map(allEmployees.map(e => [e.caregiverProfileId, e]));
         const appointmentsMap = new Map<string, Appointment>();
         appointments.forEach(appt => {
             if(appt.appointmentStatus !== 'cancelled') {
@@ -378,7 +378,7 @@ export default function AdvancedSearchClient() {
                 appointment,
             };
         });
-    }, [profiles, interviews, employees, appointments, getDocsStatus]);
+    }, [profiles, interviews, allEmployees, appointments, getDocsStatus]);
 
 
     const onSubmit = useCallback((data: FormData) => {

@@ -1178,3 +1178,26 @@ export const replacementRecommendationSchema = z.object({
     dailyAvailability: z.string().trim(),
 });
 export type ReplacementRecommendation = z.infer<typeof replacementRecommendationSchema>;
+
+export const vaTaskTemplateSchema = z.object({
+  name: z.string().trim().min(3),
+  description: z.string().trim().optional(),
+  tasks: z.array(z.string()).min(1),
+});
+export type VATaskTemplate = z.infer<typeof vaTaskTemplateSchema> & { id: string, createdAt: any, lastUpdatedAt: any };
+
+export const vaMedicalRecordSchema = z.object({
+    clientId: z.string(),
+    clientName: z.string().trim(),
+    caregiverId: z.string().trim().optional().nullable(),
+    date: z.any(),
+    day: z.string().trim(),
+    caregiverName: z.string().trim(),
+    ratePlan: z.string().trim().optional().nullable(),
+    arrivalTime: z.string().trim(),
+    departureTime: z.string().trim(),
+    createdAt: z.any(),
+    tasks: z.record(z.boolean().nullable().optional()).optional(),
+    providerSignature: z.string().trim().optional().nullable(),
+});
+export type VAMedicalRecord = z.infer<typeof vaMedicalRecordSchema> & { id: string };
