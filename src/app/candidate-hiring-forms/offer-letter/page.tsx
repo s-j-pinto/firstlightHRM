@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useRef, useEffect, useTransition, useState } from "react";
@@ -15,7 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { RefreshCw, Save, X, Loader2, Edit2 } from "lucide-react";
 import { useUser, useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { offerLetterSchema, type OfferLetterFormData, type CaregiverProfile } from "@/lib/types";
+import { offerLetterSchema, type OfferLetterFormData, type CaregiverProfile, type OnboardingSignatures } from "@/lib/types";
 import { saveOfferLetterData } from "@/lib/candidate-hiring-forms.actions";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -113,6 +112,12 @@ export default function OfferLetterPage() {
     const caregiverProfileRef = useMemoFirebase(() => (profileIdToLoad ? doc(firestore, 'caregiver_profiles', profileIdToLoad) : null), [profileIdToLoad, firestore]);
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
 
+    const signaturesRef = useMemoFirebase(
+        () => (profileIdToLoad ? doc(firestore, `caregiver_profiles/${profileIdToLoad}/signatures`, 'onboarding_main') : null),
+        [profileIdToLoad, firestore]
+    );
+    const { data: signaturesData, isLoading: isSignaturesLoading } = useDoc<OnboardingSignatures>(signaturesRef);
+
     const settingsRef = useMemoFirebase(() => doc(firestore, 'settings', 'hiring_form_fields'), [firestore]);
     const { data: settingsData, isLoading: isSettingsLoading } = useDoc<HiringFields>(settingsRef);
     
@@ -123,21 +128,23 @@ export default function OfferLetterPage() {
 
     useEffect(() => {
         if (existingData) {
+            const combinedData = { ...existingData, ...signaturesData };
             const formData: Partial<OfferLetterFormData> = {};
-            if(existingData.offerLetterSignature) formData.offerLetterSignature = existingData.offerLetterSignature;
             
-            if (existingData.offerLetterSignatureDate) {
-                const date = safeToDate(existingData.offerLetterSignatureDate);
+            if(combinedData.offerLetterSignature) formData.offerLetterSignature = combinedData.offerLetterSignature;
+            
+            if (combinedData.offerLetterSignatureDate) {
+                const date = safeToDate(combinedData.offerLetterSignatureDate);
                 formData.offerLetterSignatureDate = date ? format(date, 'MM/dd/yyyy') : '';
             }
-            if (existingData.hireDate) {
-                const date = safeToDate(existingData.hireDate);
+            if (combinedData.hireDate) {
+                const date = safeToDate(combinedData.hireDate);
                 formData.hireDate = date ? format(date, 'MM/dd/yyyy') : '';
             }
 
             form.reset(formData);
         }
-    }, [existingData, form]);
+    }, [existingData, signaturesData, form]);
 
     const handleSaveSignature = (dataUrl: string) => {
         if (activeSignature) {
@@ -173,7 +180,7 @@ export default function OfferLetterPage() {
         }
     }
 
-    const isLoading = isUserLoading || isDataLoading || isSettingsLoading;
+    const isLoading = isUserLoading || isDataLoading || isSignaturesLoading || isSettingsLoading;
 
     if(isLoading) {
       return <div className="flex items-center justify-center min-h-[50vh]"><Loader2 className="h-12 w-12 animate-spin text-accent" /></div>;

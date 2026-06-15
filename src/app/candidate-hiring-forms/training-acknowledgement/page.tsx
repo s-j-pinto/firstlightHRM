@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useRef, useEffect, useTransition, useState } from "react";
@@ -16,7 +15,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { RefreshCw, Save, X, Loader2, Edit2 } from "lucide-react";
 import { useUser, useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { trainingAcknowledgementSchema, type TrainingAcknowledgementFormData, type CaregiverProfile } from "@/lib/types";
+import { trainingAcknowledgementSchema, type TrainingAcknowledgementFormData, type CaregiverProfile, type OnboardingSignatures } from "@/lib/types";
 import { saveTrainingAcknowledgementData } from "@/lib/candidate-hiring-forms.actions";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -137,6 +136,12 @@ export default function TrainingAcknowledgementPage() {
       [profileIdToLoad, firestore]
     );
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
+
+    const signaturesRef = useMemoFirebase(
+        () => (profileIdToLoad ? doc(firestore, `caregiver_profiles/${profileIdToLoad}/signatures`, 'onboarding_main') : null),
+        [profileIdToLoad, firestore]
+    );
+    const { data: signaturesData, isLoading: isSignaturesLoading } = useDoc<OnboardingSignatures>(signaturesRef);
     
     const form = useForm<TrainingAcknowledgementFormData>({
       resolver: zodResolver(trainingAcknowledgementSchema),
@@ -187,12 +192,13 @@ export default function TrainingAcknowledgementPage() {
 
     useEffect(() => {
         if (existingData) {
+            const combinedData = { ...existingData, ...signaturesData };
             const formData:Partial<TrainingAcknowledgementFormData> = {};
             const formSchemaKeys = Object.keys(trainingAcknowledgementSchema.shape) as Array<keyof TrainingAcknowledgementFormData>;
             
             formSchemaKeys.forEach(key => {
-                if (Object.prototype.hasOwnProperty.call(existingData, key)) {
-                    const value = (existingData as any)[key];
+                if (Object.prototype.hasOwnProperty.call(combinedData, key)) {
+                    const value = (combinedData as any)[key];
                     if (key.toLowerCase().includes('date') && value) {
                         const date = safeToDate(value);
                         (formData as any)[key] = date ? format(date, 'MM/dd/yyyy') : '';
@@ -204,7 +210,7 @@ export default function TrainingAcknowledgementPage() {
 
             form.reset(formData);
         }
-    }, [existingData, form]);
+    }, [existingData, signaturesData, form]);
 
     const handleSaveSignature = (dataUrl: string) => {
         if (activeSignature) {
@@ -240,7 +246,7 @@ export default function TrainingAcknowledgementPage() {
         }
     }
 
-    const isLoading = isUserLoading || isDataLoading;
+    const isLoading = isUserLoading || isDataLoading || isSignaturesLoading;
 
     if(isLoading) {
       return (
@@ -340,5 +346,3 @@ export default function TrainingAcknowledgementPage() {
         </Card>
     );
 }
-
-    
