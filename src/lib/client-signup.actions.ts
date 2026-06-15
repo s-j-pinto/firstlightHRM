@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -455,15 +454,21 @@ export async function finalizeAndSubmit(signupId: string, formData: any) {
         const clientEmail = validation.data.clientEmail;
         const clientName = validation.data.clientName || 'Client';
 
-        const pdfBytes = formType === 'tpp'
+        const result = formType === 'tpp'
             ? await generateTppCsaPdf(validation.data)
             : await generateClientIntakePdf(validation.data);
+        
+        if (!result.pdfData) {
+            throw new Error(result.error || "Failed to generate PDF during finalization.");
+        }
+
+        const pdfBytes = Buffer.from(result.pdfData, 'base64');
         
         const bucket = getStorage().bucket("gs://firstlighthomecare-hrm.firebasestorage.app");
         const fileName = `client-agreements/${clientName.replace(/ /g, '_')}_${signupId}.pdf`;
         const file = bucket.file(fileName);
         
-        await file.save(Buffer.from(pdfBytes), {
+        await file.save(pdfBytes, {
             metadata: {
                 contentType: 'application/pdf',
                 metadata: {
@@ -545,22 +550,17 @@ export async function finalizeAndSubmit(signupId: string, formData: any) {
 
 export async function previewClientIntakePdf(formData: any, formType: 'private' | 'tpp' = 'private') {
     try {
-        const pdfBytes = formType === 'tpp'
+        const result = formType === 'tpp'
             ? await generateTppCsaPdf(formData)
             : await generateClientIntakePdf(formData);
 
-        const pdfBase64 = Buffer.from(pdfBytes).toString('base64');
-        return { pdfData: pdfBase64 };
+        if ('error' in result) {
+            return result;
+        }
+
+        return { pdfData: result.pdfData };
     } catch (error: any) {
         console.error("Error generating PDF preview:", error);
         return { error: `Failed to generate PDF: ${error.message}` };
     }
 }
-
-    
-
-
-
-    
-
-    

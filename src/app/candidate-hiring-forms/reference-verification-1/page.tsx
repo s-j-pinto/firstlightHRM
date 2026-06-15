@@ -13,11 +13,11 @@ import Image from "next/image";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Save, X, Loader2, RefreshCw, User, Edit2 } from "lucide-react";
+import { Save, X, Loader2, RefreshCw, Edit2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useUser, useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { referenceVerification1Schema, referenceVerification1Object, type ReferenceVerification1FormData, type CaregiverProfile } from "@/lib/types";
+import { referenceVerification1Schema, referenceVerification1Object, type ReferenceVerification1FormData, type CaregiverProfile, type OnboardingSignatures } from "@/lib/types";
 import { saveReferenceVerification1Data } from "@/lib/candidate-hiring-forms.actions";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -193,6 +193,12 @@ export default function ReferenceVerification1Page() {
     );
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
 
+    const signaturesRef = useMemoFirebase(
+      () => (profileIdToLoad ? doc(firestore, `caregiver_profiles/${profileIdToLoad}/signatures`, 'onboarding_main') : null),
+      [profileIdToLoad, firestore]
+    );
+    const { data: signaturesData, isLoading: isSignaturesLoading } = useDoc<OnboardingSignatures>(signaturesRef);
+
     const form = useForm<ReferenceVerification1FormData>({
       resolver: zodResolver(referenceVerification1Schema),
       defaultValues: defaultFormValues,
@@ -236,13 +242,14 @@ export default function ReferenceVerification1Page() {
 
     useEffect(() => {
         if (existingData) {
+            const combinedData = { ...existingData, ...signaturesData };
             const formData: Partial<ReferenceVerification1FormData> = {};
             const formSchemaKeys = Object.keys(referenceVerification1Object.shape) as Array<keyof ReferenceVerification1FormData>;
             const dateFields = ['applicantSignatureDate1'];
 
             formSchemaKeys.forEach(key => {
-                 if (Object.prototype.hasOwnProperty.call(existingData, key)) {
-                    const value = (existingData as any)[key];
+                 if (Object.prototype.hasOwnProperty.call(combinedData, key)) {
+                    const value = (combinedData as any)[key];
                     if (dateFields.includes(key) && value) {
                         const date = safeToDate(value);
                         (formData as any)[key] = date ? format(date, 'MM/dd/yyyy') : '';
@@ -254,7 +261,7 @@ export default function ReferenceVerification1Page() {
 
             form.reset({ ...defaultFormValues, ...formData });
         }
-    }, [existingData, form]);
+    }, [existingData, signaturesData, form]);
 
     const handleSaveSignature = (dataUrl: string) => {
         if (activeSignature) {
@@ -291,7 +298,7 @@ export default function ReferenceVerification1Page() {
         }
     }
 
-    const isLoading = isUserLoading || isDataLoading;
+    const isLoading = isUserLoading || isDataLoading || isSignaturesLoading;
 
     if(isLoading) {
       return (
