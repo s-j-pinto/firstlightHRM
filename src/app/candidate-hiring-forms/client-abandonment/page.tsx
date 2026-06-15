@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useRef, useEffect, useTransition, useState } from "react";
@@ -16,7 +15,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { RefreshCw, Save, X, Loader2, Edit2 } from "lucide-react";
 import { useUser, useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { clientAbandonmentSchema, clientAbandonmentAdminSchema, type ClientAbandonmentFormData, type CaregiverProfile } from "@/lib/types";
+import { clientAbandonmentSchema, clientAbandonmentAdminSchema, type ClientAbandonmentFormData, type CaregiverProfile, type OnboardingSignatures } from "@/lib/types";
 import { saveClientAbandonmentData } from "@/lib/candidate-hiring-forms.actions";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
@@ -133,6 +132,12 @@ export default function ClientAbandonmentPage() {
     );
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
     
+    const signaturesRef = useMemoFirebase(
+      () => (profileIdToLoad ? doc(firestore, `caregiver_profiles/${profileIdToLoad}/signatures`, 'onboarding_main') : null),
+      [profileIdToLoad, firestore]
+    );
+    const { data: signaturesData, isLoading: isSignaturesLoading } = useDoc<OnboardingSignatures>(signaturesRef);
+
     const settingsRef = useMemoFirebase(() => (isAnAdmin ? doc(firestore, 'settings', 'availability') : null), [isAnAdmin, firestore]);
     const { data: settingsData, isLoading: isSettingsLoading } = useDoc<any>(settingsRef);
     
@@ -181,6 +186,7 @@ export default function ClientAbandonmentPage() {
 
     useEffect(() => {
         if (existingData) {
+            const combinedData = { ...existingData, ...signaturesData };
             const formData:Partial<ClientAbandonmentFormData> = {};
             const candidateFields: (keyof ClientAbandonmentFormData)[] = [
                 'clientAbandonmentPrintedName', 
@@ -189,8 +195,8 @@ export default function ClientAbandonmentPage() {
             ];
 
             candidateFields.forEach(key => {
-                if (Object.prototype.hasOwnProperty.call(existingData, key)) {
-                    const value = (existingData as any)[key];
+                if (Object.prototype.hasOwnProperty.call(combinedData, key)) {
+                    const value = (combinedData as any)[key];
                     if (key.toLowerCase().includes('date') && value) {
                         const date = safeToDate(value);
                         (formData as any)[key] = date ? format(date, 'MM/dd/yyyy') : '';
@@ -201,7 +207,7 @@ export default function ClientAbandonmentPage() {
             });
             form.reset(formData);
         }
-    }, [existingData, form]);
+    }, [existingData, signaturesData, form]);
 
     useEffect(() => {
         if (settingsData?.adminSignature) {
@@ -245,7 +251,7 @@ export default function ClientAbandonmentPage() {
         }
     }
 
-    const isLoading = isUserLoading || isDataLoading || (isAnAdmin && isSettingsLoading);
+    const isLoading = isUserLoading || isDataLoading || isSignaturesLoading || (isAnAdmin && isSettingsLoading);
 
     if(isLoading) {
       return (
@@ -351,7 +357,3 @@ export default function ClientAbandonmentPage() {
         </Card>
     );
 }
-
-    
-
-    
