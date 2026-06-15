@@ -24,7 +24,6 @@ import { DateInput } from "@/components/ui/date-input";
 
 const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
 
-
 const defaultFormValues: AcknowledgmentFormData = {
   acknowledgmentEmployeeName: '',
   acknowledgmentSignature: '',
@@ -57,23 +56,18 @@ const SignaturePadModal = ({
     title: string;
 }) => {
     const sigPadRef = useRef<SignatureCanvas>(null);
-    const [isSigned, setIsSigned] = useState(false);
 
     useEffect(() => {
         if (isOpen && sigPadRef.current) {
             sigPadRef.current.clear();
             if (signatureData) {
                 sigPadRef.current.fromDataURL(signatureData);
-                setIsSigned(true);
-            } else {
-                setIsSigned(false);
             }
         }
     }, [isOpen, signatureData]);
     
     const handleClear = () => {
         sigPadRef.current?.clear();
-        setIsSigned(false);
     }
     
     const handleDone = () => {
@@ -96,7 +90,6 @@ const SignaturePadModal = ({
                         ref={sigPadRef}
                         penColor='black'
                         canvasProps={{ className: 'w-full h-full bg-muted/50 rounded-md' }}
-                        onEnd={() => setIsSigned(true)}
                     />
                 </div>
                 <div className="flex justify-between p-4 border-t">
@@ -145,12 +138,6 @@ export default function AcknowledgmentFormPage() {
       defaultValues: defaultFormValues,
     });
 
-    useEffect(() => {
-        if (existingData?.fullName && !form.getValues('acknowledgmentEmployeeName')) {
-            form.setValue('acknowledgmentEmployeeName', existingData.fullName);
-        }
-    }, [existingData, form]);
-    
     const SignatureField = ({ fieldName, title }: { fieldName: keyof AcknowledgmentFormData; title: string; }) => {
         const signatureData = form.watch(fieldName);
         const disabled = isPrintMode;
@@ -158,9 +145,9 @@ export default function AcknowledgmentFormPage() {
         return (
             <div className="space-y-2">
                 <FormLabel>{title}</FormLabel>
-                <div className="relative rounded-md border bg-muted/30 h-28 flex items-center justify-center">
+                <div className="relative rounded-md border bg-muted/30 h-28 flex items-center justify-center overflow-hidden">
                     {signatureData ? (
-                        <Image src={signatureData as string} alt="Signature" layout="fill" objectFit="contain" />
+                        <Image src={signatureData as string} alt="Signature" fill className="object-contain" />
                     ) : (
                         <span className="text-muted-foreground">Not Signed</span>
                     )}
@@ -169,7 +156,7 @@ export default function AcknowledgmentFormPage() {
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="absolute top-1 right-1 h-7 w-7"
+                            className="absolute top-1 right-1 h-7 w-7 bg-background/80 hover:bg-background"
                             onClick={() => setActiveSignature({ fieldName, title })}
                         >
                             <Edit2 className="h-4 w-4" />
@@ -190,17 +177,17 @@ export default function AcknowledgmentFormPage() {
     useEffect(() => {
         if (existingData) {
             const combinedData = { ...existingData, ...signaturesData };
-            const formData:Partial<AcknowledgmentFormData> = {};
+            const formData: Partial<AcknowledgmentFormData> = {};
             const formSchemaKeys = Object.keys(acknowledgmentFormSchema.shape) as Array<keyof AcknowledgmentFormData>;
             
             formSchemaKeys.forEach(key => {
-                if (Object.prototype.hasOwnProperty.call(combinedData, key)) {
+                if (Object.prototype.hasOwnProperty.call(combinedData, key) || Object.prototype.hasOwnProperty.call(existingData, key) || Object.prototype.hasOwnProperty.call(signaturesData || {}, key)) {
                     const value = (combinedData as any)[key];
                     if (key.toLowerCase().includes('date') && value) {
                         const date = safeToDate(value);
                         (formData as any)[key] = date ? format(date, 'MM/dd/yyyy') : '';
                     } else {
-                        (formData as any)[key] = value;
+                        (formData as any)[key] = value || '';
                     }
                 }
             });
@@ -278,7 +265,7 @@ export default function AcknowledgmentFormPage() {
                     )} />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                         <SignatureField fieldName="acknowledgmentSignature" title="Employee signature" />
-                        <FormField control={form.control} name="acknowledgmentSignatureDate" render={({ field }) => (
+                        <FormField control={form.control} name="acknowledgmentSignatureDate" render={() => (
                             <FormItem>
                                 <FormLabel>Date (MM/DD/YYYY)</FormLabel>
                                 <FormControl>

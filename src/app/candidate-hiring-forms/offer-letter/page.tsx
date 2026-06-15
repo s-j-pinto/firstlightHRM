@@ -123,24 +123,52 @@ export default function OfferLetterPage() {
     
     const form = useForm<OfferLetterFormData>({
         resolver: zodResolver(offerLetterSchema),
-        defaultValues: { offerLetterSignature: '', offerLetterSignatureDate: '' },
+        defaultValues: { offerLetterSignature: '', offerLetterSignatureDate: '', hireDate: '' },
     });
+
+    const SignatureField = ({ fieldName, title }: { fieldName: keyof OfferLetterFormData; title: string }) => {
+        const signatureData = form.watch(fieldName);
+        return (
+            <div className="space-y-2">
+                <FormLabel>{title}</FormLabel>
+                <div className="relative rounded-md border bg-muted/30 h-28 flex items-center justify-center overflow-hidden">
+                    {signatureData ? (
+                        <Image src={signatureData as string} alt="Signature" fill className="object-contain" />
+                    ) : (
+                        <span className="text-muted-foreground">Not Signed</span>
+                    )}
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-1 right-1 h-7 w-7 bg-background/80 hover:bg-background"
+                        onClick={() => setActiveSignature({ fieldName, title })}
+                    >
+                        <Edit2 className="h-4 w-4" />
+                    </Button>
+                </div>
+                <FormMessage>{form.formState.errors[fieldName]?.message}</FormMessage>
+            </div>
+        );
+    };
 
     useEffect(() => {
         if (existingData) {
             const combinedData = { ...existingData, ...signaturesData };
             const formData: Partial<OfferLetterFormData> = {};
-            
-            if(combinedData.offerLetterSignature) formData.offerLetterSignature = combinedData.offerLetterSignature;
-            
-            if (combinedData.offerLetterSignatureDate) {
-                const date = safeToDate(combinedData.offerLetterSignatureDate);
-                formData.offerLetterSignatureDate = date ? format(date, 'MM/dd/yyyy') : '';
-            }
-            if (combinedData.hireDate) {
-                const date = safeToDate(combinedData.hireDate);
-                formData.hireDate = date ? format(date, 'MM/dd/yyyy') : '';
-            }
+            const formSchemaKeys = Object.keys(offerLetterSchema.shape) as Array<keyof OfferLetterFormData>;
+
+            formSchemaKeys.forEach(key => {
+                if (Object.prototype.hasOwnProperty.call(combinedData, key) || Object.prototype.hasOwnProperty.call(existingData, key) || Object.prototype.hasOwnProperty.call(signaturesData || {}, key)) {
+                    const value = (combinedData as any)[key];
+                    if (key.toLowerCase().includes('date') && value) {
+                        const date = safeToDate(value);
+                        (formData as any)[key] = date ? format(date, 'MM/dd/yyyy') : '';
+                    } else {
+                        (formData as any)[key] = value || '';
+                    }
+                }
+            });
 
             form.reset(formData);
         }
@@ -231,22 +259,7 @@ export default function OfferLetterPage() {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end pt-8">
-                             <div className="space-y-2">
-                                <FormField
-                                    control={form.control}
-                                    name="offerLetterSignature"
-                                    render={() => (
-                                        <div className="space-y-2">
-                                            <FormLabel>Accepted:</FormLabel>
-                                            <div className="relative rounded-md border bg-muted/30 h-28 flex items-center justify-center">
-                                                {form.getValues('offerLetterSignature') ? ( <Image src={form.getValues('offerLetterSignature')!} alt="Signature" layout="fill" objectFit="contain" /> ) : ( <span className="text-muted-foreground">Not Signed</span> )}
-                                                <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => setActiveSignature({ fieldName: 'offerLetterSignature', title: 'Acceptance Signature' })}><Edit2 className="h-4 w-4" /></Button>
-                                            </div>
-                                            <FormMessage>{form.formState.errors.offerLetterSignature?.message}</FormMessage>
-                                        </div>
-                                    )}
-                                />
-                             </div>
+                             <SignatureField fieldName="offerLetterSignature" title="Accepted:" />
                             <FormField 
                                 control={form.control} 
                                 name="offerLetterSignatureDate" 

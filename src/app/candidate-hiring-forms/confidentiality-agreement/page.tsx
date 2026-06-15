@@ -145,9 +145,9 @@ export default function ConfidentialityAgreementPage() {
         return (
             <div className="space-y-2">
                 <FormLabel>{title}</FormLabel>
-                <div className="relative rounded-md border bg-muted/30 h-28 flex items-center justify-center">
+                <div className="relative rounded-md border bg-muted/30 h-28 flex items-center justify-center overflow-hidden">
                     {signatureData ? (
-                        <Image src={signatureData as string} alt="Signature" layout="fill" objectFit="contain" />
+                        <Image src={signatureData as string} alt="Signature" fill className="object-contain" />
                     ) : (
                         <span className="text-muted-foreground">Not Signed</span>
                     )}
@@ -156,7 +156,7 @@ export default function ConfidentialityAgreementPage() {
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="absolute top-1 right-1 h-7 w-7"
+                            className="absolute top-1 right-1 h-7 w-7 bg-background/80 hover:bg-background"
                             onClick={() => setActiveSignature({ fieldName, title })}
                         >
                             <Edit2 className="h-4 w-4" />
@@ -181,13 +181,13 @@ export default function ConfidentialityAgreementPage() {
             const formSchemaKeys = Object.keys(confidentialityAgreementAdminSchema.shape) as Array<keyof ConfidentialityAgreementFormData>;
             
             formSchemaKeys.forEach(key => {
-                if (Object.prototype.hasOwnProperty.call(combinedData, key)) {
+                if (Object.prototype.hasOwnProperty.call(combinedData, key) || Object.prototype.hasOwnProperty.call(existingData, key) || Object.prototype.hasOwnProperty.call(signaturesData || {}, key)) {
                     const value = (combinedData as any)[key];
                     if (key.toLowerCase().includes('date') && value) {
                         const date = safeToDate(value);
                         (formData as any)[key] = date ? format(date, 'MM/dd/yyyy') : '';
                     } else {
-                        (formData as any)[key] = value;
+                        (formData as any)[key] = value || '';
                     }
                 }
             });
