@@ -16,7 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { RefreshCw, Save, X, Loader2, Edit2 } from "lucide-react";
 import { useUser, useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { arbitrationAgreementSchema, type ArbitrationAgreementFormData, type CaregiverProfile } from "@/lib/types";
+import { arbitrationAgreementSchema, type ArbitrationAgreementFormData, type CaregiverProfile, type OnboardingSignatures } from "@/lib/types";
 import { saveArbitrationAgreementData } from "@/lib/candidate-hiring-forms.actions";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -132,6 +132,12 @@ export default function ArbitrationAgreementPage() {
     );
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
     
+    const signaturesRef = useMemoFirebase(
+      () => (profileIdToLoad ? doc(firestore, `caregiver_profiles/${profileIdToLoad}/signatures`, 'onboarding_main') : null),
+      [profileIdToLoad, firestore]
+    );
+    const { data: signaturesData, isLoading: isSignaturesLoading } = useDoc<OnboardingSignatures>(signaturesRef);
+    
     const form = useForm<ArbitrationAgreementFormData>({
       resolver: zodResolver(arbitrationAgreementSchema),
       defaultValues: defaultFormValues,
@@ -145,12 +151,13 @@ export default function ArbitrationAgreementPage() {
 
     useEffect(() => {
         if (existingData) {
+            const combinedData = { ...existingData, ...signaturesData };
             const formData:Partial<ArbitrationAgreementFormData> = {};
             const formSchemaKeys = Object.keys(arbitrationAgreementSchema.shape) as Array<keyof ArbitrationAgreementFormData>;
             
             formSchemaKeys.forEach(key => {
-                if (Object.prototype.hasOwnProperty.call(existingData, key)) {
-                    const value = (existingData as any)[key];
+                if (Object.prototype.hasOwnProperty.call(combinedData, key)) {
+                    const value = (combinedData as any)[key];
                     if (key === 'arbitrationAgreementSignatureDate' && value) {
                         const date = safeToDate(value);
                         (formData as any)[key] = date ? format(date, 'MM/dd/yyyy') : '';
@@ -162,7 +169,7 @@ export default function ArbitrationAgreementPage() {
 
             form.reset(formData);
         }
-    }, [existingData, form]);
+    }, [existingData, signaturesData, form]);
 
     const handleSaveSignature = (dataUrl: string) => {
         if (activeSignature) {
@@ -229,7 +236,7 @@ export default function ArbitrationAgreementPage() {
         }
     }
 
-    const isLoading = isUserLoading || isDataLoading;
+    const isLoading = isUserLoading || isDataLoading || isSignaturesLoading;
 
     if(isLoading) {
       return (
