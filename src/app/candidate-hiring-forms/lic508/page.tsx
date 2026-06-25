@@ -19,7 +19,7 @@ import { Save, X, Loader2, RefreshCw, Edit2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useUser, useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { lic508Object, type CaregiverProfile } from "@/lib/types";
+import { lic508Object, type CaregiverProfile, type OnboardingSignatures } from "@/lib/types";
 import { saveLic508Data } from "@/lib/candidate-hiring-forms.actions";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -166,6 +166,12 @@ export default function LIC508Page() {
     );
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
 
+    const signaturesRef = useMemoFirebase(
+      () => (profileIdToLoad ? doc(firestore, `caregiver_profiles/${profileIdToLoad}/signatures`, 'onboarding_main') : null),
+      [profileIdToLoad, firestore]
+    );
+    const { data: signaturesData, isLoading: isSignaturesLoading } = useDoc<OnboardingSignatures>(signaturesRef);
+
     const form = useForm<Lic508PageFormData>({
       resolver: zodResolver(lic508PageSchema),
       defaultValues: defaultFormValues,
@@ -200,13 +206,14 @@ export default function LIC508Page() {
 
     useEffect(() => {
         if (existingData) {
+            const combinedData = { ...existingData, ...signaturesData };
             const formData: Partial<Lic508PageFormData> = {};
             const formSchemaKeys = Object.keys(lic508Object.shape) as Array<keyof Lic508PageFormData>;
             const dateFields = ['lic508SignatureDate', 'dob'];
 
             formSchemaKeys.forEach(key => {
-                 if (Object.prototype.hasOwnProperty.call(existingData, key)) {
-                    const value = (existingData as any)[key];
+                 if (Object.prototype.hasOwnProperty.call(combinedData, key)) {
+                    const value = (combinedData as any)[key];
                     if (dateFields.includes(key) && value) {
                         const date = safeToDate(value);
                         (formData as any)[key] = date ? format(date, 'MM/dd/yyyy') : '';
@@ -233,7 +240,7 @@ export default function LIC508Page() {
                 ...formData
             });
         }
-    }, [existingData, form]);
+    }, [existingData, signaturesData, form]);
 
     const handleSaveSignature = (dataUrl: string) => {
         if (activeSignature) {
@@ -270,7 +277,7 @@ export default function LIC508Page() {
         }
     }
     
-    const isLoading = isUserLoading || isDataLoading;
+    const isLoading = isUserLoading || isDataLoading || isSignaturesLoading;
     const livedOutOfState = form.watch('livedOutOfStateLast5Years');
 
     if(isLoading) {
@@ -311,11 +318,11 @@ export default function LIC508Page() {
                                    <FormLabel>Have you ever been convicted of a crime in California?</FormLabel>
                                    <FormControl>
                                        <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4 pt-2">
-                                           <FormItem className="flex items-center space-x-2">
+                                           <FormItem className="flex items-center space-x-2 space-y-0">
                                                <RadioGroupItem value="yes" id="convicted-yes" />
                                                <FormLabel htmlFor="convicted-yes" className="font-normal">Yes</FormLabel>
                                            </FormItem>
-                                           <FormItem className="flex items-center space-x-2">
+                                           <FormItem className="flex items-center space-x-2 space-y-0">
                                                <RadioGroupItem value="no" id="convicted-no" />
                                                <FormLabel htmlFor="convicted-no" className="font-normal">No</FormLabel>
                                            </FormItem>
@@ -339,11 +346,11 @@ export default function LIC508Page() {
                                    <FormLabel>Have you ever been convicted of a crime from another state, federal court, military, or jurisdiction outside of U.S.?</FormLabel>
                                    <FormControl>
                                        <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4 pt-2">
-                                           <FormItem className="flex items-center space-x-2">
+                                           <FormItem className="flex items-center space-x-2 space-y-0">
                                                <RadioGroupItem value="yes" id="convicted-oos-yes" />
                                                <FormLabel htmlFor="convicted-oos-yes" className="font-normal">Yes</FormLabel>
                                            </FormItem>
-                                           <FormItem className="flex items-center space-x-2">
+                                           <FormItem className="flex items-center space-x-2 space-y-0">
                                                <RadioGroupItem value="no" id="convicted-oos-no" />
                                                <FormLabel htmlFor="convicted-oos-no" className="font-normal">No</FormLabel>
                                            </FormItem>
