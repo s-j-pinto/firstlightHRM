@@ -341,7 +341,7 @@ export type ReferenceVerification1FormData = z.infer<typeof referenceVerificatio
 
 export const referenceVerification2Object = z.object({
   applicantSignature2: z.string().min(1, "Signature is required."),
-  applicantSignatureDate2: requiredDateString,
+  applicantSignature2Date: requiredDateString,
   company2: z.string().trim().min(1, "Company name is required."),
   supervisorName2: z.string().trim().min(1, "Supervisor's name is required."),
   emailOrFax2: z.string().trim().min(1, "Email or Fax is required."),
@@ -602,45 +602,6 @@ export const caregiverEmployeeSchema = z.object({
 
 export type CaregiverEmployee = z.infer<typeof caregiverEmployeeSchema> & { id: string };
 
-export const clientSchema = z.object({
-  "Client Name": z.string().trim(),
-  "DOB": z.string().trim().optional(),
-  "Address": z.string().trim(),
-  "aptUnit": z.string().trim().optional(),
-  "City": z.string().trim(),
-  "Zip": z.string().trim(),
-  "Mobile": z.string().trim(),
-  "Email": z.string().trim().toLowerCase().optional(),
-  "ContactName": z.string().trim().optional(),
-  "ContactMobile": z.string().trim().optional(),
-  status: z.enum(["Active", "Inactive"]),
-  createdAt: z.any(),
-  lastUpdatedAt: z.any(),
-});
-
-export type Client = z.infer<typeof clientSchema> & { id: string };
-
-export const activeCaregiverSchema = z.object({
-  "Name": z.string().trim(),
-  "dob": z.string().trim().optional(),
-  "Address": z.string().trim().optional(),
-  "Apt": z.string().trim().optional(),
-  "City": z.string().trim().optional(),
-  "State": z.string().trim().optional(),
-  "Zip": z.string().trim().optional(),
-  "Mobile": z.string().trim().optional(),
-  "Hire Date": z.string().trim().optional(),
-  "Email": z.string().trim().toLowerCase().email(),
-  "Drivers Lic": z.string().trim().optional(),
-  "Caregiver Lic": z.string().trim().optional(),
-  "TTiD-PIN": z.string().trim().optional(),
-  status: z.enum(["Active", "Inactive"]),
-  createdAt: z.any(),
-  lastUpdatedAt: z.any(),
-});
-
-export type ActiveCaregiver = z.infer<typeof activeCaregiverSchema> & { id: string };
-
 export const careLogTemplateSchema = z.object({
   name: z.string().trim().min(3, "Template name must be at least 3 characters."),
   description: z.string().trim().optional(),
@@ -746,6 +707,7 @@ export const clientSignupFormSchema = clientSignupDraftSchema.extend({
   hourlyRate: z.coerce.number().optional(),
   minimumHoursPerShift: z.coerce.number().optional(),
   rateCardDate: dateString,
+  policyNumber: z.string().trim().optional(),
   policyNumber: z.string().trim().optional(),
   policyPeriod: z.string().trim().optional(),
   clientInitials: z.string().trim().optional(),
@@ -1243,4 +1205,26 @@ export const clientSchema = z.object({
   createdAt: z.any(),
   lastUpdatedAt: z.any(),
 });
+
 export type Client = z.infer<typeof clientSchema> & { id: string };
+
+export const activeCaregiverSchema = z.object({
+  "Name": z.string().trim(),
+  "dob": z.string().trim().optional(),
+  "Address": z.string().trim().optional(),
+  "Apt": z.string().trim().optional(),
+  "City": z.string().trim().optional(),
+  "State": z.string().trim().optional(),
+  "Zip": z.string().trim().optional(),
+  "Mobile": z.string().trim().optional(),
+  "Hire Date": z.string().trim().optional(),
+  "Email": z.string().trim().toLowerCase().email(),
+  "Drivers Lic": z.string().trim().optional(),
+  "Caregiver Lic": z.string().trim().optional(),
+  "TTiD-PIN": z.string().trim().optional(),
+  status: z.enum(["Active", "Inactive"]),
+  createdAt: z.any(),
+  lastUpdatedAt: z.any(),
+});
+
+export type ActiveCaregiver = z.infer<typeof activeCaregiverSchema> & { id: string };
