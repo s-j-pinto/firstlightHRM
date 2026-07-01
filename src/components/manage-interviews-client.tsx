@@ -2,14 +2,14 @@
 'use client';
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, FormProvider } from 'react-hook-form';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from 'next/link';
 import { collection, query, where, getDocs, setDoc, doc, updateDoc, Timestamp, addDoc } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
-import type { CaregiverProfile, Interview, CaregiverEmployee, Appointment } from '@/lib/types';
-import { caregiverEmployeeSchema, requiredDateString } from '@/lib/types';
+import type { CaregiverProfile, Interview, CaregiverEmployee, Appointment, InterviewQuestionsFormData } from '@/lib/types';
+import { caregiverEmployeeSchema, requiredDateString, interviewQuestionsSchema } from '@/lib/types';
 import { saveInterviewAndSchedule, rejectCandidate, initiateOnboardingForms } from '@/lib/interviews.actions';
 import { getAiInterviewInsights } from '@/lib/ai.actions';
 import { triggerTeletrackImport } from '@/lib/github.actions';
@@ -42,7 +42,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Search, Sparkles, UserCheck, AlertCircle, ExternalLink, Briefcase, Video, GraduationCap, Phone, Star, MessageSquare, CheckCircle, XCircle, UserX, Save, FileText, FileCheck2, FileClock, ArrowUpDown, Mail, Edit2 } from 'lucide-react';
+import { Loader2, Search, Sparkles, UserCheck, AlertCircle, ExternalLink, Briefcase, Video, GraduationCap, Phone, Star, MessageSquare, CheckCircle, XCircle, UserX, Save, FileText, FileCheck2, FileClock, ArrowUpDown, Mail, Edit2, ClipboardList } from 'lucide-react';
 import { format, isDate } from 'date-fns';
 import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { cn } from '@/lib/utils';
@@ -53,6 +53,7 @@ import { Label } from './ui/label';
 import { Checkbox } from './ui/checkbox';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DateInput } from './ui/date-input';
+import { ScrollArea } from './ui/scroll-area';
 
 
 const phoneScreenSchema = z.object({
@@ -133,6 +134,7 @@ export default function ManageInterviewsClient() {
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [authUrl, setAuthUrl] = useState<string | null>(null);
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [isQuestionsOpen, setIsQuestionsOpen] = useState(false);
   
   const [isAiPending, startAiTransition] = useTransition();
   const [isSearching, startSearchTransition] = useTransition();
@@ -142,6 +144,7 @@ export default function ManageInterviewsClient() {
   const [isRejecting, startRejectingTransition] = useTransition();
   const [isAssessmentSaving, startAssessmentSavingTransition] = useTransition();
   const [isOnboardingInitiating, startOnboardingInitiation] = useTransition();
+  const [isQuestionsSaving, startQuestionsSavingTransition] = useTransition();
 
 
   const { toast } = useToast();
@@ -170,6 +173,28 @@ export default function ManageInterviewsClient() {
           candidateRating: 'C',
           finalInterviewNotes: '',
       },
+  });
+
+  const interviewQuestionsForm = useForm<InterviewQuestionsFormData>({
+      resolver: zodResolver(interviewQuestionsSchema),
+      defaultValues: {
+        q_decideBecomeCaregiver: '',
+        q_rewardingChallenging: '',
+        q_strengthsWeaknesses: '',
+        q_specializedTraining: '',
+        q_careerGoals: '',
+        q_dementiaExperience: '',
+        q_clientUpsetHome: '',
+        q_clientTellingLeave: '',
+        q_clientCombative: '',
+        q_clientHittingScratching: '',
+        q_deceasedSpouse: '',
+        q_difficultSituation: '',
+        q_clientRefusal: '',
+        q_criticismFeedback: '',
+        q_medicalEmergencyNoOffice: '',
+        q_clientNotes: '',
+      }
   });
 
   const scheduleEventForm = useForm<ScheduleEventFormData>({
@@ -212,6 +237,24 @@ export default function ManageInterviewsClient() {
         candidateRating: 'C',
         finalInterviewNotes: '',
     });
+    interviewQuestionsForm.reset({
+        q_decideBecomeCaregiver: '',
+        q_rewardingChallenging: '',
+        q_strengthsWeaknesses: '',
+        q_specializedTraining: '',
+        q_careerGoals: '',
+        q_dementiaExperience: '',
+        q_clientUpsetHome: '',
+        q_clientTellingLeave: '',
+        q_clientCombative: '',
+        q_clientHittingScratching: '',
+        q_deceasedSpouse: '',
+        q_difficultSituation: '',
+        q_clientRefusal: '',
+        q_criticismFeedback: '',
+        q_medicalEmergencyNoOffice: '',
+        q_clientNotes: '',
+    });
     scheduleEventForm.reset({ includeReferenceForm: false });
     orientationForm.reset({ includeReferenceForm: false });
     hiringForm.reset({
@@ -227,7 +270,7 @@ export default function ManageInterviewsClient() {
     setSearchTerm('');
     setSearchResults([]);
     router.replace(pathname);
-  }, [hiringForm, orientationForm, phoneScreenForm, assessmentForm, scheduleEventForm, router, pathname]);
+  }, [hiringForm, orientationForm, phoneScreenForm, assessmentForm, interviewQuestionsForm, scheduleEventForm, router, pathname]);
 
   const handleSelectCaregiver = useCallback(async (caregiver: CaregiverProfile) => {
     handleCancel(); // Reset everything first
@@ -275,6 +318,25 @@ export default function ManageInterviewsClient() {
                 finalInterviewNotes: interviewData.finalInterviewNotes || '',
             });
 
+            interviewQuestionsForm.reset({
+                q_decideBecomeCaregiver: interviewData.q_decideBecomeCaregiver || '',
+                q_rewardingChallenging: interviewData.q_rewardingChallenging || '',
+                q_strengthsWeaknesses: interviewData.q_strengthsWeaknesses || '',
+                q_specializedTraining: interviewData.q_specializedTraining || '',
+                q_careerGoals: interviewData.q_careerGoals || '',
+                q_dementiaExperience: interviewData.q_dementiaExperience || '',
+                q_clientUpsetHome: interviewData.q_clientUpsetHome || '',
+                q_clientTellingLeave: interviewData.q_clientTellingLeave || '',
+                q_clientCombative: interviewData.q_clientCombative || '',
+                q_clientHittingScratching: interviewData.q_clientHittingScratching || '',
+                q_deceasedSpouse: interviewData.q_deceasedSpouse || '',
+                q_difficultSituation: interviewData.q_difficultSituation || '',
+                q_clientRefusal: interviewData.q_clientRefusal || '',
+                q_criticismFeedback: interviewData.q_criticismFeedback || '',
+                q_medicalEmergencyNoOffice: interviewData.q_medicalEmergencyNoOffice || '',
+                q_clientNotes: interviewData.q_clientNotes || '',
+            });
+
             scheduleEventForm.reset({
                 interviewPathway: interviewData.interviewPathway || undefined,
                 interviewMethod: interviewData.interviewType as 'In-Person' | 'Google Meet' | 'Orientation' | undefined,
@@ -302,7 +364,7 @@ export default function ManageInterviewsClient() {
             variant: "destructive"
         });
     }
-  }, [allEmployees, db, handleCancel, orientationForm, phoneScreenForm, assessmentForm, scheduleEventForm, router, pathname, toast]);
+  }, [allEmployees, db, handleCancel, orientationForm, phoneScreenForm, assessmentForm, interviewQuestionsForm, scheduleEventForm, router, pathname, toast]);
 
   useEffect(() => {
     const searchFromUrl = searchParams.get('search');
@@ -542,6 +604,22 @@ export default function ManageInterviewsClient() {
         }
     });
   };
+
+  const onQuestionsSubmit = async (data: InterviewQuestionsFormData) => {
+      if (!existingInterview?.id || !db) return;
+      startQuestionsSavingTransition(async () => {
+          const interviewDocRef = doc(db, 'interviews', existingInterview.id);
+          try {
+              await updateDoc(interviewDocRef, { ...data, lastUpdatedAt: Timestamp.now() });
+              setExistingInterview(prev => prev ? { ...prev, ...data } : null);
+              toast({ title: 'Success', description: 'Interview questions saved.' });
+              setIsQuestionsOpen(false);
+          } catch (error) {
+              console.error("Error saving interview questions:", error);
+              toast({ title: "Error", description: "Could not save interview questions.", variant: "destructive" });
+          }
+      });
+  }
 
 
   const onScheduleEventSubmit = async (data: ScheduleEventFormData) => {
@@ -1193,19 +1271,30 @@ export default function ManageInterviewsClient() {
                                     />
                                     
                                      {areNotesEditable && (
-                                        <FormField
-                                            control={assessmentForm.control}
-                                            name="finalInterviewNotes"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>In-Person Interview Notes</FormLabel>
-                                                    <FormControl>
-                                                        <Textarea placeholder="Enter notes from the in-person/video interview..." {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
+                                        <>
+                                            <Button 
+                                                type="button" 
+                                                variant="outline" 
+                                                className="w-full mb-4"
+                                                onClick={() => setIsQuestionsOpen(true)}
+                                            >
+                                                <ClipboardList className="mr-2 h-4 w-4" />
+                                                In Person Interview Qs
+                                            </Button>
+                                            <FormField
+                                                control={assessmentForm.control}
+                                                name="finalInterviewNotes"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>In-Person Interview Notes</FormLabel>
+                                                        <FormControl>
+                                                            <Textarea placeholder="Enter notes from the in-person/video interview..." {...field} />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </>
                                      )}
 
                                     <div className="flex justify-between items-center pt-2">
@@ -1532,6 +1621,206 @@ export default function ManageInterviewsClient() {
             </DialogDescription>
           </DialogHeader>
           <RejectCandidateForm onSubmit={handleRejection} isPending={isRejecting} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isQuestionsOpen} onOpenChange={setIsQuestionsOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+            <DialogHeader>
+                <DialogTitle>In-Person Interview Questions &amp; Answers</DialogTitle>
+                <DialogDescription>
+                    Record the candidate&apos;s responses to our standardized interview questions.
+                </DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="flex-1 pr-4">
+                <FormProvider {...interviewQuestionsForm}>
+                    <form className="space-y-6 pt-4">
+                        <FormField
+                            control={interviewQuestionsForm.control}
+                            name="q_decideBecomeCaregiver"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>What made you decide to become a caregiver?</FormLabel>
+                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={interviewQuestionsForm.control}
+                            name="q_rewardingChallenging"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>What do you find most rewarding and most challenging about caregiving?</FormLabel>
+                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={interviewQuestionsForm.control}
+                            name="q_strengthsWeaknesses"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>What are your greatest strengths and weaknesses?</FormLabel>
+                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={interviewQuestionsForm.control}
+                            name="q_specializedTraining"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Do you have any specialized training or certifications?</FormLabel>
+                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={interviewQuestionsForm.control}
+                            name="q_careerGoals"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>What are your career goals?</FormLabel>
+                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={interviewQuestionsForm.control}
+                            name="q_dementiaExperience"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>How much experience do you have with dementia?</FormLabel>
+                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={interviewQuestionsForm.control}
+                            name="q_clientUpsetHome"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>What would you do if client wants to go home and is very upset?</FormLabel>
+                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={interviewQuestionsForm.control}
+                            name="q_clientTellingLeave"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>What if client was telling you to leave?</FormLabel>
+                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={interviewQuestionsForm.control}
+                            name="q_clientCombative"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>What if client is combative?</FormLabel>
+                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={interviewQuestionsForm.control}
+                            name="q_clientHittingScratching"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>What if client is hitting or trying to scratch you?</FormLabel>
+                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={interviewQuestionsForm.control}
+                            name="q_deceasedSpouse"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>What if client asks where spouse is (who died years ago.) Do you tell client spouse is dead, or say he went out for a bit and will be back later.</FormLabel>
+                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={interviewQuestionsForm.control}
+                            name="q_difficultSituation"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Describe a difficult or stressful situation you have experienced while caregiving. How did you handle it?</FormLabel>
+                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={interviewQuestionsForm.control}
+                            name="q_clientRefusal"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>What would you do if a client refused to cooperate with daily tasks, such as eating or bathing?</FormLabel>
+                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={interviewQuestionsForm.control}
+                            name="q_criticismFeedback"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>How do you respond to criticism or feedback from a client or their family? Example: You said &quot;How are you today hon&quot; and client doesn&apos;t want to be called hon. OR they accuse you of taking something, Or say they don&apos;t want that lunch.</FormLabel>
+                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={interviewQuestionsForm.control}
+                            name="q_medicalEmergencyNoOffice"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>How would you handle a medical emergency if the office could not be reached?</FormLabel>
+                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={interviewQuestionsForm.control}
+                            name="q_clientNotes"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Do you write client notes at end of shift? What do you include in the client notes?</FormLabel>
+                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </form>
+                </FormProvider>
+            </ScrollArea>
+            <DialogFooter className="mt-6">
+                <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
+                <Button onClick={interviewQuestionsForm.handleSubmit(onQuestionsSubmit)} disabled={isQuestionsSaving}>
+                    {isQuestionsSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    Save Form
+                </Button>
+            </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

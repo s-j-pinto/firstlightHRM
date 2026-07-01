@@ -500,6 +500,26 @@ export const onboardingSignaturesSchema = z.object({
 });
 export type OnboardingSignatures = z.infer<typeof onboardingSignaturesSchema>;
 
+export const interviewQuestionsSchema = z.object({
+  q_decideBecomeCaregiver: z.string().optional(),
+  q_rewardingChallenging: z.string().optional(),
+  q_strengthsWeaknesses: z.string().optional(),
+  q_specializedTraining: z.string().optional(),
+  q_careerGoals: z.string().optional(),
+  q_dementiaExperience: z.string().optional(),
+  q_clientUpsetHome: z.string().optional(),
+  q_clientTellingLeave: z.string().optional(),
+  q_clientCombative: z.string().optional(),
+  q_clientHittingScratching: z.string().optional(),
+  q_deceasedSpouse: z.string().optional(),
+  q_difficultSituation: z.string().optional(),
+  q_clientRefusal: z.string().optional(),
+  q_criticismFeedback: z.string().optional(),
+  q_medicalEmergencyNoOffice: z.string().optional(),
+  q_clientNotes: z.string().optional(),
+});
+export type InterviewQuestionsFormData = z.infer<typeof interviewQuestionsSchema>;
+
 export const caregiverFormSchema = generalInfoSchema
   .merge(experienceSchema)
   .merge(certificationsSchema)
@@ -566,7 +586,7 @@ export const interviewSchema = z.object({
   rejectionDate: z.date().optional(),
   hiringDocsNotificationSentAt: z.any().optional(),
   onboardingFormsInitiated: z.boolean().optional(),
-});
+}).merge(interviewQuestionsSchema.partial());
 
 export type Interview = z.infer<typeof interviewSchema> & { id: string };
 
@@ -1201,3 +1221,26 @@ export const vaMedicalRecordSchema = z.object({
     providerSignature: z.string().trim().optional().nullable(),
 });
 export type VAMedicalRecord = z.infer<typeof vaMedicalRecordSchema> & { id: string };
+
+export const RecommendationPayloadSchema = z.object({
+    clientCareNeeds: ClientCareNeedsSchema,
+    availableCaregivers: z.array(CaregiverForRecommendationSchema),
+});
+export type RecommendationPayload = z.infer<typeof RecommendationPayloadSchema>;
+
+export const clientSchema = z.object({
+  "Client Name": z.string().trim(),
+  "DOB": z.string().trim().optional(),
+  "Address": z.string().trim(),
+  "aptUnit": z.string().trim().optional(),
+  "City": z.string().trim(),
+  "Zip": z.string().trim(),
+  "Mobile": z.string().trim(),
+  "Email": z.string().trim().toLowerCase().optional(),
+  "ContactName": z.string().trim().optional(),
+  "ContactMobile": z.string().trim().optional(),
+  status: z.enum(["Active", "Inactive"]),
+  createdAt: z.any(),
+  lastUpdatedAt: z.any(),
+});
+export type Client = z.infer<typeof clientSchema> & { id: string };
