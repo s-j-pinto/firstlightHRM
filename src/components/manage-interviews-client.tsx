@@ -1633,14 +1633,14 @@ export default function ManageInterviewsClient() {
             </DialogHeader>
             <ScrollArea className="flex-1 pr-4">
                 <FormProvider {...interviewQuestionsForm}>
-                    <form className="space-y-6 pt-4">
+                    <form className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
                         <FormField
                             control={interviewQuestionsForm.control}
                             name="q_decideBecomeCaregiver"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>What made you decide to become a caregiver?</FormLabel>
-                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormLabel className="text-xs">What made you decide to become a caregiver?</FormLabel>
+                                    <FormControl><Textarea {...field} rows={2} className="min-h-0" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -1650,8 +1650,8 @@ export default function ManageInterviewsClient() {
                             name="q_rewardingChallenging"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>What do you find most rewarding and most challenging about caregiving?</FormLabel>
-                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormLabel className="text-xs">What do you find most rewarding and challenging?</FormLabel>
+                                    <FormControl><Textarea {...field} rows={2} className="min-h-0" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -1661,8 +1661,8 @@ export default function ManageInterviewsClient() {
                             name="q_strengthsWeaknesses"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>What are your greatest strengths and weaknesses?</FormLabel>
-                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormLabel className="text-xs">What are your greatest strengths and weaknesses?</FormLabel>
+                                    <FormControl><Textarea {...field} rows={2} className="min-h-0" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -1672,8 +1672,8 @@ export default function ManageInterviewsClient() {
                             name="q_specializedTraining"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Do you have any specialized training or certifications?</FormLabel>
-                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormLabel className="text-xs">Do you have any specialized training or certifications?</FormLabel>
+                                    <FormControl><Textarea {...field} rows={2} className="min-h-0" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -1683,8 +1683,8 @@ export default function ManageInterviewsClient() {
                             name="q_careerGoals"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>What are your career goals?</FormLabel>
-                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormLabel className="text-xs">What are your career goals?</FormLabel>
+                                    <FormControl><Textarea {...field} rows={2} className="min-h-0" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -1694,8 +1694,8 @@ export default function ManageInterviewsClient() {
                             name="q_dementiaExperience"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>How much experience do you have with dementia?</FormLabel>
-                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormLabel className="text-xs">How much experience do you have with dementia?</FormLabel>
+                                    <FormControl><Textarea {...field} rows={2} className="min-h-0" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -1705,8 +1705,8 @@ export default function ManageInterviewsClient() {
                             name="q_clientUpsetHome"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>What would you do if client wants to go home and is very upset?</FormLabel>
-                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormLabel className="text-xs">What if client wants to go home and is very upset?</FormLabel>
+                                    <FormControl><Textarea {...field} rows={2} className="min-h-0" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -1716,8 +1716,8 @@ export default function ManageInterviewsClient() {
                             name="q_clientTellingLeave"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>What if client was telling you to leave?</FormLabel>
-                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormLabel className="text-xs">What if client was telling you to leave?</FormLabel>
+                                    <FormControl><Textarea {...field} rows={2} className="min-h-0" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -1727,8 +1727,8 @@ export default function ManageInterviewsClient() {
                             name="q_clientCombative"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>What if client is combative?</FormLabel>
-                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormLabel className="text-xs">What if client is combative?</FormLabel>
+                                    <FormControl><Textarea {...field} rows={2} className="min-h-0" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -1738,8 +1738,8 @@ export default function ManageInterviewsClient() {
                             name="q_clientHittingScratching"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>What if client is hitting or trying to scratch you?</FormLabel>
-                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormLabel className="text-xs">What if client is hitting or trying to scratch you?</FormLabel>
+                                    <FormControl><Textarea {...field} rows={2} className="min-h-0" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -1749,8 +1749,8 @@ export default function ManageInterviewsClient() {
                             name="q_deceasedSpouse"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>What if client asks where spouse is (who died years ago.) Do you tell client spouse is dead, or say he went out for a bit and will be back later.</FormLabel>
-                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormLabel className="text-xs">Client asks where deceased spouse is?</FormLabel>
+                                    <FormControl><Textarea {...field} rows={2} className="min-h-0" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -1760,8 +1760,8 @@ export default function ManageInterviewsClient() {
                             name="q_difficultSituation"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Describe a difficult or stressful situation you have experienced while caregiving. How did you handle it?</FormLabel>
-                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormLabel className="text-xs">Describe a difficult or stressful situation.</FormLabel>
+                                    <FormControl><Textarea {...field} rows={2} className="min-h-0" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -1771,8 +1771,8 @@ export default function ManageInterviewsClient() {
                             name="q_clientRefusal"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>What would you do if a client refused to cooperate with daily tasks, such as eating or bathing?</FormLabel>
-                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormLabel className="text-xs">What if client refused to cooperate with daily tasks?</FormLabel>
+                                    <FormControl><Textarea {...field} rows={2} className="min-h-0" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -1782,8 +1782,8 @@ export default function ManageInterviewsClient() {
                             name="q_criticismFeedback"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>How do you respond to criticism or feedback from a client or their family? Example: You said "How are you today hon" and client doesn't want to be called hon. OR they accuse you of taking something, Or say they don't want that lunch.</FormLabel>
-                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormLabel className="text-xs">How do you respond to criticism or feedback?</FormLabel>
+                                    <FormControl><Textarea {...field} rows={2} className="min-h-0" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -1793,8 +1793,8 @@ export default function ManageInterviewsClient() {
                             name="q_medicalEmergencyNoOffice"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>How would you handle a medical emergency if the office could not be reached?</FormLabel>
-                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormLabel className="text-xs">Handle medical emergency if office unreached?</FormLabel>
+                                    <FormControl><Textarea {...field} rows={2} className="min-h-0" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -1804,8 +1804,8 @@ export default function ManageInterviewsClient() {
                             name="q_clientNotes"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Do you write client notes at end of shift? What do you include in the client notes?</FormLabel>
-                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormLabel className="text-xs">Write client notes at end of shift? What content?</FormLabel>
+                                    <FormControl><Textarea {...field} rows={2} className="min-h-0" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
