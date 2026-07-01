@@ -341,7 +341,7 @@ export type ReferenceVerification1FormData = z.infer<typeof referenceVerificatio
 
 export const referenceVerification2Object = z.object({
   applicantSignature2: z.string().min(1, "Signature is required."),
-  applicantSignature2Date: requiredDateString,
+  applicantSignatureDate2: requiredDateString,
   company2: z.string().trim().min(1, "Company name is required."),
   supervisorName2: z.string().trim().min(1, "Supervisor's name is required."),
   emailOrFax2: z.string().trim().min(1, "Email or Fax is required."),
@@ -707,7 +707,6 @@ export const clientSignupFormSchema = clientSignupDraftSchema.extend({
   hourlyRate: z.coerce.number().optional(),
   minimumHoursPerShift: z.coerce.number().optional(),
   rateCardDate: dateString,
-  policyNumber: z.string().trim().optional(),
   policyNumber: z.string().trim().optional(),
   policyPeriod: z.string().trim().optional(),
   clientInitials: z.string().trim().optional(),

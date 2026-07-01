@@ -716,7 +716,7 @@ export default function ManageInterviewsClient() {
             });
 
              if (result.authUrl) {
-                setAuthUrl(result.authUrl);
+                setAuthUrl(calendarAuthUrl);
             } else {
                 setAuthUrl(null);
             }
@@ -728,7 +728,7 @@ export default function ManageInterviewsClient() {
             });
             
             if (!result.error) {
-                // Fix: Properly construct ISO date for fromZonedTime (MM/DD/YYYY to YYYY-MM-DD)
+                // Properly construct ISO date for fromZonedTime (MM/DD/YYYY to YYYY-MM-DD)
                 const [month, day, year] = data.orientationDate.split('/');
                 const isoDate = `${year}-${month}-${day}`;
                 const zonedTime = fromZonedTime(`${isoDate}T${data.orientationTime}`, 'America/Los_Angeles');
@@ -1835,7 +1835,7 @@ function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: strin
     <div className="space-y-4 pt-4">
       <div className="space-y-2">
         <Label>Reason for Rejection</Label>
-         <RadioGroup onValueChange={setReason} value={reason}>
+         <RadioGroup onValueChange={reason => setReason(reason)} value={reason}>
           {rejectionReasons.map((r, i) => (
             <div key={i} className="flex items-center space-x-3 space-y-0">
               <RadioGroupItem value={r} id={`reason-${i}`} />
