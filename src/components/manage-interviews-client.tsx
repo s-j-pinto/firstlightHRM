@@ -1640,7 +1640,7 @@ export default function ManageInterviewsClient() {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-xs">What made you decide to become a caregiver?</FormLabel>
-                                    <FormControl><Textarea {...field} rows={2} className="min-h-0" /></FormControl>
+                                    <FormControl><Textarea {...field} rows={1} className="min-h-0" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -1651,7 +1651,7 @@ export default function ManageInterviewsClient() {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-xs">What do you find most rewarding and challenging?</FormLabel>
-                                    <FormControl><Textarea {...field} rows={2} className="min-h-0" /></FormControl>
+                                    <FormControl><Textarea {...field} rows={1} className="min-h-0" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -1662,7 +1662,7 @@ export default function ManageInterviewsClient() {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-xs">What are your greatest strengths and weaknesses?</FormLabel>
-                                    <FormControl><Textarea {...field} rows={2} className="min-h-0" /></FormControl>
+                                    <FormControl><Textarea {...field} rows={1} className="min-h-0" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -1673,7 +1673,7 @@ export default function ManageInterviewsClient() {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-xs">Do you have any specialized training or certifications?</FormLabel>
-                                    <FormControl><Textarea {...field} rows={2} className="min-h-0" /></FormControl>
+                                    <FormControl><Textarea {...field} rows={1} className="min-h-0" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -1684,7 +1684,7 @@ export default function ManageInterviewsClient() {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-xs">What are your career goals?</FormLabel>
-                                    <FormControl><Textarea {...field} rows={2} className="min-h-0" /></FormControl>
+                                    <FormControl><Textarea {...field} rows={1} className="min-h-0" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -1695,7 +1695,7 @@ export default function ManageInterviewsClient() {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-xs">How much experience do you have with dementia?</FormLabel>
-                                    <FormControl><Textarea {...field} rows={2} className="min-h-0" /></FormControl>
+                                    <FormControl><Textarea {...field} rows={1} className="min-h-0" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -1706,7 +1706,7 @@ export default function ManageInterviewsClient() {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-xs">What if client wants to go home and is very upset?</FormLabel>
-                                    <FormControl><Textarea {...field} rows={2} className="min-h-0" /></FormControl>
+                                    <FormControl><Textarea {...field} rows={1} className="min-h-0" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -1717,7 +1717,7 @@ export default function ManageInterviewsClient() {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-xs">What if client was telling you to leave?</FormLabel>
-                                    <FormControl><Textarea {...field} rows={2} className="min-h-0" /></FormControl>
+                                    <FormControl><Textarea {...field} rows={1} className="min-h-0" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -1728,7 +1728,7 @@ export default function ManageInterviewsClient() {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-xs">What if client is combative?</FormLabel>
-                                    <FormControl><Textarea {...field} rows={2} className="min-h-0" /></FormControl>
+                                    <FormControl><Textarea {...field} rows={1} className="min-h-0" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -1739,7 +1739,7 @@ export default function ManageInterviewsClient() {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-xs">What if client is hitting or trying to scratch you?</FormLabel>
-                                    <FormControl><Textarea {...field} rows={2} className="min-h-0" /></FormControl>
+                                    <FormControl><Textarea {...field} rows={1} className="min-h-0" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -1750,7 +1750,7 @@ export default function ManageInterviewsClient() {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-xs">Client asks where deceased spouse is?</FormLabel>
-                                    <FormControl><Textarea {...field} rows={2} className="min-h-0" /></FormControl>
+                                    <FormControl><Textarea {...field} rows={1} className="min-h-0" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -1761,7 +1761,7 @@ export default function ManageInterviewsClient() {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-xs">Describe a difficult or stressful situation.</FormLabel>
-                                    <FormControl><Textarea {...field} rows={2} className="min-h-0" /></FormControl>
+                                    <FormControl><Textarea {...field} rows={1} className="min-h-0" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -1772,7 +1772,7 @@ export default function ManageInterviewsClient() {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-xs">What if client refused to cooperate with daily tasks?</FormLabel>
-                                    <FormControl><Textarea {...field} rows={2} className="min-h-0" /></FormControl>
+                                    <FormControl><Textarea {...field} rows={1} className="min-h-0" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -1783,7 +1783,7 @@ export default function ManageInterviewsClient() {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-xs">How do you respond to criticism or feedback?</FormLabel>
-                                    <FormControl><Textarea {...field} rows={2} className="min-h-0" /></FormControl>
+                                    <FormControl><Textarea {...field} rows={1} className="min-h-0" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -1794,7 +1794,7 @@ export default function ManageInterviewsClient() {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-xs">Handle medical emergency if office unreached?</FormLabel>
-                                    <FormControl><Textarea {...field} rows={2} className="min-h-0" /></FormControl>
+                                    <FormControl><Textarea {...field} rows={1} className="min-h-0" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -1805,7 +1805,7 @@ export default function ManageInterviewsClient() {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-xs">Write client notes at end of shift? What content?</FormLabel>
-                                    <FormControl><Textarea {...field} rows={2} className="min-h-0" /></FormControl>
+                                    <FormControl><Textarea {...field} rows={1} className="min-h-0" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
