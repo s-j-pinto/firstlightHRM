@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
@@ -716,7 +715,7 @@ export default function ManageInterviewsClient() {
             });
 
              if (result.authUrl) {
-                setAuthUrl(calendarAuthUrl);
+                setAuthUrl(result.authUrl);
             } else {
                 setAuthUrl(null);
             }
@@ -1629,7 +1628,7 @@ export default function ManageInterviewsClient() {
             <DialogHeader>
                 <DialogTitle>In-Person Interview Questions &amp; Answers</DialogTitle>
                 <DialogDescription>
-                    Record the candidate&apos;s responses to our standardized interview questions.
+                    Record the candidate's responses to our standardized interview questions.
                 </DialogDescription>
             </DialogHeader>
             <ScrollArea className="flex-1 pr-4">
@@ -1783,7 +1782,7 @@ export default function ManageInterviewsClient() {
                             name="q_criticismFeedback"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>How do you respond to criticism or feedback from a client or their family? Example: You said &quot;How are you today hon&quot; and client doesn&apos;t want to be called hon. OR they accuse you of taking something, Or say they don&apos;t want that lunch.</FormLabel>
+                                    <FormLabel>How do you respond to criticism or feedback from a client or their family? Example: You said "How are you today hon" and client doesn't want to be called hon. OR they accuse you of taking something, Or say they don't want that lunch.</FormLabel>
                                     <FormControl><Textarea {...field} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -1817,7 +1816,7 @@ export default function ManageInterviewsClient() {
             <DialogFooter className="mt-6">
                 <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
                 <Button onClick={interviewQuestionsForm.handleSubmit(onQuestionsSubmit)} disabled={isQuestionsSaving}>
-                    {isQuestionsSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    {isQuestionsSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2" />}
                     Save Form
                 </Button>
             </DialogFooter>

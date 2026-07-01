@@ -1,4 +1,3 @@
-
 import { z } from "zod";
 
 const isValidDate = (dateString: string): boolean => {
@@ -675,239 +674,44 @@ export const videoCheckinRequestSchema = z.object({
 });
 export type VideoCheckinRequest = z.infer<typeof videoCheckinRequestSchema> & { id: string };
 
-const clientSignupDraftSchema = z.object({
-  clientName: z.string().trim().min(1, { message: "Client Name is required." }),
-  clientCity: z.string().trim().min(1, { message: "City is required." }),
-  clientState: z.string().trim().min(1, { message: "State is required." }),
-  clientPhone: z.string().trim().min(1, { message: "Phone is required." }),
-  clientEmail: z.string().trim().toLowerCase().email({ message: "A valid client email is required to send the signature link." }),
+export const clientSchema = z.object({
+  "Client Name": z.string().trim(),
+  "DOB": z.string().trim().optional(),
+  "Address": z.string().trim(),
+  "aptUnit": z.string().trim().optional(),
+  "City": z.string().trim(),
+  "Zip": z.string().trim(),
+  "Mobile": z.string().trim(),
+  "Email": z.string().trim().toLowerCase().optional(),
+  "ContactName": z.string().trim().optional(),
+  "ContactMobile": z.string().trim().optional(),
+  status: z.enum(["Active", "Inactive"]),
+  createdAt: z.any(),
+  lastUpdatedAt: z.any(),
 });
 
-export const clientSignupFormSchema = clientSignupDraftSchema.extend({
-  payor: z.string().trim().optional(),
-  officeTodaysDate: dateString,
-  officeReferralDate: dateString,
-  officeInitialContactDate: dateString,
-  clientAddress: z.string().trim().optional(),
-  clientPostalCode: z.string().trim().optional(),
-  clientSSN: z.string().trim().optional(),
-  clientDOB: dateString,
-  emergencyContactName: z.string().trim().optional(),
-  emergencyContactRelationship: z.string().trim().optional(),
-  emergencyContactHomePhone: z.string().trim().optional(),
-  emergencyContactWorkPhone: z.string().trim().optional(),
-  secondEmergencyContactName: z.string().trim().optional(),
-  secondEmergencyContactRelationship: z.string().trim().optional(),
-  secondEmergencyContactPhone: z.string().trim().optional(),
-  homemakerCompanion: z.boolean().optional(),
-  personalCare: z.boolean().optional(),
-  daysPerWeek: z.string().trim().optional(),
-  hoursPerDay: z.string().trim().optional(),
-  contractStartDate: dateString,
-  hourlyRate: z.coerce.number().optional(),
-  minimumHoursPerShift: z.coerce.number().optional(),
-  rateCardDate: dateString,
-  policyNumber: z.string().trim().optional(),
-  policyPeriod: z.string().trim().optional(),
-  clientInitials: z.string().trim().optional(),
-  receivedPrivacyPractices: z.boolean().optional(),
-  receivedClientRights: z.boolean().optional(),
-  receivedTransportationWaiver: z.boolean().optional(),
-  receivedPaymentAgreement: z.boolean().optional(),
-  receivedAdditionalDisclosures: z.boolean().optional(),
-  clientSignature: z.string().optional(),
-  clientPrintedName: z.string().trim().optional(),
-  clientSignatureDate: dateString,
-  clientRepresentativeSignature: z.string().optional(),
-  clientRepresentativePrintedName: z.string().trim().optional(),
-  clientRepresentativeSignatureDate: dateString,
-  firstLightRepresentativeSignature: z.string().optional(),
-  firstLightRepresentativeTitle: z.string().trim().optional(),
-  firstLightRepresentativeSignatureDate: dateString,
-  companionCare_mealPreparation: z.boolean().optional(),
-  companionCare_cleanKitchen: z.boolean().optional(),
-  companionCare_assistWithLaundry: z.boolean().optional(),
-  companionCare_dustFurniture: z.boolean().optional(),
-  companionCare_assistWithEating: z.boolean().optional(),
-  companionCare_provideAlzheimersRedirection: z.boolean().optional(),
-  companionCare_assistWithHomeManagement: z.boolean().optional(),
-  companionCare_preparationForBathing: z.boolean().optional(),
-  companionCare_groceryShopping: z.boolean().optional(),
-  companionCare_cleanBathrooms: z.boolean().optional(),
-  companionCare_changeBedLinens: z.boolean().optional(),
-  companionCare_runErrands: z.boolean().optional(),
-  companionCare_escortAndTransportation: z.boolean().optional(),
-  companionCare_provideRemindersAndAssistWithToileting: z.boolean().optional(),
-  companionCare_provideRespiteCare: z.boolean().optional(),
-  companionCare_stimulateMentalAwareness: z.boolean().optional(),
-  companionCare_assistWithDressingAndGrooming: z.boolean().optional(),
-  companionCare_assistWithShavingAndOralCare: z.boolean().optional(),
-  companionCare_other: z.string().trim().optional(),
-  personalCare_provideAlzheimersCare: z.boolean().optional(),
-  personalCare_provideMedicationReminders: z.boolean().optional(),
-  personalCare_assistWithDressingGrooming: z.boolean().optional(),
-  personalCare_assistWithBathingHairCare: z.boolean().optional(),
-  personalCare_assistWithFeedingSpecialDiets: z.boolean().optional(),
-  personalCare_assistWithMobilityAmbulationTransfer: z.boolean().optional(),
-  personalCare_assistWithIncontinenceCare: z.boolean().optional(),
-  personalCare_assistWithOther: z.string().trim().optional(),
-  servicePlanClientInitials: z.string().trim().optional(),
-  agreementClientName: z.string().trim().optional(),
-  agreementClientSignature: z.string().optional(),
-  agreementSignatureDate: dateString,
-  agreementRelationship: z.string().trim().optional(),
-  agreementRepSignature: z.string().optional(),
-  agreementRepDate: dateString,
-  transportationWaiverClientSignature: z.string().optional(),
-  transportationWaiverClientPrintedName: z.string().trim().optional(),
-  transportationWaiverWitnessSignature: z.string().optional(),
-  transportationWaiverDate: dateString,
-});
-export type ClientSignupFormData = z.infer<typeof clientSignupFormSchema>;
+export type Client = z.infer<typeof clientSchema> & { id: string };
 
-export const finalizationSchema = clientSignupFormSchema.extend({
-  hourlyRate: z.coerce.number().min(1, "Hourly rate is required."),
-  minimumHoursPerShift: z.coerce.number().min(1, "Minimum hours per shift is required."),
-  rateCardDate: requiredDateString,
-  clientInitials: z.string().trim().min(1, "Client initials for the hiring clause are required."),
-  receivedPrivacyPractices: z.literal(true, { errorMap: () => ({ message: "Must be acknowledged" }) }),
-  receivedClientRights: z.literal(true, { errorMap: () => ({ message: "Must be acknowledged" }) }),
-  receivedPaymentAgreement: z.literal(true, { errorMap: () => ({ message: "Must be acknowledged" }) }),
-  firstLightRepresentativeSignature: z.string().min(1, "FirstLight representative signature is required."),
-  firstLightRepresentativeTitle: z.string().trim().min(1, "FirstLight representative title is required."),
-  firstLightRepresentativeSignatureDate: requiredDateString,
-  servicePlanClientInitials: z.string().trim().min(1, "Client initials for the service plan are required."),
-  agreementClientName: z.string().trim().min(1, "Client name for payment agreement is required."),
-  agreementRepSignature: z.string().min(1, "FirstLight representative signature for payment agreement is required."),
-  agreementRepDate: requiredDateString,
-}).superRefine((data, ctx) => {
-    if (data.clientSignature?.trim() === '' && data.clientRepresentativeSignature?.trim() === '') {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Either client or representative signature is required in the Acknowledgement section.", path: ["clientSignature"] });
-    }
-    if (data.clientSignature && (!data.clientPrintedName || !data.clientSignatureDate)) {
-        if (!data.clientPrintedName) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Printed name is required.", path: ["clientPrintedName"] });
-        if (!data.clientSignatureDate) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date is required.", path: ["clientSignatureDate"] });
-    }
-    if (data.clientRepresentativeSignature && (!data.clientRepresentativePrintedName || !data.clientRepresentativeSignatureDate)) {
-        if (!data.clientRepresentativePrintedName) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Representative printed name is required.", path: ["clientRepresentativePrintedName"] });
-        if (!data.clientRepresentativeSignatureDate) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date is required.", path: ["clientRepresentativeSignatureDate"] });
-    }
-   if (!data.agreementClientSignature) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Client signature for payment agreement is required.", path: ["agreementClientSignature"] });
-   }
-   if (data.agreementClientSignature && !data.agreementSignatureDate) {
-     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date is required.", path: ["agreementSignatureDate"] });
-   }
-   if(data.receivedTransportationWaiver) {
-    if (!data.transportationWaiverClientSignature) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Client signature is required for the waiver.", path: ["transportationWaiverClientSignature"] });
-    if (!data.transportationWaiverClientPrintedName) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Printed name is required for the waiver.", path: ["transportationWaiverClientPrintedName"] });
-    if (!data.transportationWaiverWitnessSignature) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Witness signature is required for the waiver.", path: ["transportationWaiverWitnessSignature"] });
-    if (!data.transportationWaiverDate) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date is required for the waiver.", path: ["transportationWaiverDate"] });
-   }
+export const activeCaregiverSchema = z.object({
+  "Name": z.string().trim(),
+  "dob": z.string().trim().optional(),
+  "Address": z.string().trim().optional(),
+  "Apt": z.string().trim().optional(),
+  "City": z.string().trim().optional(),
+  "State": z.string().trim().optional(),
+  "Zip": z.string().trim().optional(),
+  "Mobile": z.string().trim().optional(),
+  "Hire Date": z.string().trim().optional(),
+  "Email": z.string().trim().toLowerCase().email(),
+  "Drivers Lic": z.string().trim().optional(),
+  "Caregiver Lic": z.string().trim().optional(),
+  "TTiD-PIN": z.string().trim().optional(),
+  status: z.enum(["Active", "Inactive"]),
+  createdAt: z.any(),
+  lastUpdatedAt: z.any(),
 });
 
-const tppBaseFinalizationSchema = z.object({
-  clientName: z.string().trim().min(1, { message: "Client Name is required." }),
-  clientEmail: z.string().trim().toLowerCase().email(),
-  clientAddress: z.string().trim().min(1),
-  clientCity: z.string().trim().min(1),
-  clientState: z.string().trim().min(1),
-  clientPostalCode: z.string().trim().min(1),
-  clientPhone: z.string().trim().min(1),
-  clientDOB: dateString,
-  payor: z.string().trim().min(1, "Payor name is required."),
-  clientInitials: z.string().trim().min(1, "Client initials for the hiring clause are required."),
-  receivedPrivacyPractices: z.literal(true, { errorMap: () => ({ message: "Must acknowledge receipt of Privacy Practices." }) }),
-  firstLightRepresentativeSignature: z.string().min(1, "FirstLight representative signature is required."),
-  firstLightRepresentativeTitle: z.string().trim().min(1, "FirstLight representative title is required."),
-  firstLightRepresentativeSignatureDate: requiredDateString,
-  receivedTransportationWaiver: z.boolean().optional(),
-  transportationWaiverClientSignature: z.string().optional(),
-  transportationWaiverClientPrintedName: z.string().trim().optional(),
-  transportationWaiverWitnessSignature: z.string().optional(),
-  transportationWaiverDate: dateString,
-  clientSignature: z.string().optional(),
-  clientRepresentativeSignature: z.string().optional(),
-  clientPrintedName: z.string().trim().optional(),
-  clientSignatureDate: dateString,
-  clientRepresentativePrintedName: z.string().trim().optional(),
-  clientRepresentativeSignatureDate: dateString,
-  receivedAdditionalDisclosures: z.boolean().optional(),
-  agreementClientSignature: z.string().optional(),
-  agreementSignatureDate: dateString,
-  agreementRelationship: z.string().trim().optional(),
-  agreementRepSignature: z.string().optional(),
-  agreementRepDate: dateString,
-});
-
-export const tppFinalizationSchema = tppBaseFinalizationSchema.superRefine((data, ctx) => {
-    if (!data.clientSignature && !data.clientRepresentativeSignature) {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Either the client's or the representative's signature is required in the Acknowledgement section.",
-            path: ["clientSignature"],
-        });
-    }
-    if (data.clientSignature && (!data.clientPrintedName || !data.clientSignatureDate)) {
-        if (!data.clientPrintedName) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Printed name is required.", path: ["clientPrintedName"] });
-        if (!data.clientSignatureDate) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date is required.", path: ["clientSignatureDate"] });
-    }
-    if (data.clientRepresentativeSignature && (!data.clientRepresentativePrintedName || !data.clientRepresentativeSignatureDate)) {
-        if (!data.clientRepresentativePrintedName) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Representative printed name is required.", path: ["clientRepresentativePrintedName"] });
-        if (!data.clientRepresentativeSignatureDate) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date is required.", path: ["clientRepresentativeSignatureDate"] });
-    }
-
-   if(data.receivedTransportationWaiver) {
-    if (!data.transportationWaiverClientSignature) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Client signature is required for the waiver.", path: ["transportationWaiverClientSignature"] });
-    if (!data.transportationWaiverClientPrintedName) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Printed name is required for the waiver.", path: ["transportationWaiverClientPrintedName"] });
-    if (!data.transportationWaiverWitnessSignature) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Witness signature is required for the waiver.", path: ["transportationWaiverWitnessSignature"] });
-    if (!data.transportationWaiverDate) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Date is required for the waiver.", path: ["transportationWaiverDate"] });
-   }
-});
-
-export const clientSignaturePayloadSchema = z.object({
-  signupId: z.string(),
-  clientSignature: z.string().optional(),
-  clientRepresentativeSignature: z.string().optional(),
-  agreementClientSignature: z.string().min(1, "Agreement Signature is required."),
-  clientPrintedName: z.string().trim().optional(),
-  clientSignatureDate: dateString,
-  clientRepresentativePrintedName: z.string().trim().optional(),
-  clientRepresentativeSignatureDate: dateString,
-  initials: z.string().trim().min(1, { message: "Initials are required for the hiring clause." }),
-  servicePlanClientInitials: z.string().trim().min(1, { message: "Initials are required for the service plan section."}),
-  agreementRelationship: z.string().trim().optional(),
-  agreementSignatureDate: dateString,
-  transportationWaiverClientSignature: z.string().optional(),
-  transportationWaiverClientPrintedName: z.string().trim().optional(),
-  transportationWaiverWitnessSignature: z.string().optional(),
-  transportationWaiverDate: dateString,
-}).superRefine((data, ctx) => {
-    if (!data.clientSignature && !data.clientRepresentativeSignature) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Either client or representative signature is required.", path: ["clientSignature"] });
-    }
-});
-
-export const tppClientSignaturePayloadSchema = z.object({
-  signupId: z.string(),
-  clientSignature: z.string().optional(),
-  clientRepresentativeSignature: z.string().optional(),
-  clientPrintedName: z.string().trim().optional(),
-  clientSignatureDate: dateString,
-  clientRepresentativePrintedName: z.string().trim().optional(),
-  clientRepresentativeSignatureDate: dateString,
-  initials: z.string().trim().min(1, { message: "Initials are required for the hiring clause." }),
-  transportationWaiverClientSignature: z.string().optional(),
-  transportationWaiverClientPrintedName: z.string().trim().optional(),
-  transportationWaiverWitnessSignature: z.string().optional(),
-  transportationWaiverDate: dateString,
-  agreementClientSignature: z.string().optional(),
-  agreementSignatureDate: dateString,
-}).superRefine((data, ctx) => {
-    if (!data.clientSignature && !data.clientRepresentativeSignature) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "A client or representative signature is required.", path: ["clientSignature"] });
-    }
-});
+export type ActiveCaregiver = z.infer<typeof activeCaregiverSchema> & { id: string };
 
 export const ExtractCareLogInputSchema = z.object({
   imageDataUri: z.string().describe(
@@ -1188,42 +992,3 @@ export const RecommendationPayloadSchema = z.object({
     availableCaregivers: z.array(CaregiverForRecommendationSchema),
 });
 export type RecommendationPayload = z.infer<typeof RecommendationPayloadSchema>;
-
-export const clientSchema = z.object({
-  "Client Name": z.string().trim(),
-  "DOB": z.string().trim().optional(),
-  "Address": z.string().trim(),
-  "aptUnit": z.string().trim().optional(),
-  "City": z.string().trim(),
-  "Zip": z.string().trim(),
-  "Mobile": z.string().trim(),
-  "Email": z.string().trim().toLowerCase().optional(),
-  "ContactName": z.string().trim().optional(),
-  "ContactMobile": z.string().trim().optional(),
-  status: z.enum(["Active", "Inactive"]),
-  createdAt: z.any(),
-  lastUpdatedAt: z.any(),
-});
-
-export type Client = z.infer<typeof clientSchema> & { id: string };
-
-export const activeCaregiverSchema = z.object({
-  "Name": z.string().trim(),
-  "dob": z.string().trim().optional(),
-  "Address": z.string().trim().optional(),
-  "Apt": z.string().trim().optional(),
-  "City": z.string().trim().optional(),
-  "State": z.string().trim().optional(),
-  "Zip": z.string().trim().optional(),
-  "Mobile": z.string().trim().optional(),
-  "Hire Date": z.string().trim().optional(),
-  "Email": z.string().trim().toLowerCase().email(),
-  "Drivers Lic": z.string().trim().optional(),
-  "Caregiver Lic": z.string().trim().optional(),
-  "TTiD-PIN": z.string().trim().optional(),
-  status: z.enum(["Active", "Inactive"]),
-  createdAt: z.any(),
-  lastUpdatedAt: z.any(),
-});
-
-export type ActiveCaregiver = z.infer<typeof activeCaregiverSchema> & { id: string };
