@@ -211,6 +211,7 @@
         "canEmptyColostomyBag": { "type": "boolean" },
         "canGiveMedication": { "type": "boolean" },
         "canTakeBloodPressure": { "type": "boolean" },
+        "canWorkWithBedBound": { "type": "boolean" },
         "hasDementiaExperience": { "type": "boolean" },
         "hasHospiceExperience": { "type": "boolean" },
         "hca": { "type": "boolean" },

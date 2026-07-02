@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useTransition } from "react";
@@ -90,6 +89,7 @@ const experienceCheckboxes = [
     { id: "canEmptyColostomyBag", label: "Able to empty colostomy bag?" },
     { id: "canGiveMedication", label: "Able to give medication?" },
     { id: "canTakeBloodPressure", label: "Able to take blood Pressure?" },
+    { id: "canWorkWithBedBound", label: "Able to work with Bed Bound clients?" },
     { id: "hasDementiaExperience", label: "Experience with Dementia patients?" },
     { id: "hasHospiceExperience", label: "Experience with hospice patients?" },
 ] as const;
@@ -146,6 +146,7 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
       canEmptyColostomyBag: false,
       canGiveMedication: false,
       canTakeBloodPressure: false,
+      canWorkWithBedBound: false,
       hasDementiaExperience: false,
       hasHospiceExperience: false,
       hca: false,
@@ -402,11 +403,11 @@ export function CaregiverForm({ onSuccess }: { onSuccess: (id: string, name: str
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back
               </Button>
               {currentStep < steps.length ? (
-                <Button type="button" onClick={nextStep} className="bg-accent hover:bg-accent/90">
+                <Button type="button" onClick={nextStep} className="bg-accent text-accent-foreground hover:bg-accent/90">
                   Next <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               ) : (
-                <Button type="submit" disabled={isSubmitting} className="bg-accent hover:bg-accent/90">
+                <Button type="submit" disabled={isSubmitting} className="bg-accent text-accent-foreground hover:bg-accent/90">
                   {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
                   Submit Application
                 </Button>
