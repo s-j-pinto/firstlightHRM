@@ -355,7 +355,12 @@
         "q_clientRefusal": { "type": "string" },
         "q_criticismFeedback": { "type": "string" },
         "q_medicalEmergencyNoOffice": { "type": "string" },
-        "q_clientNotes": { "type": "string" }
+        "q_clientNotes": { "type": "string" },
+        "q_hasAutoInsurance": { "type": "string" },
+        "q_movingViolations": { "type": "string" },
+        "q_misdemeanorCharges": { "type": "string" },
+        "q_ieTravelAreas": { "type": "string" },
+        "q_preferredNotWorkAreas": { "type": "string" }
       },
       "required": [
         "caregiverProfileId",

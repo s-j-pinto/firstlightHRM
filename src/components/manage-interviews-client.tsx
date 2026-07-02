@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
@@ -7,8 +8,8 @@ import { z } from "zod";
 import Link from 'next/link';
 import { collection, getDocs, setDoc, doc, updateDoc, Timestamp, query, where } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
-import type { CaregiverProfile, Interview, CaregiverEmployee, Appointment, InterviewQuestionsFormData } from '@/lib/types';
-import { caregiverEmployeeSchema, requiredDateString, interviewQuestionsSchema } from '@/lib/types';
+import type { CaregiverProfile, Interview, CaregiverEmployee, Appointment, InterviewQuestionsFormData, InterviewTransportationFormData } from '@/lib/types';
+import { caregiverEmployeeSchema, requiredDateString, interviewQuestionsSchema, interviewTransportationSchema } from '@/lib/types';
 import { saveInterviewAndSchedule, rejectCandidate, initiateOnboardingForms } from '@/lib/interviews.actions';
 import { getAiInterviewInsights } from '@/lib/ai.actions';
 import { triggerTeletrackImport } from '@/lib/github.actions';
@@ -40,7 +41,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Search, Sparkles, UserCheck, AlertCircle, ExternalLink, Briefcase, Video, GraduationCap, Phone, Star, MessageSquare, CheckCircle, XCircle, UserX, Save, FileText, FileCheck2, FileClock, ClipboardList, CheckSquare } from 'lucide-react';
+import { Loader2, Search, Sparkles, UserCheck, AlertCircle, ExternalLink, Briefcase, Video, GraduationCap, Phone, Star, MessageSquare, CheckCircle, XCircle, UserX, Save, FileText, FileCheck2, FileClock, ClipboardList, CheckSquare, Car } from 'lucide-react';
 import { format, isDate, isValid, parse } from 'date-fns';
 import { fromZonedTime } from 'date-fns-tz';
 import { cn } from '@/lib/utils';
@@ -62,7 +63,9 @@ const safeToDate = (value: any): Date | null => {
     if (typeof value === 'object' && typeof value.seconds === 'number') {
         return new Date(value.seconds * 1000 + (value.nanoseconds || 0) / 1000000);
     }
-    if (isDate(value)) return value;
+    if (isDate(value)) {
+        return value;
+    }
     const d = new Date(value);
     if (!isNaN(d.getTime())) {
         return d;
@@ -108,6 +111,26 @@ const skillsSchema = z.object({
     canEmptyColostomyBag: z.boolean().default(false),
     canGiveMedication: z.boolean().default(false),
     canTakeBloodPressure: z.boolean().default(false),
+});
+
+type TransportationFormData = {
+  hasCar: boolean;
+  validLicense: boolean;
+  q_hasAutoInsurance?: string;
+  q_movingViolations?: string;
+  q_misdemeanorCharges?: string;
+  q_ieTravelAreas?: string;
+  q_preferredNotWorkAreas?: string;
+}
+
+const transportationSchema = z.object({
+    hasCar: z.boolean(),
+    validLicense: z.boolean(),
+    q_hasAutoInsurance: z.string().optional(),
+    q_movingViolations: z.string().optional(),
+    q_misdemeanorCharges: z.string().optional(),
+    q_ieTravelAreas: z.string().optional(),
+    q_preferredNotWorkAreas: z.string().optional(),
 });
 
 type PhoneScreenFormData = z.infer<typeof phoneScreenSchema>;
@@ -170,6 +193,7 @@ export default function ManageInterviewsClient() {
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [isQuestionsOpen, setIsQuestionsOpen] = useState(false);
   const [isSkillsOpen, setIsSkillsOpen] = useState(false);
+  const [isTransportationOpen, setIsTransportationOpen] = useState(false);
   
   const [isAiPending, startAiTransition] = useTransition();
   const [isSearching, startSearchTransition] = useTransition();
@@ -181,6 +205,7 @@ export default function ManageInterviewsClient() {
   const [isOnboardingInitiating, startOnboardingInitiation] = useTransition();
   const [isQuestionsSaving, startQuestionsSavingTransition] = useTransition();
   const [isSkillsSaving, startSkillsSavingTransition] = useTransition();
+  const [isTransportationSaving, startTransportationSavingTransition] = useTransition();
 
   const { toast } = useToast();
   const db = useFirestore();
@@ -251,6 +276,19 @@ export default function ManageInterviewsClient() {
       }
   });
 
+  const transportationForm = useForm<TransportationFormData>({
+      resolver: zodResolver(transportationSchema),
+      defaultValues: {
+          hasCar: false,
+          validLicense: false,
+          q_hasAutoInsurance: '',
+          q_movingViolations: '',
+          q_misdemeanorCharges: '',
+          q_ieTravelAreas: '',
+          q_preferredNotWorkAreas: '',
+      }
+  });
+
   const scheduleEventForm = useForm<ScheduleEventFormData>({
     resolver: zodResolver(scheduleEventSchema),
     defaultValues: {
@@ -293,6 +331,7 @@ export default function ManageInterviewsClient() {
     });
     interviewQuestionsForm.reset();
     skillsForm.reset();
+    transportationForm.reset();
     scheduleEventForm.reset({ includeReferenceForm: false });
     orientationForm.reset({ includeReferenceForm: false });
     hiringForm.reset({
@@ -308,7 +347,7 @@ export default function ManageInterviewsClient() {
     setSearchTerm('');
     setSearchResults([]);
     router.replace(pathname);
-  }, [hiringForm, orientationForm, phoneScreenForm, assessmentForm, interviewQuestionsForm, skillsForm, scheduleEventForm, router, pathname]);
+  }, [hiringForm, orientationForm, phoneScreenForm, assessmentForm, interviewQuestionsForm, skillsForm, transportationForm, scheduleEventForm, router, pathname]);
 
   const handleSelectCaregiver = useCallback(async (caregiver: CaregiverProfile) => {
     handleCancel();
@@ -383,6 +422,16 @@ export default function ManageInterviewsClient() {
                 q_clientNotes: interviewData.q_clientNotes || '',
             });
 
+            transportationForm.reset({
+                hasCar: caregiver.hasCar === 'yes',
+                validLicense: caregiver.validLicense === 'yes',
+                q_hasAutoInsurance: interviewData.q_hasAutoInsurance || '',
+                q_movingViolations: interviewData.q_movingViolations || '',
+                q_misdemeanorCharges: interviewData.q_misdemeanorCharges || '',
+                q_ieTravelAreas: interviewData.q_ieTravelAreas || '',
+                q_preferredNotWorkAreas: interviewData.q_preferredNotWorkAreas || '',
+            });
+
             scheduleEventForm.reset({
                 interviewPathway: interviewData.interviewPathway || undefined,
                 interviewMethod: interviewData.interviewType as 'In-Person' | 'Google Meet' | 'Orientation' | undefined,
@@ -404,11 +453,21 @@ export default function ManageInterviewsClient() {
             if(interviewData.aiGeneratedInsight) {
                 setAiInsight(interviewData.aiGeneratedInsight);
             }
+        } else {
+             transportationForm.reset({
+                hasCar: caregiver.hasCar === 'yes',
+                validLicense: caregiver.validLicense === 'yes',
+                q_hasAutoInsurance: '',
+                q_movingViolations: '',
+                q_misdemeanorCharges: '',
+                q_ieTravelAreas: '',
+                q_preferredNotWorkAreas: '',
+            });
         }
     } catch (error) {
         console.error("Error fetching interview data:", error);
     }
-  }, [allEmployees, db, handleCancel, orientationForm, phoneScreenForm, assessmentForm, interviewQuestionsForm, skillsForm, scheduleEventForm, router, pathname, toast]);
+  }, [allEmployees, db, handleCancel, orientationForm, phoneScreenForm, assessmentForm, interviewQuestionsForm, skillsForm, transportationForm, scheduleEventForm, router, pathname, toast]);
 
   useEffect(() => {
     const searchFromUrl = searchParams.get('search');
@@ -675,6 +734,46 @@ export default function ManageInterviewsClient() {
           } catch (error) {
               console.error("Error saving skills:", error);
               toast({ title: "Error", description: "Could not save skills and experience.", variant: "destructive" });
+          }
+      });
+  }
+
+  const onTransportationSubmit = async (data: TransportationFormData) => {
+      if (!selectedCaregiver || !db) return;
+      
+      startTransportationSavingTransition(async () => {
+          const profileRef = doc(db, 'caregiver_profiles', selectedCaregiver.id);
+          const interviewData = {
+              q_hasAutoInsurance: data.q_hasAutoInsurance || '',
+              q_movingViolations: data.q_movingViolations || '',
+              q_misdemeanorCharges: data.q_misdemeanorCharges || '',
+              q_ieTravelAreas: data.q_ieTravelAreas || '',
+              q_preferredNotWorkAreas: data.q_preferredNotWorkAreas || '',
+              lastUpdatedAt: Timestamp.now(),
+          };
+
+          try {
+              // Update Profile
+              updateDocumentNonBlocking(profileRef, {
+                  hasCar: data.hasCar ? 'yes' : 'no',
+                  validLicense: data.validLicense ? 'yes' : 'no',
+              });
+
+              // Update Interview (if exists)
+              if (existingInterview?.id) {
+                const interviewDocRef = doc(db, 'interviews', existingInterview.id);
+                await updateDoc(interviewDocRef, interviewData);
+                setExistingInterview(prev => prev ? { ...prev, ...interviewData } : null);
+              } else {
+                  // If no interview, we just saved the profile.
+                  // We might want to create a phone screen or just warn.
+              }
+
+              toast({ title: 'Success', description: 'Transportation information updated.' });
+              setIsTransportationOpen(false);
+          } catch (error) {
+              console.error("Error saving transportation details:", error);
+              toast({ title: "Error", description: "Could not save transportation information.", variant: "destructive" });
           }
       });
   }
@@ -1041,10 +1140,6 @@ export default function ManageInterviewsClient() {
                     Open Authorization Page
                 </a>
             </Button>
-            <p className="mt-3 text-xs">
-                After you authorize, Google will redirect you. Copy the 'code' from the new URL, then go to{' '}
-                <Link href="/admin/settings" className="underline font-semibold">Admin Settings</Link> to paste it and generate a new refresh token.
-            </p>
           </AlertDescription>
         </Alert>
       )}
@@ -1345,6 +1440,15 @@ export default function ManageInterviewsClient() {
                                             >
                                                 <CheckSquare className="mr-2 h-4 w-4" />
                                                 Skills and Experience
+                                            </Button>
+                                            <Button 
+                                                type="button" 
+                                                variant="outline" 
+                                                className="w-full"
+                                                onClick={() => setIsTransportationOpen(true)}
+                                            >
+                                                <Car className="mr-2 h-4 w-4" />
+                                                Transportation
                                             </Button>
                                             <FormField
                                                 control={assessmentForm.control}
@@ -1927,6 +2031,123 @@ export default function ManageInterviewsClient() {
                           <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
                           <Button type="submit" disabled={isSkillsSaving}>
                               {isSkillsSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2" />}
+                              Save Form
+                          </Button>
+                      </DialogFooter>
+                  </form>
+              </FormProvider>
+          </DialogContent>
+      </Dialog>
+
+      <Dialog open={isTransportationOpen} onOpenChange={setIsTransportationOpen}>
+          <DialogContent className="max-w-4xl">
+              <DialogHeader>
+                  <DialogTitle>Transportation Information</DialogTitle>
+                  <DialogDescription>
+                      Verify vehicle and licensing status, and record geographic preferences.
+                  </DialogDescription>
+              </DialogHeader>
+              <FormProvider {...transportationForm}>
+                  <form onSubmit={transportationForm.handleSubmit(onTransportationSubmit)} className="space-y-6 pt-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                          <FormField
+                              control={transportationForm.control}
+                              name="hasCar"
+                              render={({ field }) => (
+                                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                      <FormControl>
+                                          <Checkbox
+                                              checked={field.value}
+                                              onCheckedChange={field.onChange}
+                                          />
+                                      </FormControl>
+                                      <div className="space-y-1 leading-none">
+                                          <FormLabel className="font-normal">Do you have a reliable vehicle?</FormLabel>
+                                      </div>
+                                  </FormItem>
+                              )}
+                          />
+                          <FormField
+                              control={transportationForm.control}
+                              name="validLicense"
+                              render={({ field }) => (
+                                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                      <FormControl>
+                                          <Checkbox
+                                              checked={field.value}
+                                              onCheckedChange={field.onChange}
+                                          />
+                                      </FormControl>
+                                      <div className="space-y-1 leading-none">
+                                          <FormLabel className="font-normal">Do you have a valid driver's license or valid California State ID ?</FormLabel>
+                                      </div>
+                                  </FormItem>
+                              )}
+                          />
+                      </div>
+                      
+                      <div className="grid grid-cols-1 gap-4">
+                          <FormField
+                              control={transportationForm.control}
+                              name="q_hasAutoInsurance"
+                              render={({ field }) => (
+                                  <FormItem>
+                                      <FormLabel>Do you have auto insurance ?</FormLabel>
+                                      <FormControl><Input {...field} /></FormControl>
+                                      <FormMessage />
+                                  </FormItem>
+                              )}
+                          />
+                          <FormField
+                              control={transportationForm.control}
+                              name="q_movingViolations"
+                              render={({ field }) => (
+                                  <FormItem>
+                                      <FormLabel>Any moving violations within the last 10 years ?</FormLabel>
+                                      <FormControl><Input {...field} /></FormControl>
+                                      <FormMessage />
+                                  </FormItem>
+                              )}
+                          />
+                          <FormField
+                              control={transportationForm.control}
+                              name="q_misdemeanorCharges"
+                              render={({ field }) => (
+                                  <FormItem>
+                                      <FormLabel>Misdemeanor Charges ?</FormLabel>
+                                      <FormControl><Input {...field} /></FormControl>
+                                      <FormMessage />
+                                  </FormItem>
+                              )}
+                          />
+                          <FormField
+                              control={transportationForm.control}
+                              name="q_ieTravelAreas"
+                              render={({ field }) => (
+                                  <FormItem>
+                                      <FormLabel>What areas of the IE are you willing to travel to?</FormLabel>
+                                      <FormControl><Input {...field} /></FormControl>
+                                      <FormMessage />
+                                  </FormItem>
+                              )}
+                          />
+                          <FormField
+                              control={transportationForm.control}
+                              name="q_preferredNotWorkAreas"
+                              render={({ field }) => (
+                                  <FormItem>
+                                      <FormLabel>Particular geographic area you prefer not to work ?</FormLabel>
+                                      <FormControl><Input {...field} /></FormControl>
+                                      <FormMessage />
+                                  </FormItem>
+                              )}
+                          />
+                      </div>
+
+                      <DialogFooter>
+                          <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+                          <Button type="submit" disabled={isTransportationSaving}>
+                              {isTransportationSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2" />}
                               Save Form
                           </Button>
                       </DialogFooter>

@@ -521,6 +521,15 @@ export const interviewQuestionsSchema = z.object({
 });
 export type InterviewQuestionsFormData = z.infer<typeof interviewQuestionsSchema>;
 
+export const interviewTransportationSchema = z.object({
+  q_hasAutoInsurance: z.string().optional(),
+  q_movingViolations: z.string().optional(),
+  q_misdemeanorCharges: z.string().optional(),
+  q_ieTravelAreas: z.string().optional(),
+  q_preferredNotWorkAreas: z.string().optional(),
+});
+export type InterviewTransportationFormData = z.infer<typeof interviewTransportationSchema>;
+
 export const caregiverFormSchema = generalInfoSchema
   .merge(experienceSchema)
   .merge(certificationsSchema)
@@ -587,7 +596,7 @@ export const interviewSchema = z.object({
   rejectionDate: z.date().optional(),
   hiringDocsNotificationSentAt: z.any().optional(),
   onboardingFormsInitiated: z.boolean().optional(),
-}).merge(interviewQuestionsSchema.partial());
+}).merge(interviewQuestionsSchema.partial()).merge(interviewTransportationSchema.partial());
 
 export type Interview = z.infer<typeof interviewSchema> & { id: string };
 
