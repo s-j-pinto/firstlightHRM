@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useTransition, useMemo } from "react";
@@ -23,6 +22,21 @@ import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
+
+const safeToDate = (value: any): Date | null => {
+    if (!value) return null;
+    if (value.toDate && typeof value.toDate === 'function') {
+        return value.toDate();
+    }
+    if (typeof value === 'object' && typeof value.seconds === 'number') {
+        return new Date(value.seconds * 1000 + (value.nanoseconds || 0) / 1000000);
+    }
+    const d = new Date(value);
+    if (!isNaN(d.getTime())) {
+        return d;
+    }
+    return null;
+};
 
 export default function MasterInterview360Page() {
     const router = useRouter();
@@ -120,14 +134,14 @@ export default function MasterInterview360Page() {
                         <div className="space-y-4">
                             <h3 className="text-lg font-bold bg-muted p-2 rounded">PERSONAL & LOGISTICS</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-1"><Label>NAME (Read Only)</Label><Input value={profileData?.fullName || ''} readOnly className="bg-muted" /></div>
-                                <div className="space-y-1"><Label>TELEPHONE (Read Only)</Label><Input value={profileData?.phone || ''} readOnly className="bg-muted" /></div>
+                                <div className="space-y-1"><Label>NAME</Label><Input value={profileData?.fullName || ''} readOnly className="bg-muted" /></div>
+                                <div className="space-y-1"><Label>TELEPHONE</Label><Input value={profileData?.phone || ''} readOnly className="bg-muted" /></div>
                                 <FormField control={form.control} name="source" render={({ field }) => ( <FormItem><FormLabel>SOURCE</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
-                                <div className="space-y-1"><Label>ADDRESS (Read Only)</Label><Input value={`${profileData?.address || ''}, ${profileData?.city || ''} ${profileData?.zip || ''}`} readOnly className="bg-muted" /></div>
-                                <div className="space-y-1"><Label>DATE APPLIED (Read Only)</Label><Input value={profileData?.createdAt ? format(profileData.createdAt.toDate ? profileData.createdAt.toDate() : new Date(profileData.createdAt), 'PP') : 'N/A'} readOnly className="bg-muted" /></div>
+                                <div className="space-y-1"><Label>ADDRESS</Label><Input value={`${profileData?.address || ''}, ${profileData?.city || ''} ${profileData?.zip || ''}`} readOnly className="bg-muted" /></div>
+                                <div className="space-y-1"><Label>DATE APPLIED</Label><Input value={profileData?.createdAt ? format(safeToDate(profileData.createdAt) || new Date(), 'PP') : 'N/A'} readOnly className="bg-muted" /></div>
                                 <FormField control={form.control} name="workPermitVisaSpanish" render={({ field }) => ( <FormItem><FormLabel>WORK PERMIT/VISA (if Spanish)</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
-                                <div className="space-y-1"><Label>EMAIL (Read Only)</Label><Input value={profileData?.email || ''} readOnly className="bg-muted" /></div>
-                                <div className="space-y-1"><Label>PHONESCREEN INTERVIEW DATE (Read Only)</Label><Input value={interviewData?.interviewDateTime ? format(interviewData.interviewDateTime.toDate ? interviewData.interviewDateTime.toDate() : new Date(interviewData.interviewDateTime), 'PPp') : 'N/A'} readOnly className="bg-muted" /></div>
+                                <div className="space-y-1"><Label>EMAIL</Label><Input value={profileData?.email || ''} readOnly className="bg-muted" /></div>
+                                <div className="space-y-1"><Label>PHONESCREEN INTERVIEW DATE</Label><Input value={interviewData?.interviewDateTime ? format(safeToDate(interviewData.interviewDateTime) || new Date(), 'PPp') : 'N/A'} readOnly className="bg-muted" /></div>
                             </div>
                         </div>
 
@@ -138,13 +152,13 @@ export default function MasterInterview360Page() {
                             <FormField control={form.control} name="promptedCallFLHC" render={({ field }) => ( <FormItem><FormLabel>What prompted you to call FirstLight?</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl></FormItem> )} />
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                                <div className="space-y-1"><Label>CAREGIVER EXPERIENCE (Read Only)</Label><Input value={`${profileData?.yearsExperience || 0} years - ${profileData?.previousRoles || 'N/A'}`} readOnly className="bg-muted" /></div>
+                                <div className="space-y-1"><Label>CAREGIVER EXPERIENCE</Label><Input value={`${profileData?.yearsExperience || 0} years - ${profileData?.previousRoles || 'N/A'}`} readOnly className="bg-muted" /></div>
                                 <FormField control={form.control} name="roleDurationPreference" render={({ field }) => ( <FormItem><FormLabel>Short-term or long-term role?</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
                             </div>
                             <FormField control={form.control} name="experiencedConditions" render={({ field }) => ( <FormItem><FormLabel>Types of conditions worked with (dementia, Parkinson’s, mobility, etc.)</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl></FormItem> )} />
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-1"><Label>OTHER LANGUAGES (Read Only)</Label><Input value={profileData?.otherLanguages || 'N/A'} readOnly className="bg-muted" /></div>
+                                <div className="space-y-1"><Label>OTHER LANGUAGES</Label><Input value={profileData?.otherLanguages || 'N/A'} readOnly className="bg-muted" /></div>
                                 <FormField control={form.control} name="payExpectation" render={({ field }) => ( <FormItem><FormLabel>PAY EXPECTATION ($17.50 up to $19 hr)</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
                             </div>
                         </div>
