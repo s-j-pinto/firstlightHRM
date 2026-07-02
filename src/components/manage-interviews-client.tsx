@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
@@ -66,9 +65,11 @@ const safeToDate = (value: any): Date | null => {
     if (isDate(value)) {
         return value;
     }
-    const d = new Date(value);
-    if (!isNaN(d.getTime())) {
-        return d;
+    if (typeof value === 'string') {
+        const d = new Date(value);
+        if (!isNaN(d.getTime())) {
+            return d;
+        }
     }
     return null;
 };
@@ -113,17 +114,7 @@ const skillsSchema = z.object({
     canTakeBloodPressure: z.boolean().default(false),
 });
 
-type TransportationFormData = {
-  hasCar: boolean;
-  validLicense: boolean;
-  q_hasAutoInsurance?: string;
-  q_movingViolations?: string;
-  q_misdemeanorCharges?: string;
-  q_ieTravelAreas?: string;
-  q_preferredNotWorkAreas?: string;
-}
-
-const transportationSchema = z.object({
+const transportationFormSchema = z.object({
     hasCar: z.boolean(),
     validLicense: z.boolean(),
     q_hasAutoInsurance: z.string().optional(),
@@ -139,6 +130,7 @@ type ScheduleEventFormData = z.infer<typeof scheduleEventSchema>;
 type OrientationFormData = z.infer<typeof orientationSchema>;
 type HiringFormData = z.infer<typeof caregiverEmployeeSchema>;
 type SkillsFormData = z.infer<typeof skillsSchema>;
+type TransportationFormData = z.infer<typeof transportationFormSchema>;
 
 const ratingOptions = [
     { value: 'A', label: 'Excellent candidate; ready for hire' },
@@ -277,7 +269,7 @@ export default function ManageInterviewsClient() {
   });
 
   const transportationForm = useForm<TransportationFormData>({
-      resolver: zodResolver(transportationSchema),
+      resolver: zodResolver(transportationFormSchema),
       defaultValues: {
           hasCar: false,
           validLicense: false,
@@ -764,9 +756,6 @@ export default function ManageInterviewsClient() {
                 const interviewDocRef = doc(db, 'interviews', existingInterview.id);
                 await updateDoc(interviewDocRef, interviewData);
                 setExistingInterview(prev => prev ? { ...prev, ...interviewData } : null);
-              } else {
-                  // If no interview, we just saved the profile.
-                  // We might want to create a phone screen or just warn.
               }
 
               toast({ title: 'Success', description: 'Transportation information updated.' });
@@ -1047,7 +1036,6 @@ export default function ManageInterviewsClient() {
   };
 
 
-  const isLoading = caregiversLoading || employeesLoading;
   const isPhoneScreenCompleted = !!existingInterview;
   
   const isEventEditable = 
@@ -1098,7 +1086,7 @@ export default function ManageInterviewsClient() {
             <span className="ml-2">Search</span>
             </Button>
         </div>
-        {(isLoading || isSearching) && <p className="text-sm text-muted-foreground mt-2">Loading...</p>}
+        {(caregiversLoading || isSearching) && <p className="text-sm text-muted-foreground mt-2">Loading...</p>}
         {searchResults.length > 0 && (
             <ul className="mt-4 border rounded-md divide-y">
             {searchResults.map((caregiver) => {
@@ -2086,13 +2074,13 @@ export default function ManageInterviewsClient() {
                           />
                       </div>
                       
-                      <div className="grid grid-cols-1 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <FormField
                               control={transportationForm.control}
                               name="q_hasAutoInsurance"
                               render={({ field }) => (
                                   <FormItem>
-                                      <FormLabel>Do you have auto insurance ?</FormLabel>
+                                      <FormLabel className="text-xs">Do you have auto insurance ?</FormLabel>
                                       <FormControl><Input {...field} /></FormControl>
                                       <FormMessage />
                                   </FormItem>
@@ -2103,7 +2091,7 @@ export default function ManageInterviewsClient() {
                               name="q_movingViolations"
                               render={({ field }) => (
                                   <FormItem>
-                                      <FormLabel>Any moving violations within the last 10 years ?</FormLabel>
+                                      <FormLabel className="text-xs">Any moving violations within the last 10 years ?</FormLabel>
                                       <FormControl><Input {...field} /></FormControl>
                                       <FormMessage />
                                   </FormItem>
@@ -2114,7 +2102,7 @@ export default function ManageInterviewsClient() {
                               name="q_misdemeanorCharges"
                               render={({ field }) => (
                                   <FormItem>
-                                      <FormLabel>Misdemeanor Charges ?</FormLabel>
+                                      <FormLabel className="text-xs">Misdemeanor Charges ?</FormLabel>
                                       <FormControl><Input {...field} /></FormControl>
                                       <FormMessage />
                                   </FormItem>
@@ -2125,7 +2113,7 @@ export default function ManageInterviewsClient() {
                               name="q_ieTravelAreas"
                               render={({ field }) => (
                                   <FormItem>
-                                      <FormLabel>What areas of the IE are you willing to travel to?</FormLabel>
+                                      <FormLabel className="text-xs">What areas of the IE are you willing to travel to?</FormLabel>
                                       <FormControl><Input {...field} /></FormControl>
                                       <FormMessage />
                                   </FormItem>
@@ -2135,8 +2123,8 @@ export default function ManageInterviewsClient() {
                               control={transportationForm.control}
                               name="q_preferredNotWorkAreas"
                               render={({ field }) => (
-                                  <FormItem>
-                                      <FormLabel>Particular geographic area you prefer not to work ?</FormLabel>
+                                  <FormItem className="sm:col-span-1 md:col-span-2">
+                                      <FormLabel className="text-xs">Particular geographic area you prefer not to work ?</FormLabel>
                                       <FormControl><Input {...field} /></FormControl>
                                       <FormMessage />
                                   </FormItem>
