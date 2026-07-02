@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
@@ -6,14 +5,13 @@ import { useForm, Controller, FormProvider } from 'react-hook-form';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from 'next/link';
-import { collection, query, where, getDocs, setDoc, doc, updateDoc, Timestamp, addDoc } from 'firebase/firestore';
+import { collection, getDocs, setDoc, doc, updateDoc, Timestamp } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import type { CaregiverProfile, Interview, CaregiverEmployee, Appointment, InterviewQuestionsFormData } from '@/lib/types';
-import { caregiverEmployeeSchema, requiredDateString, interviewQuestionsSchema, experienceSchema } from '@/lib/types';
+import { caregiverEmployeeSchema, requiredDateString, interviewQuestionsSchema } from '@/lib/types';
 import { saveInterviewAndSchedule, rejectCandidate, initiateOnboardingForms } from '@/lib/interviews.actions';
 import { getAiInterviewInsights } from '@/lib/ai.actions';
 import { triggerTeletrackImport } from '@/lib/github.actions';
-
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -42,9 +40,9 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Search, Sparkles, UserCheck, AlertCircle, ExternalLink, Briefcase, Video, GraduationCap, Phone, Star, MessageSquare, CheckCircle, XCircle, UserX, Save, FileText, FileCheck2, FileClock, ArrowUpDown, Mail, Edit2, ClipboardList, CheckSquare } from 'lucide-react';
-import { format, isDate } from 'date-fns';
-import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
+import { Loader2, Search, Sparkles, UserCheck, AlertCircle, ExternalLink, Briefcase, Video, GraduationCap, Phone, Star, MessageSquare, CheckCircle, XCircle, UserX, Save, FileText, FileCheck2, FileClock, ClipboardList, CheckSquare } from 'lucide-react';
+import { format, isDate, isValid, parse } from 'date-fns';
+import { fromZonedTime } from 'date-fns-tz';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
@@ -56,6 +54,21 @@ import { DateInput } from './ui/date-input';
 import { ScrollArea } from './ui/scroll-area';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
+const safeToDate = (value: any): Date | null => {
+    if (!value) return null;
+    if (value.toDate && typeof value.toDate === 'function') {
+        return value.toDate();
+    }
+    if (typeof value === 'object' && typeof value.seconds === 'number') {
+        return new Date(value.seconds * 1000 + (value.nanoseconds || 0) / 1000000);
+    }
+    if (isDate(value)) return value;
+    const d = new Date(value);
+    if (!isNaN(d.getTime())) {
+        return d;
+    }
+    return null;
+};
 
 const phoneScreenSchema = z.object({
   interviewNotes: z.string().min(1, "Interview notes are required."),
@@ -168,7 +181,6 @@ export default function ManageInterviewsClient() {
   const [isOnboardingInitiating, startOnboardingInitiation] = useTransition();
   const [isQuestionsSaving, startQuestionsSavingTransition] = useTransition();
   const [isSkillsSaving, startSkillsSavingTransition] = useTransition();
-
 
   const { toast } = useToast();
   const db = useFirestore();
@@ -299,14 +311,13 @@ export default function ManageInterviewsClient() {
   }, [hiringForm, orientationForm, phoneScreenForm, assessmentForm, interviewQuestionsForm, skillsForm, scheduleEventForm, router, pathname]);
 
   const handleSelectCaregiver = useCallback(async (caregiver: CaregiverProfile) => {
-    handleCancel(); // Reset everything first
-    router.replace(pathname); // Clear URL params
+    handleCancel();
+    router.replace(pathname);
     
     setSelectedCaregiver(caregiver);
     setSearchResults([]);
     setSearchTerm('');
     
-    // Pre-populate skills form from profile
     skillsForm.reset({
         hasHospiceExperience: caregiver.hasHospiceExperience || false,
         canWorkWithBedBound: caregiver.canWorkWithBedBound || false,
@@ -341,7 +352,7 @@ export default function ManageInterviewsClient() {
             
             setExistingInterview(interviewData);
 
-            const interviewDate = interviewData.interviewDateTime ? (interviewData.interviewDateTime as any).toDate() : undefined;
+            const interviewDate = interviewData.interviewDateTime ? safeToDate(interviewData.interviewDateTime) : undefined;
             
             phoneScreenForm.reset({
                 interviewNotes: interviewData.interviewNotes || '',
@@ -381,11 +392,13 @@ export default function ManageInterviewsClient() {
             });
 
             if(interviewData.orientationDateTime) {
-                const orientationDate = (interviewData.orientationDateTime as any).toDate();
-                 orientationForm.reset({
-                    orientationDate: format(orientationDate, 'MM/dd/yyyy'),
-                    orientationTime: format(orientationDate, 'HH:mm')
-                });
+                const orientationDate = safeToDate(interviewData.orientationDateTime);
+                if (orientationDate) {
+                    orientationForm.reset({
+                        orientationDate: format(orientationDate, 'MM/dd/yyyy'),
+                        orientationTime: format(orientationDate, 'HH:mm')
+                    });
+                }
             }
 
             if(interviewData.aiGeneratedInsight) {
@@ -518,7 +531,6 @@ export default function ManageInterviewsClient() {
             canUseHoyerLift: selectedCaregiver.canUseHoyerLift,
             hasDementiaExperience: selectedCaregiver.hasDementiaExperience,
             hasHospiceExperience: selectedCaregiver.hasHospiceExperience,
-            cna: selectedCaregiver.cna,
             hha: selectedCaregiver.hha,
             hca: selectedCaregiver.hca,
             availability: selectedCaregiver.availability,
@@ -755,7 +767,7 @@ export default function ManageInterviewsClient() {
                 interviewType: 'Orientation',
                 interviewNotes: existingInterview.interviewNotes || '',
                 candidateRating: assessmentForm.getValues('candidateRating'),
-                pathway: 'separate', // Orientation is always a separate event logically
+                pathway: 'separate',
                 googleEventId: existingInterview.googleEventId,
                 previousPathway: existingInterview.interviewPathway,
                 includeReferenceForm: data.includeReferenceForm,
@@ -774,12 +786,10 @@ export default function ManageInterviewsClient() {
             });
             
             if (!result.error) {
-                // Properly construct ISO date for fromZonedTime (MM/DD/YYYY to YYYY-MM-DD)
                 const [month, day, year] = data.orientationDate.split('/');
                 const isoDate = `${year}-${month}-${day}`;
                 const zonedTime = fromZonedTime(`${isoDate}T${data.orientationTime}`, 'America/Los_Angeles');
 
-                // Manually update local state to trigger hiring form visibility
                  setExistingInterview(prev => prev ? { 
                     ...prev, 
                     orientationScheduled: true, 
@@ -908,7 +918,7 @@ export default function ManageInterviewsClient() {
 
     startSubmitTransition(async () => {
         const interviewDocRef = doc(db, 'interviews', existingInterview.id);
-        const updateData = { finalInterviewStatus: 'Passed' }; // Move status forward
+        const updateData = { finalInterviewStatus: 'Passed' };
         try {
             await updateDoc(interviewDocRef, updateData);
             setExistingInterview(prev => prev ? { ...prev, ...updateData } : null);
@@ -1642,7 +1652,7 @@ export default function ManageInterviewsClient() {
                                         <TooltipProvider>
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
-                                                    <div tabIndex={0}> {/* Wrapper for disabled button */}
+                                                    <div tabIndex={0}>
                                                         <Button type="submit" disabled={isSubmitting || !selectedCaregiver?.hcs501EmployeeSignature}>
                                                             {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
                                                             {existingEmployee ? 'Update Record' : 'Complete Hiring'}
@@ -1682,7 +1692,7 @@ export default function ManageInterviewsClient() {
       <Dialog open={isQuestionsOpen} onOpenChange={setIsQuestionsOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
             <DialogHeader>
-                <DialogTitle>In-Person Interview Questions &amp; Answers</DialogTitle>
+                <DialogTitle>In-Person Interview Questions & Answers</DialogTitle>
                 <DialogDescription>
                     Record the candidate's responses to our standardized interview questions.
                 </DialogDescription>
@@ -1916,7 +1926,7 @@ export default function ManageInterviewsClient() {
                       <DialogFooter>
                           <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
                           <Button type="submit" disabled={isSkillsSaving}>
-                              {isSkillsSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                              {isSkillsSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2" />}
                               Save Form
                           </Button>
                       </DialogFooter>
