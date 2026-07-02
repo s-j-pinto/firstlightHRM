@@ -271,7 +271,9 @@
         "livedOutOfStateLast5Years": { "type": "string", "enum": ["yes", "no"] },
         "outOfStateHistory": { "type": "string" },
         "offerLetterSignature": { "type": "string", "contentEncoding": "base64" },
-        "offerLetterSignatureDate": { "type": "string", "format": "date-time" }
+        "offerLetterSignatureDate": { "type": "string", "format": "date-time" },
+        "source": { "type": "string" },
+        "overnightStayAvailability": { "type": "string", "enum": ["yes", "no"] }
       },
       "required": [
         "fullName",
@@ -360,7 +362,15 @@
         "q_movingViolations": { "type": "string" },
         "q_misdemeanorCharges": { "type": "string" },
         "q_ieTravelAreas": { "type": "string" },
-        "q_preferredNotWorkAreas": { "type": "string" }
+        "q_preferredNotWorkAreas": { "type": "string" },
+        "workPermitVisaSpanish": { "type": "string" },
+        "flhcOverview": { "type": "string" },
+        "promptedCallFLHC": { "type": "string" },
+        "roleDurationPreference": { "type": "string" },
+        "experiencedConditions": { "type": "string" },
+        "payExpectation": { "type": "string" },
+        "howSoonStart": { "type": "string" },
+        "earliestStartTime": { "type": "string" }
       },
       "required": [
         "caregiverProfileId",
@@ -474,7 +484,7 @@
       "required": ["Client Name", "Address", "City", "Zip", "Mobile", "status"]
     },
     "CareLogGroup": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$schema": "http://json-schema.org/earth-07/schema#",
       "title": "CareLogGroup",
       "type": "object",
       "description": "A group that links a client to one or more active caregivers.",

@@ -16,6 +16,7 @@ export interface FormDefinition {
 }
 
 export const hiringForms: FormDefinition[] = [
+  { name: "MASTER INTERVIEW 360", href: "/candidate-hiring-forms/master-interview-360", completionKey: 'id', pdfAction: 'masterInterview360' },
   { name: "HCS 501 - Personnel Record 2019", href: "/candidate-hiring-forms/hcs501", completionKey: 'hcs501EmployeeSignature', pdfAction: 'hcs501', adminSchema: hcs501AdminSchema },
   { name: "Caregiver Emergency Contact Numbers", href: "/candidate-hiring-forms/emergency-contact", completionKey: 'emergencyContact1_name', pdfAction: 'emergencyContact' },
   { name: "Reference Verification 1", href: "/candidate-hiring-forms/reference-verification-1", completionKey: 'applicantSignature1', pdfAction: 'referenceVerification1' },

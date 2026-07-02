@@ -4,7 +4,7 @@
 import { Suspense, useTransition, useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, CheckCircle, Loader2, ArrowLeft, Printer, Download, XCircle, Bell, BellOff, Edit2, FileCheck2, FileClock } from "lucide-react";
+import { FileText, CheckCircle, Loader2, ArrowLeft, Printer, Download, XCircle, Bell, BellOff, Edit2, FileCheck2, FileClock, ClipboardList } from "lucide-react";
 import Link from 'next/link';
 import { useUser, useDoc, useCollection, useMemoFirebase, useFirestore } from '@/firebase';
 import { doc, query, where, collection, limit } from 'firebase/firestore';
@@ -30,6 +30,7 @@ import {
     generateLightHousekeepingPdfAction,
     generateCaregiverTelephonyInstructionsPdfAction,
     generateEmergencyProcedurePdfAction,
+    generateMasterInterview360PdfAction,
     generateAllFormsAsZipAction
 } from '@/lib/candidate-hiring-forms.actions';
 import { useToast } from '@/hooks/use-toast';
@@ -124,7 +125,11 @@ function CandidateHiringFormsContent() {
     const formsWithStatus = allAvailableForms.map(form => {
       // Check both textual profile data and the signatures subcollection
       let isCandidateCompleted = false;
-      if (Object.keys(signaturesData || {}).includes(form.completionKey)) {
+      
+      // MASTER INTERVIEW 360 is special: it's admin-only and always "completed" if initiated
+      if (form.pdfAction === 'masterInterview360') {
+          isCandidateCompleted = true;
+      } else if (Object.keys(signaturesData || {}).includes(form.completionKey)) {
           isCandidateCompleted = !!signaturesData?.[form.completionKey as keyof OnboardingSignatures];
       } else {
           isCandidateCompleted = !!profileData[form.completionKey as keyof CaregiverProfile];
@@ -144,10 +149,13 @@ function CandidateHiringFormsContent() {
       return { ...form, isCandidateCompleted, isAdminCompleted };
     });
     
+    // Filter out MASTER form for non-admins
+    const finalForms = isAnAdmin ? formsWithStatus : formsWithStatus.filter(f => f.pdfAction !== 'masterInterview360');
+
     const allCandidateFormsComplete = formsWithStatus.every(f => f.isCandidateCompleted);
     const allAdminFieldsComplete = formsWithStatus.every(f => f.isAdminCompleted);
 
-    return { allCandidateFormsComplete, allAdminFieldsComplete, formsToRender: formsWithStatus };
+    return { allCandidateFormsComplete, allAdminFieldsComplete, formsToRender: finalForms };
   }, [profileData, signaturesData, isAnAdmin, allAvailableForms]);
 
   useEffect(() => {
@@ -201,6 +209,8 @@ function CandidateHiringFormsContent() {
             result = await generateCaregiverTelephonyInstructionsPdfAction(candidateId);
         } else if (formAction === 'emergencyProcedure') {
             result = await generateEmergencyProcedurePdfAction(candidateId);
+        } else if (formAction === 'masterInterview360') {
+            result = await generateMasterInterview360PdfAction(candidateId);
         }
 
         if (result && result.error) {
@@ -292,22 +302,23 @@ function CandidateHiringFormsContent() {
         <CardContent className="space-y-4">
           {formCompletionStates.formsToRender.map((form) => {
             const { isCandidateCompleted, isAdminCompleted } = form;
+            const isMaster = form.pdfAction === 'masterInterview360';
             return (
-              <div key={form.name} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+              <div key={form.name} className={cn("flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors", isMaster && "bg-accent/5 border-accent/20")}>
                 <Link href={formLinkHref(form.href)} className="flex items-center gap-4 flex-grow">
-                  <FileText className="h-6 w-6 text-accent" />
-                  <span className="font-medium">{form.name}</span>
+                  {isMaster ? <ClipboardList className="h-6 w-6 text-accent" /> : <FileText className="h-6 w-6 text-accent" />}
+                  <span className={cn("font-medium", isMaster && "text-accent font-bold")}>{form.name}</span>
                 </Link>
                  <div className="flex items-center gap-2">
-                    {isCandidateCompleted && <CheckCircle className="h-6 w-6 text-green-500" title="Completed by Candidate"/>}
-                    {isAnAdmin && isCandidateCompleted ? (
+                    {!isMaster && isCandidateCompleted && <CheckCircle className="h-6 w-6 text-green-500" title="Completed by Candidate"/>}
+                    {isAnAdmin && !isMaster && isCandidateCompleted ? (
                         isAdminCompleted ? (
                              <CheckCircle className="h-6 w-6 text-blue-500" title="Admin Signoff Complete" />
                         ) : (
                              <XCircle className="h-6 w-6 text-destructive" title="Awaiting Admin Completion" />
                         )
                     ) : null}
-                    {isAnAdmin && isCandidateCompleted && (
+                    {isAnAdmin && (isCandidateCompleted || isMaster) && (
                         <Button
                             variant="outline"
                             size="sm"

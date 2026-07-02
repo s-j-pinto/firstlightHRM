@@ -554,7 +554,9 @@ export const caregiverFormSchema = generalInfoSchema
   .merge(telephonyInstructionsSchema.partial())
   .merge(emergencyProcedureSchema.partial())
   .extend({ 
-    lightHousekeepingAcknowledged: z.boolean().optional()
+    lightHousekeepingAcknowledged: z.boolean().optional(),
+    source: z.string().optional(),
+    overnightStayAvailability: z.enum(["yes", "no"]).optional(),
   });
 
 
@@ -596,9 +598,31 @@ export const interviewSchema = z.object({
   rejectionDate: z.date().optional(),
   hiringDocsNotificationSentAt: z.any().optional(),
   onboardingFormsInitiated: z.boolean().optional(),
+  workPermitVisaSpanish: z.string().optional(),
+  flhcOverview: z.string().optional(),
+  promptedCallFLHC: z.string().optional(),
+  roleDurationPreference: z.string().optional(),
+  experiencedConditions: z.string().optional(),
+  payExpectation: z.string().optional(),
+  howSoonStart: z.string().optional(),
+  earliestStartTime: z.string().optional(),
 }).merge(interviewQuestionsSchema.partial()).merge(interviewTransportationSchema.partial());
 
 export type Interview = z.infer<typeof interviewSchema> & { id: string };
+
+export const masterInterview360Schema = z.object({
+  source: z.string().optional(),
+  overnightStayAvailability: z.enum(["yes", "no"]).optional(),
+  workPermitVisaSpanish: z.string().optional(),
+  flhcOverview: z.string().optional(),
+  promptedCallFLHC: z.string().optional(),
+  roleDurationPreference: z.string().optional(),
+  experiencedConditions: z.string().optional(),
+  payExpectation: z.string().optional(),
+  howSoonStart: z.string().optional(),
+  earliestStartTime: z.string().optional(),
+});
+export type MasterInterview360FormData = z.infer<typeof masterInterview360Schema>;
 
 export const caregiverEmployeeSchema = z.object({
   caregiverProfileId: z.string().min(1, 'Caregiver Profile ID is required.'),

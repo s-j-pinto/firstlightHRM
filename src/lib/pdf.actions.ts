@@ -1,5 +1,4 @@
 
-
 'use server';
 
 // This file now acts as a barrel, re-exporting the individual PDF generators.
@@ -29,6 +28,7 @@ import { generateLightHousekeepingPdf as generateLightHousekeepingPdfInternal } 
 import { generateCaregiverTelephonyInstructionsPdf as generateCaregiverTelephonyInstructionsPdfInternal } from './pdf-generators/caregiver-telephony-instructions';
 import { generateEmergencyProcedurePdf as generateEmergencyProcedurePdfInternal } from './pdf-generators/emergency-procedure';
 import { generateVaWeeklyReportPdf as generateVaWeeklyReportPdfInternal } from './pdf-generators/va-weekly-report';
+import { generateMasterInterview360Pdf as generateMasterInterview360PdfInternal } from './pdf-generators/master-interview-360';
 import { serverDb } from '@/firebase/server-init';
 import { isWithinInterval, endOfWeek, parseISO, format, startOfWeek } from 'date-fns';
 import { fromZonedTime } from 'date-fns-tz';
@@ -144,4 +144,8 @@ export async function generateVaWeeklyReportPdf(data: {
         console.error("[VA Report PDF Action] Critical error:", error);
         return { error: `Failed to generate PDF: ${error.message || 'An unknown server error occurred'}` };
     }
+}
+
+export async function generateMasterInterview360Pdf(combinedData: any) {
+    return generateMasterInterview360PdfInternal(combinedData);
 }

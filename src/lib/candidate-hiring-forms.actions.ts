@@ -28,7 +28,8 @@ import {
     trainingAcknowledgementSchema, 
     offerLetterSchema,
     caregiverResponsibilitiesSchema,
-    emergencyProcedureSchema
+    emergencyProcedureSchema,
+    masterInterview360Schema
 } from './types';
 import { 
     generateHcs501Pdf, 
@@ -49,7 +50,8 @@ import {
     generateCaregiverResponsibilitiesPdf,
     generateLightHousekeepingPdf,
     generateCaregiverTelephonyInstructionsPdf,
-    generateEmergencyProcedurePdf
+    generateEmergencyProcedurePdf,
+    generateMasterInterview360Pdf
 } from './pdf.actions';
 import type { CaregiverProfile } from './types';
 import JSZip from 'jszip';
@@ -327,10 +329,51 @@ async function getFullCandidateData(candidateId: string) {
     const profileDoc = await serverDb.collection('caregiver_profiles').doc(candidateId).get();
     if (!profileDoc.exists) return null;
     const signaturesDoc = await profileDoc.ref.collection('signatures').doc('onboarding_main').get();
+    
+    // Find interview
+    const interviewQuery = await serverDb.collection('interviews').where('caregiverProfileId', '==', candidateId).limit(1).get();
+    const interviewData = !interviewQuery.empty ? interviewQuery.docs[0].data() : {};
+
     return {
         ...profileDoc.data(),
+        ...interviewData,
         ...(signaturesDoc.exists ? signaturesDoc.data() : {})
     };
+}
+
+export async function saveMasterInterview360Data(profileId: string, data: any) {
+    const validated = masterInterview360Schema.safeParse(data);
+    if (!validated.success) return { error: 'Invalid data provided.' };
+    
+    try {
+        const firestore = serverDb;
+        const profileRef = firestore.collection('caregiver_profiles').doc(profileId);
+        
+        // Split data between profile and interview
+        const profileFields = ['source', 'overnightStayAvailability'];
+        const profileUpdate: any = {};
+        const interviewUpdate: any = {};
+        
+        Object.entries(validated.data).forEach(([key, value]) => {
+            if (profileFields.includes(key)) profileUpdate[key] = value;
+            else interviewUpdate[key] = value;
+        });
+
+        const batch = firestore.batch();
+        if (Object.keys(profileUpdate).length > 0) batch.update(profileRef, profileUpdate);
+        
+        const interviewQuery = await firestore.collection('interviews').where('caregiverProfileId', '==', profileId).limit(1).get();
+        if (!interviewQuery.empty) {
+            batch.update(interviewQuery.docs[0].ref, { ...interviewUpdate, lastUpdatedAt: Timestamp.now() });
+        } else {
+            const intRef = firestore.collection('interviews').doc();
+            batch.set(intRef, { ...interviewUpdate, caregiverProfileId: profileId, createdAt: Timestamp.now(), lastUpdatedAt: Timestamp.now(), phoneScreenPassed: 'Yes', interviewType: 'Phone' });
+        }
+
+        await batch.commit();
+        revalidatePath('/candidate-hiring-forms');
+        return { success: true };
+    } catch (e: any) { return { error: e.message }; }
 }
 
 export async function generateHcs501PdfAction(candidateId: string) {
@@ -506,6 +549,15 @@ export async function generateEmergencyProcedurePdfAction(candidateId: string) {
     } catch (error: any) { return { error: `Failed to generate PDF: ${error.message}` }; }
 }
 
+export async function generateMasterInterview360PdfAction(candidateId: string) {
+    if (!candidateId) return { error: 'Candidate ID is required.' };
+    try {
+        const fullData = await getFullCandidateData(candidateId);
+        if (!fullData) return { error: 'Candidate profile not found.' };
+        return await generateMasterInterview360Pdf(fullData);
+    } catch (e: any) { return { error: `Failed to generate PDF: ${e.message}` }; }
+}
+
 export async function generateAllFormsAsZipAction(candidateId: string) {
     if (!candidateId) return { error: 'Candidate ID is required.' };
     try {
@@ -513,6 +565,7 @@ export async function generateAllFormsAsZipAction(candidateId: string) {
         if (!fullData) return { error: 'Candidate profile not found.' };
         const zip = new JSZip();
         const formGenerators = [
+            { key: 'id', name: 'Master Interview 360.pdf', generator: generateMasterInterview360Pdf },
             { key: 'hcs501EmployeeSignature', name: 'HCS501 - Personnel Record.pdf', generator: generateHcs501Pdf },
             { key: 'emergencyContact1_name', name: 'Emergency Contact.pdf', generator: generateEmergencyContactPdf },
             { key: 'applicantSignature1', name: 'Reference Verification 1.pdf', generator: generateReferenceVerification1Pdf },
