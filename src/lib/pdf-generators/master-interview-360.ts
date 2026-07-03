@@ -1,4 +1,3 @@
-
 'use server';
 
 import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont, PDFPage } from 'pdf-lib';
@@ -22,6 +21,7 @@ export async function generateMasterInterview360Pdf(combinedData: any): Promise<
         const titleFontSize = 14;
         const sectionHeaderSize = 10;
         const lineHeight = 11;
+        const sectionSpacing = 15;
 
         y = drawCenteredText(page, `MASTER INTERVIEW 360 - ${combinedData.fullName || 'Candidate'}`, boldFont, titleFontSize, y);
         y -= 20;
@@ -61,8 +61,6 @@ export async function generateMasterInterview360Pdf(combinedData: any): Promise<
         y -= lineHeight;
         drawLabelValue("WORK PERMIT (Spanish)", combinedData.workPermitVisaSpanish, leftMargin, y);
         y -= sectionSpacing;
-
-        const sectionSpacing = 15;
 
         // --- SECTION: BACKGROUND ---
         y = drawSectionHeader("BACKGROUND", y);
@@ -127,7 +125,11 @@ export async function generateMasterInterview360Pdf(combinedData: any): Promise<
             y -= lineHeight;
             y = drawWrappedText(page, item.a, font, mainFontSize, leftMargin + 10, y, contentWidth - 10, lineHeight);
             y -= 5;
-            if(y < 50) { page = pdfDoc.addPage(PageSizes.Letter); y = height - 50; }
+            if(y < 50) { 
+                const newPage = pdfDoc.addPage(PageSizes.Letter);
+                page = newPage;
+                y = height - 50; 
+            }
         }
         y -= 10;
 
@@ -150,7 +152,11 @@ export async function generateMasterInterview360Pdf(combinedData: any): Promise<
             y -= lineHeight;
             y = drawWrappedText(page, item.a, font, mainFontSize, leftMargin + 10, y, contentWidth - 10, lineHeight);
             y -= 5;
-            if(y < 50) { page = pdfDoc.addPage(PageSizes.Letter); y = height - 50; }
+            if(y < 50) { 
+                const newPage = pdfDoc.addPage(PageSizes.Letter);
+                page = newPage;
+                y = height - 50; 
+            }
         }
         y -= 10;
 
