@@ -1418,7 +1418,7 @@ export default function ManageInterviewsClient() {
                                                 onClick={() => setIsQuestionsOpen(true)}
                                             >
                                                 <ClipboardList className="mr-2 h-4 w-4" />
-                                                In Person Interview Qs
+                                                Situations
                                             </Button>
                                             <Button 
                                                 type="button" 
@@ -1784,7 +1784,7 @@ export default function ManageInterviewsClient() {
       <Dialog open={isQuestionsOpen} onOpenChange={setIsQuestionsOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
             <DialogHeader>
-                <DialogTitle>In-Person Interview Questions & Answers</DialogTitle>
+                <DialogTitle>Situations</DialogTitle>
                 <DialogDescription>
                     Record the candidate's responses to our standardized interview questions.
                 </DialogDescription>
