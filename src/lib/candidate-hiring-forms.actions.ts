@@ -350,7 +350,7 @@ export async function saveMasterInterview360Data(profileId: string, data: any) {
         const profileRef = firestore.collection('caregiver_profiles').doc(profileId);
         
         // Split data between profile and interview
-        const profileFields = ['source', 'overnightStayAvailability'];
+        const profileFields = ['source', 'overnightStayAvailability', 'availability'];
         const profileUpdate: any = {};
         const interviewUpdate: any = {};
         

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useTransition, useMemo } from "react";
@@ -5,7 +6,7 @@ import { useForm, FormProvider } from "react-hook-form";
 import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { doc, collection, query, where, limit } from "firebase/firestore";
-import { format } from "date-fns";
+import { format, isValid, parse } from "date-fns";
 
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Loader2, Save, X, FileText, Sparkles, ClipboardList, CheckSquare, Car } from "lucide-react";
+import { Loader2, Save, X, FileText, Sparkles, ClipboardList, CheckSquare, Car, Calendar } from "lucide-react";
 import { useUser, useDoc, useCollection, useMemoFirebase, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { masterInterview360Schema, type MasterInterview360FormData, type CaregiverProfile, type Interview } from "@/lib/types";
@@ -37,6 +38,23 @@ const safeToDate = (value: any): Date | null => {
     }
     return null;
 };
+
+const availabilityDays = [
+  { id: "monday", label: "Monday" },
+  { id: "tuesday", label: "Tuesday" },
+  { id: "wednesday", label: "Wednesday" },
+  { id: "thursday", label: "Thursday" },
+  { id: "friday", label: "Friday" },
+  { id: "saturday", label: "Saturday" },
+  { id: "sunday", label: "Sunday" },
+] as const;
+
+const shifts = [
+    { id: "morning", label: "Morning" },
+    { id: "afternoon", label: "Afternoon" },
+    { id: "evening", label: "Evening" },
+    { id: "night", label: "Night" },
+] as const;
 
 export default function MasterInterview360Page() {
     const router = useRouter();
@@ -80,6 +98,15 @@ export default function MasterInterview360Page() {
         payExpectation: '',
         howSoonStart: '',
         earliestStartTime: '',
+        availability: {
+            monday: [],
+            tuesday: [],
+            wednesday: [],
+            thursday: [],
+            friday: [],
+            saturday: [],
+            sunday: [],
+        }
       },
     });
 
@@ -96,6 +123,15 @@ export default function MasterInterview360Page() {
                 payExpectation: interviewData.payExpectation || '',
                 howSoonStart: interviewData.howSoonStart || '',
                 earliestStartTime: interviewData.earliestStartTime || '',
+                availability: profileData.availability || {
+                    monday: [],
+                    tuesday: [],
+                    wednesday: [],
+                    thursday: [],
+                    friday: [],
+                    saturday: [],
+                    sunday: [],
+                }
             });
         }
     }, [profileData, interviewData, form]);
@@ -179,6 +215,49 @@ export default function MasterInterview360Page() {
                                         </FormControl>
                                     </FormItem>
                                 )} />
+                            </div>
+
+                            <div className="space-y-4 pt-4">
+                                <Label className="text-base font-bold">Edit Weekly Availability</Label>
+                                <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-4">
+                                    {availabilityDays.map((day) => (
+                                        <div key={day.id} className="p-3 border rounded-lg bg-background shadow-sm">
+                                            <h4 className="font-semibold mb-2 text-sm text-center border-b pb-1 flex items-center justify-center gap-1">
+                                                <Calendar className="h-3 w-3 text-accent" />
+                                                {day.label}
+                                            </h4>
+                                            <div className="space-y-2">
+                                                {shifts.map((shift) => (
+                                                    <FormField
+                                                        key={shift.id}
+                                                        control={form.control}
+                                                        name={`availability.${day.id}`}
+                                                        render={({ field }) => {
+                                                            const isChecked = field.value?.includes(shift.id);
+                                                            return (
+                                                                <div className="flex items-center space-x-2">
+                                                                    <Checkbox
+                                                                        id={`${day.id}-${shift.id}`}
+                                                                        checked={isChecked}
+                                                                        onCheckedChange={(checked) => {
+                                                                            const currentShifts = field.value || [];
+                                                                            return checked
+                                                                                ? field.onChange([...currentShifts, shift.id])
+                                                                                : field.onChange(currentShifts.filter((s) => s !== shift.id));
+                                                                        }}
+                                                                    />
+                                                                    <Label htmlFor={`${day.id}-${shift.id}`} className="text-xs cursor-pointer font-normal">
+                                                                        {shift.label}
+                                                                    </Label>
+                                                                </div>
+                                                            );
+                                                        }}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </div>
 
