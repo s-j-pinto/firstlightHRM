@@ -11,7 +11,7 @@ export async function generateMasterInterview360Pdf(combinedData: any): Promise<
         const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
         const italicFont = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
 
-        const page = pdfDoc.addPage(PageSizes.Letter);
+        let page = pdfDoc.addPage(PageSizes.Letter);
         const { width, height } = page.getSize();
         const leftMargin = 50;
         const contentWidth = width - leftMargin * 2;
@@ -26,44 +26,44 @@ export async function generateMasterInterview360Pdf(combinedData: any): Promise<
         y = drawCenteredText(page, `MASTER INTERVIEW 360 - ${combinedData.fullName || 'Candidate'}`, boldFont, titleFontSize, y);
         y -= 20;
 
-        const drawSectionHeader = (text: string, currentY: number) => {
-            page.drawRectangle({
+        const drawSectionHeader = (targetPage: PDFPage, text: string, currentY: number) => {
+            targetPage.drawRectangle({
                 x: leftMargin,
                 y: currentY - 2,
                 width: contentWidth,
                 height: sectionHeaderSize + 4,
                 color: rgb(0.9, 0.9, 0.9),
             });
-            drawText(page, text, { x: leftMargin + 5, y: currentY, font: boldFont, size: sectionHeaderSize });
+            drawText(targetPage, text, { x: leftMargin + 5, y: currentY, font: boldFont, size: sectionHeaderSize });
             return currentY - 20;
         };
 
-        const drawLabelValue = (label: string, value: any, x: number, currentY: number, labelWidth = 120) => {
-            drawText(page, `${label}:`, { x, y: currentY, font: boldFont, size: mainFontSize });
+        const drawLabelValue = (targetPage: PDFPage, label: string, value: any, x: number, currentY: number, labelWidth = 120) => {
+            drawText(targetPage, `${label}:`, { x, y: currentY, font: boldFont, size: mainFontSize });
             const displayValue = value === true ? 'Yes' : (value === false ? 'No' : String(value || 'N/A'));
-            drawText(page, displayValue, { x: x + labelWidth, y: currentY, font, size: mainFontSize });
+            drawText(targetPage, displayValue, { x: x + labelWidth, y: currentY, font, size: mainFontSize });
         };
 
         // --- SECTION: PERSONAL & LOGISTICS ---
-        y = drawSectionHeader("PERSONAL & LOGISTICS", y);
-        drawLabelValue("NAME", combinedData.fullName, leftMargin, y);
-        drawLabelValue("TELEPHONE", combinedData.phone, leftMargin + 250, y);
+        y = drawSectionHeader(page, "PERSONAL & LOGISTICS", y);
+        drawLabelValue(page, "NAME", combinedData.fullName, leftMargin, y);
+        drawLabelValue(page, "TELEPHONE", combinedData.phone, leftMargin + 250, y);
         y -= lineHeight;
-        drawLabelValue("SOURCE", combinedData.source, leftMargin, y);
+        drawLabelValue(page, "SOURCE", combinedData.source, leftMargin, y);
         const dateApplied = combinedData.createdAt ? format(combinedData.createdAt.toDate ? combinedData.createdAt.toDate() : new Date(combinedData.createdAt), 'PP') : 'N/A';
-        drawLabelValue("DATE APPLIED", dateApplied, leftMargin + 250, y);
+        drawLabelValue(page, "DATE APPLIED", dateApplied, leftMargin + 250, y);
         y -= lineHeight;
-        drawLabelValue("ADDRESS", `${combinedData.address || ''}, ${combinedData.city || ''} ${combinedData.zip || ''}`, leftMargin, y);
+        drawLabelValue(page, "ADDRESS", `${combinedData.address || ''}, ${combinedData.city || ''} ${combinedData.zip || ''}`, leftMargin, y);
         y -= lineHeight;
-        drawLabelValue("EMAIL", combinedData.email, leftMargin, y);
+        drawLabelValue(page, "EMAIL", combinedData.email, leftMargin, y);
         const psDate = combinedData.interviewDateTime ? format(combinedData.interviewDateTime.toDate ? combinedData.interviewDateTime.toDate() : new Date(combinedData.interviewDateTime), 'PPp') : 'N/A';
-        drawLabelValue("PHONESCREEN DATE", psDate, leftMargin + 250, y);
+        drawLabelValue(page, "PHONESCREEN DATE", psDate, leftMargin + 250, y);
         y -= lineHeight;
-        drawLabelValue("WORK PERMIT (Spanish)", combinedData.workPermitVisaSpanish, leftMargin, y);
+        drawLabelValue(page, "WORK PERMIT (Spanish)", combinedData.workPermitVisaSpanish, leftMargin, y);
         y -= sectionSpacing;
 
         // --- SECTION: BACKGROUND ---
-        y = drawSectionHeader("BACKGROUND", y);
+        y = drawSectionHeader(page, "BACKGROUND", y);
         drawText(page, "FLHC Overview Assessment:", { x: leftMargin, y, font: boldFont, size: mainFontSize });
         y -= lineHeight;
         y = drawWrappedText(page, combinedData.flhcOverview, font, mainFontSize, leftMargin + 10, y, contentWidth - 10, lineHeight);
@@ -72,32 +72,32 @@ export async function generateMasterInterview360Pdf(combinedData: any): Promise<
         y -= lineHeight;
         y = drawWrappedText(page, combinedData.promptedCallFLHC, font, mainFontSize, leftMargin + 10, y, contentWidth - 10, lineHeight);
         y -= 10;
-        drawLabelValue("CAREGIVER EXPERIENCE", `${combinedData.yearsExperience} Years - ${combinedData.previousRoles}`, leftMargin, y, 150);
+        drawLabelValue(page, "CAREGIVER EXPERIENCE", `${combinedData.yearsExperience} Years - ${combinedData.previousRoles}`, leftMargin, y, 150);
         y -= lineHeight;
-        drawLabelValue("ROLE PREFERENCE", combinedData.roleDurationPreference, leftMargin, y, 150);
+        drawLabelValue(page, "ROLE PREFERENCE", combinedData.roleDurationPreference, leftMargin, y, 150);
         y -= lineHeight;
         drawText(page, "Types of conditions worked with:", { x: leftMargin, y, font: boldFont, size: mainFontSize });
         y -= lineHeight;
         y = drawWrappedText(page, combinedData.experiencedConditions, font, mainFontSize, leftMargin + 10, y, contentWidth - 10, lineHeight);
         y -= 5;
-        drawLabelValue("OTHER LANGUAGES", combinedData.otherLanguages, leftMargin, y);
-        drawLabelValue("PAY EXPECTATION", combinedData.payExpectation, leftMargin + 250, y);
+        drawLabelValue(page, "OTHER LANGUAGES", combinedData.otherLanguages, leftMargin, y);
+        drawLabelValue(page, "PAY EXPECTATION", combinedData.payExpectation, leftMargin + 250, y);
         y -= sectionSpacing;
 
         // --- SECTION: CERTIFICATIONS & AVAILABILITY ---
-        y = drawSectionHeader("CERTIFICATIONS & AVAILABILITY", y);
+        y = drawSectionHeader(page, "CERTIFICATIONS & AVAILABILITY", y);
         const certs = [];
         if(combinedData.hca) certs.push("HCA");
         if(combinedData.hha) certs.push("HHA");
         if(combinedData.liveScan) certs.push("Live Scan");
         if(combinedData.negativeTbTest) certs.push("Negative TB");
         if(combinedData.cprFirstAid) certs.push("CPR/First Aid");
-        drawLabelValue("CERTIFICATIONS", certs.join(", "), leftMargin, y);
+        drawLabelValue(page, "CERTIFICATIONS", certs.join(", "), leftMargin, y);
         y -= lineHeight;
-        drawLabelValue("OVERNIGHT AVAILABILITY", combinedData.overnightStayAvailability, leftMargin, y);
-        drawLabelValue("START DATE", combinedData.howSoonStart, leftMargin + 250, y);
+        drawLabelValue(page, "OVERNIGHT AVAILABILITY", combinedData.overnightStayAvailability, leftMargin, y);
+        drawLabelValue(page, "START DATE", combinedData.howSoonStart, leftMargin + 250, y);
         y -= lineHeight;
-        drawLabelValue("EARLIEST TIME", combinedData.earliestStartTime, leftMargin, y);
+        drawLabelValue(page, "EARLIEST TIME", combinedData.earliestStartTime, leftMargin, y);
         y -= lineHeight;
         
         drawText(page, "WEEKLY AVAILABILITY:", { x: leftMargin, y, font: boldFont, size: mainFontSize });
@@ -112,7 +112,7 @@ export async function generateMasterInterview360Pdf(combinedData: any): Promise<
         y -= sectionSpacing;
 
         // --- SECTION: INTERVIEW INSIGHTS ---
-        y = drawSectionHeader("INTERVIEW INSIGHTS", y);
+        y = drawSectionHeader(page, "INTERVIEW INSIGHTS", y);
         const questions = [
             { q: "What made you decide to become a caregiver?", a: combinedData.q_decideBecomeCaregiver },
             { q: "Most rewarding/challenging parts?", a: combinedData.q_rewardingChallenging },
@@ -121,20 +121,23 @@ export async function generateMasterInterview360Pdf(combinedData: any): Promise<
             { q: "Career goals?", a: combinedData.q_careerGoals },
         ];
         for(const item of questions) {
+            if(y < 50) { 
+                page = pdfDoc.addPage(PageSizes.Letter);
+                y = height - 50; 
+            }
             drawText(page, item.q, { x: leftMargin, y, font: italicFont, size: mainFontSize });
             y -= lineHeight;
             y = drawWrappedText(page, item.a, font, mainFontSize, leftMargin + 10, y, contentWidth - 10, lineHeight);
             y -= 5;
-            if(y < 50) { 
-                const newPage = pdfDoc.addPage(PageSizes.Letter);
-                page = newPage;
-                y = height - 50; 
-            }
         }
         y -= 10;
 
         // --- SECTION: SITUATIONS ---
-        y = drawSectionHeader("SITUATIONS", y);
+        if(y < 80) { 
+            page = pdfDoc.addPage(PageSizes.Letter);
+            y = height - 50; 
+        }
+        y = drawSectionHeader(page, "SITUATIONS", y);
         const situations = [
             { q: "Dementia experience?", a: combinedData.q_dementiaExperience },
             { q: "Upset client/Wants to go home?", a: combinedData.q_clientUpsetHome },
@@ -148,20 +151,23 @@ export async function generateMasterInterview360Pdf(combinedData: any): Promise<
             { q: "End of shift notes?", a: combinedData.q_clientNotes },
         ];
         for(const item of situations) {
+            if(y < 50) { 
+                page = pdfDoc.addPage(PageSizes.Letter);
+                y = height - 50; 
+            }
             drawText(page, item.q, { x: leftMargin, y, font: italicFont, size: mainFontSize });
             y -= lineHeight;
             y = drawWrappedText(page, item.a, font, mainFontSize, leftMargin + 10, y, contentWidth - 10, lineHeight);
             y -= 5;
-            if(y < 50) { 
-                const newPage = pdfDoc.addPage(PageSizes.Letter);
-                page = newPage;
-                y = height - 50; 
-            }
         }
         y -= 10;
 
         // --- SECTION: SKILLS & TRANSPORTATION ---
-        y = drawSectionHeader("SKILLS, EXPERIENCE & TRANSPORTATION", y);
+        if(y < 120) { 
+            page = pdfDoc.addPage(PageSizes.Letter);
+            y = height - 50; 
+        }
+        y = drawSectionHeader(page, "SKILLS, EXPERIENCE & TRANSPORTATION", y);
         const skills = [
             { l: "Hospice", v: combinedData.hasHospiceExperience },
             { l: "Bed Bound", v: combinedData.canWorkWithBedBound },
@@ -188,17 +194,17 @@ export async function generateMasterInterview360Pdf(combinedData: any): Promise<
         });
         y = skillY - 15;
 
-        drawLabelValue("RELIABLE VEHICLE", combinedData.hasCar, leftMargin, y);
-        drawLabelValue("AUTO INSURANCE", combinedData.q_hasAutoInsurance, leftMargin + 250, y);
+        drawLabelValue(page, "RELIABLE VEHICLE", combinedData.hasCar, leftMargin, y);
+        drawLabelValue(page, "AUTO INSURANCE", combinedData.q_hasAutoInsurance, leftMargin + 250, y);
         y -= lineHeight;
-        drawLabelValue("VALID LICENSE", combinedData.validLicense, leftMargin, y);
-        drawLabelValue("VIOLATIONS (10yr)", combinedData.q_movingViolations, leftMargin + 250, y);
+        drawLabelValue(page, "VALID LICENSE", combinedData.validLicense, leftMargin, y);
+        drawLabelValue(page, "VIOLATIONS (10yr)", combinedData.q_movingViolations, leftMargin + 250, y);
         y -= lineHeight;
-        drawLabelValue("MISDEMEANORS", combinedData.q_misdemeanorCharges, leftMargin, y);
+        drawLabelValue(page, "MISDEMEANORS", combinedData.q_misdemeanorCharges, leftMargin, y);
         y -= lineHeight;
-        drawLabelValue("TRAVEL AREAS (IE)", combinedData.q_ieTravelAreas, leftMargin, y);
+        drawLabelValue(page, "TRAVEL AREAS (IE)", combinedData.q_ieTravelAreas, leftMargin, y);
         y -= lineHeight;
-        drawLabelValue("RESTRICTED AREAS", combinedData.q_preferredNotWorkAreas, leftMargin, y);
+        drawLabelValue(page, "RESTRICTED AREAS", combinedData.q_preferredNotWorkAreas, leftMargin, y);
 
         const pdfBytes = await pdfDoc.save();
         return { pdfData: Buffer.from(pdfBytes).toString('base64') };
