@@ -564,8 +564,10 @@ export async function generateAllFormsAsZipAction(candidateId: string) {
         const fullData = await getFullCandidateData(candidateId);
         if (!fullData) return { error: 'Candidate profile not found.' };
         const zip = new JSZip();
+        const candidateName = fullData.fullName || 'Candidate';
+        
         const formGenerators = [
-            { key: 'id', name: 'Master Interview 360.pdf', generator: generateMasterInterview360Pdf },
+            { key: 'id', name: `MASTER INTERVIEW 360-${candidateName}.pdf`, generator: generateMasterInterview360Pdf },
             { key: 'hcs501EmployeeSignature', name: 'HCS501 - Personnel Record.pdf', generator: generateHcs501Pdf },
             { key: 'emergencyContact1_name', name: 'Emergency Contact.pdf', generator: generateEmergencyContactPdf },
             { key: 'applicantSignature1', name: 'Reference Verification 1.pdf', generator: generateReferenceVerification1Pdf },

@@ -171,46 +171,70 @@ function CandidateHiringFormsContent() {
 
     startPdfGeneration(async () => {
         let result: { pdfData?: string; error?: string } | undefined;
+        let fileName = "document.pdf";
+        const candidateName = profileData?.fullName || 'Candidate';
+        const fileSafeName = candidateName.replace(/ /g, '_');
+
         if (formAction === 'hcs501') {
             result = await generateHcs501PdfAction(candidateId);
+            fileName = `HCS501_${fileSafeName}.pdf`;
         } else if (formAction === 'emergencyContact') {
             result = await generateEmergencyContactPdfAction(candidateId);
+            fileName = `Emergency_Contact_${fileSafeName}.pdf`;
         } else if (formAction === 'referenceVerification1') {
             result = await generateReferenceVerification1PdfAction(candidateId);
+            fileName = `Reference_Verification_1_${fileSafeName}.pdf`;
         } else if (formAction === 'referenceVerification2') {
             result = await generateReferenceVerification2PdfAction(candidateId);
+            fileName = `Reference_Verification_2_${fileSafeName}.pdf`;
         } else if (formAction === 'lic508') {
             result = await generateLic508PdfAction(candidateId);
+            fileName = `LIC508_${fileSafeName}.pdf`;
         } else if (formAction === 'soc341a') {
             result = await generateSoc341aPdfAction(candidateId);
+            fileName = `SOC341A_${fileSafeName}.pdf`;
         } else if (formAction === 'hcaJobDescription') {
             result = await generateHcaJobDescriptionPdfAction(candidateId);
+            fileName = `HCA_Job_Description_${fileSafeName}.pdf`;
         } else if (formAction === 'drugAlcoholPolicy') {
             result = await generateDrugAlcoholPolicyPdfAction(candidateId);
+            fileName = `Drug_Alcohol_Policy_${fileSafeName}.pdf`;
         } else if (formAction === 'clientAbandonment') {
             result = await generateClientAbandonmentPdfAction(candidateId);
+            fileName = `Client_Abandonment_${fileSafeName}.pdf`;
         } else if (formAction === 'arbitrationAgreement') {
             result = await generateArbitrationAgreementPdfAction(candidateId);
+            fileName = `Arbitration_Agreement_${fileSafeName}.pdf`;
         } else if (formAction === 'employeeOrientationAgreement') {
             result = await generateEmployeeOrientationAgreementPdfAction(candidateId);
+            fileName = `Orientation_Agreement_${fileSafeName}.pdf`;
         } else if (formAction === 'acknowledgmentForm') {
             result = await generateAcknowledgmentFormPdfAction(candidateId);
+            fileName = `Acknowledgment_Form_${fileSafeName}.pdf`;
         } else if (formAction === 'confidentialityAgreement') {
             result = await generateConfidentialityAgreementPdfAction(candidateId);
+            fileName = `Confidentiality_Agreement_${fileSafeName}.pdf`;
         } else if (formAction === 'trainingAcknowledgement') {
             result = await generateTrainingAcknowledgementPdfAction(candidateId);
+            fileName = `Training_Acknowledgement_${fileSafeName}.pdf`;
         } else if (formAction === 'offerLetter') {
             result = await generateOfferLetterPdfAction(candidateId);
+            fileName = `Offer_Letter_${fileSafeName}.pdf`;
         } else if (formAction === 'caregiverResponsibilities') {
             result = await generateCaregiverResponsibilitiesPdfAction(candidateId);
+            fileName = `Caregiver_Responsibilities_${fileSafeName}.pdf`;
         } else if (formAction === 'lightHousekeeping') {
             result = await generateLightHousekeepingPdfAction();
+            fileName = `Light_Housekeeping_${fileSafeName}.pdf`;
         } else if (formAction === 'caregiverTelephonyInstructions') {
             result = await generateCaregiverTelephonyInstructionsPdfAction(candidateId);
+            fileName = `Telephony_Instructions_${fileSafeName}.pdf`;
         } else if (formAction === 'emergencyProcedure') {
             result = await generateEmergencyProcedurePdfAction(candidateId);
+            fileName = `Emergency_Procedure_${fileSafeName}.pdf`;
         } else if (formAction === 'masterInterview360') {
             result = await generateMasterInterview360PdfAction(candidateId);
+            fileName = `MASTER INTERVIEW 360-${candidateName}.pdf`;
         }
 
         if (result && result.error) {
@@ -224,7 +248,15 @@ function CandidateHiringFormsContent() {
             const byteArray = new Uint8Array(byteNumbers);
             const blob = new Blob([byteArray], { type: 'application/pdf' });
             const url = URL.createObjectURL(blob);
-            window.open(url, '_blank');
+            
+            // To respect the filename, we use the anchor method
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
     });
   }
