@@ -1,4 +1,3 @@
-
 'use server';
 
 import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont, PDFPage, Color } from 'pdf-lib';
@@ -27,6 +26,7 @@ export async function generateMasterInterview360Pdf(combinedData: any): Promise<
         const sectionHeaderSize = 10;
         const lineHeight = 11;
         const sectionSpacing = 15;
+        const lightGreen = rgb(0.86, 0.98, 0.91); // Tailwind green-100 equivalent
 
         let y = height - 40;
 
@@ -41,13 +41,13 @@ export async function generateMasterInterview360Pdf(combinedData: any): Promise<
         y = drawCenteredText(page, `MASTER INTERVIEW 360 - ${combinedData.fullName || 'Candidate'}`, boldFont, titleFontSize, y);
         y -= 30;
 
-        const drawSectionHeader = (targetPage: PDFPage, text: string, currentY: number, bgColor?: Color) => {
+        const drawSectionHeader = (targetPage: PDFPage, text: string, currentY: number, bgColor: Color) => {
             targetPage.drawRectangle({
                 x: leftMargin,
                 y: currentY - 2,
                 width: contentWidth,
                 height: sectionHeaderSize + 4,
-                color: bgColor || rgb(0.9, 0.9, 0.9),
+                color: bgColor,
             });
             drawText(targetPage, text, { x: leftMargin + 5, y: currentY, font: boldFont, size: sectionHeaderSize });
             return currentY - 20;
@@ -59,8 +59,7 @@ export async function generateMasterInterview360Pdf(combinedData: any): Promise<
             drawText(targetPage, displayValue, { x: x + labelWidth, y: currentY, font, size: mainFontSize });
         };
 
-        // --- SECTION: PERSONAL & LOGISTICS (Light Green Background) ---
-        const lightGreen = rgb(0.86, 0.98, 0.91); // Tailwind green-100 equivalent
+        // --- SECTION: PERSONAL & LOGISTICS ---
         y = drawSectionHeader(page, "PERSONAL & LOGISTICS", y, lightGreen);
         drawLabelValue(page, "NAME", combinedData.fullName, leftMargin, y);
         drawLabelValue(page, "TELEPHONE", combinedData.phone, leftMargin + 250, y);
@@ -79,7 +78,7 @@ export async function generateMasterInterview360Pdf(combinedData: any): Promise<
         y -= sectionSpacing;
 
         // --- SECTION: BACKGROUND ---
-        y = drawSectionHeader(page, "BACKGROUND", y);
+        y = drawSectionHeader(page, "BACKGROUND", y, lightGreen);
         drawText(page, "FLHC Overview Assessment:", { x: leftMargin, y, font: boldFont, size: mainFontSize });
         y -= lineHeight;
         y = drawWrappedText(page, combinedData.flhcOverview, font, mainFontSize, leftMargin + 10, y, contentWidth - 10, lineHeight);
@@ -101,7 +100,7 @@ export async function generateMasterInterview360Pdf(combinedData: any): Promise<
         y -= sectionSpacing;
 
         // --- SECTION: CERTIFICATIONS & AVAILABILITY ---
-        y = drawSectionHeader(page, "CERTIFICATIONS & AVAILABILITY", y);
+        y = drawSectionHeader(page, "CERTIFICATIONS & AVAILABILITY", y, lightGreen);
         const certs = [];
         if(combinedData.hca) certs.push("HCA");
         if(combinedData.hha) certs.push("HHA");
@@ -128,7 +127,7 @@ export async function generateMasterInterview360Pdf(combinedData: any): Promise<
         y -= sectionSpacing;
 
         // --- SECTION: INTERVIEW INSIGHTS ---
-        y = drawSectionHeader(page, "INTERVIEW INSIGHTS", y);
+        y = drawSectionHeader(page, "INTERVIEW INSIGHTS", y, lightGreen);
         const questions = [
             { q: "What made you decide to become a caregiver?", a: combinedData.q_decideBecomeCaregiver },
             { q: "Most rewarding/challenging parts?", a: combinedData.q_rewardingChallenging },
@@ -153,7 +152,7 @@ export async function generateMasterInterview360Pdf(combinedData: any): Promise<
             page = pdfDoc.addPage(PageSizes.Letter);
             y = height - 50; 
         }
-        y = drawSectionHeader(page, "SITUATIONS", y);
+        y = drawSectionHeader(page, "SITUATIONS", y, lightGreen);
         const situations = [
             { q: "How much experience do you have with dementia?", a: combinedData.q_dementiaExperience },
             { q: "What would you do if client wants to go home and is very upset?", a: combinedData.q_clientUpsetHome },
@@ -184,7 +183,7 @@ export async function generateMasterInterview360Pdf(combinedData: any): Promise<
             page = pdfDoc.addPage(PageSizes.Letter);
             y = height - 50; 
         }
-        y = drawSectionHeader(page, "SKILLS, EXPERIENCE & TRANSPORTATION", y);
+        y = drawSectionHeader(page, "SKILLS, EXPERIENCE & TRANSPORTATION", y, lightGreen);
         const skills = [
             { l: "Hospice", v: combinedData.hasHospiceExperience },
             { l: "Bed Bound", v: combinedData.canWorkWithBedBound },
