@@ -1,6 +1,7 @@
+
 'use server';
 
-import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont, PDFPage } from 'pdf-lib';
+import { PDFDocument, rgb, StandardFonts, PageSizes, PDFFont, PDFPage, Color } from 'pdf-lib';
 import { format, isDate } from 'date-fns';
 import { drawText, drawCheckbox, drawWrappedText, drawCenteredText } from './utils';
 
@@ -11,28 +12,42 @@ export async function generateMasterInterview360Pdf(combinedData: any): Promise<
         const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
         const italicFont = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
 
+        const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
+        const logoImageBytes = await fetch(logoUrl).then(res => res.arrayBuffer());
+        const logoImage = await pdfDoc.embedPng(logoImageBytes);
+        const logoDims = logoImage.scale(0.18);
+
         let page = pdfDoc.addPage(PageSizes.Letter);
         const { width, height } = page.getSize();
         const leftMargin = 50;
         const contentWidth = width - leftMargin * 2;
-        let y = height - 40;
-
+        
         const mainFontSize = 8.5;
         const titleFontSize = 14;
         const sectionHeaderSize = 10;
         const lineHeight = 11;
         const sectionSpacing = 15;
 
-        y = drawCenteredText(page, `MASTER INTERVIEW 360 - ${combinedData.fullName || 'Candidate'}`, boldFont, titleFontSize, y);
-        y -= 20;
+        let y = height - 40;
 
-        const drawSectionHeader = (targetPage: PDFPage, text: string, currentY: number) => {
+        // Draw Logo at top left
+        page.drawImage(logoImage, {
+            x: leftMargin,
+            y: height - 30 - logoDims.height,
+            width: logoDims.width,
+            height: logoDims.height,
+        });
+
+        y = drawCenteredText(page, `MASTER INTERVIEW 360 - ${combinedData.fullName || 'Candidate'}`, boldFont, titleFontSize, y);
+        y -= 30;
+
+        const drawSectionHeader = (targetPage: PDFPage, text: string, currentY: number, bgColor?: Color) => {
             targetPage.drawRectangle({
                 x: leftMargin,
                 y: currentY - 2,
                 width: contentWidth,
                 height: sectionHeaderSize + 4,
-                color: rgb(0.9, 0.9, 0.9),
+                color: bgColor || rgb(0.9, 0.9, 0.9),
             });
             drawText(targetPage, text, { x: leftMargin + 5, y: currentY, font: boldFont, size: sectionHeaderSize });
             return currentY - 20;
@@ -44,8 +59,9 @@ export async function generateMasterInterview360Pdf(combinedData: any): Promise<
             drawText(targetPage, displayValue, { x: x + labelWidth, y: currentY, font, size: mainFontSize });
         };
 
-        // --- SECTION: PERSONAL & LOGISTICS ---
-        y = drawSectionHeader(page, "PERSONAL & LOGISTICS", y);
+        // --- SECTION: PERSONAL & LOGISTICS (Light Green Background) ---
+        const lightGreen = rgb(0.86, 0.98, 0.91); // Tailwind green-100 equivalent
+        y = drawSectionHeader(page, "PERSONAL & LOGISTICS", y, lightGreen);
         drawLabelValue(page, "NAME", combinedData.fullName, leftMargin, y);
         drawLabelValue(page, "TELEPHONE", combinedData.phone, leftMargin + 250, y);
         y -= lineHeight;
@@ -139,16 +155,17 @@ export async function generateMasterInterview360Pdf(combinedData: any): Promise<
         }
         y = drawSectionHeader(page, "SITUATIONS", y);
         const situations = [
-            { q: "Dementia experience?", a: combinedData.q_dementiaExperience },
-            { q: "Upset client/Wants to go home?", a: combinedData.q_clientUpsetHome },
-            { q: "Client tells you to leave?", a: combinedData.q_clientTellingLeave },
-            { q: "Combative/Hitting/Scratching?", a: combinedData.q_clientCombative + " / " + combinedData.q_clientHittingScratching },
-            { q: "Asks for deceased spouse?", a: combinedData.q_deceasedSpouse },
-            { q: "Difficult/Stressful situation handled?", a: combinedData.q_difficultSituation },
-            { q: "Client refusal (eating/bathing)?", a: combinedData.q_clientRefusal },
-            { q: "Criticism/Feedback response?", a: combinedData.q_criticismFeedback },
-            { q: "Medical emergency (no office reached)?", a: combinedData.q_medicalEmergencyNoOffice },
-            { q: "End of shift notes?", a: combinedData.q_clientNotes },
+            { q: "How much experience do you have with dementia?", a: combinedData.q_dementiaExperience },
+            { q: "What would you do if client wants to go home and is very upset?", a: combinedData.q_clientUpsetHome },
+            { q: "What if client was telling you to leave?", a: combinedData.q_clientTellingLeave },
+            { q: "What if client is combative?", a: combinedData.q_clientCombative },
+            { q: "What if client is hitting or trying to scratch you?", a: combinedData.q_clientHittingScratching },
+            { q: "What if client asks where spouse is (who died years ago.)?", a: combinedData.q_deceasedSpouse },
+            { q: "Describe a difficult or stressful situation you have experienced while caregiving. How did you handle it?", a: combinedData.q_difficultSituation },
+            { q: "What would you do if a client refused to cooperate with daily tasks, such as eating or bathing?", a: combinedData.q_clientRefusal },
+            { q: "How do you respond to criticism or feedback from a client or their family?", a: combinedData.q_criticismFeedback },
+            { q: "How would you handle a medical emergency if the office could not be reached?", a: combinedData.q_medicalEmergencyNoOffice },
+            { q: "Do you write client notes at end of shift? What do you include in the client notes?", a: combinedData.q_clientNotes },
         ];
         for(const item of situations) {
             if(y < 50) { 
