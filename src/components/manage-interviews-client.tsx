@@ -557,7 +557,7 @@ export default function ManageInterviewsClient() {
     }
     const completedForms = onboardingFormCompletionKeys.filter(key => {
         const isCompletedInProfile = !!(selectedCaregiver as any)[key];
-        const isCompletedInSignatures = !!(signaturesData as any)[key];
+        const isCompletedInSignatures = signaturesData ? !!(signaturesData as any)[key] : false;
         return isCompletedInProfile || isCompletedInSignatures;
     }).length;
 
