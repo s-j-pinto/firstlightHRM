@@ -6,8 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from 'next/link';
 import { collection, getDocs, setDoc, doc, updateDoc, Timestamp, query, where } from 'firebase/firestore';
-import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
-import type { CaregiverProfile, Interview, CaregiverEmployee, Appointment, InterviewQuestionsFormData, InterviewTransportationFormData } from '@/lib/types';
+import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError, useDoc } from '@/firebase';
+import type { CaregiverProfile, Interview, CaregiverEmployee, Appointment, InterviewQuestionsFormData, InterviewTransportationFormData, OnboardingSignatures } from '@/lib/types';
 import { caregiverEmployeeSchema, requiredDateString, interviewQuestionsSchema, interviewTransportationSchema } from '@/lib/types';
 import { saveInterviewAndSchedule, rejectCandidate, initiateOnboardingForms } from '@/lib/interviews.actions';
 import { getAiInterviewInsights } from '@/lib/ai.actions';
@@ -210,6 +210,13 @@ export default function ManageInterviewsClient() {
 
   const employeesRef = useMemoFirebase(() => db ? collection(db, 'caregiver_employees') : null, [db]);
   const { data: allEmployees, isLoading: employeesLoading } = useCollection<CaregiverEmployee>(employeesRef);
+
+  // New fetch for the signatures subcollection to check completion status
+  const signaturesRef = useMemoFirebase(
+    () => (selectedCaregiver && db ? doc(db, `caregiver_profiles/${selectedCaregiver.id}/signatures`, 'onboarding_main') : null),
+    [selectedCaregiver, db]
+  );
+  const { data: signaturesData } = useDoc<OnboardingSignatures>(signaturesRef);
   
   const phoneScreenForm = useForm<PhoneScreenFormData>({
     resolver: zodResolver(phoneScreenSchema),
@@ -548,7 +555,12 @@ export default function ManageInterviewsClient() {
     if (!existingInterview?.onboardingFormsInitiated) {
         return null;
     }
-    const completedForms = onboardingFormCompletionKeys.filter(key => !!selectedCaregiver?.[key]).length;
+    const completedForms = onboardingFormCompletionKeys.filter(key => {
+        const isCompletedInProfile = !!(selectedCaregiver as any)[key];
+        const isCompletedInSignatures = !!(signaturesData as any)[key];
+        return isCompletedInProfile || isCompletedInSignatures;
+    }).length;
+
     if (completedForms === onboardingFormCompletionKeys.length) {
         return { text: "Completed", icon: FileCheck2, color: "text-green-500" };
     }
@@ -1745,13 +1757,13 @@ export default function ManageInterviewsClient() {
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
                                                     <div tabIndex={0}>
-                                                        <Button type="submit" disabled={isSubmitting || !selectedCaregiver?.hcs501EmployeeSignature}>
+                                                        <Button type="submit" disabled={isSubmitting || !signaturesData?.hcs501EmployeeSignature}>
                                                             {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
                                                             {existingEmployee ? 'Update Record' : 'Complete Hiring'}
                                                         </Button>
                                                     </div>
                                                 </TooltipTrigger>
-                                                {!selectedCaregiver?.hcs501EmployeeSignature && (
+                                                {!signaturesData?.hcs501EmployeeSignature && (
                                                     <TooltipContent>
                                                         <p>Candidate must complete the HCS 501 form before hiring.</p>
                                                     </TooltipContent>
