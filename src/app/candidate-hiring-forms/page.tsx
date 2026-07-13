@@ -125,18 +125,19 @@ function CandidateHiringFormsContent() {
     const formsWithStatus = allAvailableForms.map(form => {
       // Check both textual profile data and the signatures subcollection
       let isCandidateCompleted = false;
-      
+      let isAdminCompleted = false;
+
       // MASTER INTERVIEW 360 is special: it's admin-only and always "completed" if initiated
       if (form.pdfAction === 'masterInterview360') {
-          isCandidateCompleted = true;
+          isCandidateCompleted = !!interview?.master360Saved;
+          isAdminCompleted = !!interview?.master360Saved;
       } else if (Object.keys(signaturesData || {}).includes(form.completionKey)) {
           isCandidateCompleted = !!signaturesData?.[form.completionKey as keyof OnboardingSignatures];
       } else {
           isCandidateCompleted = !!profileData[form.completionKey as keyof CaregiverProfile];
       }
       
-      let isAdminCompleted = false;
-      if (isAnAdmin) {
+      if (isAnAdmin && form.pdfAction !== 'masterInterview360') {
           if (isCandidateCompleted) {
               if (!form.adminSchema) {
                   isAdminCompleted = true;
@@ -156,7 +157,7 @@ function CandidateHiringFormsContent() {
     const allAdminFieldsComplete = formsWithStatus.every(f => f.isAdminCompleted);
 
     return { allCandidateFormsComplete, allAdminFieldsComplete, formsToRender: finalForms };
-  }, [profileData, signaturesData, isAnAdmin, allAvailableForms]);
+  }, [profileData, signaturesData, isAnAdmin, allAvailableForms, interview?.master360Saved]);
 
   useEffect(() => {
     setIsVerified(false);
@@ -342,8 +343,8 @@ function CandidateHiringFormsContent() {
                   <span className={cn("font-medium", isMaster && "text-accent font-bold")}>{form.name}</span>
                 </Link>
                  <div className="flex items-center gap-2">
-                    {!isMaster && isCandidateCompleted && <CheckCircle className="h-6 w-6 text-green-500" title="Completed by Candidate"/>}
-                    {isAnAdmin && !isMaster && isCandidateCompleted ? (
+                    {isCandidateCompleted && <CheckCircle className="h-6 w-6 text-green-500" title={isMaster ? "Completed" : "Completed by Candidate"}/>}
+                    {isAnAdmin && isCandidateCompleted ? (
                         isAdminCompleted ? (
                              <CheckCircle className="h-6 w-6 text-blue-500" title="Admin Signoff Complete" />
                         ) : (

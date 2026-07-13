@@ -606,6 +606,7 @@ export const interviewSchema = z.object({
   payExpectation: z.string().optional(),
   howSoonStart: z.string().optional(),
   earliestStartTime: z.string().optional(),
+  master360Saved: z.boolean().optional(),
 }).merge(interviewQuestionsSchema.partial()).merge(interviewTransportationSchema.partial());
 
 export type Interview = z.infer<typeof interviewSchema> & { id: string };

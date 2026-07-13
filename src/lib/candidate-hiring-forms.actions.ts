@@ -359,6 +359,9 @@ export async function saveMasterInterview360Data(profileId: string, data: any) {
             else interviewUpdate[key] = value;
         });
 
+        // Add the completion flag
+        interviewUpdate.master360Saved = true;
+
         const batch = firestore.batch();
         if (Object.keys(profileUpdate).length > 0) batch.update(profileRef, profileUpdate);
         
@@ -372,6 +375,8 @@ export async function saveMasterInterview360Data(profileId: string, data: any) {
 
         await batch.commit();
         revalidatePath('/candidate-hiring-forms');
+        revalidatePath('/admin/advanced-search');
+        revalidatePath('/admin/manage-interviews');
         return { success: true };
     } catch (e: any) { return { error: e.message }; }
 }

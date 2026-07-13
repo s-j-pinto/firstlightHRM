@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
@@ -218,6 +219,9 @@ export default function ManageInterviewsClient() {
   );
   const { data: signaturesData } = useDoc<OnboardingSignatures>(signaturesRef);
   
+  const allInterviewsRef = useMemoFirebase(() => db ? collection(db, 'interviews') : null, [db]);
+  const { data: allInterviews } = useCollection<Interview>(allInterviewsRef);
+
   const phoneScreenForm = useForm<PhoneScreenFormData>({
     resolver: zodResolver(phoneScreenSchema),
     defaultValues: {
@@ -1103,15 +1107,21 @@ export default function ManageInterviewsClient() {
             <ul className="mt-4 border rounded-md divide-y">
             {searchResults.map((caregiver) => {
               const createdAt = (caregiver.createdAt as any)?.toDate();
+              const interview = allInterviews?.find(i => i.caregiverProfileId === caregiver.id);
+              const masterSaved = interview?.master360Saved;
+
               return (
                 <li key={caregiver.id} className="p-2 hover:bg-muted">
                 <button
                     onClick={() => handleSelectCaregiver(caregiver)}
                     className="w-full text-left flex justify-between items-center"
                 >
+                    <div className="flex items-center gap-3">
                     <div>
-                    <p className="font-semibold">{caregiver.fullName}</p>
-                    <p className="text-sm text-muted-foreground">{caregiver.email}</p>
+                        <p className="font-semibold">{caregiver.fullName}</p>
+                        <p className="text-sm text-muted-foreground">{caregiver.email}</p>
+                    </div>
+                    {masterSaved && <CheckCircle className="h-4 w-4 text-blue-500" title="Master 360 Completed" />}
                     </div>
                     <div className='text-right'>
                       <p className="text-sm">{caregiver.phone}</p>

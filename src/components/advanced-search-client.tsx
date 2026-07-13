@@ -277,7 +277,7 @@ export default function AdvancedSearchClient() {
     const getDocsStatus = useCallback((profile: CaregiverProfile, interview?: Interview): DocsStatus => {
         const allAvailableForms = interview?.onboardingFormsInitiated ? [...hiringForms, ...onboardingForms] : hiringForms;
 
-        const completableForms = allAvailableForms.filter(f => f.completionKey !== 'emergencyProcedureSignature');
+        const completableForms = allAvailableForms.filter(f => f.completionKey !== 'emergencyProcedureSignature' && f.pdfAction !== 'masterInterview360');
         const allCandidateFormsComplete = completableForms.every(form => !!profile[form.completionKey as keyof CaregiverProfile]);
     
         if (allCandidateFormsComplete) {
@@ -300,6 +300,7 @@ export default function AdvancedSearchClient() {
     
             const allAdminFieldsComplete = allAvailableForms.every(form => {
                 if (form.completionKey === 'emergencyProcedureSignature') return true; 
+                if (form.pdfAction === 'masterInterview360') return !!interview?.master360Saved;
 
                 const isCandidateCompleted = !!profile[form.completionKey as keyof CaregiverProfile];
                 if (!isCandidateCompleted) {
@@ -318,7 +319,7 @@ export default function AdvancedSearchClient() {
         }
         
         const completedSomeForms = allAvailableForms.some(form => !!profile[form.completionKey as keyof CaregiverProfile]);
-        if (completedSomeForms) {
+        if (completedSomeForms || interview?.master360Saved) {
             return 'started';
         }
     
