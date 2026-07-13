@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
@@ -206,22 +205,24 @@ export default function ManageInterviewsClient() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const caregiverProfilesRef = useMemoFirebase(() => db ? collection(db, "caregiver_profiles") : null, [db]);
-  const { data: allCaregivers, isLoading: caregiversLoading } = useCollection<CaregiverProfile>(caregiverProfilesRef);
+  const caregiversRef = useMemoFirebase(() => db ? collection(db, "caregiver_profiles") : null, [db]);
+  const { data: allCaregivers, isLoading: caregiversLoading } = useCollection<CaregiverProfile>(caregiversRef);
+
+  const interviewsRef = useMemoFirebase(() => db ? collection(db, 'interviews') : null, [db]);
+  const { data: allInterviews, isLoading: interviewsLoading } = useCollection<Interview>(interviewsRef);
 
   const employeesRef = useMemoFirebase(() => db ? collection(db, 'caregiver_employees') : null, [db]);
   const { data: allEmployees, isLoading: employeesLoading } = useCollection<CaregiverEmployee>(employeesRef);
 
-  // New fetch for the signatures subcollection to check completion status
+  const appointmentsRef = useMemoFirebase(() => db ? query(collection(db, 'appointments')) : null, [db]);
+  const { data: appointments, isLoading: appointmentsLoading } = useCollection<Appointment>(appointmentsRef);
+
   const signaturesRef = useMemoFirebase(
     () => (selectedCaregiver && db ? doc(db, `caregiver_profiles/${selectedCaregiver.id}/signatures`, 'onboarding_main') : null),
     [selectedCaregiver, db]
   );
   const { data: signaturesData } = useDoc<OnboardingSignatures>(signaturesRef);
   
-  const allInterviewsRef = useMemoFirebase(() => db ? collection(db, 'interviews') : null, [db]);
-  const { data: allInterviews } = useCollection<Interview>(allInterviewsRef);
-
   const phoneScreenForm = useForm<PhoneScreenFormData>({
     resolver: zodResolver(phoneScreenSchema),
     defaultValues: {
@@ -377,8 +378,8 @@ export default function ManageInterviewsClient() {
     });
 
     if (!db) return;
-    const interviewsRef = collection(db, 'interviews');
-    const q = query(interviewsRef, where("caregiverProfileId", "==", caregiver.id));
+    const interviewsCollRef = collection(db, 'interviews');
+    const q = query(interviewsCollRef, where("caregiverProfileId", "==", caregiver.id));
     
     try {
         const querySnapshot = await getDocs(q);
@@ -1108,7 +1109,7 @@ export default function ManageInterviewsClient() {
             {searchResults.map((caregiver) => {
               const createdAt = (caregiver.createdAt as any)?.toDate();
               const interview = allInterviews?.find(i => i.caregiverProfileId === caregiver.id);
-              const masterSaved = interview?.master360Saved;
+              const masterSaved = !!interview?.master360Saved;
 
               return (
                 <li key={caregiver.id} className="p-2 hover:bg-muted">

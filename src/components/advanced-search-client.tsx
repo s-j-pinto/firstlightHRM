@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
@@ -813,7 +812,12 @@ export default function AdvancedSearchClient() {
                                                 <TableCell>
                                                     <DialogTrigger asChild>
                                                         <button onClick={() => setViewingCandidate(candidate)} className="text-left">
-                                                            <div className="font-medium hover:underline">{candidate.fullName}</div>
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="font-medium hover:underline">{candidate.fullName}</div>
+                                                                {candidate.interview?.master360Saved && (
+                                                                    <CheckCircle className="h-4 w-4 text-blue-500" title="Master 360 Completed" />
+                                                                )}
+                                                            </div>
                                                             <div className="text-sm text-muted-foreground">{candidate.email}</div>
                                                         </button>
                                                     </DialogTrigger>
