@@ -81,7 +81,7 @@ function convertDatesToTimestamps(data: any): any {
 }
 
 // Optimization: Separate signature fields (heavy base64) from textual data
-function extractSignatures(data: any): { textual: any, signatures: any } {
+function extractSignatures(data: any): { textual: any, signatures: any, presence: any } {
     const signatureFields = [
         'hcs501EmployeeSignature',
         'applicantSignature1',
@@ -107,27 +107,35 @@ function extractSignatures(data: any): { textual: any, signatures: any } {
 
     const textual: any = {};
     const signatures: any = {};
+    const presence: any = {};
 
     for (const key in data) {
         if (signatureFields.includes(key)) {
             signatures[key] = data[key];
+            // Set a flag on the main profile so search tables know it's signed without loading base64
+            if (data[key]) {
+                presence[key] = true;
+            }
         } else {
             textual[key] = data[key];
         }
     }
-    return { textual, signatures };
+    return { textual, signatures, presence };
 }
 
 async function saveThinData(profileId: string, data: any) {
-    const { textual, signatures } = extractSignatures(data);
+    const { textual, signatures, presence } = extractSignatures(data);
     const dataToSave = convertDatesToTimestamps(textual);
     
     const batch = serverDb.batch();
     const profileRef = serverDb.collection('caregiver_profiles').doc(profileId);
     const signaturesRef = profileRef.collection('signatures').doc('onboarding_main');
 
-    if (Object.keys(dataToSave).length > 0) {
-        batch.set(profileRef, dataToSave, { merge: true });
+    // Combine textual data and the boolean signature flags for the main profile document
+    const finalProfileData = { ...dataToSave, ...presence };
+
+    if (Object.keys(finalProfileData).length > 0) {
+        batch.set(profileRef, finalProfileData, { merge: true });
     }
     if (Object.keys(signatures).length > 0) {
         batch.set(signaturesRef, signatures, { merge: true });
