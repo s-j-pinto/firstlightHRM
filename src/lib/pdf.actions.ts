@@ -29,6 +29,7 @@ import { generateCaregiverTelephonyInstructionsPdf as generateCaregiverTelephony
 import { generateEmergencyProcedurePdf as generateEmergencyProcedurePdfInternal } from './pdf-generators/emergency-procedure';
 import { generateVaWeeklyReportPdf as generateVaWeeklyReportPdfInternal } from './pdf-generators/va-weekly-report';
 import { generateMasterInterview360Pdf as generateMasterInterview360PdfInternal } from './pdf-generators/master-interview-360';
+import { generateNewHireChecklistPdf as generateNewHireChecklistPdfInternal } from './pdf-generators/new-hire-checklist';
 import { serverDb } from '@/firebase/server-init';
 import { isWithinInterval, endOfWeek, parseISO, format, startOfWeek } from 'date-fns';
 import { fromZonedTime } from 'date-fns-tz';
@@ -64,6 +65,7 @@ export async function generateCaregiverResponsibilitiesPdf(formData: any) { retu
 export async function generateLightHousekeepingPdf() { return generateLightHousekeepingPdfInternal(); }
 export async function generateCaregiverTelephonyInstructionsPdf(formData: any) { return generateCaregiverTelephonyInstructionsPdfInternal(formData); }
 export async function generateEmergencyProcedurePdf(formData: any) { return generateEmergencyProcedurePdfInternal(formData); }
+export async function generateNewHireChecklistPdf(formData: any) { return generateNewHireChecklistPdfInternal(formData); }
 
 
 export async function generateAllstarWeeklyReportPdf(data: any) {

@@ -4,7 +4,7 @@
 import { Suspense, useTransition, useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, CheckCircle, Loader2, ArrowLeft, Printer, Download, XCircle, Bell, BellOff, Edit2, FileCheck2, FileClock, ClipboardList } from "lucide-react";
+import { FileText, CheckCircle, Loader2, ArrowLeft, Printer, Download, XCircle, Bell, BellOff, Edit2, FileCheck2, FileClock, ClipboardList, ClipboardCheck } from "lucide-react";
 import Link from 'next/link';
 import { useUser, useDoc, useCollection, useMemoFirebase, useFirestore } from '@/firebase';
 import { doc, query, where, collection, limit } from 'firebase/firestore';
@@ -31,6 +31,7 @@ import {
     generateCaregiverTelephonyInstructionsPdfAction,
     generateEmergencyProcedurePdfAction,
     generateMasterInterview360PdfAction,
+    generateNewHireChecklistPdfAction,
     generateAllFormsAsZipAction
 } from '@/lib/candidate-hiring-forms.actions';
 import { useToast } from '@/hooks/use-toast';
@@ -131,13 +132,16 @@ function CandidateHiringFormsContent() {
       if (form.pdfAction === 'masterInterview360') {
           isCandidateCompleted = !!interview?.master360Saved;
           isAdminCompleted = !!interview?.master360Saved;
+      } else if (form.pdfAction === 'newHireChecklist') {
+          isCandidateCompleted = !!profileData.newHireChecklistComplete;
+          isAdminCompleted = !!profileData.newHireChecklistComplete;
       } else if (Object.keys(signaturesData || {}).includes(form.completionKey)) {
           isCandidateCompleted = !!signaturesData?.[form.completionKey as keyof OnboardingSignatures];
       } else {
           isCandidateCompleted = !!profileData[form.completionKey as keyof CaregiverProfile];
       }
       
-      if (isAnAdmin && form.pdfAction !== 'masterInterview360') {
+      if (isAnAdmin && form.pdfAction !== 'masterInterview360' && form.pdfAction !== 'newHireChecklist') {
           if (isCandidateCompleted) {
               if (!form.adminSchema) {
                   isAdminCompleted = true;
@@ -150,8 +154,8 @@ function CandidateHiringFormsContent() {
       return { ...form, isCandidateCompleted, isAdminCompleted };
     });
     
-    // Filter out MASTER form for non-admins
-    const finalForms = isAnAdmin ? formsWithStatus : formsWithStatus.filter(f => f.pdfAction !== 'masterInterview360');
+    // Filter out Admin only forms for non-admins
+    const finalForms = isAnAdmin ? formsWithStatus : formsWithStatus.filter(f => !f.adminOnly);
 
     const allCandidateFormsComplete = formsWithStatus.every(f => f.isCandidateCompleted);
     const allAdminFieldsComplete = formsWithStatus.every(f => f.isAdminCompleted);
@@ -236,6 +240,9 @@ function CandidateHiringFormsContent() {
         } else if (formAction === 'masterInterview360') {
             result = await generateMasterInterview360PdfAction(candidateId);
             fileName = `MASTER INTERVIEW 360-${candidateName}.pdf`;
+        } else if (formAction === 'newHireChecklist') {
+            result = await generateNewHireChecklistPdfAction(candidateId);
+            fileName = `NEW HIRE CHECKLIST-${candidateName}.pdf`;
         }
 
         if (result && result.error) {
@@ -336,14 +343,16 @@ function CandidateHiringFormsContent() {
           {formCompletionStates.formsToRender.map((form) => {
             const { isCandidateCompleted, isAdminCompleted } = form;
             const isMaster = form.pdfAction === 'masterInterview360';
+            const isChecklist = form.pdfAction === 'newHireChecklist';
+
             return (
-              <div key={form.name} className={cn("flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors", isMaster && "bg-accent/5 border-accent/20")}>
+              <div key={form.name} className={cn("flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors", (isMaster || isChecklist) && "bg-accent/5 border-accent/20")}>
                 <Link href={formLinkHref(form.href)} className="flex items-center gap-4 flex-grow">
-                  {isMaster ? <ClipboardList className="h-6 w-6 text-accent" /> : <FileText className="h-6 w-6 text-accent" />}
-                  <span className={cn("font-medium", isMaster && "text-accent font-bold")}>{form.name}</span>
+                  {isMaster ? <ClipboardList className="h-6 w-6 text-accent" /> : isChecklist ? <ClipboardCheck className="h-6 w-6 text-accent" /> : <FileText className="h-6 w-6 text-accent" />}
+                  <span className={cn("font-medium", (isMaster || isChecklist) && "text-accent font-bold")}>{form.name}</span>
                 </Link>
                  <div className="flex items-center gap-2">
-                    {isCandidateCompleted && <CheckCircle className="h-6 w-6 text-green-500" title={isMaster ? "Completed" : "Completed by Candidate"}/>}
+                    {isCandidateCompleted && <CheckCircle className="h-6 w-6 text-green-500" title="Completed"/>}
                     {isAnAdmin && isCandidateCompleted ? (
                         isAdminCompleted ? (
                              <CheckCircle className="h-6 w-6 text-blue-500" title="Admin Signoff Complete" />
@@ -351,7 +360,7 @@ function CandidateHiringFormsContent() {
                              <XCircle className="h-6 w-6 text-destructive" title="Awaiting Admin Completion" />
                         )
                     ) : null}
-                    {isAnAdmin && (isCandidateCompleted || isMaster) && (
+                    {isAnAdmin && (isCandidateCompleted || isMaster || isChecklist) && (
                         <Button
                             variant="outline"
                             size="sm"
@@ -375,9 +384,9 @@ function CandidateHiringFormsContent() {
 
 
 export default function CandidateHiringFormsPage() {
-    return (
-        <Suspense fallback={<div className="flex items-center justify-center min-h-[50vh]"><Loader2 className="h-12 w-12 animate-spin text-accent" /></div>}>
-            <CandidateHiringFormsContent />
-        </Suspense>
-    )
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-[50vh]"><Loader2 className="h-12 w-12 animate-spin text-accent" /></div>}>
+        <CandidateHiringFormsContent />
+    </Suspense>
+  )
 }

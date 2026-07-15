@@ -29,7 +29,8 @@ import {
     offerLetterSchema,
     caregiverResponsibilitiesSchema,
     emergencyProcedureSchema,
-    masterInterview360Schema
+    masterInterview360Schema,
+    newHireChecklistSchema
 } from './types';
 import { 
     generateHcs501Pdf, 
@@ -51,7 +52,8 @@ import {
     generateLightHousekeepingPdf,
     generateCaregiverTelephonyInstructionsPdf,
     generateEmergencyProcedurePdf,
-    generateMasterInterview360Pdf
+    generateMasterInterview360Pdf,
+    generateNewHireChecklistPdf
 } from './pdf.actions';
 import type { CaregiverProfile } from './types';
 import JSZip from 'jszip';
@@ -389,6 +391,36 @@ export async function saveMasterInterview360Data(profileId: string, data: any) {
     } catch (e: any) { return { error: e.message }; }
 }
 
+export async function saveNewHireChecklistAction(profileId: string, data: NewHireChecklistFormData) {
+    const validated = newHireChecklistSchema.safeParse(data);
+    if (!validated.success) return { error: 'Invalid data provided.' };
+    
+    try {
+        const firestore = serverDb;
+        const profileRef = firestore.collection('caregiver_profiles').doc(profileId);
+        
+        const mandatoryKeys = [
+            'driversLicenseReceived', 'dmvRecordReceived', 'carInsuranceReceived',
+            'carRegistrationReceived', 'ssnCardReceived', 'hcaClearanceReceived',
+            'liveScanLetterReceived', 'tbTestResultsReceived'
+        ];
+        
+        const allChecked = Object.keys(validated.data)
+            .filter(key => key.endsWith('Received'))
+            .every(key => !!(validated.data as any)[key]);
+
+        await profileRef.update({
+            ...validated.data,
+            newHireChecklistComplete: allChecked,
+            lastUpdatedAt: Timestamp.now(),
+        });
+
+        revalidatePath('/candidate-hiring-forms');
+        revalidatePath('/admin/advanced-search');
+        return { success: true };
+    } catch (e: any) { return { error: e.message }; }
+}
+
 export async function generateHcs501PdfAction(candidateId: string) {
     if (!candidateId) return { error: 'Candidate ID is required.' };
     try {
@@ -571,6 +603,15 @@ export async function generateMasterInterview360PdfAction(candidateId: string) {
     } catch (e: any) { return { error: `Failed to generate PDF: ${e.message}` }; }
 }
 
+export async function generateNewHireChecklistPdfAction(candidateId: string) {
+    if (!candidateId) return { error: 'Candidate ID is required.' };
+    try {
+        const fullData = await getFullCandidateData(candidateId);
+        if (!fullData) return { error: 'Candidate profile not found.' };
+        return await generateNewHireChecklistPdf(fullData);
+    } catch (e: any) { return { error: `Failed to generate PDF: ${e.message}` }; }
+}
+
 export async function generateAllFormsAsZipAction(candidateId: string) {
     if (!candidateId) return { error: 'Candidate ID is required.' };
     try {
@@ -581,6 +622,7 @@ export async function generateAllFormsAsZipAction(candidateId: string) {
         
         const formGenerators = [
             { key: 'id', name: `MASTER INTERVIEW 360-${candidateName}.pdf`, generator: generateMasterInterview360Pdf },
+            { key: 'newHireChecklistComplete', name: 'NEW HIRE CHECKLIST.pdf', generator: generateNewHireChecklistPdf },
             { key: 'hcs501EmployeeSignature', name: 'HCS501 - Personnel Record.pdf', generator: generateHcs501Pdf },
             { key: 'emergencyContact1_name', name: 'Emergency Contact.pdf', generator: generateEmergencyContactPdf },
             { key: 'applicantSignature1', name: 'Reference Verification 1.pdf', generator: generateReferenceVerification1Pdf },

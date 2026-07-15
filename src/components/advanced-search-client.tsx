@@ -277,8 +277,8 @@ export default function AdvancedSearchClient() {
     const getDocsStatus = useCallback((profile: CaregiverProfile, interview?: Interview): DocsStatus => {
         const allAvailableForms = interview?.onboardingFormsInitiated ? [...hiringForms, ...onboardingForms] : hiringForms;
 
-        // Forms the candidate is responsible for (Master Interview is admin-only)
-        const completableForms = allAvailableForms.filter(f => f.completionKey !== 'emergencyProcedureSignature' && f.pdfAction !== 'masterInterview360');
+        // Forms the candidate is responsible for (Master Interview and New Hire Checklist are admin-only)
+        const completableForms = allAvailableForms.filter(f => !f.adminOnly && f.completionKey !== 'emergencyProcedureSignature');
         const allCandidateFormsComplete = completableForms.every(form => !!profile[form.completionKey as keyof CaregiverProfile]);
     
         if (allCandidateFormsComplete) {
@@ -307,6 +307,11 @@ export default function AdvancedSearchClient() {
                     return !!interview?.master360Saved;
                 }
 
+                // CRITICAL: Require New Hire Checklist completion for Admin Signoff
+                if (form.pdfAction === 'newHireChecklist') {
+                    return !!profile.newHireChecklistComplete;
+                }
+
                 const isCandidateCompleted = !!profile[form.completionKey as keyof CaregiverProfile];
                 if (!isCandidateCompleted) {
                     return false;
@@ -324,7 +329,7 @@ export default function AdvancedSearchClient() {
         }
         
         const completedSomeForms = allAvailableForms.some(form => !!profile[form.completionKey as keyof CaregiverProfile]);
-        if (completedSomeForms || interview?.master360Saved) {
+        if (completedSomeForms || interview?.master360Saved || profile.newHireChecklistComplete) {
             return 'started';
         }
     
