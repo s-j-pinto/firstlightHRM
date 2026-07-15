@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { collection, doc, query } from 'firebase/firestore';
+import { collection, doc, query, where, limit, orderBy } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import type { CaregiverProfile, Interview, CaregiverEmployee, Appointment, OnboardingSignatures } from '@/lib/types';
 import { z } from 'zod';
@@ -262,7 +262,8 @@ export default function AdvancedSearchClient() {
     const [sortKey, setSortKey] = useState<SortKey>('createdAt');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
-    const profilesRef = useMemoFirebase(() => firestore ? collection(firestore, 'caregiver_profiles') : null, [firestore]);
+    // FIRESTORE COST OPTIMIZATION: Default limit on primary list
+    const profilesRef = useMemoFirebase(() => firestore ? query(collection(firestore, 'caregiver_profiles'), orderBy('createdAt', 'desc'), limit(100)) : null, [firestore]);
     const { data: profiles, isLoading: profilesLoading } = useCollection<CaregiverProfile>(profilesRef);
 
     const interviewsRef = useMemoFirebase(() => firestore ? collection(firestore, 'interviews') : null, [firestore]);
@@ -352,7 +353,11 @@ export default function AdvancedSearchClient() {
             }
         });
 
-        const getStatus = (profileId: string): { status: CandidateStatus, interview?: Interview } => {
+        const getStatus = (profile: CaregiverProfile): { status: CandidateStatus, interview?: Interview } => {
+            const profileId = profile.id;
+            // Use denormalized status if available on the profile document for speed
+            if ((profile as any).hiringStatus) return { status: (profile as any).hiringStatus, interview: interviewsMap.get(profileId) };
+
             if (employeesMap.has(profileId)) return { status: 'Hired', interview: interviewsMap.get(profileId) };
             const interview = interviewsMap.get(profileId);
             if (interview) {
@@ -378,7 +383,7 @@ export default function AdvancedSearchClient() {
         };
 
         return profiles.map(profile => {
-            const { status, interview } = getStatus(profile.id);
+            const { status, interview } = getStatus(profile);
             const docsStatus = getDocsStatus(profile, interview);
             const appointment = appointmentsMap.get(profile.id);
             return {

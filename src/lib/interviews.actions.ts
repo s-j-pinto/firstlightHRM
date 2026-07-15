@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -160,9 +159,12 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload): P
         updateData.googleEventId = newGoogleEventId;
     }
 
+    let denormalizedStatus = "Final Interview Pending";
+
     if (interviewType === 'Orientation') {
         updateData.orientationScheduled = true;
         updateData.orientationDateTime = Timestamp.fromDate(startTime);
+        denormalizedStatus = "Orientation Scheduled";
     } else {
         updateData.interviewDateTime = Timestamp.fromDate(startTime);
         updateData.interviewType = interviewType;
@@ -171,15 +173,29 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload): P
         updateData.orientationScheduled = pathway === 'combined';
         if (pathway === 'combined') {
             updateData.orientationDateTime = Timestamp.fromDate(startTime);
+            denormalizedStatus = "Orientation Scheduled";
+        } else {
+            denormalizedStatus = "Final Interview Pending";
         }
     }
     
     if (includeReferenceForm) {
       updateData.finalInterviewStatus = 'Pending reference checks';
+      denormalizedStatus = 'Final Interview Pending'; // Still in pending phase
     }
 
+    const interviewDoc = await interviewRef.get();
+    const profileId = interviewDoc.data()?.caregiverProfileId;
 
-    await interviewRef.update(updateData);
+    await serverDb.runTransaction(async (transaction) => {
+        transaction.update(interviewRef, updateData);
+        if (profileId) {
+            transaction.update(serverDb.collection('caregiver_profiles').doc(profileId), {
+                hiringStatus: denormalizedStatus,
+                lastUpdatedAt: Timestamp.now()
+            });
+        }
+    });
 
     // --- Confirmation Email ---
 
@@ -374,6 +390,12 @@ export async function rejectCandidate(payload: {
             cancelDateTime: now
         });
     }
+
+    // SYNC STATUS TO PROFILE
+    batch.update(firestore.collection('caregiver_profiles').doc(caregiverId), {
+        hiringStatus: reason,
+        lastUpdatedAt: now
+    });
 
     await batch.commit();
 

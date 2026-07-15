@@ -78,7 +78,8 @@ export async function submitCaregiverProfile(data: z.infer<typeof caregiverFormS
     ...dataToSave,
     email: normalizedEmail,
     uid: data.uid,
-    createdAt: Timestamp.now()
+    createdAt: Timestamp.now(),
+    hiringStatus: 'Applied' // INITIAL DENORMALIZED STATUS
   });
 
   const redirectParams = new URLSearchParams({
@@ -109,4 +110,3 @@ export async function scheduleAppointment(data: z.infer<typeof appointmentSchema
     const redirectUrl = `/confirmation?time=${validatedFields.data.startTime.toISOString()}`;
     redirect(redirectUrl);
 }
-
