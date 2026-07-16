@@ -1,0 +1,19 @@
+
+name: Monthly Firestore Housekeeping
+
+on:
+  schedule:
+    # Runs at 4:00 PM UTC (which is 8:00 AM Pacific Standard Time) on the 1st of every month
+    - cron: '0 16 1 * *'
+  workflow_dispatch: # Allows manual triggering from the Actions tab
+
+jobs:
+  run_housekeeping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Housekeeping Webhook
+        run: |
+          curl --request GET \
+          --url https://care-connect-360--firstlighthomecare-hrm.us-central1.hosted.app/api/cron/housekeeping \
+          --header 'Authorization: Bearer ${{ secrets.CRON_SECRET }}' \
+          --fail
