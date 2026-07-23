@@ -83,11 +83,8 @@ export default function EmergencyContactPage() {
         if (existingData) {
             const formData = { ...defaultFormValues };
             Object.keys(defaultFormValues).forEach(key => {
-                let val = (existingData as any)[key];
+                const val = (existingData as any)[key];
                 if (val !== undefined && val !== null) {
-                    if ((key === 'emergencyContact1_state' || key === 'emergencyContact2_state')) {
-                        val = String(val).toUpperCase().trim();
-                    }
                     (formData as any)[key] = String(val);
                 }
             });
