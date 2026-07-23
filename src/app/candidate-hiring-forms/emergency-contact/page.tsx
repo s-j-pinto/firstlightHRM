@@ -81,16 +81,16 @@ export default function EmergencyContactPage() {
 
     useEffect(() => {
         if (existingData) {
-            const formData: Partial<EmergencyContactFormData> = {};
-            for (const key in defaultFormValues) {
-                if (Object.prototype.hasOwnProperty.call(defaultFormValues, key)) {
-                   let val = existingData[key as keyof CaregiverProfile] as string || '';
-                   if ((key === 'emergencyContact1_state' || key === 'emergencyContact2_state') && val) {
-                       val = val.toUpperCase().trim();
-                   }
-                   formData[key as keyof EmergencyContactFormData] = val;
+            const formData = { ...defaultFormValues };
+            Object.keys(defaultFormValues).forEach(key => {
+                let val = (existingData as any)[key];
+                if (val !== undefined && val !== null) {
+                    if ((key === 'emergencyContact1_state' || key === 'emergencyContact2_state')) {
+                        val = String(val).toUpperCase().trim();
+                    }
+                    (formData as any)[key] = String(val);
                 }
-            }
+            });
             form.reset(formData);
         }
     }, [existingData, form]);
