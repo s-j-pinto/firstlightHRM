@@ -12,15 +12,27 @@ interface GetRecommendationsPayload {
 }
 
 /**
- * Parses time strings like "7:00:00 AM" into comparable minute-of-day integers.
+ * Parses time strings like "7:00:00 AM" or "7:00 AM" into comparable minute-of-day integers.
  */
 function timeToMinutes(timeStr: string): number {
+    if (!timeStr) return -1;
     try {
         const cleaned = timeStr.trim().toUpperCase();
-        // Detect format: "h:mm:ss a" vs "h:mm a"
+        // Support both "h:mm:ss a" and "h:mm a" formats
         const hasSeconds = (cleaned.match(/:/g) || []).length === 2;
         const formatStr = hasSeconds ? 'h:mm:ss a' : 'h:mm a';
         const date = parse(cleaned, formatStr, new Date());
+        
+        if (!isValid(date)) {
+            // Fallback for missing spaces before AM/PM
+            const normalized = cleaned.replace(/([AP]M)$/, ' $1');
+            const dateFallback = parse(normalized, formatStr, new Date());
+            if (isValid(dateFallback)) {
+                return dateFallback.getHours() * 60 + dateFallback.getMinutes();
+            }
+            return -1;
+        }
+        
         return date.getHours() * 60 + date.getMinutes();
     } catch (e) {
         console.warn(`[timeToMinutes] Failed to parse time: "${timeStr}"`);
@@ -44,7 +56,7 @@ export async function getUnassignedRecommendations(payload: GetRecommendationsPa
         
         if (inventorySnap.empty) {
             console.warn(`[getUnassignedRecommendations] No inventory found for ${weekStart}`);
-            return { error: "Unassigned shift inventory not found for this week." };
+            return { error: "Unassigned shift inventory not found for this week. Please ensure the weekly sync has run successfully." };
         }
         
         const inventory = inventorySnap.docs[0].data() as TeleTrackWeeklyUnassignedShiftsInventory;
