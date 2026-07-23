@@ -86,7 +86,11 @@ export default function EmergencyContactPage() {
             const formData: Partial<EmergencyContactFormData> = {};
             for (const key in defaultFormValues) {
                 if (Object.prototype.hasOwnProperty.call(defaultFormValues, key)) {
-                   formData[key as keyof EmergencyContactFormData] = existingData[key as keyof CaregiverProfile] as string || '';
+                   let val = existingData[key as keyof CaregiverProfile] as string || '';
+                   if ((key === 'emergencyContact1_state' || key === 'emergencyContact2_state') && val) {
+                       val = val.toUpperCase().trim();
+                   }
+                   formData[key as keyof EmergencyContactFormData] = val;
                 }
             }
             form.reset(formData);
@@ -194,7 +198,7 @@ export default function EmergencyContactPage() {
                           <FormField control={form.control} name="emergencyContact1_state" render={({ field }) => (
                             <FormItem>
                               <FormLabel>State</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
+                              <Select onValueChange={field.onChange} value={field.value || undefined}>
                                 <FormControl>
                                   <SelectTrigger>
                                     <SelectValue placeholder="Select state" />
@@ -228,7 +232,7 @@ export default function EmergencyContactPage() {
                           <FormField control={form.control} name="emergencyContact2_state" render={({ field }) => (
                             <FormItem>
                               <FormLabel>State</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
+                              <Select onValueChange={field.onChange} value={field.value || undefined}>
                                 <FormControl>
                                   <SelectTrigger>
                                     <SelectValue placeholder="Select state" />
