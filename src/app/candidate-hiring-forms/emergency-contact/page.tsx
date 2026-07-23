@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useTransition } from "react";
@@ -20,8 +19,6 @@ import { emergencyContactSchema, type EmergencyContactFormData, type CaregiverPr
 import { saveEmergencyContactData } from "@/lib/candidate-hiring-forms.actions";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-<<<<<<< HEAD
-=======
 
 const US_STATES = [
   "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
@@ -31,7 +28,6 @@ const US_STATES = [
   "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
   "DC"
 ];
->>>>>>> refs/remotes/origin/main
 
 const defaultFormValues: EmergencyContactFormData = {
   emergencyContact1_name: '',
@@ -49,22 +45,6 @@ const defaultFormValues: EmergencyContactFormData = {
   emergencyContact2_state: '',
   emergencyContact2_zip: '',
 };
-
-const US_STATES = [
-    { value: "AL", label: "Alabama" }, { value: "AK", label: "Alaska" }, { value: "AZ", label: "Arizona" }, { value: "AR", label: "Arkansas" },
-    { value: "CA", label: "California" }, { value: "CO", label: "Colorado" }, { value: "CT", label: "Connecticut" }, { value: "DE", label: "Delaware" },
-    { value: "FL", label: "Florida" }, { value: "GA", label: "Georgia" }, { value: "HI", label: "Hawaii" }, { value: "ID", label: "Idaho" },
-    { value: "IL", label: "Illinois" }, { value: "IN", label: "Indiana" }, { value: "IA", label: "Iowa" }, { value: "KS", label: "Kansas" },
-    { value: "KY", label: "Kentucky" }, { value: "LA", label: "Louisiana" }, { value: "ME", label: "Maine" }, { value: "MD", label: "Maryland" },
-    { value: "MA", label: "Massachusetts" }, { value: "MI", label: "Michigan" }, { value: "MN", label: "Minnesota" }, { value: "MS", label: "Mississippi" },
-    { value: "MO", label: "Missouri" }, { value: "MT", label: "Montana" }, { value: "NE", label: "Nebraska" }, { value: "NV", label: "Nevada" },
-    { value: "NH", label: "New Hampshire" }, { value: "NJ", label: "New Jersey" }, { value: "NM", label: "New Mexico" }, { value: "NY", label: "New York" },
-    { value: "NC", label: "North Carolina" }, { value: "ND", label: "North Dakota" }, { value: "OH", label: "Ohio" }, { value: "OK", label: "Oklahoma" },
-    { value: "OR", label: "Oregon" }, { value: "PA", label: "Pennsylvania" }, { value: "RI", label: "Rhode Island" }, { value: "SC", label: "South Carolina" },
-    { value: "SD", label: "South Dakota" }, { value: "TN", label: "Tennessee" }, { value: "TX", label: "Texas" }, { value: "UT", label: "Utah" },
-    { value: "VT", label: "Vermont" }, { value: "VA", label: "Virginia" }, { value: "WA", label: "Washington" }, { value: "WV", label: "West Virginia" },
-    { value: "WI", label: "Wisconsin" }, { value: "WY", label: "Wyoming" }
-];
 
 export default function EmergencyContactPage() {
     const router = useRouter();
@@ -213,32 +193,6 @@ export default function EmergencyContactPage() {
                         </div>
                         <div className="grid grid-cols-3 gap-4">
                           <FormField control={form.control} name="emergencyContact1_city" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-<<<<<<< HEAD
-                          <FormField
-                            control={form.control}
-                            name="emergencyContact1_state"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>State</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {US_STATES.map((state) => (
-                                                <SelectItem key={state.value} value={state.value}>
-                                                    {state.label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                          />
-=======
                           <FormField control={form.control} name="emergencyContact1_state" render={({ field }) => (
                             <FormItem>
                               <FormLabel>State</FormLabel>
@@ -259,7 +213,6 @@ export default function EmergencyContactPage() {
                               <FormMessage />
                             </FormItem>
                           )} />
->>>>>>> refs/remotes/origin/main
                           <FormField control={form.control} name="emergencyContact1_zip" render={({ field }) => ( <FormItem><FormLabel>Zip</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                         </div>
                      </div>
@@ -274,32 +227,6 @@ export default function EmergencyContactPage() {
                         </div>
                          <div className="grid grid-cols-3 gap-4">
                           <FormField control={form.control} name="emergencyContact2_city" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-<<<<<<< HEAD
-                          <FormField
-                            control={form.control}
-                            name="emergencyContact2_state"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>State</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {US_STATES.map((state) => (
-                                                <SelectItem key={state.value} value={state.value}>
-                                                    {state.label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                          />
-=======
                           <FormField control={form.control} name="emergencyContact2_state" render={({ field }) => (
                             <FormItem>
                               <FormLabel>State</FormLabel>
@@ -320,7 +247,6 @@ export default function EmergencyContactPage() {
                               <FormMessage />
                             </FormItem>
                           )} />
->>>>>>> refs/remotes/origin/main
                           <FormField control={form.control} name="emergencyContact2_zip" render={({ field }) => ( <FormItem><FormLabel>Zip</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                         </div>
                      </div>
