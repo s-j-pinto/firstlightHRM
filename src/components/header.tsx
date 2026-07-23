@@ -100,6 +100,9 @@ export function AppHeader() {
                  <Link href="/staffing-admin/manage-calloffs" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
                     Manage Caregiver Calloff
                 </Link>
+                <Link href="/staffing-admin/manage-unassigned-shifts" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
+                    Manage Unassigned Shifts
+                </Link>
                  <Link href="/staffing-admin/reports" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
                     Reports
                 </Link>

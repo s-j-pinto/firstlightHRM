@@ -89,8 +89,7 @@ service cloud.firestore {
     match /carelog_templates/{templateId} {
       allow get, list: if true;
       allow create: if isAnyAdmin();
-      allow update: if isAnyAdmin();
-      allow delete: if isAnyAdmin();
+      allow update, delete: if isAnyAdmin();
     }
      match /va_task_templates/{templateId} {
       allow read: if isAnyAdmin();
@@ -165,6 +164,16 @@ service cloud.firestore {
       allow create: if true; // Allow cron job
     }
     match /teletrack_calloff_weekly_caregivers_list/{docId} {
+      allow read: if isAnyAdmin();
+      allow create: if true; // Allow cron job
+    }
+
+    // Unassigned Shifts rules
+    match /teletrack_weekly_unassigned_shifts_inventory/{docId} {
+      allow read: if isAnyAdmin();
+      allow create: if true; // Allow cron job
+    }
+    match /teletrack_unassigned_weekly_caregivers_list/{docId} {
       allow read: if isAnyAdmin();
       allow create: if true; // Allow cron job
     }

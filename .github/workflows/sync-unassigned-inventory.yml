@@ -1,0 +1,19 @@
+
+name: Sync Unassigned Weekly Inventory
+
+on:
+  schedule:
+    # Runs at 11:30 PM UTC every Saturday.
+    - cron: '30 23 * * 6'
+  workflow_dispatch: # Allows manual triggering for testing
+
+jobs:
+  sync_unassigned_data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync Weekly Unassigned Shifts and Caregiver Lists
+        run: |
+          curl --request GET \
+          --url https://care-connect-360--firstlighthomecare-hrm.us-central1.hosted.app/api/cron/sync-unassigned-inventory \
+          --header 'Authorization: Bearer ${{ secrets.CRON_SECRET }}' \
+          --fail

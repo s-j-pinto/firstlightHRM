@@ -705,6 +705,52 @@
             "extractedAt": { "type": "string", "format": "date-time" },
             "syncedAt": { "type": "string", "format": "date-time" }
         }
+    },
+    "TeleTrackWeeklyUnassignedShiftsInventory": {
+        "title": "TeleTrackWeeklyUnassignedShiftsInventory",
+        "type": "object",
+        "description": "Stores the weekly unassigned shift inventory scraped from Teletrack.",
+        "properties": {
+            "weekStart": { "type": "string", "format": "date" },
+            "weekEnd": { "type": "string", "format": "date" },
+            "shifts": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "date": { "type": "string", "format": "date" },
+                        "client": { "type": "object", "properties": { "clientId": { "type": "string" }, "name": { "type": "string" } } },
+                        "arrivalTime": { "type": "string" },
+                        "departureTime": { "type": "string" },
+                        "hours": { "type": "number" }
+                    }
+                }
+            },
+            "totalShifts": { "type": "number" },
+            "extractedAt": { "type": "string", "format": "date-time" },
+            "syncedAt": { "type": "string", "format": "date-time" }
+        }
+    },
+    "TeleTrackUnassignedWeeklyCaregiversList": {
+        "title": "TeleTrackUnassignedWeeklyCaregiversList",
+        "type": "object",
+        "description": "Stores the list of unique caregivers per client who have provided care, and denied caregivers.",
+        "properties": {
+            "clients": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "clientName": { "type": "string" },
+                        "caregivers": { "type": "array", "items": { "type": "object", "properties": { "caregiverName": { "type": "string" } } } },
+                        "deniedCaregivers": { "type": "array", "items": { "type": "object", "properties": { "caregiverName": { "type": "string" } } } }
+                    }
+                }
+            },
+            "totalClients": { "type": "number" },
+            "extractedAt": { "type": "string", "format": "date-time" },
+            "syncedAt": { "type": "string", "format": "date-time" }
+        }
     }
   },
   "auth": {
@@ -809,6 +855,14 @@
     "/teletrack_calloff_weekly_caregivers_list/{docId}": {
         "schema": { "$ref": "#/entities/TeleTrackCalloffWeeklyCaregiversList" },
         "description": "Stores the list of unique caregivers per client who have provided care."
+    },
+    "/teletrack_weekly_unassigned_shifts_inventory/{docId}": {
+        "schema": { "$ref": "#/entities/TeleTrackWeeklyUnassignedShiftsInventory" },
+        "description": "Stores the weekly unassigned shift inventory scraped from Teletrack."
+    },
+    "/teletrack_unassigned_weekly_caregivers_list/{docId}": {
+        "schema": { "$ref": "#/entities/TeleTrackUnassignedWeeklyCaregiversList" },
+        "description": "Stores the list of unique caregivers per client who have provided care, and denied caregivers."
     }
   }
 }

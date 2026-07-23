@@ -1027,6 +1027,35 @@ export const teleTrackCalloffWeeklyCaregiversListSchema = z.object({
 });
 export type TeleTrackCalloffWeeklyCaregiversList = z.infer<typeof teleTrackCalloffWeeklyCaregiversListSchema> & { id: string };
 
+export const teleTrackWeeklyUnassignedShiftsInventorySchema = z.object({
+    weekStart: z.string().trim(),
+    weekEnd: z.string().trim(),
+    shifts: z.array(z.object({
+        date: z.string().trim(),
+        client: z.object({ clientId: z.string().trim(), name: z.string().trim() }),
+        arrivalTime: z.string().trim(),
+        departureTime: z.string().trim(),
+        hours: z.number(),
+    })),
+    totalShifts: z.number(),
+    extractedAt: z.string().trim(),
+    syncedAt: z.any(),
+});
+export type TeleTrackWeeklyUnassignedShiftsInventory = z.infer<typeof teleTrackWeeklyUnassignedShiftsInventorySchema> & { id: string };
+
+export const teleTrackUnassignedWeeklyCaregiversListSchema = z.object({
+    clients: z.array(z.object({
+        clientName: z.string().trim(),
+        caregivers: z.array(z.object({ caregiverName: z.string().trim() })),
+        deniedCaregivers: z.array(z.object({ caregiverName: z.string().trim() }))
+    })),
+    totalClients: z.number(),
+    extractedAt: z.string().trim(),
+    syncedAt: z.any(),
+});
+export type TeleTrackUnassignedWeeklyCaregiversList = z.infer<typeof teleTrackUnassignedWeeklyCaregiversListSchema> & { id: string };
+
+
 export const replacementRecommendationSchema = z.object({
     caregiverId: z.string(),
     caregiverName: z.string().trim(),
@@ -1144,6 +1173,7 @@ export const clientSignupFormSchema = z.object({
   agreementClientSignature: z.string().trim().optional(),
   agreementSignatureDate: z.string().trim().optional(),
   agreementRelationship: z.string().trim().optional(),
+  agreementRelationship_rep: z.string().trim().optional(),
   agreementRepSignature: z.string().trim().optional(),
   agreementRepDate: z.string().trim().optional(),
   transportationWaiverClientSignature: z.string().trim().optional(),
