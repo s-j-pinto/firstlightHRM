@@ -12,111 +12,100 @@ interface GetRecommendationsPayload {
 }
 
 /**
- * Parses time strings like "7:00:00 AM" or "7:00 AM" into comparable minute-of-day integers.
+ * Robust time parser for TeleTrack formats like "9:00:00 am" or "10:00 am".
  */
 function timeToMinutes(timeStr: string): number {
     if (!timeStr) return -1;
     try {
         const cleaned = timeStr.trim().toUpperCase();
-        // Support both "h:mm:ss a" and "h:mm a" formats
         const hasSeconds = (cleaned.match(/:/g) || []).length === 2;
         const formatStr = hasSeconds ? 'h:mm:ss a' : 'h:mm a';
-        const date = parse(cleaned, formatStr, new Date());
+        
+        let date = parse(cleaned, formatStr, new Date());
         
         if (!isValid(date)) {
             // Fallback for missing spaces before AM/PM
             const normalized = cleaned.replace(/([AP]M)$/, ' $1');
-            const dateFallback = parse(normalized, formatStr, new Date());
-            if (isValid(dateFallback)) {
-                return dateFallback.getHours() * 60 + dateFallback.getMinutes();
-            }
-            return -1;
+            date = parse(normalized, formatStr, new Date());
         }
-        
-        return date.getHours() * 60 + date.getMinutes();
+
+        return isValid(date) ? date.getHours() * 60 + date.getMinutes() : -1;
     } catch (e) {
-        console.warn(`[timeToMinutes] Failed to parse time: "${timeStr}"`);
         return -1;
     }
 }
 
+/**
+ * Rules Engine for unassigned shift recommendations.
+ * Bypasses Firestore indexes by fetching relevant docs and sorting in-memory.
+ */
 export async function getUnassignedRecommendations(payload: GetRecommendationsPayload) {
     const { shiftIndex, weekStart } = payload;
     const firestore = serverDb;
 
     try {
-        console.log(`[getUnassignedRecommendations] Fetching inventory for week: ${weekStart}, index: ${shiftIndex}`);
-        
-        // 1. Get shift details
-        const inventorySnap = await firestore.collection('teletrack_weekly_unassigned_shifts_inventory')
+        // 1. Get shift details (Memory-safe fetch to avoid index errors)
+        const inventoryQuery = await firestore.collection('teletrack_weekly_unassigned_shifts_inventory')
             .where('weekStart', '==', weekStart)
-            .orderBy('syncedAt', 'desc')
-            .limit(1)
             .get();
         
-        if (inventorySnap.empty) {
-            console.warn(`[getUnassignedRecommendations] No inventory found for ${weekStart}`);
-            return { error: "Unassigned shift inventory not found for this week. Please ensure the weekly sync has run successfully." };
+        if (inventoryQuery.empty) {
+            return { error: "Unassigned shift inventory not found for this week." };
         }
         
-        const inventory = inventorySnap.docs[0].data() as TeleTrackWeeklyUnassignedShiftsInventory;
+        const inventoryDocs = inventoryQuery.docs;
+        inventoryDocs.sort((a, b) => b.data().syncedAt.toMillis() - a.data().syncedAt.toMillis());
+        const inventory = inventoryDocs[0].data() as TeleTrackWeeklyUnassignedShiftsInventory;
         const shift = inventory.shifts[shiftIndex];
         
-        if (!shift) {
-            console.error(`[getUnassignedRecommendations] Shift index ${shiftIndex} not found in inventory.`);
-            return { error: "Specific shift details not found in inventory." };
-        }
+        if (!shift) return { error: "Specific shift details not found." };
 
         const clientName = shift.client.name;
         const dayName = format(parseISO(shift.date), 'eeee').toLowerCase();
         const shiftStartMins = timeToMinutes(shift.arrivalTime);
         const shiftEndMins = timeToMinutes(shift.departureTime);
 
-        // 2. Get client preferences (prior/denied) from the sync list
-        const caregiversListSnap = await firestore.collection('teletrack_unassigned_weekly_caregivers_list')
-            .orderBy('syncedAt', 'desc')
-            .limit(1)
-            .get();
+        // 2. Get client preferences
+        const listQuery = await firestore.collection('teletrack_unassigned_weekly_caregivers_list').get();
+        const listDocs = listQuery.docs;
+        listDocs.sort((a, b) => b.data().syncedAt.toMillis() - a.data().syncedAt.toMillis());
         
         let priorCaregiverNames: string[] = [];
         let deniedCaregiverNames: string[] = [];
-        if (!caregiversListSnap.empty) {
-            const list = caregiversListSnap.docs[0].data() as TeleTrackUnassignedWeeklyCaregiversList;
+        
+        if (listDocs.length > 0) {
+            const list = listDocs[0].data() as TeleTrackUnassignedWeeklyCaregiversList;
             const clientEntry = list.clients.find(c => c.clientName === clientName);
             if (clientEntry) {
-                priorCaregiverNames = clientEntry.caregivers.map(cg => cg.caregiverName);
-                deniedCaregiverNames = clientEntry.deniedCaregivers.map(cg => cg.caregiverName);
+                priorCaregiverNames = clientEntry.caregivers.map(cg => cg.caregiverName.trim());
+                deniedCaregiverNames = clientEntry.deniedCaregivers
+                    .map(cg => cg.caregiverName.trim())
+                    .filter(name => name !== "There are no denied caregivers.");
             }
         }
 
-        // 3. Fetch client address to calculate distance
+        // 3. Fetch client address for distance
         const clientQuery = await firestore.collection('Clients').where('Client Name', '==', clientName).limit(1).get();
         const clientAddress = clientQuery.empty ? null : `${clientQuery.docs[0].data().Address}, ${clientQuery.docs[0].data().City}`;
 
-        // 4. Fetch all active caregivers and score them
-        const activeCaregiversSnap = await firestore.collection('caregivers_active')
-            .where('status', '==', 'Active')
-            .get();
-        
+        // 4. Fetch and Score All Active Caregivers
+        const activeCaregiversSnap = await firestore.collection('caregivers_active').where('status', '==', 'Active').get();
         const recommendations = [];
 
         for (const doc of activeCaregiversSnap.docs) {
             const caregiver = doc.data() as ActiveCaregiver;
             
-            // Check availability for the day of the shift
+            // Availability Filter
             const availDoc = await doc.ref.collection('availability').doc('current_week').get();
             if (!availDoc.exists) continue;
 
-            const availability = availDoc.data();
-            const dayAvail = availability?.[dayName];
-
-            // Filter: Only suggest if they have availability marked
+            const dayAvail = availDoc.data()?.[dayName];
             if (!dayAvail || !dayAvail.hasAvailabilityBlock) continue;
 
             let score = 0;
             const reasons: string[] = [];
 
-            // RULE: Denied Filter
+            // RULE: Denied Filter (Hard Reject)
             const isDenied = deniedCaregiverNames.includes(caregiver.Name);
             if (isDenied) {
                 recommendations.push({
@@ -147,17 +136,12 @@ export async function getUnassignedRecommendations(payload: GetRecommendationsPa
                 const aStart = timeToMinutes(match[1]);
                 const aEnd = timeToMinutes(match[2]);
                 if (aStart !== -1 && aEnd !== -1) {
-                    if (aStart <= shiftStartMins && aEnd >= shiftEndMins) {
-                        bestAvailScore = 30; // Perfect match
-                    } else if (aStart < shiftEndMins && aEnd > shiftStartMins) {
-                        bestAvailScore = Math.max(bestAvailScore, 10); // Partial match
-                    }
+                    if (aStart <= shiftStartMins && aEnd >= shiftEndMins) bestAvailScore = 30;
+                    else if (aStart < shiftEndMins && aEnd > shiftStartMins) bestAvailScore = Math.max(bestAvailScore, 10);
                 }
             }
             score += bestAvailScore;
-            if (bestAvailScore > 0) {
-                reasons.push(`${bestAvailScore === 30 ? "Perfect" : "Partial"} Schedule Match: Availability window aligns with shift (+${bestAvailScore} pts).`);
-            }
+            if (bestAvailScore > 0) reasons.push(`${bestAvailScore === 30 ? "Perfect" : "Partial"} Schedule Match (+${bestAvailScore} pts).`);
 
             // RULE 3: Proximity (15 pts)
             let distanceText = "";
@@ -166,16 +150,9 @@ export async function getUnassignedRecommendations(payload: GetRecommendationsPa
                 if (dist) {
                     distanceText = dist.distanceText;
                     const miles = dist.distanceValue / 1609.34;
-                    if (miles < 5) {
-                        score += 15;
-                        reasons.push(`Close Proximity: Caregiver is within 5 miles (${dist.distanceText}) (+15 pts).`);
-                    } else if (miles < 15) {
-                        score += 10;
-                        reasons.push(`Commutable: Caregiver is within 15 miles (${dist.distanceText}) (+10 pts).`);
-                    } else {
-                        score += 5;
-                        reasons.push(`Long Distance: Caregiver is ${dist.distanceText} away (+5 pts).`);
-                    }
+                    const pPts = miles < 5 ? 15 : (miles < 15 ? 10 : 5);
+                    score += pPts;
+                    reasons.push(`Proximity: Caregiver is ${dist.distanceText} away (+${pPts} pts).`);
                 }
             }
 
@@ -183,11 +160,9 @@ export async function getUnassignedRecommendations(payload: GetRecommendationsPa
             const buffer = dayAvail.nonOvertimeHours || 0;
             if (buffer >= shift.hours) {
                 score += 15;
-                reasons.push(`Safe Workload: Has sufficient regular hours (${buffer}h) for this ${shift.hours}h shift (+15 pts).`);
+                reasons.push(`Safe Workload: Sufficient regular hours available (+15 pts).`);
             } else if (buffer > 0) {
-                reasons.push(`Overtime Risk: Shift will result in ${ (shift.hours - buffer).toFixed(1) }h of daily overtime.`);
-            } else {
-                reasons.push("Overtime Alert: Caregiver is already at or above daily overtime capacity.");
+                reasons.push(`Overtime Risk: Shift will incur ~${(shift.hours - buffer).toFixed(1)}h of daily overtime.`);
             }
 
             recommendations.push({
@@ -208,8 +183,8 @@ export async function getUnassignedRecommendations(payload: GetRecommendationsPa
         };
 
     } catch (error: any) {
-        console.error("[getUnassignedRecommendations] Critical Error:", error);
-        return { error: `Failed to generate recommendations: ${error.message}` };
+        console.error("[getUnassignedRecommendations] Error:", error);
+        return { error: `Engine Error: ${error.message}` };
     }
 }
 
@@ -244,20 +219,17 @@ export async function sendUnassignedRecommendationsEmail(payload: {
                     <div style="max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
                         <h2 style="color: #333;">Unassigned Shift Alert</h2>
                         <p>Our matching rules engine has identified the best caregivers for the following unassigned shift:</p>
-                        
                         <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
                             <p><strong>Client:</strong> ${payload.clientName}</p>
                             <p><strong>Date:</strong> ${payload.shiftDate}</p>
                             <p><strong>Time:</strong> ${payload.shiftTime}</p>
                             <p><strong>Duration:</strong> ${payload.shiftHours} hours</p>
                         </div>
-
                         <h3>Top Ranked Matches</h3>
                         ${recsHtml}
-
                         <div style="text-align: center; margin-top: 30px;">
-                            <a href="https://care-connect-360--firstlighthomecare-hrm.us-central1.hosted.app/staffing-admin/manage-unassigned-shifts" style="background-color: #E07A5F; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; display: inline-block;">
-                                Manage Shift on Dashboard
+                            <a href="${process.env.NEXT_PUBLIC_BASE_URL}/staffing-admin/manage-unassigned-shifts" style="background-color: #E07A5F; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                                View on Dashboard
                             </a>
                         </div>
                     </div>
@@ -268,7 +240,7 @@ export async function sendUnassignedRecommendationsEmail(payload: {
 
     try {
         await firestore.collection('mail').add(email);
-        return { success: true, message: "Recommendations email sent to administration." };
+        return { success: true, message: "Recommendations email sent to management." };
     } catch (e: any) {
         return { error: `Failed to send email: ${e.message}` };
     }

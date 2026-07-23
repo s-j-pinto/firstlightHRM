@@ -9,11 +9,9 @@ import type { TeleTrackWeeklyUnassignedShiftsInventory } from "@/lib/types";
 import { getUnassignedRecommendations, sendUnassignedRecommendationsEmail } from "@/lib/unassigned-shifts.actions";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Label } from "@/components/ui/label";
 import { Loader2, Calendar, Clock, User, Sparkles, Send, MapPin, XCircle, History, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -28,13 +26,17 @@ export default function ManageUnassignedShiftsClient() {
   const [isRecommending, startRecommendationTransition] = useTransition();
   const [isSending, startSendTransition] = useTransition();
 
-  // Fetch Inventory
+  // Fetch Inventory (Sorted locally to avoid index dependency)
   const inventoryQuery = useMemoFirebase(
-    () => firestore ? query(collection(firestore, "teletrack_weekly_unassigned_shifts_inventory"), orderBy("syncedAt", "desc"), limit(1)) : null,
+    () => firestore ? query(collection(firestore, "teletrack_weekly_unassigned_shifts_inventory")) : null,
     [firestore]
   );
   const { data: inventoryData, isLoading: inventoryLoading } = useCollection<TeleTrackWeeklyUnassignedShiftsInventory>(inventoryQuery);
-  const currentInventory = inventoryData?.[0];
+  
+  const currentInventory = useMemo(() => {
+      if (!inventoryData || inventoryData.length === 0) return null;
+      return [...inventoryData].sort((a, b) => (b.syncedAt as any).toMillis() - (a.syncedAt as any).toMillis())[0];
+  }, [inventoryData]);
 
   const formatCaregiverName = (name: string) => {
     if (!name || !name.includes(',')) return name;
@@ -71,7 +73,7 @@ export default function ManageUnassignedShiftsClient() {
             shiftDate: shift.date,
             shiftTime: `${shift.arrivalTime} - ${shift.departureTime}`,
             shiftHours: shift.hours,
-            recommendations: recommendations.slice(0, 5), // Send top 5
+            recommendations: recommendations.slice(0, 5),
         });
 
         if (result.error) {
@@ -87,10 +89,10 @@ export default function ManageUnassignedShiftsClient() {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold font-headline">
-            Unassigned Shifts for {currentInventory ? `${format(parseISO(currentInventory.weekStart), 'MMM d')} - ${format(parseISO(currentInventory.weekEnd), 'MMM d, yyyy')}` : '...'}
+            Unassigned Shifts: {currentInventory ? `${format(parseISO(currentInventory.weekStart), 'MMM d')} - ${format(parseISO(currentInventory.weekEnd), 'MMM d, yyyy')}` : 'Loading...'}
           </h2>
           <p className="text-muted-foreground text-sm">
-            Browse unassigned shifts from TeleTrack and get AI-powered caregiver matches.
+            Identify unassigned shifts and get deterministic rules-based matches.
           </p>
         </div>
         {currentInventory && (
@@ -137,12 +139,15 @@ export default function ManageUnassignedShiftsClient() {
                         <CardHeader className="pb-3">
                             <div className="flex justify-between items-start">
                                 <div>
-                                    <CardTitle className="flex items-center gap-2"><Sparkles className="text-accent h-5 w-5"/> AI Recommendations</CardTitle>
+                                    <CardTitle className="flex items-center gap-2 font-headline">
+                                        <Sparkles className="text-accent h-5 w-5"/> 
+                                        Rule-Based Matching Results
+                                    </CardTitle>
                                     <CardDescription>Matching active caregivers for {currentInventory?.shifts[selectedShiftIndex].client.name}</CardDescription>
                                 </div>
                                 <Button onClick={handleSendEmail} disabled={isSending || !recommendations.length} variant="outline" size="sm" className="bg-background">
                                     {isSending ? <Loader2 className="animate-spin mr-2 h-4 w-4"/> : <Send className="mr-2 h-4 w-4"/>}
-                                    Email Admin & Owner
+                                    Email Recommendations
                                 </Button>
                             </div>
                         </CardHeader>
@@ -150,22 +155,22 @@ export default function ManageUnassignedShiftsClient() {
                             {isRecommending ? (
                                 <div className="flex flex-col items-center justify-center py-20 gap-3">
                                     <Loader2 className="animate-spin text-accent h-8 w-8" />
-                                    <p className="text-sm text-muted-foreground font-medium">Analyzing schedules, prior relationships, and travel distance...</p>
+                                    <p className="text-sm text-muted-foreground font-medium italic">Analyzing distance, relationships, and overtime risk...</p>
                                 </div>
                             ) : recommendations.length > 0 ? (
                                 <div className="space-y-4">
                                     {recommendations.map((rec, i) => (
-                                        <Card key={rec.caregiverId} className={cn("overflow-hidden", rec.isDenied && "border-destructive/50 bg-destructive/5")}>
+                                        <Card key={rec.caregiverId} className={cn("overflow-hidden transition-all", rec.isDenied ? "border-destructive/50 bg-destructive/5 opacity-80" : "hover:shadow-md")}>
                                             <CardContent className="p-4">
                                                 <div className="flex justify-between items-start">
                                                     <div>
                                                         <h4 className="font-bold text-lg flex items-center gap-2">
                                                             {formatCaregiverName(rec.caregiverName)}
                                                             {rec.isDenied && <XCircle className="text-destructive h-5 w-5" title="DENIED" />}
-                                                            {rec.isPriorCaregiver && <History className="text-green-500 h-5 w-5" title="Worked before" />}
+                                                            {rec.isPriorCaregiver && <History className="text-green-500 h-5 w-5" title="Continuity Match" />}
                                                         </h4>
-                                                        <div className="flex gap-2 mt-1">
-                                                            <Badge variant="outline" className="text-[10px]">Score: {rec.score}</Badge>
+                                                        <div className="flex flex-wrap gap-2 mt-1">
+                                                            <Badge variant="outline" className="text-[10px] uppercase font-bold">Score: {rec.score}</Badge>
                                                             {rec.distance && <Badge variant="outline" className="text-[10px] flex items-center gap-1"><MapPin className="h-2.5 w-2.5"/> {rec.distance}</Badge>}
                                                             <Badge variant="outline" className={cn("text-[10px]", rec.overtimeHoursAvailable > 0 ? "text-green-600" : "text-red-600")}>
                                                                 {rec.overtimeHoursAvailable}h buffer
@@ -173,15 +178,15 @@ export default function ManageUnassignedShiftsClient() {
                                                         </div>
                                                     </div>
                                                     <div className="text-right hidden sm:block">
-                                                        <Label className="text-[10px] text-muted-foreground uppercase block">Today&apos;s Availability</Label>
-                                                        <span className="text-xs font-mono">{rec.dailyAvailability}</span>
+                                                        <Label className="text-[10px] text-muted-foreground uppercase block mb-1">Schedule</Label>
+                                                        <span className="text-xs font-mono bg-muted p-1 rounded">{rec.dailyAvailability}</span>
                                                     </div>
                                                 </div>
                                                 <div className="mt-3 pt-3 border-t">
                                                     <ul className="space-y-1">
                                                         {rec.reasons.map((reason: string, rIdx: number) => (
                                                             <li key={rIdx} className="text-xs text-muted-foreground flex items-start gap-2">
-                                                                <span className="mt-1 h-1 w-1 rounded-full bg-accent shrink-0" />
+                                                                <span className={cn("mt-1.5 h-1.5 w-1.5 rounded-full shrink-0", rec.isDenied ? "bg-destructive" : "bg-accent")} />
                                                                 {reason}
                                                             </li>
                                                         ))}
@@ -192,7 +197,7 @@ export default function ManageUnassignedShiftsClient() {
                                     ))}
                                 </div>
                             ) : (
-                                <p className="text-center py-20 text-muted-foreground italic">No suitable caregivers found matching the shift criteria.</p>
+                                <p className="text-center py-20 text-muted-foreground italic">No eligible caregivers found.</p>
                             )}
                         </CardContent>
                     </Card>
@@ -201,7 +206,7 @@ export default function ManageUnassignedShiftsClient() {
                 <div className="h-full flex items-center justify-center border-2 border-dashed rounded-xl p-12 text-center text-muted-foreground">
                     <div className="space-y-3">
                         <Calendar className="h-12 w-12 mx-auto opacity-20" />
-                        <p>Select a shift from the inventory to view AI matches.</p>
+                        <p>Select a shift from the list to see the best matching caregivers.</p>
                     </div>
                 </div>
             )}
