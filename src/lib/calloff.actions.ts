@@ -17,7 +17,9 @@ interface GetRecommendationsPayload {
 function timeToMinutes(timeStr: string): number {
     try {
         const cleaned = timeStr.trim().toUpperCase().replace(' TO ', '');
-        const date = parse(cleaned, 'h:mm:ss a', new Date());
+        const hasSeconds = (cleaned.match(/:/g) || []).length === 2;
+        const formatStr = hasSeconds ? 'h:mm:ss a' : 'h:mm a';
+        const date = parse(cleaned, formatStr, new Date());
         return date.getHours() * 60 + date.getMinutes();
     } catch (e) {
         return -1;
@@ -32,6 +34,8 @@ export async function getReplacementRecommendations(payload: GetRecommendationsP
     const firestore = serverDb;
 
     try {
+        console.log(`[getReplacementRecommendations] Fetching inventory for shift: ${shiftId}, week: ${weekStart}`);
+        
         // 1. Get the specific shift details
         const inventorySnap = await firestore.collection('teletrack_weekly_shifts_inventory')
             .where('weekStart', '==', weekStart)
@@ -39,10 +43,17 @@ export async function getReplacementRecommendations(payload: GetRecommendationsP
             .limit(1)
             .get();
         
-        if (inventorySnap.empty) return { error: "Shift inventory not found." };
+        if (inventorySnap.empty) {
+            console.warn(`[getReplacementRecommendations] No inventory found for ${weekStart}`);
+            return { error: "Shift inventory not found." };
+        }
+        
         const inventory = inventorySnap.docs[0].data() as TeleTrackWeeklyShiftsInventory;
         const shift = inventory.shifts.find(s => s.scheduleId === shiftId);
-        if (!shift) return { error: "Selected shift details not found." };
+        if (!shift) {
+            console.error(`[getReplacementRecommendations] Shift ID ${shiftId} not found in inventory.`);
+            return { error: "Selected shift details not found." };
+        }
 
         const dayName = format(parseISO(shift.date), 'eeee').toLowerCase();
         const shiftStartMins = timeToMinutes(shift.arrivalTime);
@@ -70,6 +81,7 @@ export async function getReplacementRecommendations(payload: GetRecommendationsP
                 .filter(s => {
                     const sStart = timeToMinutes(s.arrivalTime);
                     const sEnd = timeToMinutes(s.departureTime);
+                    if (sStart === -1 || sEnd === -1) return false;
                     // Check for any overlap
                     return (shiftStartMins < sEnd && shiftEndMins > sStart);
                 })
@@ -112,18 +124,19 @@ export async function getReplacementRecommendations(payload: GetRecommendationsP
             }
 
             // RULE 2: Availability Match (30 pts)
-            // Extract times from "Available\n7:00:00 AM To 3:00:00 PM"
-            const availRegex = /Available\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)\s*To\s*(\d{1,2}:\d{2}:\d{2}\s*[AP]M)/gi;
+            const availRegex = /(?:Available|Scheduled Availability)\s*(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)\s*To\s*(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)/gi;
             let bestAvailScore = 0;
             let match;
             while ((match = availRegex.exec(dayAvail.schedule || "")) !== null) {
                 const aStart = timeToMinutes(match[1]);
                 const aEnd = timeToMinutes(match[2]);
                 
-                if (aStart <= shiftStartMins && aEnd >= shiftEndMins) {
-                    bestAvailScore = 30; // Full match
-                } else if (aStart < shiftEndMins && aEnd > shiftStartMins) {
-                    bestAvailScore = Math.max(bestAvailScore, 10); // Partial match
+                if (aStart !== -1 && aEnd !== -1) {
+                    if (aStart <= shiftStartMins && aEnd >= shiftEndMins) {
+                        bestAvailScore = 30; // Full match
+                    } else if (aStart < shiftEndMins && aEnd > shiftStartMins) {
+                        bestAvailScore = Math.max(bestAvailScore, 10); // Partial match
+                    }
                 }
             }
             score += bestAvailScore;

@@ -17,11 +17,13 @@ interface GetRecommendationsPayload {
 function timeToMinutes(timeStr: string): number {
     try {
         const cleaned = timeStr.trim().toUpperCase();
-        // TeleTrack sometimes sends "9:00:00 am" or "9:00 am"
-        const formatStr = cleaned.includes(':00 ') ? 'h:mm:ss a' : 'h:mm a';
+        // Detect format: "h:mm:ss a" vs "h:mm a"
+        const hasSeconds = (cleaned.match(/:/g) || []).length === 2;
+        const formatStr = hasSeconds ? 'h:mm:ss a' : 'h:mm a';
         const date = parse(cleaned, formatStr, new Date());
         return date.getHours() * 60 + date.getMinutes();
     } catch (e) {
+        console.warn(`[timeToMinutes] Failed to parse time: "${timeStr}"`);
         return -1;
     }
 }
@@ -31,6 +33,8 @@ export async function getUnassignedRecommendations(payload: GetRecommendationsPa
     const firestore = serverDb;
 
     try {
+        console.log(`[getUnassignedRecommendations] Fetching inventory for week: ${weekStart}, index: ${shiftIndex}`);
+        
         // 1. Get shift details
         const inventorySnap = await firestore.collection('teletrack_weekly_unassigned_shifts_inventory')
             .where('weekStart', '==', weekStart)
@@ -38,10 +42,18 @@ export async function getUnassignedRecommendations(payload: GetRecommendationsPa
             .limit(1)
             .get();
         
-        if (inventorySnap.empty) return { error: "Unassigned shift inventory not found for this week." };
+        if (inventorySnap.empty) {
+            console.warn(`[getUnassignedRecommendations] No inventory found for ${weekStart}`);
+            return { error: "Unassigned shift inventory not found for this week." };
+        }
+        
         const inventory = inventorySnap.docs[0].data() as TeleTrackWeeklyUnassignedShiftsInventory;
         const shift = inventory.shifts[shiftIndex];
-        if (!shift) return { error: "Specific shift details not found in inventory." };
+        
+        if (!shift) {
+            console.error(`[getUnassignedRecommendations] Shift index ${shiftIndex} not found in inventory.`);
+            return { error: "Specific shift details not found in inventory." };
+        }
 
         const clientName = shift.client.name;
         const dayName = format(parseISO(shift.date), 'eeee').toLowerCase();
@@ -116,16 +128,18 @@ export async function getUnassignedRecommendations(payload: GetRecommendationsPa
             }
 
             // RULE 2: Availability Match (30 pts)
-            const availRegex = /Available\s*(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)\s*To\s*(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)/gi;
+            const availRegex = /(?:Available|Scheduled Availability)\s*(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)\s*To\s*(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)/gi;
             let bestAvailScore = 0;
-            let m;
-            while ((m = availRegex.exec(dayAvail.schedule || "")) !== null) {
-                const aStart = timeToMinutes(m[1]);
-                const aEnd = timeToMinutes(m[2]);
-                if (aStart <= shiftStartMins && aEnd >= shiftEndMins) {
-                    bestAvailScore = 30; // Perfect match
-                } else if (aStart < shiftEndMins && aEnd > shiftStartMins) {
-                    bestAvailScore = Math.max(bestAvailScore, 10); // Partial match
+            let match;
+            while ((match = availRegex.exec(dayAvail.schedule || "")) !== null) {
+                const aStart = timeToMinutes(match[1]);
+                const aEnd = timeToMinutes(match[2]);
+                if (aStart !== -1 && aEnd !== -1) {
+                    if (aStart <= shiftStartMins && aEnd >= shiftEndMins) {
+                        bestAvailScore = 30; // Perfect match
+                    } else if (aStart < shiftEndMins && aEnd > shiftStartMins) {
+                        bestAvailScore = Math.max(bestAvailScore, 10); // Partial match
+                    }
                 }
             }
             score += bestAvailScore;
@@ -182,7 +196,7 @@ export async function getUnassignedRecommendations(payload: GetRecommendationsPa
         };
 
     } catch (error: any) {
-        console.error("[Rules Engine Error]:", error);
+        console.error("[getUnassignedRecommendations] Critical Error:", error);
         return { error: `Failed to generate recommendations: ${error.message}` };
     }
 }
