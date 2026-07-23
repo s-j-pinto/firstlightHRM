@@ -20,6 +20,18 @@ import { emergencyContactSchema, type EmergencyContactFormData, type CaregiverPr
 import { saveEmergencyContactData } from "@/lib/candidate-hiring-forms.actions";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+<<<<<<< HEAD
+=======
+
+const US_STATES = [
+  "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
+  "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
+  "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+  "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
+  "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
+  "DC"
+];
+>>>>>>> refs/remotes/origin/main
 
 const defaultFormValues: EmergencyContactFormData = {
   emergencyContact1_name: '',
@@ -92,7 +104,11 @@ export default function EmergencyContactPage() {
             const formData: Partial<EmergencyContactFormData> = {};
             for (const key in defaultFormValues) {
                 if (Object.prototype.hasOwnProperty.call(defaultFormValues, key)) {
-                   formData[key as keyof EmergencyContactFormData] = existingData[key as keyof CaregiverProfile] as string || '';
+                   let val = existingData[key as keyof CaregiverProfile] as string || '';
+                   if ((key === 'emergencyContact1_state' || key === 'emergencyContact2_state') && val) {
+                       val = val.toUpperCase().trim();
+                   }
+                   formData[key as keyof EmergencyContactFormData] = val;
                 }
             }
             form.reset(formData);
@@ -197,6 +213,7 @@ export default function EmergencyContactPage() {
                         </div>
                         <div className="grid grid-cols-3 gap-4">
                           <FormField control={form.control} name="emergencyContact1_city" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+<<<<<<< HEAD
                           <FormField
                             control={form.control}
                             name="emergencyContact1_state"
@@ -221,6 +238,28 @@ export default function EmergencyContactPage() {
                                 </FormItem>
                             )}
                           />
+=======
+                          <FormField control={form.control} name="emergencyContact1_state" render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>State</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value || undefined}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select state" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {US_STATES.map((state) => (
+                                    <SelectItem key={state} value={state}>
+                                      {state}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )} />
+>>>>>>> refs/remotes/origin/main
                           <FormField control={form.control} name="emergencyContact1_zip" render={({ field }) => ( <FormItem><FormLabel>Zip</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                         </div>
                      </div>
@@ -235,6 +274,7 @@ export default function EmergencyContactPage() {
                         </div>
                          <div className="grid grid-cols-3 gap-4">
                           <FormField control={form.control} name="emergencyContact2_city" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+<<<<<<< HEAD
                           <FormField
                             control={form.control}
                             name="emergencyContact2_state"
@@ -259,6 +299,28 @@ export default function EmergencyContactPage() {
                                 </FormItem>
                             )}
                           />
+=======
+                          <FormField control={form.control} name="emergencyContact2_state" render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>State</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value || undefined}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select state" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {US_STATES.map((state) => (
+                                    <SelectItem key={state} value={state}>
+                                      {state}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )} />
+>>>>>>> refs/remotes/origin/main
                           <FormField control={form.control} name="emergencyContact2_zip" render={({ field }) => ( <FormItem><FormLabel>Zip</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                         </div>
                      </div>
