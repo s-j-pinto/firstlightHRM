@@ -259,14 +259,14 @@ export const emergencyContactSchema = z.object({
   emergencyContact1_phone: z.string().trim().min(1, "Phone for first contact is required."),
   emergencyContact1_address: z.string().trim().min(1, "Address for first contact is required."),
   emergencyContact1_city: z.string().trim().min(1, "City for first contact is required."),
-  emergencyContact1_state: z.string().trim().min(1, "State for first contact is required."),
+  emergencyContact1_state: z.string().trim().min(1, "State for first contact is required.").length(2, "State must be exactly 2 letters.").regex(/^[A-Z]{2}$/, "State must be 2 uppercase letters (e.g. CA)"),
   emergencyContact1_zip: z.string().trim().min(1, "Zip for first contact is required."),
   emergencyContact2_name: z.string().trim().optional(),
   emergencyContact2_relation: z.string().trim().optional(),
   emergencyContact2_phone: z.string().trim().optional(),
   emergencyContact2_address: z.string().trim().optional(),
   emergencyContact2_city: z.string().trim().optional(),
-  emergencyContact2_state: z.string().trim().optional(),
+  emergencyContact2_state: z.string().trim().length(2, "State must be exactly 2 letters.").regex(/^[A-Z]{2}$/, "State must be 2 uppercase letters (e.g. CA)").optional().or(z.literal('')),
   emergencyContact2_zip: z.string().trim().optional(),
 });
 export type EmergencyContactFormData = z.infer<typeof emergencyContactSchema>;
