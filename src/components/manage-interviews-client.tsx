@@ -1,12 +1,12 @@
 
 'use client';
 
-import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
+import { useState, useTransition, useEffect, useCallback } from 'react';
 import { useForm, Controller, FormProvider } from 'react-hook-form';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from 'next/link';
-import { collection, getDocs, setDoc, doc, updateDoc, Timestamp, query, where, limit } from 'firebase/firestore';
+import { collection, getDocs, setDoc, doc, updateDoc, Timestamp, query, where, limit, getDoc, addDoc } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError, useDoc } from '@/firebase';
 import type { CaregiverProfile, Interview, CaregiverEmployee, Appointment, InterviewQuestionsFormData, InterviewTransportationFormData, OnboardingSignatures } from '@/lib/types';
 import { caregiverEmployeeSchema, requiredDateString, interviewQuestionsSchema, interviewTransportationSchema } from '@/lib/types';
@@ -55,6 +55,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { DateInput } from './ui/date-input';
 import { ScrollArea } from './ui/scroll-area';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { Badge } from './ui/badge';
 
 const safeToDate = (value: any): Date | null => {
     if (!value) return null;
@@ -330,16 +331,16 @@ export default function ManageInterviewsClient() {
     router.replace(pathname);
   }, [hiringForm, orientationForm, phoneScreenForm, assessmentForm, interviewQuestionsForm, skillsForm, transportationForm, scheduleEventForm, router, pathname]);
 
-  const handleSelectCaregiver = useCallback(async (caregiver: CaregiverProfile) => {
-    setSelectedCaregiver(caregiver);
-    setSearchResults([]);
-    setSearchTerm('');
-    
+  const handleSelectCaregiver = useCallback(async (caregiver: { id: string, fullName: string, email: string, phone: string, uid?: string, hasCar?: string, validLicense?: string }) => {
     if (!db) return;
 
     try {
-        // Fetch detailed profile first to get all fields
+        // Fetch detailed profile to get all fields
         const profileSnap = await getDoc(doc(db, 'caregiver_profiles', caregiver.id));
+        if (!profileSnap.exists()) {
+            toast({ title: "Error", description: "Candidate profile not found.", variant: "destructive" });
+            return;
+        }
         const fullProfile = { ...profileSnap.data(), id: caregiver.id } as CaregiverProfile;
         setSelectedCaregiver(fullProfile);
 
@@ -422,21 +423,48 @@ export default function ManageInterviewsClient() {
             if(interviewData.aiGeneratedInsight) {
                 setAiInsight(interviewData.aiGeneratedInsight);
             }
+        } else {
+            // No interview record yet, ensure forms are cleared for new entry
+            setExistingInterview(null);
+            setExistingEmployee(null);
+            setAiInsight(null);
+            phoneScreenForm.reset({ interviewNotes: '', phoneScreenPassed: 'Yes' });
+            assessmentForm.reset({ candidateRating: 'C', finalInterviewNotes: '' });
         }
     } catch (error) {
         console.error("Error fetching detailed candidate data:", error);
     }
-  }, [db, handleCancel, orientationForm, phoneScreenForm, assessmentForm, interviewQuestionsForm, skillsForm, transportationForm, scheduleEventForm]);
+  }, [db, phoneScreenForm, assessmentForm, interviewQuestionsForm, transportationForm, scheduleEventForm, orientationForm, toast]);
 
-  const handleSearch = () => {
-    if (!searchTerm.trim()) return;
+  const handleSearch = useCallback((overrideTerm?: string) => {
+    const term = overrideTerm || searchTerm;
+    if (!term.trim()) return;
+
     startSearchTransition(async () => {
-      const response = await searchCandidatesAction({ namePrefix: searchTerm, limit: 20 });
+      const response = await searchCandidatesAction({ namePrefix: term, limit: 20 });
       if (response.results) {
           setSearchResults(response.results);
+          
+          // Auto-select if exactly one unique result is found that matches the term exactly
+          if (response.results.length === 1) {
+              const candidate = response.results[0];
+              if (candidate.fullName.toLowerCase() === term.toLowerCase()) {
+                  handleSelectCaregiver(candidate);
+              }
+          }
       }
     });
-  };
+  }, [searchTerm, handleSelectCaregiver]);
+
+  // Handle incoming search param from URL
+  useEffect(() => {
+    const searchParam = searchParams.get('search');
+    if (searchParam && !selectedCaregiver) {
+        setSearchTerm(searchParam);
+        handleSearch(searchParam);
+    }
+  }, [searchParams, selectedCaregiver, handleSearch]);
+
 
   const interviewPathway = scheduleEventForm.watch('interviewPathway');
   
@@ -446,6 +474,21 @@ export default function ManageInterviewsClient() {
     }
   }, [interviewPathway, scheduleEventForm]);
 
+
+  const isPhoneScreenCompleted = !!existingInterview?.interviewNotes;
+  const isFinalInterviewPending = existingInterview?.finalInterviewStatus === 'Pending' || existingInterview?.finalInterviewStatus === 'Pending reference checks';
+  const isProcessActive = !existingInterview?.rejectionReason && !existingEmployee;
+  const isEventEditable = isPhoneScreenCompleted && isProcessActive && !existingInterview?.orientationScheduled && existingInterview?.finalInterviewStatus !== 'Passed';
+  const areNotesEditable = isPhoneScreenCompleted && isProcessActive;
+
+  const handleInitiateOnboarding = () => {
+      if (!existingInterview?.id) return;
+      startOnboardingInitiation(async () => {
+          const result = await initiateOnboardingForms(existingInterview.id);
+          if (result.success) toast({ title: 'Success', description: result.success });
+          else toast({ title: 'Error', description: result.error, variant: 'destructive'});
+      });
+  };
 
   const getHiringFormVisibility = () => {
     if (existingEmployee) return false;
@@ -676,7 +719,7 @@ export default function ManageInterviewsClient() {
             <div className="space-y-4">
                 <div className="flex gap-2">
                     <Input placeholder="Enter name or phone number..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSearch()} />
-                    <Button onClick={handleSearch} disabled={isSearching || !searchTerm.trim()}>{isSearching ? <Loader2 className="animate-spin" /> : <Search />}<span className="ml-2">Search</span></Button>
+                    <Button onClick={() => handleSearch()} disabled={isSearching || !searchTerm.trim()}>{isSearching ? <Loader2 className="animate-spin" /> : <Search />}<span className="ml-2">Search</span></Button>
                 </div>
                 {searchResults.length > 0 && (
                     <ul className="border rounded-md divide-y">
@@ -749,7 +792,7 @@ export default function ManageInterviewsClient() {
                     <CardContent>
                         <Form {...assessmentForm}>
                             <form onSubmit={assessmentForm.handleSubmit(onAssessmentSubmit)} className="space-y-4">
-                                <FormField control={assessmentForm.control} name="candidateRating" render={({ field }) => ( <FormItem><FormLabel>Rating</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{ratingOptions.map(o => <SelectItem key={option.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent></Select></FormItem> )} />
+                                <FormField control={assessmentForm.control} name="candidateRating" render={({ field }) => ( <FormItem><FormLabel>Rating</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{ratingOptions.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent></Select></FormItem> )} />
                                 {areNotesEditable && (
                                     <div className="grid grid-cols-1 gap-2 pt-2">
                                         <Button type="button" variant="outline" size="sm" onClick={() => setIsQuestionsOpen(true)}><ClipboardList className="mr-2 h-4 w-4" />Situations</Button>
@@ -798,6 +841,64 @@ export default function ManageInterviewsClient() {
       )}
 
       <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}><DialogContent><DialogHeader><DialogTitle>Reject Candidate</DialogTitle></DialogHeader><RejectCandidateForm onSubmit={handleRejection} isPending={isRejecting} /></DialogContent></Dialog>
+      
+      <Dialog open={isQuestionsOpen} onOpenChange={setIsQuestionsOpen}>
+        <DialogContent className="sm:max-w-4xl max-h-[90vh]">
+            <DialogHeader><DialogTitle>Situation Questions</DialogTitle></DialogHeader>
+            <ScrollArea className="flex-1">
+                <Form {...interviewQuestionsForm}>
+                    <form onSubmit={interviewQuestionsForm.handleSubmit(onQuestionsSubmit)} className="space-y-4 p-1">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {Object.entries(interviewQuestionsSchema.shape).map(([key, value]) => (
+                                <FormField key={key} control={interviewQuestionsForm.control} name={key as any} render={({ field }) => (
+                                    <FormItem><FormLabel className="text-xs">{key.replace('q_', '').replace(/([A-Z])/g, ' $1')}</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl></FormItem>
+                                )} />
+                            ))}
+                        </div>
+                        <DialogFooter><Button type="submit" disabled={isQuestionsSaving}>{isQuestionsSaving && <Loader2 className="animate-spin mr-2" />}Save Questions</Button></DialogFooter>
+                    </form>
+                </Form>
+            </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isSkillsOpen} onOpenChange={setIsSkillsOpen}>
+        <DialogContent className="sm:max-w-2xl">
+            <DialogHeader><DialogTitle>Skills & Experience</DialogTitle></DialogHeader>
+            <Form {...skillsForm}>
+                <form onSubmit={skillsForm.handleSubmit(onSkillsSubmit)} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {skillsCheckboxes.map(item => (
+                            <FormField key={item.id} control={skillsForm.control} name={item.id as any} render={({ field }) => (
+                                <FormItem className="flex items-center space-x-2 space-y-0 p-2 border rounded"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal text-xs">{item.label}</FormLabel></FormItem>
+                            )} />
+                        ))}
+                    </div>
+                    <DialogFooter><Button type="submit" disabled={isSkillsSaving}>{isSkillsSaving && <Loader2 className="animate-spin mr-2" />}Save Skills</Button></DialogFooter>
+                </form>
+            </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isTransportationOpen} onOpenChange={setIsTransportationOpen}>
+        <DialogContent className="sm:max-w-2xl">
+            <DialogHeader><DialogTitle>Transportation Information</DialogTitle></DialogHeader>
+            <Form {...transportationForm}>
+                <form onSubmit={transportationForm.handleSubmit(onTransportationSubmit)} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField control={transportationForm.control} name="hasCar" render={({ field }) => ( <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Has Car</FormLabel></FormItem> )} />
+                        <FormField control={transportationForm.control} name="validLicense" render={({ field }) => ( <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Valid License</FormLabel></FormItem> )} />
+                    </div>
+                    <FormField control={transportationForm.control} name="q_hasAutoInsurance" render={({ field }) => ( <FormItem><FormLabel>Auto Insurance</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
+                    <FormField control={transportationForm.control} name="q_movingViolations" render={({ field }) => ( <FormItem><FormLabel>Moving Violations</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
+                    <FormField control={transportationForm.control} name="q_misdemeanorCharges" render={({ field }) => ( <FormItem><FormLabel>Misdemeanor Charges</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
+                    <FormField control={transportationForm.control} name="q_ieTravelAreas" render={({ field }) => ( <FormItem><FormLabel>Travel Areas</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
+                    <FormField control={transportationForm.control} name="q_preferredNotWorkAreas" render={({ field }) => ( <FormItem><FormLabel>Preferred NOT to work areas</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
+                    <DialogFooter><Button type="submit" disabled={isTransportationSaving}>{isTransportationSaving && <Loader2 className="animate-spin mr-2" />}Save Transportation</Button></DialogFooter>
+                </form>
+            </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
