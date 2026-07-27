@@ -12,6 +12,22 @@
       ]
     },
     {
+      "collectionGroup": "caregiver_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "hiringStatus", "order": "ASCENDING" },
+        { "fieldPath": "fullNameLowercase", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "caregiver_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "hiringStatus", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "client_signups",
       "queryScope": "COLLECTION",
       "fields": [

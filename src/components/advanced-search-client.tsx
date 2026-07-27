@@ -15,12 +15,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, SlidersHorizontal, FilterX, Mail, CheckCircle, BellOff, Bell, Edit2, XCircle, AlertCircle } from 'lucide-react';
+import { Loader2, Search, SlidersHorizontal, FilterX, Mail, CheckCircle, BellOff, Bell, Edit2, XCircle, AlertCircle, ClipboardList, ClipboardCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { sendHiringDocsNotification } from '@/lib/communication.actions';
 import { Input } from './ui/input';
-import { DateInput } from './ui/date-input';
 import { searchCandidatesAction } from '@/lib/caregiver.actions';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
@@ -43,7 +42,7 @@ export default function AdvancedSearchClient() {
         defaultValues: { candidateName: "", hiringStatus: 'any', dateFrom: '', dateTo: '' }
     });
     
-    const { handleSubmit, control, reset } = form;
+    const { control, reset } = form;
     const [results, setResults] = useState<any[]>([]);
     const [lastDocId, setLastDocId] = useState<string | undefined>(undefined);
     const [hasMore, setHasMore] = useState(false);
@@ -53,8 +52,8 @@ export default function AdvancedSearchClient() {
     const router = useRouter();
     const { toast } = useToast();
 
-    const fetchResults = useCallback((isNewSearch: boolean = true) => {
-        const data = form.getValues();
+    const performSearch = useCallback((isNewSearch: boolean = true, values?: FormData) => {
+        const data = values || form.getValues();
         setIndexError(null);
 
         startSearchTransition(async () => {
@@ -86,12 +85,12 @@ export default function AdvancedSearchClient() {
     }, [form, lastDocId]);
 
     useEffect(() => {
-        fetchResults(true);
+        performSearch(true);
     }, []); // Initial load
 
     const handleClearFilters = () => {
         reset({ candidateName: "", hiringStatus: 'any', dateFrom: '', dateTo: '' });
-        fetchResults(true);
+        performSearch(true, { candidateName: "", hiringStatus: 'any', dateFrom: '', dateTo: '' });
     }
 
     const sendNotificationEmail = async (candidate: any) => {
@@ -107,7 +106,7 @@ export default function AdvancedSearchClient() {
             toast({ title: 'Error', description: result.error, variant: 'destructive' });
         } else {
             toast({ title: 'Success', description: 'Notification sent.' });
-            fetchResults(true);
+            performSearch(true);
         }
     }
 
@@ -145,13 +144,13 @@ export default function AdvancedSearchClient() {
     return (
         <div className="space-y-6">
             <Form {...form}>
-                <form onSubmit={handleSubmit(() => fetchResults(true))}>
+                <form onSubmit={form.handleSubmit((data) => performSearch(true, data))}>
                     <Card>
                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><SlidersHorizontal /> Query Builder</CardTitle>
+                            <CardTitle className="flex items-center gap-2 font-headline"><SlidersHorizontal className="text-accent" /> Candidate Query Hub</CardTitle>
                         </CardHeader>
                         <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                            <FormField control={control} name="candidateName" render={({ field }) => ( <FormItem><FormLabel>Candidate Name (Prefix)</FormLabel><FormControl><Input placeholder="Search..." {...field} /></FormControl></FormItem> )} />
+                            <FormField control={control} name="candidateName" render={({ field }) => ( <FormItem><FormLabel>Candidate Name (Prefix)</FormLabel><FormControl><Input placeholder="Search names..." {...field} /></FormControl></FormItem> )} />
                             <FormField control={control} name="hiringStatus" render={({ field }) => (
                                 <FormItem><FormLabel>Hiring Status</FormLabel>
                                     <Select onValueChange={field.onChange} value={field.value}>
@@ -161,9 +160,9 @@ export default function AdvancedSearchClient() {
                                 </FormItem>
                             )} />
                             <div className="flex gap-2 col-span-2">
-                                <Button type="submit" disabled={isLoading} className="flex-1">
+                                <Button type="submit" disabled={isLoading} className="flex-1 bg-accent hover:bg-accent/90">
                                     {isLoading ? <Loader2 className="mr-2 animate-spin"/> : <Search className="mr-2" />}
-                                    Search
+                                    Apply Filters
                                 </Button>
                                 <Button type="button" variant="outline" onClick={handleClearFilters} disabled={isLoading}>
                                     <FilterX className="mr-2" />
@@ -178,9 +177,9 @@ export default function AdvancedSearchClient() {
             {indexError && (
                 <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Index Required</AlertTitle>
+                    <AlertTitle>Performance Index Required</AlertTitle>
                     <AlertDescription>
-                        This specific combination of filters requires a Firestore index. 
+                        This specific combination of filters requires a Firestore index to run efficiently. 
                         <br />
                         <a href={indexError.split('here: ')[1]} target="_blank" rel="noopener noreferrer" className="underline font-bold">
                             Click here to create the required index in the Firebase Console.
@@ -191,18 +190,18 @@ export default function AdvancedSearchClient() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Results</CardTitle>
+                    <CardTitle className="font-headline">Staffing Pool</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Name</TableHead>
-                                <TableHead>City</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Next Step</TableHead>
-                                <TableHead>Docs</TableHead>
-                                <TableHead className="text-right">Action</TableHead>
+                                <TableHead>Candidate</TableHead>
+                                <TableHead>Location</TableHead>
+                                <TableHead>Current Status</TableHead>
+                                <TableHead>Progress</TableHead>
+                                <TableHead>Actions</TableHead>
+                                <TableHead className="text-right">Manage</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -215,29 +214,27 @@ export default function AdvancedSearchClient() {
                                     <TableCell>{candidate.city}</TableCell>
                                     <TableCell><StatusBadge status={candidate.hiringStatus} /></TableCell>
                                     <TableCell>
-                                        <div className="text-xs">
-                                            {candidate.nextStepText}
-                                            {candidate.nextStepTime && <div className="text-muted-foreground">{format(new Date(candidate.nextStepTime), 'PPp')}</div>}
+                                        <div className="flex items-center gap-3">
+                                            {candidate.master360Saved ? <ClipboardList className="h-5 w-5 text-blue-500" title="Master 360 Complete" /> : <ClipboardList className="h-5 w-5 text-muted-foreground opacity-30" />}
+                                            {candidate.newHireChecklistComplete ? <ClipboardCheck className="h-5 w-5 text-blue-500" title="Checklist Complete" /> : <ClipboardCheck className="h-5 w-5 text-muted-foreground opacity-30" />}
+                                            <DocsStatusIcon status={candidate.docsStatus} candidateId={candidate.id} />
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            <DocsStatusIcon status={candidate.docsStatus} candidateId={candidate.id} />
-                                            <Button variant="ghost" size="icon" disabled={sendingEmailId === candidate.id} onClick={() => sendNotificationEmail(candidate)}>
-                                                {sendingEmailId === candidate.id ? <Loader2 className="animate-spin" /> : <Mail className="h-4 w-4"/>}
-                                            </Button>
-                                        </div>
+                                        <Button variant="ghost" size="icon" disabled={sendingEmailId === candidate.id} onClick={() => sendNotificationEmail(candidate)} title="Notify Candidate for Onboarding">
+                                            {sendingEmailId === candidate.id ? <Loader2 className="animate-spin" /> : <Mail className="h-4 w-4"/>}
+                                        </Button>
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <Button size="sm" variant="outline" onClick={() => router.push(`/admin/manage-interviews?search=${encodeURIComponent(candidate.fullName)}`)}>
-                                            Manage
+                                            Manage Interview
                                         </Button>
                                     </TableCell>
                                 </TableRow>
                             )) : (
                                 <TableRow>
                                     <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                                        {isLoading ? "Loading..." : "No candidates found."}
+                                        {isLoading ? "Consulting database..." : "No candidates found matching your criteria."}
                                     </TableCell>
                                 </TableRow>
                             )}
@@ -245,9 +242,9 @@ export default function AdvancedSearchClient() {
                     </Table>
                     {hasMore && (
                         <div className="flex justify-center mt-6">
-                            <Button variant="ghost" onClick={() => fetchResults(false)} disabled={isLoading}>
+                            <Button variant="ghost" onClick={() => performSearch(false)} disabled={isLoading}>
                                 {isLoading ? <Loader2 className="animate-spin mr-2"/> : null}
-                                Load More Results
+                                Load Next 10 Records
                             </Button>
                         </div>
                     )}

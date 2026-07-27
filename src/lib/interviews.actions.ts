@@ -14,8 +14,8 @@ interface SaveInterviewPayload {
     fullName: string;
     email: string;
   };
-  eventDate: string; // Keep as string MM/DD/YYYY
-  eventTime: string; // Keep as string HH:mm
+  eventDate: string; // MM/DD/YYYY
+  eventTime: string; // HH:mm
   interviewId: string;
   aiInsight: string | null;
   interviewType: 'In-Person' | 'Google Meet' | 'Orientation';
@@ -39,7 +39,6 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload): P
     interviewNotes,
     candidateRating,
     pathway,
-    finalInterviewStatus,
     googleEventId,
     previousPathway,
     includeReferenceForm,
@@ -53,8 +52,6 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload): P
     const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
     const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:9002/admin/settings';
 
-    let calendarAuthUrl: string | null = null;
-    let calendarErrorMessage: string | null = null;
     let conferenceLink: string | undefined = undefined;
     let newGoogleEventId: string | undefined = undefined;
 
@@ -132,7 +129,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload): P
         conferenceLink = createdEvent.data.hangoutLink || undefined;
         newGoogleEventId = createdEvent.data.id || undefined;
       } catch (calendarError: any) {
-          calendarErrorMessage = `Failed to create/update calendar event: ${calendarError.message}`;
+          console.error("[saveInterviewAndSchedule] Calendar Error:", calendarError.message);
       }
     }
 
@@ -187,6 +184,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload): P
                 hiringStatus: denormalizedStatus,
                 nextStepText,
                 nextStepTime: Timestamp.fromDate(startTime),
+                fullNameLowercase: caregiverProfile.fullName.toLowerCase(),
                 lastUpdatedAt: Timestamp.now()
             });
         }
@@ -194,6 +192,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload): P
 
     revalidatePath('/admin/manage-interviews');
     revalidatePath('/admin/advanced-search');
+    revalidatePath('/admin');
     
     return { message: `Next event scheduled and status synced.` };
 
@@ -211,7 +210,7 @@ export async function rejectCandidate(payload: {
   caregiverName: string;
   caregiverEmail: string;
 }) {
-  const { caregiverId, interviewId, reason, notes, caregiverName, caregiverEmail } = payload;
+  const { caregiverId, interviewId, reason, notes, caregiverName } = payload;
   if (!caregiverId || !reason) {
     return { error: true, message: "Caregiver ID and reason are required." };
   }
@@ -244,12 +243,14 @@ export async function rejectCandidate(payload: {
         hiringStatus: reason,
         nextStepText: 'Process Ended',
         nextStepTime: null,
+        fullNameLowercase: (caregiverName || '').toLowerCase(),
         lastUpdatedAt: now
     });
 
     await batch.commit();
     revalidatePath('/admin/manage-interviews');
     revalidatePath('/admin/advanced-search');
+    revalidatePath('/admin');
     return { success: true, message: 'Candidate has been rejected and status synced.' };
   } catch (error: any) {
     return { error: true, message: `An error occurred: ${error.message}` };
@@ -278,6 +279,7 @@ export async function initiateOnboardingForms(interviewId: string) {
 
     revalidatePath('/admin/manage-interviews');
     revalidatePath('/admin/advanced-search');
+    revalidatePath('/admin');
     return { success: 'Onboarding forms initiated and status synced.' };
   } catch (error: any) {
     return { error: `Failed: ${error.message}` };

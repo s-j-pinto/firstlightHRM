@@ -21,12 +21,14 @@ interface SearchParams {
  * Optimized server-side search for candidates using Admin SDK field projection.
  */
 export async function searchCandidatesAction(params: SearchParams) {
+    console.log("[searchCandidatesAction] Parameters:", JSON.stringify(params));
     let query = serverDb.collection('caregiver_profiles') as FirebaseFirestore.Query;
 
     // 1. Prefix Matching for Name
     // Note: Prefix matching requires ordering by the same field in Firestore.
     if (params.namePrefix && params.namePrefix.trim() !== '') {
         const prefix = params.namePrefix.trim().toLowerCase();
+        // Standard Firestore prefix range query
         query = query.where('fullNameLowercase', '>=', prefix)
                      .where('fullNameLowercase', '<=', prefix + '\uf8ff')
                      .orderBy('fullNameLowercase', 'asc');
@@ -54,7 +56,6 @@ export async function searchCandidatesAction(params: SearchParams) {
         try {
             const toDate = parse(params.dateTo, 'MM/dd/yyyy', new Date());
             if (isValid(toDate)) {
-                // To include the whole day, set time to 23:59:59
                 toDate.setHours(23, 59, 59, 999);
                 query = query.where('createdAt', '<=', Timestamp.fromDate(toDate));
             }
@@ -72,9 +73,10 @@ export async function searchCandidatesAction(params: SearchParams) {
     const pageSize = params.limit || 10;
     query = query.limit(pageSize);
 
-    // 5. Field Projection (Select only what's needed for the table to minimize data transfer)
+    // 5. Field Projection
     const selectFields = [
         'fullName', 
+        'fullNameLowercase',
         'email', 
         'phone', 
         'city', 
@@ -82,7 +84,9 @@ export async function searchCandidatesAction(params: SearchParams) {
         'hiringStatus', 
         'docsStatus', 
         'nextStepText', 
-        'nextStepTime'
+        'nextStepTime',
+        'master360Saved',
+        'newHireChecklistComplete'
     ];
     
     try {
@@ -101,8 +105,12 @@ export async function searchCandidatesAction(params: SearchParams) {
                 nextStepText: data.nextStepText || 'Needs Phone Screen',
                 createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null,
                 nextStepTime: data.nextStepTime ? data.nextStepTime.toDate().toISOString() : null,
+                master360Saved: !!data.master360Saved,
+                newHireChecklistComplete: !!data.newHireChecklistComplete,
             };
         });
+
+        console.log(`[searchCandidatesAction] Found ${results.length} results.`);
 
         return {
             results,
@@ -111,14 +119,12 @@ export async function searchCandidatesAction(params: SearchParams) {
         };
     } catch (error: any) {
         console.error("[searchCandidatesAction] Error:", error.message);
-        // If we get an index error, return it so the UI can show the link (development only)
         if (error.message?.includes('FAILED_PRECONDITION')) {
             return { results: [], hasMore: false, error: error.message };
         }
         throw error;
     }
 }
-
 
 export async function updateCaregiverProfile(
   profileId: string,
@@ -134,14 +140,10 @@ export async function updateCaregiverProfile(
     const firestore = serverDb;
     const profileRef = firestore.collection("caregiver_profiles").doc(profileId);
 
-    const profileDoc = await profileRef.get();
-    if (!profileDoc.exists) {
-      return { message: "Caregiver profile not found.", error: true };
-    }
-
     const updateData = {
         ...validatedFields.data,
-        fullNameLowercase: validatedFields.data.fullName.toLowerCase(),
+        fullNameLowercase: (validatedFields.data.fullName || '').toLowerCase(),
+        lastUpdatedAt: Timestamp.now(),
     };
 
     await profileRef.set(updateData, { merge: true });
@@ -173,24 +175,16 @@ export async function deleteCaregiverProfile(profileId: string) {
 
   try {
     const batch = serverDb.batch();
-
-    // Delete from caregiver_profiles
     const profileRef = serverDb.collection("caregiver_profiles").doc(profileId);
     batch.delete(profileRef);
-
-    // Delete from interviews
     await findAndBatchDelete(batch, "interviews", "caregiverProfileId", profileId);
-    
-    // Delete from appointments
     await findAndBatchDelete(batch, "appointments", "caregiverId", profileId);
-
-    // Delete from caregiver_employees
     const employeeRef = serverDb.collection("caregiver_employees").doc(profileId);
     batch.delete(employeeRef);
-
     await batch.commit();
 
     revalidatePath("/admin/manage-applications");
+    revalidatePath("/admin");
     return { message: "Caregiver profile and all related records deleted successfully." };
   } catch (error: any) {
     console.error("Error deleting caregiver profile:", error);
@@ -205,25 +199,22 @@ export async function resetCaregiverInterview(profileId: string) {
 
   try {
     const batch = serverDb.batch();
-
-    // Delete from interviews
     await findAndBatchDelete(batch, "interviews", "caregiverProfileId", profileId);
-
-    // Delete from caregiver_employees
     const employeeRef = serverDb.collection("caregiver_employees").doc(profileId);
     batch.delete(employeeRef);
 
-    // Reset status on profile
     batch.update(serverDb.collection("caregiver_profiles").doc(profileId), {
         hiringStatus: 'Applied',
         docsStatus: 'not-notified',
         nextStepText: 'Needs Phone Screen',
         nextStepTime: null,
+        lastUpdatedAt: Timestamp.now(),
     });
 
     await batch.commit();
 
     revalidatePath("/admin/manage-applications");
+    revalidatePath("/admin");
     return { message: "Caregiver interview and employment records have been reset." };
   } catch (error: any) {
     console.error("Error resetting caregiver interview:", error);

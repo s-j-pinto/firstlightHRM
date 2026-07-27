@@ -123,7 +123,12 @@ async function saveThinData(profileId: string, data: any) {
     const signaturesRef = profileRef.collection('signatures').doc('onboarding_main');
 
     // SYNC docsStatus on save
-    const finalProfileData = { ...dataToSave, ...presence, docsStatus: 'started', lastUpdatedAt: Timestamp.now() };
+    const finalProfileData: any = { ...dataToSave, ...presence, docsStatus: 'started', lastUpdatedAt: Timestamp.now() };
+    
+    // Ensure lowercase name is updated if full name is present
+    if (finalProfileData.fullName) {
+        finalProfileData.fullNameLowercase = finalProfileData.fullName.toLowerCase();
+    }
 
     batch.set(profileRef, finalProfileData, { merge: true });
     batch.set(signaturesRef, signatures, { merge: true });
@@ -294,7 +299,7 @@ export async function saveCaregiverResponsibilitiesData(profileId: string, data:
 export async function saveLightHousekeepingAcknowledgement(profileId: string) {
     if (!profileId) return { error: 'Profile ID is required.' };
     try {
-        await serverDb.collection('caregiver_profiles').doc(profileId).set({ lightHousekeepingAcknowledged: true, docsStatus: 'started' }, { merge: true });
+        await serverDb.collection('caregiver_profiles').doc(profileId).set({ lightHousekeepingAcknowledged: true, docsStatus: 'started', lastUpdatedAt: Timestamp.now() }, { merge: true });
         revalidatePath('/candidate-hiring-forms');
         return { success: true };
     } catch (e: any) { return { error: `Failed: ${e.message}` }; }
@@ -303,7 +308,7 @@ export async function saveLightHousekeepingAcknowledgement(profileId: string) {
 export async function saveTelephonyInstructionsData(profileId: string) {
     if (!profileId) return { error: 'Profile ID is required.' };
     try {
-        await serverDb.collection('caregiver_profiles').doc(profileId).set({ telephonyInstructionsAcknowledged: true, docsStatus: 'started' }, { merge: true });
+        await serverDb.collection('caregiver_profiles').doc(profileId).set({ telephonyInstructionsAcknowledged: true, docsStatus: 'started', lastUpdatedAt: Timestamp.now() }, { merge: true });
         revalidatePath('/candidate-hiring-forms');
         return { success: true };
     } catch (e: any) { return { error: `Failed: ${e.message}` }; }
@@ -337,10 +342,18 @@ export async function saveMasterInterview360Data(profileId: string, data: any) {
         const profileFields = ['source', 'overnightStayAvailability', 'availability'];
         const profileUpdate: any = { lastUpdatedAt: Timestamp.now(), docsStatus: 'started' };
         const interviewUpdate: any = { master360Saved: true, lastUpdatedAt: Timestamp.now() };
+        
         Object.entries(validated.data).forEach(([key, value]) => {
             if (profileFields.includes(key)) profileUpdate[key] = value;
             else interviewUpdate[key] = value;
         });
+
+        // Ensure name-related fields are synced
+        const profileSnap = await profileRef.get();
+        if (profileSnap.exists && profileSnap.data()?.fullName) {
+            profileUpdate.fullNameLowercase = profileSnap.data()?.fullName.toLowerCase();
+        }
+
         const batch = firestore.batch();
         batch.update(profileRef, profileUpdate);
         const interviewQuery = await firestore.collection('interviews').where('caregiverProfileId', '==', profileId).limit(1).get();
