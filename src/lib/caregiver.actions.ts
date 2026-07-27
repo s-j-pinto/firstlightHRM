@@ -24,14 +24,20 @@ export async function searchCandidatesAction(params: SearchParams) {
     console.log("[searchCandidatesAction] Parameters:", JSON.stringify(params));
     let query = serverDb.collection('caregiver_profiles') as FirebaseFirestore.Query;
 
-    // 1. Prefix Matching for Name
-    // Note: Prefix matching requires ordering by the same field in Firestore.
+    // 1. Prefix Matching for Name or Email
     if (params.namePrefix && params.namePrefix.trim() !== '') {
-        const prefix = params.namePrefix.trim().toLowerCase();
-        // Standard Firestore prefix range query
-        query = query.where('fullNameLowercase', '>=', prefix)
-                     .where('fullNameLowercase', '<=', prefix + '\uf8ff')
-                     .orderBy('fullNameLowercase', 'asc');
+        const term = params.namePrefix.trim();
+        const prefix = term.toLowerCase();
+
+        // Simple check: if it looks like an email, do an equality check
+        if (term.includes('@')) {
+            query = query.where('email', '==', prefix).orderBy('createdAt', 'desc');
+        } else {
+            // Standard Firestore prefix range query
+            query = query.where('fullNameLowercase', '>=', prefix)
+                         .where('fullNameLowercase', '<=', prefix + '\uf8ff')
+                         .orderBy('fullNameLowercase', 'asc');
+        }
     } else {
         // Default order to newest first if not searching by name
         query = query.orderBy('createdAt', 'desc');

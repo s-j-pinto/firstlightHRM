@@ -2,13 +2,12 @@
 'use client';
 
 import { useState, useTransition, useEffect, useCallback } from 'react';
-import { useForm, Controller, FormProvider } from 'react-hook-form';
+import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import Link from 'next/link';
 import { collection, getDocs, setDoc, doc, updateDoc, Timestamp, query, where, limit, getDoc, addDoc } from 'firebase/firestore';
-import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError, useDoc } from '@/firebase';
-import type { CaregiverProfile, Interview, CaregiverEmployee, Appointment, InterviewQuestionsFormData, InterviewTransportationFormData, OnboardingSignatures } from '@/lib/types';
+import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import type { CaregiverProfile, Interview, CaregiverEmployee, InterviewQuestionsFormData, OnboardingSignatures } from '@/lib/types';
 import { caregiverEmployeeSchema, requiredDateString, interviewQuestionsSchema, interviewTransportationSchema } from '@/lib/types';
 import { saveInterviewAndSchedule, rejectCandidate, initiateOnboardingForms } from '@/lib/interviews.actions';
 import { getAiInterviewInsights } from '@/lib/ai.actions';
@@ -30,7 +29,6 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormMessage,
 } from '@/components/ui/form';
 import {
   Select,
@@ -42,16 +40,15 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Search, Sparkles, UserCheck, AlertCircle, ExternalLink, Briefcase, Video, GraduationCap, Phone, Star, MessageSquare, CheckCircle, XCircle, UserX, Save, FileText, FileCheck2, FileClock, ClipboardList, CheckSquare, Car } from 'lucide-react';
+import { Loader2, Search, Sparkles, UserCheck, CheckCircle, Save, FileText, FileCheck2, ClipboardList, CheckSquare, Car } from 'lucide-react';
 import { format, isDate, isValid, parse } from 'date-fns';
-import { fromZonedTime } from 'date-fns-tz';
+import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { cn } from '@/lib/utils';
-import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { Alert, AlertDescription } from './ui/alert';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { Dialog, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogContent, DialogDescription } from './ui/dialog';
+import { Dialog, DialogFooter, DialogContent, DialogTitle, DialogHeader } from './ui/dialog';
 import { Label } from './ui/label';
 import { Checkbox } from './ui/checkbox';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DateInput } from './ui/date-input';
 import { ScrollArea } from './ui/scroll-area';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -208,7 +205,6 @@ export default function ManageInterviewsClient() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // Optimization: Fetch only the signatures for the selected caregiver
   const signaturesRef = useMemoFirebase(
     () => (selectedCaregiver && db ? doc(db, `caregiver_profiles/${selectedCaregiver.id}/signatures`, 'onboarding_main') : null),
     [selectedCaregiver, db]
@@ -217,125 +213,48 @@ export default function ManageInterviewsClient() {
   
   const phoneScreenForm = useForm<PhoneScreenFormData>({
     resolver: zodResolver(phoneScreenSchema),
-    defaultValues: {
-      interviewNotes: '',
-      phoneScreenPassed: 'Yes',
-    },
+    defaultValues: { interviewNotes: '', phoneScreenPassed: 'Yes' },
   });
 
   const assessmentForm = useForm<AssessmentFormData>({
       resolver: zodResolver(assessmentSchema),
-      defaultValues: {
-          candidateRating: 'C',
-          finalInterviewNotes: '',
-      },
+      defaultValues: { candidateRating: 'C', finalInterviewNotes: '' },
   });
 
   const interviewQuestionsForm = useForm<InterviewQuestionsFormData>({
       resolver: zodResolver(interviewQuestionsSchema),
-      defaultValues: {
-        q_decideBecomeCaregiver: '',
-        q_rewardingChallenging: '',
-        q_strengthsWeaknesses: '',
-        q_specializedTraining: '',
-        q_careerGoals: '',
-        q_dementiaExperience: '',
-        q_clientUpsetHome: '',
-        q_clientTellingLeave: '',
-        q_clientCombative: '',
-        q_clientHittingScratching: '',
-        q_deceasedSpouse: '',
-        q_difficultSituation: '',
-        q_clientRefusal: '',
-        q_criticismFeedback: '',
-        q_medicalEmergencyNoOffice: '',
-        q_clientNotes: '',
-      }
   });
 
   const skillsForm = useForm<SkillsFormData>({
       resolver: zodResolver(skillsSchema),
-      defaultValues: {
-          hasHospiceExperience: false,
-          canWorkWithBedBound: false,
-          canChangeBrief: false,
-          canTransfer: false,
-          canPrepareMeals: false,
-          canDoBedBath: false,
-          canUseHoyerLift: false,
-          canUseGaitBelt: false,
-          canUsePurwick: false,
-          canEmptyCatheter: false,
-          canEmptyColostomyBag: false,
-          canGiveMedication: false,
-          canTakeBloodPressure: false,
-      }
   });
 
   const transportationForm = useForm<TransportationFormData>({
       resolver: zodResolver(transportationFormSchema),
-      defaultValues: {
-          hasCar: false,
-          validLicense: false,
-          q_hasAutoInsurance: '',
-          q_movingViolations: '',
-          q_misdemeanorCharges: '',
-          q_ieTravelAreas: '',
-          q_preferredNotWorkAreas: '',
-      }
   });
 
   const scheduleEventForm = useForm<ScheduleEventFormData>({
     resolver: zodResolver(scheduleEventSchema),
-    defaultValues: {
-      includeReferenceForm: false,
-    },
+    defaultValues: { includeReferenceForm: false },
   });
   
   const orientationForm = useForm<OrientationFormData>({
     resolver: zodResolver(orientationSchema),
-    defaultValues: {
-      includeReferenceForm: false,
-    }
+    defaultValues: { includeReferenceForm: false }
   });
 
   const hiringForm = useForm<HiringFormData>({
     resolver: zodResolver(caregiverEmployeeSchema),
     defaultValues: {
-      caregiverProfileId: '',
-      interviewId: '',
-      inPersonInterviewDate: '',
       hireDate: format(new Date(), 'MM/dd/yyyy'),
-      hiringComments: '',
       hiringManager: 'Lolita Pinto',
-      teletrackPin: '',
     }
   });
 
-  const handleCancel = useCallback(() => {
-    setSelectedCaregiver(null);
-    setExistingInterview(null);
-    setExistingEmployee(null);
-    setAiInsight(null);
-    phoneScreenForm.reset();
-    assessmentForm.reset();
-    interviewQuestionsForm.reset();
-    skillsForm.reset();
-    transportationForm.reset();
-    scheduleEventForm.reset();
-    orientationForm.reset();
-    hiringForm.reset();
-    setAuthUrl(null);
-    setSearchTerm('');
-    setSearchResults([]);
-    router.replace(pathname);
-  }, [hiringForm, orientationForm, phoneScreenForm, assessmentForm, interviewQuestionsForm, skillsForm, transportationForm, scheduleEventForm, router, pathname]);
-
-  const handleSelectCaregiver = useCallback(async (caregiver: { id: string, fullName: string, email: string, phone: string, uid?: string, hasCar?: string, validLicense?: string }) => {
+  const handleSelectCaregiver = useCallback(async (caregiver: { id: string }) => {
     if (!db) return;
 
     try {
-        // Fetch detailed profile to get all fields
         const profileSnap = await getDoc(doc(db, 'caregiver_profiles', caregiver.id));
         if (!profileSnap.exists()) {
             toast({ title: "Error", description: "Candidate profile not found.", variant: "destructive" });
@@ -344,7 +263,6 @@ export default function ManageInterviewsClient() {
         const fullProfile = { ...profileSnap.data(), id: caregiver.id } as CaregiverProfile;
         setSelectedCaregiver(fullProfile);
 
-        // Fetch Interview for this specific caregiver
         const interviewsCollRef = collection(db, 'interviews');
         const interviewQ = query(interviewsCollRef, where("caregiverProfileId", "==", caregiver.id), limit(1));
         const interviewSnapshot = await getDocs(interviewQ);
@@ -354,7 +272,6 @@ export default function ManageInterviewsClient() {
             const interviewData = { ...interviewDoc.data(), id: interviewDoc.id } as Interview;
             setExistingInterview(interviewData);
 
-            // Fetch employee record if exists
             const employeesCollRef = collection(db, 'caregiver_employees');
             const empDoc = await getDoc(doc(employeesCollRef, caregiver.id));
             if (empDoc.exists()) {
@@ -419,12 +336,8 @@ export default function ManageInterviewsClient() {
                     });
                 }
             }
-
-            if(interviewData.aiGeneratedInsight) {
-                setAiInsight(interviewData.aiGeneratedInsight);
-            }
+            if(interviewData.aiGeneratedInsight) setAiInsight(interviewData.aiGeneratedInsight);
         } else {
-            // No interview record yet, ensure forms are cleared for new entry
             setExistingInterview(null);
             setExistingEmployee(null);
             setAiInsight(null);
@@ -444,9 +357,7 @@ export default function ManageInterviewsClient() {
       const response = await searchCandidatesAction({ namePrefix: term, limit: 20 });
       if (response.results) {
           setSearchResults(response.results);
-          
-          // Auto-select if exactly one unique result is found that matches the term exactly
-          if (response.results.length === 1) {
+          if (response.results.length === 1 && term.includes(' ')) {
               const candidate = response.results[0];
               if (candidate.fullName.toLowerCase() === term.toLowerCase()) {
                   handleSelectCaregiver(candidate);
@@ -456,24 +367,41 @@ export default function ManageInterviewsClient() {
     });
   }, [searchTerm, handleSelectCaregiver]);
 
-  // Handle incoming search param from URL
   useEffect(() => {
-    const searchParam = searchParams.get('search');
-    if (searchParam && !selectedCaregiver) {
-        setSearchTerm(searchParam);
-        handleSearch(searchParam);
+    const candidateId = searchParams.get('candidateId');
+    if (candidateId && !selectedCaregiver) {
+        handleSelectCaregiver({ id: candidateId } as any);
+    } else {
+        const searchParam = searchParams.get('search');
+        if (searchParam && !selectedCaregiver) {
+            setSearchTerm(searchParam);
+            handleSearch(searchParam);
+        }
     }
-  }, [searchParams, selectedCaregiver, handleSearch]);
+  }, [searchParams, selectedCaregiver, handleSearch, handleSelectCaregiver]);
+
+  const handleCancel = useCallback(() => {
+    setSelectedCaregiver(null);
+    setExistingInterview(null);
+    setExistingEmployee(null);
+    setAiInsight(null);
+    phoneScreenForm.reset();
+    assessmentForm.reset();
+    interviewQuestionsForm.reset();
+    skillsForm.reset();
+    transportationForm.reset();
+    scheduleEventForm.reset();
+    orientationForm.reset();
+    hiringForm.reset();
+    setAuthUrl(null);
+    setSearchTerm('');
+    setSearchResults([]);
+    router.replace(pathname);
+  }, [hiringForm, orientationForm, phoneScreenForm, assessmentForm, interviewQuestionsForm, skillsForm, transportationForm, scheduleEventForm, router, pathname]);
 
 
   const interviewPathway = scheduleEventForm.watch('interviewPathway');
-  
-  useEffect(() => {
-    if (interviewPathway === 'combined') {
-      scheduleEventForm.setValue('interviewMethod', 'In-Person');
-    }
-  }, [interviewPathway, scheduleEventForm]);
-
+  useEffect(() => { if (interviewPathway === 'combined') scheduleEventForm.setValue('interviewMethod', 'In-Person'); }, [interviewPathway, scheduleEventForm]);
 
   const isPhoneScreenCompleted = !!existingInterview?.interviewNotes;
   const isFinalInterviewPending = existingInterview?.finalInterviewStatus === 'Pending' || existingInterview?.finalInterviewStatus === 'Pending reference checks';
@@ -490,21 +418,7 @@ export default function ManageInterviewsClient() {
       });
   };
 
-  const getHiringFormVisibility = () => {
-    if (existingEmployee) return false;
-    if (existingInterview?.finalInterviewStatus === 'Rejected at Orientation') return false;
-    if (existingInterview?.orientationScheduled && existingInterview.finalInterviewStatus !== 'Pending reference checks') return true;
-    return false;
-  };
-  const shouldShowHiringForm = getHiringFormVisibility();
-  
-  const getSummaryVisibility = () => {
-    if (existingEmployee) return true;
-    if (existingInterview?.rejectionReason) return true;
-    if (existingInterview?.orientationScheduled) return true;
-    return false;
-  }
-  const shouldShowCompletedSummary = getSummaryVisibility();
+  const shouldShowHiringForm = !existingEmployee && existingInterview?.finalInterviewStatus !== 'Rejected at Orientation' && existingInterview?.orientationScheduled && existingInterview?.finalInterviewStatus !== 'Pending reference checks';
 
   const getOnboardingStatus = () => {
     if (!existingInterview?.onboardingFormsInitiated) return null;
@@ -513,13 +427,11 @@ export default function ManageInterviewsClient() {
         const isCompletedInSignatures = signaturesData ? !!(signaturesData as any)[key] : false;
         return isCompletedInProfile || isCompletedInSignatures;
     }).length;
-
-    if (completedForms === onboardingFormCompletionKeys.length) return { text: "Completed", icon: FileCheck2, color: "text-green-500" };
+    if (completedForms === onboardingFormCompletionKeys.length) return { text: "Completed", icon: CheckCircle, color: "text-green-500" };
     if (completedForms > 0) return { text: `Started (${completedForms}/${onboardingFormCompletionKeys.length})`, icon: FileText, color: "text-yellow-500" };
     return { text: "Initiated", icon: FileText, color: "text-blue-500" };
   };
   const onboardingStatus = getOnboardingStatus();
-
 
   const handleGenerateInsights = () => {
     if (!selectedCaregiver) return;
@@ -529,11 +441,7 @@ export default function ManageInterviewsClient() {
       return;
     }
     startAiTransition(async () => {
-        const result = await getAiInterviewInsights({
-            ...selectedCaregiver,
-            interviewNotes,
-            candidateRating: assessmentForm.getValues('candidateRating'),
-        });
+        const result = await getAiInterviewInsights({ ...selectedCaregiver, interviewNotes, candidateRating: assessmentForm.getValues('candidateRating') });
         if (result.error) toast({ title: "AI Error", description: result.error, variant: "destructive"});
         else setAiInsight(result.aiGeneratedInsight || null);
     });
@@ -543,42 +451,21 @@ export default function ManageInterviewsClient() {
     if (!selectedCaregiver) return;
     if (data.phoneScreenPassed === 'No') {
         startRejectingTransition(async () => {
-            const result = await rejectCandidate({
-                caregiverId: selectedCaregiver.id,
-                interviewId: existingInterview?.id || null,
-                reason: "Failed Phone Screen",
-                notes: data.interviewNotes,
-                caregiverName: selectedCaregiver.fullName,
-                caregiverEmail: selectedCaregiver.email,
-            });
+            const result = await rejectCandidate({ caregiverId: selectedCaregiver.id, interviewId: existingInterview?.id || null, reason: "Failed Phone Screen", notes: data.interviewNotes, caregiverName: selectedCaregiver.fullName, caregiverEmail: selectedCaregiver.email });
             if (!result.error) { toast({ title: 'Success', description: "Candidate marked as 'Failed Phone Screen'." }); handleCancel(); }
         });
     } else {
         startSubmitTransition(async () => {
             if (!db) return;
             let interviewId = existingInterview?.id;
-            const interviewPayload: Partial<Interview> = {
-                caregiverProfileId: selectedCaregiver.id,
-                caregiverUid: selectedCaregiver.uid,
-                interviewType: "Phone",
-                phoneScreenPassed: 'Yes',
-                interviewNotes: data.interviewNotes,
-                candidateRating: assessmentForm.getValues('candidateRating'),
-                aiGeneratedInsight: aiInsight || '',
-                lastUpdatedAt: Timestamp.now(),
-            };
-            if (interviewId) {
-                await updateDoc(doc(db, 'interviews', interviewId), interviewPayload);
-            } else {
-                const ref = await addDoc(collection(db, 'interviews'), { ...interviewPayload, createdAt: Timestamp.now() });
-                interviewId = ref.id;
-            }
+            const interviewPayload: Partial<Interview> = { caregiverProfileId: selectedCaregiver.id, caregiverUid: selectedCaregiver.uid, interviewType: "Phone", phoneScreenPassed: 'Yes', interviewNotes: data.interviewNotes, candidateRating: assessmentForm.getValues('candidateRating'), aiGeneratedInsight: aiInsight || '', lastUpdatedAt: Timestamp.now() };
+            if (interviewId) await updateDoc(doc(db, 'interviews', interviewId), interviewPayload);
+            else { const ref = await addDoc(collection(db, 'interviews'), { ...interviewPayload, createdAt: Timestamp.now() }); interviewId = ref.id; }
             setExistingInterview(prev => ({ ...(prev || { id: interviewId! }), ...interviewPayload } as Interview));
             toast({ title: 'Success', description: "Phone interview results saved." });
         });
     }
   };
-
 
   const onAssessmentSubmit = async (data: AssessmentFormData) => {
     if (!selectedCaregiver || !db || !existingInterview?.id) return;
@@ -626,56 +513,32 @@ export default function ManageInterviewsClient() {
   const onScheduleEventSubmit = async (data: ScheduleEventFormData) => {
     if (!selectedCaregiver || !existingInterview) return;
     startScheduleSubmitTransition(async () => {
-       const result = await saveInterviewAndSchedule({
-         caregiverProfile: { fullName: selectedCaregiver.fullName, email: selectedCaregiver.email },
-         ...data,
-         interviewId: existingInterview.id,
-         aiInsight: aiInsight || existingInterview.aiGeneratedInsight || '',
-         interviewType: data.interviewMethod,
-         interviewNotes: phoneScreenForm.getValues('interviewNotes'),
-         candidateRating: assessmentForm.getValues('candidateRating'),
-         pathway: data.interviewPathway,
-         googleEventId: existingInterview.googleEventId,
-         previousPathway: existingInterview.interviewPathway,
-       });
+       const result = await saveInterviewAndSchedule({ caregiverProfile: { fullName: selectedCaregiver.fullName, email: selectedCaregiver.email }, ...data, interviewId: existingInterview.id, aiInsight: aiInsight || existingInterview.aiGeneratedInsight || '', interviewType: data.interviewMethod, interviewNotes: phoneScreenForm.getValues('interviewNotes'), candidateRating: assessmentForm.getValues('candidateRating'), pathway: data.interviewPathway, googleEventId: existingInterview.googleEventId, previousPathway: existingInterview.interviewPathway });
        if (result.authUrl) setAuthUrl(result.authUrl);
        toast({ title: result.error ? 'Error' : 'Success', description: result.message, variant: result.error ? 'destructive' : 'default' });
        if (!result.error) handleCancel();
     });
   }
 
-    const handleUpdateFinalInterviewStatus = async (status: 'Passed' | 'Failed') => {
-        if (!existingInterview || !db) return;
-        startSubmitTransition(async () => {
-            const updateData = { finalInterviewStatus: status, finalInterviewNotes: assessmentForm.getValues('finalInterviewNotes') || '' };
-            await updateDoc(doc(db, 'interviews', existingInterview.id), updateData);
-            setExistingInterview(prev => prev ? { ...prev, ...updateData } : null);
-            toast({ title: "Status Updated", description: `Final interview marked as ${status}.` });
-            if(status === 'Failed') handleCancel();
-        });
-    };
+  const handleUpdateFinalInterviewStatus = async (status: 'Passed' | 'Failed') => {
+      if (!existingInterview || !db) return;
+      startSubmitTransition(async () => {
+          const updateData = { finalInterviewStatus: status, finalInterviewNotes: assessmentForm.getValues('finalInterviewNotes') || '' };
+          await updateDoc(doc(db, 'interviews', existingInterview.id), updateData);
+          setExistingInterview(prev => prev ? { ...prev, ...updateData } : null);
+          toast({ title: "Status Updated", description: `Final interview marked as ${status}.` });
+          if(status === 'Failed') handleCancel();
+      });
+  };
     
-    const onOrientationSubmit = (data: OrientationFormData) => {
-        if (!selectedCaregiver || !existingInterview) return;
-        startOrientationSubmitTransition(async () => {
-            const result = await saveInterviewAndSchedule({
-                caregiverProfile: { fullName: selectedCaregiver.fullName, email: selectedCaregiver.email },
-                eventDate: data.orientationDate,
-                eventTime: data.orientationTime,
-                interviewId: existingInterview.id,
-                aiInsight: aiInsight || '',
-                interviewType: 'Orientation',
-                interviewNotes: existingInterview.interviewNotes || '',
-                candidateRating: assessmentForm.getValues('candidateRating'),
-                pathway: 'separate',
-                googleEventId: existingInterview.googleEventId,
-                previousPathway: existingInterview.interviewPathway,
-                includeReferenceForm: data.includeReferenceForm,
-            });
-             if (result.authUrl) setAuthUrl(result.authUrl);
-             toast({ title: result.error ? 'Error' : 'Success', description: result.message, variant: result.error ? 'destructive' : 'default' });
-        });
-    }
+  const onOrientationSubmit = (data: OrientationFormData) => {
+      if (!selectedCaregiver || !existingInterview) return;
+      startOrientationSubmitTransition(async () => {
+          const result = await saveInterviewAndSchedule({ caregiverProfile: { fullName: selectedCaregiver.fullName, email: selectedCaregiver.email }, eventDate: data.orientationDate, eventTime: data.orientationTime, interviewId: existingInterview.id, aiInsight: aiInsight || '', interviewType: 'Orientation', interviewNotes: existingInterview.interviewNotes || '', candidateRating: assessmentForm.getValues('candidateRating'), pathway: 'separate', googleEventId: existingInterview.googleEventId, previousPathway: existingInterview.interviewPathway, includeReferenceForm: data.includeReferenceForm });
+          if (result.authUrl) setAuthUrl(result.authUrl);
+          toast({ title: result.error ? 'Error' : 'Success', description: result.message, variant: result.error ? 'destructive' : 'default' });
+      });
+  }
 
   const onHiringSubmit = (data: HiringFormData) => {
     if (!selectedCaregiver || !existingInterview || !db) return;
@@ -691,13 +554,7 @@ export default function ManageInterviewsClient() {
   const handleRejection = (reason: string, notes: string) => {
     if (!selectedCaregiver) return;
     startRejectingTransition(async () => {
-        const result = await rejectCandidate({
-            caregiverId: selectedCaregiver.id,
-            interviewId: existingInterview?.id || null,
-            reason, notes,
-            caregiverName: selectedCaregiver.fullName,
-            caregiverEmail: selectedCaregiver.email,
-        });
+        const result = await rejectCandidate({ caregiverId: selectedCaregiver.id, interviewId: existingInterview?.id || null, reason, notes, caregiverName: selectedCaregiver.fullName, caregiverEmail: selectedCaregiver.email });
         if (!result.error) { toast({ title: 'Success', description: result.message }); handleCancel(); }
     });
   };
@@ -718,10 +575,10 @@ export default function ManageInterviewsClient() {
         {!selectedCaregiver && (
             <div className="space-y-4">
                 <div className="flex gap-2">
-                    <Input placeholder="Enter name or phone number..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSearch()} />
+                    <Input placeholder="Enter name or email..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSearch()} />
                     <Button onClick={() => handleSearch()} disabled={isSearching || !searchTerm.trim()}>{isSearching ? <Loader2 className="animate-spin" /> : <Search />}<span className="ml-2">Search</span></Button>
                 </div>
-                {searchResults.length > 0 && (
+                {searchResults.length > 0 ? (
                     <ul className="border rounded-md divide-y">
                         {searchResults.map((caregiver) => (
                             <li key={caregiver.id} className="p-3 hover:bg-muted cursor-pointer flex justify-between items-center" onClick={() => handleSelectCaregiver(caregiver as any)}>
@@ -733,6 +590,10 @@ export default function ManageInterviewsClient() {
                             </li>
                         ))}
                     </ul>
+                ) : !isSearching && searchTerm.trim() !== '' && (
+                    <div className="p-8 text-center text-muted-foreground border rounded-md border-dashed">
+                        No candidates found. Try a different name or full email address.
+                    </div>
                 )}
             </div>
         )}

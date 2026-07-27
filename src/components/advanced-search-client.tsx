@@ -226,7 +226,7 @@ export default function AdvancedSearchClient() {
                                         </Button>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <Button size="sm" variant="outline" onClick={() => router.push(`/admin/manage-interviews?search=${encodeURIComponent(candidate.fullName)}`)}>
+                                        <Button size="sm" variant="outline" onClick={() => router.push(`/admin/manage-interviews?candidateId=${candidate.id}`)}>
                                             Manage Interview
                                         </Button>
                                     </TableCell>
