@@ -75,6 +75,8 @@ export const initialContactSchema = z.object({
   referredBy: z.string().trim().optional(),
   referralCode: z.string().trim().optional(),
   promptedCall: z.string().trim().min(1, "This field is required."),
+  referredBy_internal: z.string().trim().optional(),
+  referralCode_internal: z.string().trim().optional(),
   estimatedHours: z.string().trim().optional(),
   estimatedStartDate: dateString,
   inHomeVisitSet: z.enum(["Yes", "No"]).optional(),
@@ -586,6 +588,12 @@ export const caregiverFormSchema = generalInfoSchema
     lightHousekeepingAcknowledged: z.boolean().optional(),
     source: z.string().optional(),
     overnightStayAvailability: z.enum(["yes", "no"]).optional(),
+    hiringStatus: z.string().optional(),
+    docsStatus: z.enum(['not-notified', 'notified', 'started', 'awaiting-admin', 'admin-signoff']).optional(),
+    nextStepText: z.string().optional(),
+    nextStepTime: z.any().optional(),
+    fullNameLowercase: z.string().optional(),
+    newHireChecklistComplete: z.boolean().optional(),
   });
 
 

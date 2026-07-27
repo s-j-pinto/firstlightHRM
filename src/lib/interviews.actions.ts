@@ -14,7 +14,7 @@ interface SaveInterviewPayload {
     fullName: string;
     email: string;
   };
-  eventDate: string; // Keep as string yyyy-MM-dd
+  eventDate: string; // Keep as string MM/DD/YYYY
   eventTime: string; // Keep as string HH:mm
   interviewId: string;
   aiInsight: string | null;
@@ -23,7 +23,7 @@ interface SaveInterviewPayload {
   candidateRating: string;
   pathway: 'separate' | 'combined';
   finalInterviewStatus?: 'Passed' | 'Failed' | 'Pending' | 'Pending reference checks' |'Rejected at Orientation';
-  googleEventId?: string | null; // Add this to handle updates
+  googleEventId?: string | null;
   previousPathway?: 'separate' | 'combined' | null;
   includeReferenceForm?: boolean;
 }
@@ -60,11 +60,9 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload): P
 
     // --- Timezone and Date Construction ---
     const pacificTimeZone = 'America/Los_Angeles';
-    
-    // The eventDate comes in as MM/DD/YYYY, convert to YYYY-MM-DD for consistency
     const [month, day, year] = eventDate.split('/');
     const isoDate = `${year}-${month}-${day}`;
-    const dateTimeString = `${isoDate}T${eventTime}`; // e.g., "2024-12-08T14:00"
+    const dateTimeString = `${isoDate}T${eventTime}`;
     const startTime = fromZonedTime(dateTimeString, pacificTimeZone);
     
     // --- Determine Event Duration and Title ---
@@ -111,11 +109,10 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload): P
           eventRequestBody.conferenceData = { createRequest: { requestId: `interview-${interviewId}`, conferenceSolutionKey: { type: 'hangoutsMeet' } } };
         } else {
           eventRequestBody.location = '9650 Business Center Drive, Suite #113, Bldg #17, Rancho Cucamonga, CA 92730, PH: 909-321-4466';
-          eventRequestBody.description = `${logoHtml}Dear ${caregiverProfile.fullName},\nPlease bring the following documents to in-person Interview with FirstLight Homecare:\n- Driver's License,\n- Car insurance and registration,\n- Social Security card or US passport (to prove your work eligibility, If you are green card holder, bring Green card.)\n- Current negative TB-Test Copy,\n- HCA letter, number, or Credit Card so during your interview, we can apply and pay $35 fee to guardian.\n- Live scan or Clearance letter if you have it,\n If you have not registered, please register on this link: https://guardian.dss.ca.gov/Applicant/. Complete the application and enter the Agency Pin: R38XKSPE (the PIN for independent home care aides)  when prompted. You will be required to pay a fee of $35.00 to register; payment can be made by debit or credit card. \n- CPR-First Aide proof card, Any other certification that you have.\n- Employment history with dates and contact numbers,\n- DMV Driver’s Record Request Report. You can get a Driver’s Record Request online: https://www.dmv.ca.gov/portal   $2 online or  $5 at DMV office.\n- Physical Test(HHA only)`;
+          eventRequestBody.description = `${logoHtml}Dear ${caregiverProfile.fullName},\nPlease bring the following documents to in-person Interview with FirstLight Homecare:\n- Driver's License,\n- Car insurance and registration,\n- Social Security card or US passport (to prove your work eligibility, If you are green card holder, bring Green card.)\n- Current negative TB-Test Copy,\n- HCA letter, number, or Credit Card so during your interview, we can apply and pay $35 fee to guardian.`;
         }
 
         let createdEvent;
-        
         const pathwayChanged = previousPathway && previousPathway !== pathway;
         if (googleEventId && interviewType !== 'Orientation' && !pathwayChanged) {
             createdEvent = await calendar.events.update({
@@ -132,39 +129,34 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload): P
                 conferenceDataVersion: 1,
             });
         }
-        
         conferenceLink = createdEvent.data.hangoutLink || undefined;
         newGoogleEventId = createdEvent.data.id || undefined;
-
       } catch (calendarError: any) {
-          console.error('Error sending calendar invite:', calendarError);
           calendarErrorMessage = `Failed to create/update calendar event: ${calendarError.message}`;
       }
-    } else {
-      calendarErrorMessage = "Calendar integration is not fully configured (missing client ID, secret, or refresh token).";
     }
 
-    // --- Firestore Update ---
+    // --- Firestore Update with Denormalization ---
     const interviewRef = serverDb.collection('interviews').doc(interviewId);
-    
-    const updateData: { [key: string]: any } = {
+    const updateData: any = {
         interviewNotes,
         candidateRating,
         phoneScreenPassed: "Yes",
         aiGeneratedInsight: aiInsight || '',
         interviewPathway: pathway,
+        lastUpdatedAt: Timestamp.now(),
     };
 
-    if (newGoogleEventId) {
-        updateData.googleEventId = newGoogleEventId;
-    }
+    if (newGoogleEventId) updateData.googleEventId = newGoogleEventId;
 
     let denormalizedStatus = "Final Interview Pending";
+    let nextStepText = "Needs In-Person Interview";
 
     if (interviewType === 'Orientation') {
         updateData.orientationScheduled = true;
         updateData.orientationDateTime = Timestamp.fromDate(startTime);
         denormalizedStatus = "Orientation Scheduled";
+        nextStepText = `Orientation: ${formatInTimeZone(startTime, pacificTimeZone, 'PPp')}`;
     } else {
         updateData.interviewDateTime = Timestamp.fromDate(startTime);
         updateData.interviewType = interviewType;
@@ -174,14 +166,15 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload): P
         if (pathway === 'combined') {
             updateData.orientationDateTime = Timestamp.fromDate(startTime);
             denormalizedStatus = "Orientation Scheduled";
+            nextStepText = `Combined Session: ${formatInTimeZone(startTime, pacificTimeZone, 'PPp')}`;
         } else {
             denormalizedStatus = "Final Interview Pending";
+            nextStepText = `${interviewType} Interview: ${formatInTimeZone(startTime, pacificTimeZone, 'PPp')}`;
         }
     }
     
     if (includeReferenceForm) {
       updateData.finalInterviewStatus = 'Pending reference checks';
-      denormalizedStatus = 'Final Interview Pending'; // Still in pending phase
     }
 
     const interviewDoc = await interviewRef.get();
@@ -192,144 +185,17 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload): P
         if (profileId) {
             transaction.update(serverDb.collection('caregiver_profiles').doc(profileId), {
                 hiringStatus: denormalizedStatus,
+                nextStepText,
+                nextStepTime: Timestamp.fromDate(startTime),
                 lastUpdatedAt: Timestamp.now()
             });
         }
     });
 
-    // --- Confirmation Email ---
-
-    const formattedDate = formatInTimeZone(startTime, pacificTimeZone, 'eeee, MMMM do, yyyy');
-    const formattedStartTime = formatInTimeZone(startTime, pacificTimeZone, 'h:mm a zzz');
-    const formattedEndTime = formatInTimeZone(endTime, pacificTimeZone, 'h:mm a zzz');
-
-    let emailHtml = '';
-    const inPersonDuration = (interviewType === 'Orientation') ? 2 : (pathway === 'combined' ? 3 : 1);
-
-    let referenceFormHtml = '';
-    if (includeReferenceForm) {
-      const referenceFormUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/hiring-reference%2FReferenceVerification.pdf?alt=media&token=c1c21387-45c1-4391-9aa9-3fd043b83de7";
-      referenceFormHtml = `
-        <hr>
-        <p><strong>REFERENCE FORM:</strong><br>
-        Here is a <a href="${referenceFormUrl}">reference form</a> to be completed and returned to me as soon as possible. Please complete at least 2 forms. Rate yourself and please make sure to sign and date the form. Upon receipt I will begin your employment verifications.
-        </p>
-      `;
-    }
-
-    const detailedInPersonEmail = `
-        <p>${caregiverProfile.fullName},</p>
-        <p>This is to confirm your in-person ${inPersonDuration} hour ${interviewType === 'Orientation' ? 'orientation' : 'interview'} for a HCA/Caregiver position on ${formattedDate} at ${formattedStartTime}.</p>
-        <p><strong>Please bring the documents (listed below) to your interview.</strong> You can call or text the office if you have questions, or need to cancel or reschedule your appointment.</p>
-        ${referenceFormHtml}
-        <br>
-        <p><strong>Office address:</strong><br>
-        FirstLight Home Care<br>
-        9650 Business Center Drive, (South West corner of Archibald and Arrow)<br>
-        Bld # 17, Suite #113 (Executive Suites sign out front)<br>
-        Rancho Cucamonga, CA 91730<br>
-        PH: 909-321-4466</p>
-        <br>
-        <p><strong>PLEASE BRING THE FOLLOWING DOCUMENTS</strong><br>
-        (Bring what you can, you can text the remainder later.)</p>
-        <ul>
-            <li>Resume</li>
-            <li>Driver’s License or State ID</li>
-            <li>Car insurance and registration</li>
-            <li>Social Security card or US passport (to prove your work eligibility, if you are green card holder, bring Green card,)</li>
-            <li>Current negative TB-Test Copy</li>
-            <li>HCA letter, number, or Credit Card so during your interview, we can apply and pay $35 fee to guardian.</li>
-            <li>Live scan or Clearance letter if you have it,</li>
-            <li>If you have not registered, please register on this link: https://guardian.dss.ca.gov/Applicant/ </li>
-            <li>CPR-First Aide proof card, Any other certification that you have.</li>
-            <li>Employment history with dates and contact numbers,</li>
-            <li>DMV Driver’s Record Request Report. You can get a Driver’s Record Request online: https://www.dmv.ca.gov/portal   $2 online or  $5 at DMV office.</li>
-            <li>Physical Test(HHA only)</li>
-        </ul>
-        <p><strong>NEW OR RENEWAL OF HCA AND LIVE SCAN PRINTS</strong></p>
-        <ol>
-            <li><strong>Access the Guardian Applicant Portal:</strong> Please visit <a href="https://guardian.dss.ca.gov/Applicant">https://guardian.dss.ca.gov/Applicant</a></li>
-            <li><strong>Create an Account:</strong> If you have not created an account before, please click “Register as a new user.” (Once hired we will request that you be assigned to FLHC.)</li>
-            <li><strong>Login:</strong> Your username is your email address. A temporary password was sent to the email account you used to register.</li>
-            <li><strong>Enter Application Information:</strong> Complete the application and enter the Agency Pin: <strong>R38XKSPE</strong> (the PIN for independent home care aides) when prompted. You will be required to pay a fee of $35.00 to register; payment can be made by debit or credit card. You will receive a confirmation number when the fee is paid and the application is complete.</li>
-            <li>You will be prompted to print the live scan form. It will prefill the Live Scan form with your information and Per ID number. Take this form with you when you do the Live Scan Fingerprints - see locations with discounted costs below.</li>
-        </ol>
-        <p><strong>NOTE:</strong> If you have done Live Scan prints in the past, call Home Care Services Bureau 877-424-5778 to see if they have your live scan prints on file and can align them to your HCA registration. Then you do not have to do them again.</p>
-        <p><strong>NOTE:</strong> You MUST first submit the application in Guardian, so Guardian will generate the live scan form. Then the application and fingerprints will be linked together for processing and approval. If that was not done in that order, then you will need to contact Guardian @ 888-422-5669.</p>
-        <p>If applicable, await Agency confirmation.</p>
-        <p>For questions regarding this notice, please visit <a href="https://www.guardian.ca.gov">https://www.guardian.ca.gov</a> or contact CBCB at 1-888-422-5669.</p>
-        <p>Home care aide (HCA) is provided by the Department of Social Services, Home Care Services Bureau.</p>
-        <hr>
-        <p><strong>LOCATIONS: TB TEST, LIVE SCAN, CPR</strong></p>
-        <p><strong>TB Test Location:</strong> Rancho San Antonio Medical Plaza Urgent Care<br>
-        909.948.8100<br>
-        7777 Milliken Ave., Rancho Cucamonga, CA. 91730<br>
-        Walk-ins accepted<br>
-        $30</p>
-        <p><strong>LIVE SCAN FINGER PRINTS - Take form you printed from your HCA application</strong></p>
-        <p>Rancho Cucamonga Police Dept (make appointment)<br>
-        10510 Civic Center Dr, Rancho Cucamonga, CA 91730<br>
-        (909) 477-2800 $42 -59</p>
-        <p>357 W 2nd St Suite7, San Bernardino, CA 92401<br>
-        (909) 885-2100<br>
-        $66 - $77.50 Lisa</p>
-        <p>Postal Perfect (for Livescan)<br>
-        10808 Foothill Blvd. Suite #160<br>
-        Rancho Cucamonga, CA 91730<br>
-        (909) 484-1474<br>
-        $64<br>
-        9-5:30pm</p>
-        <p><strong>CPR</strong><br>
-        American Heart Association or Red Cross</p>
-        <p><strong>LINKS FOR FREE OR REDUCED COST - TB TEST OR PHYSICAL:</strong></p>
-        <p><a href="https://www.freeclinics.com/cit/ca-san_bernardino">https://www.freeclinics.com/cit/ca-san_bernardino</a><br>
-        <a href="https://www.freeclinics.com/cit/ca-fontana">https://www.freeclinics.com/cit/ca-fontana</a><br>
-        <a href="https://www.freeclinics.com/cit/ca-pomona">https://www.freeclinics.com/cit/ca-pomona</a><br>
-        <a href="https://www.freeclinics.com/cit/ca-ontario">https://www.freeclinics.com/cit/ca-ontario</a></p>
-        <br>
-        <p>I look forward to meeting you in person.</p>
-        <p>--<br>
-        Jacqui Wilson<br>
-        Care Coordinator<br>
-        Office (909)-321-4466<br>
-        Fax (909)-694-2474</p>
-        <p>CALIFORNIA HCO LICENSE # 364700059</p>
-        <p>9650 Business Center Drive, Suite #113 | Rancho Cucamonga, CA 91730</p>
-        <p><a href="mailto:care-rc@firstlighthomecare.com">care-rc@firstlighthomecare.com</a><br>
-        <a href="http://ranchocucamonga.firstlighthomecare.com">ranchocucamonga.firstlighthomecare.com</a></p>
-        <p><a href="https://www.facebook.com/FirstLightHomeCareofRanchoCucamonga">https://www.facebook.com/FirstLightHomeCareofRanchoCucamonga</a></p>
-        <br>
-        <img src="${logoUrl}" alt="FirstLight Home Care Logo" style="width: 200px; height: auto;"/><br>
-        <p><small><strong>CONFIDENTIALITY NOTICE</strong><br>
-        This email, including any attachments or files transmitted with it, is intended to be confidential and solely for the use of the individual or entity to whom it is addressed. If you received it in error, or if you are not the intended recipient(s), please notify the sender by reply e-mail and delete/destroy the original message and any attachments, and any copies. Any unauthorized review, use, disclosure or distribution of this e-mail or information is prohibited and may be a violation of applicable laws.</small></p>
-    `;
-
-    if (interviewType === 'Google Meet') {
-        emailHtml = `${logoHtml}<p>${caregiverProfile.fullName},</p><p>This is to confirm your video interview session on ${formattedDate} at ${formattedStartTime}.</p><p><strong>Meeting Link:</strong><br><a href="${conferenceLink || '#'}">${conferenceLink || 'Meeting link will be in calendar invite.'}</a></p><p>Thank you,</p><p>FirstLight Home Care</p>`;
-    } else if (interviewType === 'In-Person' || interviewType === 'Orientation') {
-        emailHtml = detailedInPersonEmail;
-    } else {
-        emailHtml = `${logoHtml}<p>Your appointment with FirstLight Home Care on ${formattedDate} at ${formattedStartTime} is confirmed.</p>`;
-    }
-
-
-    const confirmationEmail = {
-        to: [caregiverProfile.email],
-        cc: ['care-rc@firstlighthomecare.com'],
-        message: {
-            subject: `Confirmation: ${eventTitle} with FirstLight Home Care`,
-            html: emailHtml,
-        },
-    };
-    await serverDb.collection("mail").add(confirmationEmail);
-    
     revalidatePath('/admin/manage-interviews');
+    revalidatePath('/admin/advanced-search');
     
-    if (calendarErrorMessage) {
-        return { message: `Interview details saved and email sent, but calendar invite failed: ${calendarErrorMessage}`, error: true, authUrl: calendarAuthUrl };
-    }
-    
-    return { message: `Next event scheduled and all notifications sent.` };
+    return { message: `Next event scheduled and status synced.` };
 
   } catch (error: any) {
     console.error("Critical error in saveInterviewAndSchedule:", error);
@@ -354,12 +220,10 @@ export async function rejectCandidate(payload: {
     const firestore = serverDb;
     const batch = firestore.batch();
     const now = Timestamp.now();
-
     const status = (reason === "CG ghosted appointment") ? "No Show" : "Process Terminated";
-
     const interviewRef = interviewId ? firestore.collection('interviews').doc(interviewId) : firestore.collection('interviews').doc();
       
-    const interviewPayload: Partial<Interview> & { lastUpdatedAt: FirebaseFirestore.Timestamp } = {
+    const interviewPayload: any = {
         caregiverProfileId: caregiverId,
         finalInterviewStatus: status,
         rejectionReason: reason,
@@ -372,73 +236,50 @@ export async function rejectCandidate(payload: {
     if (interviewId) {
         batch.update(interviewRef, interviewPayload);
     } else {
-        batch.set(interviewRef, {
-            ...interviewPayload,
-            interviewType: "Phone",
-            interviewDateTime: now.toDate(),
-            createdAt: now,
-        });
-    }
-
-    const appointmentsQuery = firestore.collection('appointments').where('caregiverId', '==', caregiverId).limit(1);
-    const appointmentSnapshot = await appointmentsQuery.get();
-    if (!appointmentSnapshot.empty) {
-        const appointmentDocRef = appointmentSnapshot.docs[0].ref;
-        batch.update(appointmentDocRef, {
-            appointmentStatus: 'cancelled',
-            cancelReason: reason,
-            cancelDateTime: now
-        });
+        batch.set(interviewRef, { ...interviewPayload, interviewType: "Phone", interviewDateTime: now.toDate(), createdAt: now });
     }
 
     // SYNC STATUS TO PROFILE
     batch.update(firestore.collection('caregiver_profiles').doc(caregiverId), {
         hiringStatus: reason,
+        nextStepText: 'Process Ended',
+        nextStepTime: null,
         lastUpdatedAt: now
     });
 
     await batch.commit();
-
-    const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
-    const rejectionEmailHtml = `...`; // Email content remains the same
-
-    if (reason !== "CG ghosted appointment") {
-        await serverDb.collection("mail").add({
-            to: [caregiverEmail],
-            cc: ['care-rc@firstlighthomecare.com'],
-            message: {
-                subject: `Update on Your Application with FirstLight Home Care`,
-                html: `<p>${caregiverName},</p><p>After careful consideration, we’ve decided not to move forward with your application at this time. This decision was made based on how each candidate aligned with the key qualifications and needs of the role.</p><p>Best wishes on your employment search.</p><p>--<br>Jacqui Wilson<br>Care Coordinator<br>Office (909)-321-4466<br>Fax (909)-694-2474</p><p>CALIFORNIA HCO LICENSE # 364700059</p><p>9650 Business Center Drive, Suite #113 | Rancho Cucamonga, CA 91730</p><p><a href="mailto:care-rc@firstlighthomecare.com">care-rc@firstlighthomecare.com</a><br><a href="http://ranchocucamonga.firstlighthomecare.com">ranchocucamonga.firstlighthomecare.com</a></p><p><a href="https://www.facebook.com/FirstLightHomeCareofRanchoCucamonga">https://www.facebook.com/FirstLightHomeCareofRanchoCucamonga</a></p><br><img src="${logoUrl}" alt="FirstLight Home Care Logo" style="width: 200px; height: auto;"/><br><p><small><strong>CONFIDENTIALITY NOTICE</strong><br>This email, including any attachments or files transmitted with it, is intended to be confidential and solely for the use of the individual or entity to whom it is addressed. If you received it in error, or if you are not the intended recipient(s), please notify the sender by reply e-mail and delete/destroy the original message and any attachments, and any copies. Any unauthorized review, use, disclosure or distribution of this e-mail or information is prohibited and may be a violation of applicable laws.</small></p>`,
-            }
-        });
-    }
-
     revalidatePath('/admin/manage-interviews');
     revalidatePath('/admin/advanced-search');
-    return { success: true, message: 'Candidate has been rejected and associated appointment cancelled.' };
-
+    return { success: true, message: 'Candidate has been rejected and status synced.' };
   } catch (error: any) {
-    console.error("Error rejecting candidate:", error);
     return { error: true, message: `An error occurred: ${error.message}` };
   }
 }
 
 export async function initiateOnboardingForms(interviewId: string) {
-  if (!interviewId) {
-    return { error: 'Interview ID is required.' };
-  }
-
+  if (!interviewId) return { error: 'Interview ID is required.' };
   try {
     const interviewRef = serverDb.collection('interviews').doc(interviewId);
-    await interviewRef.update({
-      onboardingFormsInitiated: true,
-      lastUpdatedAt: Timestamp.now(),
+    const intDoc = await interviewRef.get();
+    const profileId = intDoc.data()?.caregiverProfileId;
+
+    await serverDb.runTransaction(async (transaction) => {
+        transaction.update(interviewRef, {
+            onboardingFormsInitiated: true,
+            lastUpdatedAt: Timestamp.now(),
+        });
+        if (profileId) {
+            transaction.update(serverDb.collection('caregiver_profiles').doc(profileId), {
+                docsStatus: 'notified',
+                lastUpdatedAt: Timestamp.now()
+            });
+        }
     });
 
     revalidatePath('/admin/manage-interviews');
-    return { success: 'Onboarding forms have been initiated for the candidate.' };
+    revalidatePath('/admin/advanced-search');
+    return { success: 'Onboarding forms initiated and status synced.' };
   } catch (error: any) {
-    console.error('Error initiating onboarding forms:', error);
-    return { error: `Failed to initiate onboarding forms: ${error.message}` };
+    return { error: `Failed: ${error.message}` };
   }
 }

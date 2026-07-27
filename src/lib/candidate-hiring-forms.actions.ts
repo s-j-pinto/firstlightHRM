@@ -16,15 +16,11 @@ import {
     referenceVerification2Schema, 
     arbitrationAgreementSchema, 
     drugAlcoholPolicySchema,
-    drugAlcoholPolicyAdminSchema,
     hcaJobDescriptionSchema, 
     clientAbandonmentSchema,
-    clientAbandonmentAdminSchema,
     employeeOrientationAgreementSchema,
-    employeeOrientationAgreementAdminSchema,
     acknowledgmentFormSchema, 
     confidentialityAgreementSchema,
-    confidentialityAgreementAdminSchema,
     trainingAcknowledgementSchema, 
     offerLetterSchema,
     caregiverResponsibilitiesSchema,
@@ -55,12 +51,10 @@ import {
     generateMasterInterview360Pdf,
     generateNewHireChecklistPdf
 } from './pdf.actions';
-import type { CaregiverProfile } from './types';
 import JSZip from 'jszip';
 
 const pacificTimeZone = 'America/Los_Angeles';
 
-// Helper to convert MM/DD/YYYY date strings to Firestore Timestamps
 function convertDatesToTimestamps(data: any): any {
     const dataWithTimestamps: { [key: string]: any } = {};
     const skipKeys = ['employmentDates1', 'employmentDates2']; 
@@ -82,7 +76,6 @@ function convertDatesToTimestamps(data: any): any {
     return dataWithTimestamps;
 }
 
-// Optimization: Separate signature fields (heavy base64) from textual data
 function extractSignatures(data: any): { textual: any, signatures: any, presence: any } {
     const signatureFields = [
         'hcs501EmployeeSignature',
@@ -114,10 +107,7 @@ function extractSignatures(data: any): { textual: any, signatures: any, presence
     for (const key in data) {
         if (signatureFields.includes(key)) {
             signatures[key] = data[key];
-            // Set a flag on the main profile so search tables know it's signed without loading base64
-            if (data[key]) {
-                presence[key] = true;
-            }
+            if (data[key]) presence[key] = true;
         } else {
             textual[key] = data[key];
         }
@@ -128,21 +118,15 @@ function extractSignatures(data: any): { textual: any, signatures: any, presence
 async function saveThinData(profileId: string, data: any) {
     const { textual, signatures, presence } = extractSignatures(data);
     const dataToSave = convertDatesToTimestamps(textual);
-    
     const batch = serverDb.batch();
     const profileRef = serverDb.collection('caregiver_profiles').doc(profileId);
     const signaturesRef = profileRef.collection('signatures').doc('onboarding_main');
 
-    // Combine textual data and the boolean signature flags for the main profile document
-    const finalProfileData = { ...dataToSave, ...presence };
+    // SYNC docsStatus on save
+    const finalProfileData = { ...dataToSave, ...presence, docsStatus: 'started', lastUpdatedAt: Timestamp.now() };
 
-    if (Object.keys(finalProfileData).length > 0) {
-        batch.set(profileRef, finalProfileData, { merge: true });
-    }
-    if (Object.keys(signatures).length > 0) {
-        batch.set(signaturesRef, signatures, { merge: true });
-    }
-
+    batch.set(profileRef, finalProfileData, { merge: true });
+    batch.set(signaturesRef, signatures, { merge: true });
     await batch.commit();
 }
 
@@ -153,8 +137,8 @@ export async function saveHcs501Data(profileId: string, data: any) {
   try {
     await saveThinData(profileId, validatedFields.data);
     revalidatePath('/candidate-hiring-forms');
-    return { success: true, message: 'HCS 501 form saved successfully.' };
-  } catch (error: any) { return { error: 'Failed to save form data.' }; }
+    return { success: true };
+  } catch (error: any) { return { error: 'Failed' }; }
 }
 
 export async function saveEmergencyContactData(profileId: string, data: any) {
@@ -163,8 +147,8 @@ export async function saveEmergencyContactData(profileId: string, data: any) {
   try {
     await saveThinData(profileId, validatedFields.data);
     revalidatePath('/candidate-hiring-forms');
-    return { success: true, message: 'Emergency Contacts have been saved.' };
-  } catch (error: any) { return { error: 'Failed to save form data.' }; }
+    return { success: true };
+  } catch (error: any) { return { error: 'Failed' }; }
 }
 
 export async function saveLic508Data(profileId: string, data: any) {
@@ -173,8 +157,8 @@ export async function saveLic508Data(profileId: string, data: any) {
   try {
     await saveThinData(profileId, validatedFields.data);
     revalidatePath('/candidate-hiring-forms');
-    return { success: true, message: 'LIC 508 form saved successfully.' };
-  } catch (error: any) { return { error: 'Failed to save form data.' }; }
+    return { success: true };
+  } catch (error: any) { return { error: 'Failed' }; }
 }
 
 export async function saveSoc341aData(profileId: string, data: any) {
@@ -183,8 +167,8 @@ export async function saveSoc341aData(profileId: string, data: any) {
   try {
     await saveThinData(profileId, validatedFields.data);
     revalidatePath('/candidate-hiring-forms');
-    return { success: true, message: 'SOC 341A form saved successfully.' };
-  } catch (error: any) { return { error: 'Failed to save form data.' }; }
+    return { success: true };
+  } catch (error: any) { return { error: 'Failed' }; }
 }
 
 export async function saveReferenceVerification1Data(profileId: string, data: any) {
@@ -193,8 +177,8 @@ export async function saveReferenceVerification1Data(profileId: string, data: an
   try {
     await saveThinData(profileId, validatedFields.data);
     revalidatePath('/candidate-hiring-forms');
-    return { success: true, message: 'Reference Verification 1 form saved successfully.' };
-  } catch (error: any) { return { error: 'Failed to save form data.' }; }
+    return { success: true };
+  } catch (error: any) { return { error: 'Failed' }; }
 }
 
 export async function saveReferenceVerification2Data(profileId: string, data: any) {
@@ -203,8 +187,8 @@ export async function saveReferenceVerification2Data(profileId: string, data: an
   try {
     await saveThinData(profileId, validatedFields.data);
     revalidatePath('/candidate-hiring-forms');
-    return { success: true, message: 'Reference Verification 2 form saved successfully.' };
-  } catch (error: any) { return { error: 'Failed to save form data.' }; }
+    return { success: true };
+  } catch (error: any) { return { error: 'Failed' }; }
 }
 
 export async function saveArbitrationAgreementData(profileId: string, data: any) {
@@ -213,8 +197,8 @@ export async function saveArbitrationAgreementData(profileId: string, data: any)
   try {
     await saveThinData(profileId, validatedFields.data);
     revalidatePath('/candidate-hiring-forms');
-    return { success: true, message: 'Mutual Arbitration Agreement saved successfully.' };
-  } catch (error: any) { return { error: 'Failed to save form data.' }; }
+    return { success: true };
+  } catch (error: any) { return { error: 'Failed' }; }
 }
 
 export async function saveDrugAlcoholPolicyData(profileId: string, data: any) {
@@ -223,8 +207,8 @@ export async function saveDrugAlcoholPolicyData(profileId: string, data: any) {
   try {
     await saveThinData(profileId, validatedFields.data);
     revalidatePath('/candidate-hiring-forms');
-    return { success: true, message: 'Drug and/or Alcohol Testing Consent Form saved successfully.' };
-  } catch (error: any) { return { error: 'Failed to save form data.' }; }
+    return { success: true };
+  } catch (error: any) { return { error: 'Failed' }; }
 }
 
 export async function saveHcaJobDescriptionData(profileId: string, data: any) {
@@ -233,8 +217,8 @@ export async function saveHcaJobDescriptionData(profileId: string, data: any) {
   try {
     await saveThinData(profileId, validatedFields.data);
     revalidatePath('/candidate-hiring-forms');
-    return { success: true, message: 'HCA Job Description form saved successfully.' };
-  } catch (error: any) { return { error: 'Failed to save form data.' }; }
+    return { success: true };
+  } catch (error: any) { return { error: 'Failed' }; }
 }
 
 export async function saveClientAbandonmentData(profileId: string, data: any) {
@@ -243,8 +227,8 @@ export async function saveClientAbandonmentData(profileId: string, data: any) {
   try {
     await saveThinData(profileId, validatedFields.data);
     revalidatePath('/candidate-hiring-forms');
-    return { success: true, message: 'Client Abandonment form saved successfully.' };
-  } catch (error: any) { return { error: 'Failed to save form data.' }; }
+    return { success: true };
+  } catch (error: any) { return { error: 'Failed' }; }
 }
 
 export async function saveEmployeeOrientationAgreementData(profileId: string, data: any) {
@@ -253,8 +237,8 @@ export async function saveEmployeeOrientationAgreementData(profileId: string, da
   try {
     await saveThinData(profileId, validatedFields.data);
     revalidatePath('/candidate-hiring-forms');
-    return { success: true, message: 'Employee Orientation Agreement saved successfully.' };
-  } catch (error: any) { return { error: 'Failed to save form data.' }; }
+    return { success: true };
+  } catch (error: any) { return { error: 'Failed' }; }
 }
 
 export async function saveAcknowledgmentFormData(profileId: string, data: any) {
@@ -263,8 +247,8 @@ export async function saveAcknowledgmentFormData(profileId: string, data: any) {
   try {
     await saveThinData(profileId, validatedFields.data);
     revalidatePath('/candidate-hiring-forms');
-    return { success: true, message: 'Acknowledgment form saved successfully.' };
-  } catch (error: any) { return { error: 'Failed to save form data.' }; }
+    return { success: true };
+  } catch (error: any) { return { error: 'Failed' }; }
 }
 
 export async function saveConfidentialityAgreementData(profileId: string, data: any) {
@@ -273,8 +257,8 @@ export async function saveConfidentialityAgreementData(profileId: string, data: 
   try {
     await saveThinData(profileId, validatedFields.data);
     revalidatePath('/candidate-hiring-forms');
-    return { success: true, message: 'Confidentiality Agreement saved successfully.' };
-  } catch (error: any) { return { error: `An unexpected server error occurred: ${error.message}` }; }
+    return { success: true };
+  } catch (error: any) { return { error: `Failed: ${error.message}` }; }
 }
 
 export async function saveTrainingAcknowledgementData(profileId: string, data: any) {
@@ -283,8 +267,8 @@ export async function saveTrainingAcknowledgementData(profileId: string, data: a
   try {
     await saveThinData(profileId, validatedFields.data);
     revalidatePath('/candidate-hiring-forms');
-    return { success: true, message: 'Training Acknowledgement form saved successfully.' };
-  } catch (error: any) { return { error: 'Failed to save form data.' }; }
+    return { success: true };
+  } catch (error: any) { return { error: 'Failed' }; }
 }
 
 export async function saveOfferLetterData(profileId: string, data: any) {
@@ -293,8 +277,8 @@ export async function saveOfferLetterData(profileId: string, data: any) {
   try {
     await saveThinData(profileId, validatedFields.data);
     revalidatePath('/candidate-hiring-forms');
-    return { success: true, message: 'Offer Letter saved successfully.' };
-  } catch (error: any) { return { error: 'Failed to save form data.' }; }
+    return { success: true };
+  } catch (error: any) { return { error: 'Failed' }; }
 }
 
 export async function saveCaregiverResponsibilitiesData(profileId: string, data: any) {
@@ -303,26 +287,26 @@ export async function saveCaregiverResponsibilitiesData(profileId: string, data:
     try {
         await saveThinData(profileId, validatedFields.data);
         revalidatePath('/candidate-hiring-forms');
-        return { success: true, message: 'Caregiver Responsibilities saved successfully.' };
-    } catch (e: any) { return { error: `Failed to save: ${e.message}` }; }
+        return { success: true };
+    } catch (e: any) { return { error: `Failed: ${e.message}` }; }
 }
 
 export async function saveLightHousekeepingAcknowledgement(profileId: string) {
     if (!profileId) return { error: 'Profile ID is required.' };
     try {
-        await serverDb.collection('caregiver_profiles').doc(profileId).set({ lightHousekeepingAcknowledged: true }, { merge: true });
+        await serverDb.collection('caregiver_profiles').doc(profileId).set({ lightHousekeepingAcknowledged: true, docsStatus: 'started' }, { merge: true });
         revalidatePath('/candidate-hiring-forms');
-        return { success: true, message: 'Acknowledgement saved.' };
-    } catch (e: any) { return { error: `Failed to save: ${e.message}` }; }
+        return { success: true };
+    } catch (e: any) { return { error: `Failed: ${e.message}` }; }
 }
 
 export async function saveTelephonyInstructionsData(profileId: string) {
     if (!profileId) return { error: 'Profile ID is required.' };
     try {
-        await serverDb.collection('caregiver_profiles').doc(profileId).set({ telephonyInstructionsAcknowledged: true }, { merge: true });
+        await serverDb.collection('caregiver_profiles').doc(profileId).set({ telephonyInstructionsAcknowledged: true, docsStatus: 'started' }, { merge: true });
         revalidatePath('/candidate-hiring-forms');
-        return { success: true, message: 'Telephony instructions acknowledged.' };
-    } catch (e: any) { return { error: `Failed to save: ${e.message}` }; }
+        return { success: true };
+    } catch (e: any) { return { error: `Failed: ${e.message}` }; }
 }
 
 export async function saveEmergencyProcedureData(profileId: string, data: any) {
@@ -331,92 +315,56 @@ export async function saveEmergencyProcedureData(profileId: string, data: any) {
   try {
     await saveThinData(profileId, validatedFields.data);
     revalidatePath('/candidate-hiring-forms');
-    return { success: true, message: 'Emergency Procedures form saved successfully.' };
-  } catch (error: any) { return { error: `Failed to save form data: ${error.message}` }; }
+    return { success: true };
+  } catch (error: any) { return { error: `Failed: ${error.message}` }; }
 }
 
 async function getFullCandidateData(candidateId: string) {
     const profileDoc = await serverDb.collection('caregiver_profiles').doc(candidateId).get();
     if (!profileDoc.exists) return null;
     const signaturesDoc = await profileDoc.ref.collection('signatures').doc('onboarding_main').get();
-    
-    // Find interview
     const interviewQuery = await serverDb.collection('interviews').where('caregiverProfileId', '==', candidateId).limit(1).get();
     const interviewData = !interviewQuery.empty ? interviewQuery.docs[0].data() : {};
-
-    return {
-        ...profileDoc.data(),
-        ...interviewData,
-        ...(signaturesDoc.exists ? signaturesDoc.data() : {})
-    };
+    return { ...profileDoc.data(), ...interviewData, ...(signaturesDoc.exists ? signaturesDoc.data() : {}) };
 }
 
 export async function saveMasterInterview360Data(profileId: string, data: any) {
     const validated = masterInterview360Schema.safeParse(data);
     if (!validated.success) return { error: 'Invalid data provided.' };
-    
     try {
         const firestore = serverDb;
         const profileRef = firestore.collection('caregiver_profiles').doc(profileId);
-        
-        // Split data between profile and interview
         const profileFields = ['source', 'overnightStayAvailability', 'availability'];
-        const profileUpdate: any = {};
-        const interviewUpdate: any = {};
-        
+        const profileUpdate: any = { lastUpdatedAt: Timestamp.now(), docsStatus: 'started' };
+        const interviewUpdate: any = { master360Saved: true, lastUpdatedAt: Timestamp.now() };
         Object.entries(validated.data).forEach(([key, value]) => {
             if (profileFields.includes(key)) profileUpdate[key] = value;
             else interviewUpdate[key] = value;
         });
-
-        // Add the completion flag
-        interviewUpdate.master360Saved = true;
-
         const batch = firestore.batch();
-        if (Object.keys(profileUpdate).length > 0) batch.update(profileRef, profileUpdate);
-        
+        batch.update(profileRef, profileUpdate);
         const interviewQuery = await firestore.collection('interviews').where('caregiverProfileId', '==', profileId).limit(1).get();
-        if (!interviewQuery.empty) {
-            batch.update(interviewQuery.docs[0].ref, { ...interviewUpdate, lastUpdatedAt: Timestamp.now() });
-        } else {
-            const intRef = firestore.collection('interviews').doc();
-            batch.set(intRef, { ...interviewUpdate, caregiverProfileId: profileId, createdAt: Timestamp.now(), lastUpdatedAt: Timestamp.now(), phoneScreenPassed: 'Yes', interviewType: 'Phone' });
-        }
-
+        if (!interviewQuery.empty) batch.update(interviewQuery.docs[0].ref, interviewUpdate);
+        else batch.set(firestore.collection('interviews').doc(), { ...interviewUpdate, caregiverProfileId: profileId, createdAt: Timestamp.now(), phoneScreenPassed: 'Yes', interviewType: 'Phone' });
         await batch.commit();
         revalidatePath('/candidate-hiring-forms');
-        revalidatePath('/admin/advanced-search');
-        revalidatePath('/admin/manage-interviews');
         return { success: true };
     } catch (e: any) { return { error: e.message }; }
 }
 
-export async function saveNewHireChecklistAction(profileId: string, data: NewHireChecklistFormData) {
+export async function saveNewHireChecklistAction(profileId: string, data: any) {
     const validated = newHireChecklistSchema.safeParse(data);
     if (!validated.success) return { error: 'Invalid data provided.' };
-    
     try {
         const firestore = serverDb;
-        const profileRef = firestore.collection('caregiver_profiles').doc(profileId);
-        
-        const mandatoryKeys = [
-            'driversLicenseReceived', 'dmvRecordReceived', 'carInsuranceReceived',
-            'carRegistrationReceived', 'ssnCardReceived', 'hcaClearanceReceived',
-            'liveScanLetterReceived', 'tbTestResultsReceived'
-        ];
-        
-        const allChecked = Object.keys(validated.data)
-            .filter(key => key.endsWith('Received'))
-            .every(key => !!(validated.data as any)[key]);
-
-        await profileRef.update({
+        const allChecked = Object.keys(validated.data).filter(key => key.endsWith('Received')).every(key => !!(validated.data as any)[key]);
+        await firestore.collection('caregiver_profiles').doc(profileId).update({
             ...validated.data,
             newHireChecklistComplete: allChecked,
+            docsStatus: 'started',
             lastUpdatedAt: Timestamp.now(),
         });
-
         revalidatePath('/candidate-hiring-forms');
-        revalidatePath('/admin/advanced-search');
         return { success: true };
     } catch (e: any) { return { error: e.message }; }
 }

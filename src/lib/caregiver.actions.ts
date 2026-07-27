@@ -4,8 +4,73 @@
 import { revalidatePath } from "next/cache";
 import { serverDb } from "@/firebase/server-init";
 import { z } from "zod";
-import { generalInfoSchema } from "./types";
-import { WriteBatch } from "firebase-admin/firestore";
+import { generalInfoSchema, type CaregiverProfile } from "./types";
+import { WriteBatch, Timestamp } from "firebase-admin/firestore";
+
+interface SearchParams {
+    namePrefix?: string;
+    hiringStatus?: string;
+    skills?: string[];
+    skillMatching?: 'any' | 'all';
+    shiftAvailability?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    lastDocId?: string;
+    limit?: number;
+}
+
+/**
+ * Optimized server-side search for candidates using Admin SDK field projection.
+ */
+export async function searchCandidatesAction(params: SearchParams) {
+    let query = serverDb.collection('caregiver_profiles') as FirebaseFirestore.Query;
+
+    // 1. Prefix Matching for Name
+    if (params.namePrefix) {
+        const prefix = params.namePrefix.toLowerCase();
+        query = query.where('fullNameLowercase', '>=', prefix)
+                     .where('fullNameLowercase', '<=', prefix + '\uf8ff');
+    }
+
+    // 2. Equality filter for status
+    if (params.hiringStatus && params.hiringStatus !== 'any') {
+        query = query.where('hiringStatus', '==', params.hiringStatus);
+    }
+
+    // 3. Simple sorting
+    query = query.orderBy('fullNameLowercase', 'asc');
+
+    // 4. Pagination
+    if (params.lastDocId) {
+        const lastDoc = await serverDb.collection('caregiver_profiles').doc(params.lastDocId).get();
+        if (lastDoc.exists) {
+            query = query.startAfter(lastDoc);
+        }
+    }
+
+    const pageSize = params.limit || 10;
+    query = query.limit(pageSize);
+
+    // 5. Field Projection (Select only what's needed for the table)
+    const selectFields = ['fullName', 'email', 'phone', 'city', 'createdAt', 'hiringStatus', 'docsStatus', 'nextStepText', 'nextStepTime'];
+    const snapshot = await query.select(...selectFields).get();
+
+    const results = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            ...data,
+            id: doc.id,
+            createdAt: data.createdAt?.toDate().toISOString(),
+            nextStepTime: data.nextStepTime?.toDate().toISOString(),
+        };
+    });
+
+    return {
+        results,
+        lastDocId: results.length > 0 ? results[results.length - 1].id : null,
+        hasMore: results.length === pageSize
+    };
+}
 
 
 export async function updateCaregiverProfile(
@@ -27,8 +92,12 @@ export async function updateCaregiverProfile(
       return { message: "Caregiver profile not found.", error: true };
     }
 
-    // Using set with merge for a more robust update
-    await profileRef.set(validatedFields.data, { merge: true });
+    const updateData = {
+        ...validatedFields.data,
+        fullNameLowercase: validatedFields.data.fullName.toLowerCase(),
+    };
+
+    await profileRef.set(updateData, { merge: true });
 
     revalidatePath("/admin/manage-applications");
     revalidatePath("/admin");
@@ -96,6 +165,14 @@ export async function resetCaregiverInterview(profileId: string) {
     // Delete from caregiver_employees
     const employeeRef = serverDb.collection("caregiver_employees").doc(profileId);
     batch.delete(employeeRef);
+
+    // Reset status on profile
+    batch.update(serverDb.collection("caregiver_profiles").doc(profileId), {
+        hiringStatus: 'Applied',
+        docsStatus: 'not-notified',
+        nextStepText: 'Needs Phone Screen',
+        nextStepTime: null,
+    });
 
     await batch.commit();
 

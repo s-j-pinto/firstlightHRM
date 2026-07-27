@@ -15,7 +15,7 @@ export async function submitCaregiverProfile(data: z.infer<typeof caregiverFormS
     return { error: 'Invalid data submitted.' };
   }
 
-  const { email } = validatedFields.data;
+  const { email, fullName } = validatedFields.data;
   const normalizedEmail = email.trim().toLowerCase();
 
   // Check for duplicates
@@ -25,43 +25,7 @@ export async function submitCaregiverProfile(data: z.infer<typeof caregiverFormS
   if (!existingProfileQuery.empty) {
     const existingProfileDoc = existingProfileQuery.docs[0];
     const existingProfile = existingProfileDoc.data();
-
-    // Now check if this profile is in "Applied" or "Phonescreen Invite Needed" status
-    const appointmentsRef = serverDb.collection('appointments');
-    const appointmentsQuery = await appointmentsRef.where('caregiverId', '==', existingProfileDoc.id).get();
-
-    const interviewsRef = serverDb.collection('interviews');
-    const interviewsQuery = await interviewsRef.where('caregiverProfileId', '==', existingProfileDoc.id).get();
-
-    const hiredRef = serverDb.collection('caregiver_employees');
-    const hiredQuery = await hiredRef.where('caregiverProfileId', '==', existingProfileDoc.id).get();
-
-    // Determine the status of the candidate matching candidate-status-report logic
-    let candidateStatus = 'Applied';
-    if (!hiredQuery.empty) {
-      candidateStatus = 'Hired';
-    } else if (!interviewsQuery.empty) {
-      const interview = interviewsQuery.docs[0].data();
-      if (interview.rejectionReason) candidateStatus = interview.rejectionReason;
-      else if (interview.phoneScreenPassed === 'No') candidateStatus = 'Phone Screen Failed';
-      else if (interview.finalInterviewStatus === 'Rejected at Orientation') candidateStatus = 'Rejected at Orientation';
-      else if (interview.finalInterviewStatus === 'No Show') candidateStatus = 'No Show';
-      else if (interview.finalInterviewStatus === 'Process Terminated') candidateStatus = 'Process Terminated';
-      else if (interview.orientationScheduled) candidateStatus = 'Orientation Scheduled';
-      else if (interview.finalInterviewStatus === 'Passed') candidateStatus = 'Final Interview Passed';
-      else if (interview.finalInterviewStatus === 'Failed') candidateStatus = 'Final Interview Failed';
-      else candidateStatus = 'Final Interview Pending';
-    } else {
-      const activeAppointments = appointmentsQuery.docs.filter(
-        (doc) => doc.data().appointmentStatus !== 'cancelled'
-      );
-      if (activeAppointments.length > 0) {
-        const hasScheduledAppointment = activeAppointments.some(
-          (doc) => doc.data().inviteSent === true
-        );
-        candidateStatus = hasScheduledAppointment ? 'Phonescreen Scheduled' : 'Phonescreen Invite Needed';
-      }
-    }
+    const candidateStatus = existingProfile.hiringStatus || 'Applied';
 
     const isBlocked = candidateStatus === 'Applied' || candidateStatus === 'Phonescreen Invite Needed';
 
@@ -77,9 +41,12 @@ export async function submitCaregiverProfile(data: z.infer<typeof caregiverFormS
   const profileRef = await profilesRef.add({
     ...dataToSave,
     email: normalizedEmail,
+    fullNameLowercase: fullName.toLowerCase(),
     uid: data.uid,
     createdAt: Timestamp.now(),
-    hiringStatus: 'Applied' // INITIAL DENORMALIZED STATUS
+    hiringStatus: 'Applied',
+    docsStatus: 'not-notified',
+    nextStepText: 'Needs Phone Screen',
   });
 
   const redirectParams = new URLSearchParams({
@@ -91,22 +58,4 @@ export async function submitCaregiverProfile(data: z.infer<typeof caregiverFormS
   });
 
   redirect(`/?${redirectParams.toString()}`);
-}
-
-
-export async function scheduleAppointment(data: z.infer<typeof appointmentSchema>) {
-    const validatedFields = appointmentSchema.safeParse(data);
-
-    if (!validatedFields.success) {
-        // This should ideally not be hit if client-side validation is working
-        redirect('/?step=schedule&error=invalid_data');
-        return;
-    }
-    
-    // The data is now saved via createAppointmentAndSendAdminEmail
-    revalidatePath("/admin");
-    
-    // Redirect to confirmation using the primary start time
-    const redirectUrl = `/confirmation?time=${validatedFields.data.startTime.toISOString()}`;
-    redirect(redirectUrl);
 }

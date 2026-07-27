@@ -1,5 +1,4 @@
 
-
 "use server";
 
 import { serverDb, serverAuth } from '@/firebase/server-init';
@@ -182,7 +181,6 @@ export async function sendHiringDocsNotification(payload: {
                 
                 <p>If you have any questions, please contact our office at (909)-321-4466.</p>
                 <p>Thank you,<br/>The FirstLight Home Care Team</p>
-                <p style="margin-top: 30px; font-size: 10px; color: #888888;"><small><strong>CONFIDENTIALITY NOTICE</strong><br> This email, including any attachments or files transmitted with it, is intended to be confidential and solely for the use of the individual or entity to whom it is addressed. If you received it in error, or if you are not the intended recipient(s), please notify the sender by reply e-mail and delete/destroy the original message and any attachments, and any copies. Any unauthorized review, use, disclosure or distribution of this e-mail or information is prohibited and may be a violation of applicable laws.</small></p>
             </div>
         </body>
     `;
@@ -197,23 +195,11 @@ export async function sendHiringDocsNotification(payload: {
             },
         });
 
-        const interviewsRef = serverDb.collection('interviews');
-        const q = interviewsRef.where('caregiverProfileId', '==', caregiverId).limit(1);
-        const snapshot = await q.get();
-
-        const updateData = {
-            hiringDocsNotificationSentAt: Timestamp.now(),
-            lastUpdatedAt: Timestamp.now(),
-        };
-
-        if (snapshot.empty) {
-            await interviewsRef.add({
-                caregiverProfileId: caregiverId,
-                ...updateData,
-            });
-        } else {
-            await snapshot.docs[0].ref.update(updateData);
-        }
+        // SYNC TO PROFILE
+        await serverDb.collection('caregiver_profiles').doc(caregiverId).update({
+            docsStatus: 'notified',
+            lastUpdatedAt: Timestamp.now()
+        });
 
         revalidatePath('/admin/advanced-search');
         return { success: true };
