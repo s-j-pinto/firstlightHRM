@@ -6,13 +6,11 @@ import { serverDb } from "@/firebase/server-init";
 import { z } from "zod";
 import { generalInfoSchema, type CaregiverProfile } from "./types";
 import { WriteBatch, Timestamp } from "firebase-admin/firestore";
+import { parse, isValid } from 'date-fns';
 
 interface SearchParams {
     namePrefix?: string;
     hiringStatus?: string;
-    skills?: string[];
-    skillMatching?: 'any' | 'all';
-    shiftAvailability?: string;
     dateFrom?: string;
     dateTo?: string;
     lastDocId?: string;
@@ -26,10 +24,15 @@ export async function searchCandidatesAction(params: SearchParams) {
     let query = serverDb.collection('caregiver_profiles') as FirebaseFirestore.Query;
 
     // 1. Prefix Matching for Name
-    if (params.namePrefix) {
-        const prefix = params.namePrefix.toLowerCase();
+    // Note: Prefix matching requires ordering by the same field in Firestore.
+    if (params.namePrefix && params.namePrefix.trim() !== '') {
+        const prefix = params.namePrefix.trim().toLowerCase();
         query = query.where('fullNameLowercase', '>=', prefix)
-                     .where('fullNameLowercase', '<=', prefix + '\uf8ff');
+                     .where('fullNameLowercase', '<=', prefix + '\uf8ff')
+                     .orderBy('fullNameLowercase', 'asc');
+    } else {
+        // Default order to newest first if not searching by name
+        query = query.orderBy('createdAt', 'desc');
     }
 
     // 2. Equality filter for status
@@ -37,8 +40,26 @@ export async function searchCandidatesAction(params: SearchParams) {
         query = query.where('hiringStatus', '==', params.hiringStatus);
     }
 
-    // 3. Simple sorting
-    query = query.orderBy('fullNameLowercase', 'asc');
+    // 3. Date Filters
+    if (params.dateFrom) {
+        try {
+            const fromDate = parse(params.dateFrom, 'MM/dd/yyyy', new Date());
+            if (isValid(fromDate)) {
+                query = query.where('createdAt', '>=', Timestamp.fromDate(fromDate));
+            }
+        } catch (e) {}
+    }
+
+    if (params.dateTo) {
+        try {
+            const toDate = parse(params.dateTo, 'MM/dd/yyyy', new Date());
+            if (isValid(toDate)) {
+                // To include the whole day, set time to 23:59:59
+                toDate.setHours(23, 59, 59, 999);
+                query = query.where('createdAt', '<=', Timestamp.fromDate(toDate));
+            }
+        } catch (e) {}
+    }
 
     // 4. Pagination
     if (params.lastDocId) {
@@ -51,25 +72,51 @@ export async function searchCandidatesAction(params: SearchParams) {
     const pageSize = params.limit || 10;
     query = query.limit(pageSize);
 
-    // 5. Field Projection (Select only what's needed for the table)
-    const selectFields = ['fullName', 'email', 'phone', 'city', 'createdAt', 'hiringStatus', 'docsStatus', 'nextStepText', 'nextStepTime'];
-    const snapshot = await query.select(...selectFields).get();
+    // 5. Field Projection (Select only what's needed for the table to minimize data transfer)
+    const selectFields = [
+        'fullName', 
+        'email', 
+        'phone', 
+        'city', 
+        'createdAt', 
+        'hiringStatus', 
+        'docsStatus', 
+        'nextStepText', 
+        'nextStepTime'
+    ];
+    
+    try {
+        const snapshot = await query.select(...selectFields).get();
 
-    const results = snapshot.docs.map(doc => {
-        const data = doc.data();
+        const results = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                fullName: data.fullName || 'Unknown',
+                email: data.email || '',
+                phone: data.phone || '',
+                city: data.city || '',
+                hiringStatus: data.hiringStatus || 'Applied',
+                docsStatus: data.docsStatus || 'not-notified',
+                nextStepText: data.nextStepText || 'Needs Phone Screen',
+                createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null,
+                nextStepTime: data.nextStepTime ? data.nextStepTime.toDate().toISOString() : null,
+            };
+        });
+
         return {
-            ...data,
-            id: doc.id,
-            createdAt: data.createdAt?.toDate().toISOString(),
-            nextStepTime: data.nextStepTime?.toDate().toISOString(),
+            results,
+            lastDocId: results.length > 0 ? results[results.length - 1].id : null,
+            hasMore: results.length === pageSize
         };
-    });
-
-    return {
-        results,
-        lastDocId: results.length > 0 ? results[results.length - 1].id : null,
-        hasMore: results.length === pageSize
-    };
+    } catch (error: any) {
+        console.error("[searchCandidatesAction] Error:", error.message);
+        // If we get an index error, return it so the UI can show the link (development only)
+        if (error.message?.includes('FAILED_PRECONDITION')) {
+            return { results: [], hasMore: false, error: error.message };
+        }
+        throw error;
+    }
 }
 
 

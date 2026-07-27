@@ -1,34 +1,28 @@
 
 'use client';
 
-import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
-import { useForm, Controller } from 'react-hook-form';
-import type { CaregiverProfile, Interview, Appointment } from '@/lib/types';
+import { useState, useTransition, useEffect, useCallback } from 'react';
+import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { dateString } from '@/lib/types';
-import { format, parse, isValid } from 'date-fns';
+import { format } from 'date-fns';
 import Link from 'next/link';
-import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, SlidersHorizontal, FilterX, Briefcase, Mail, CheckCircle, BellOff, Bell, Edit2, XCircle } from 'lucide-react';
+import { Loader2, Search, SlidersHorizontal, FilterX, Mail, CheckCircle, BellOff, Bell, Edit2, XCircle, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Separator } from '@/components/ui/separator';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { sendHiringDocsNotification } from '@/lib/communication.actions';
 import { Input } from './ui/input';
 import { DateInput } from './ui/date-input';
 import { searchCandidatesAction } from '@/lib/caregiver.actions';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
 const hiringStatuses = [
   'Applied', 'Phonescreen Invite Needed', 'Phonescreen Scheduled', 'Hired', 'Orientation Scheduled', 'Final Interview Passed', 'Final Interview Pending', 'Final Interview Failed', 'Phone Screen Failed', 'Rejected at Orientation', 'Process Terminated', 'No Show'
@@ -37,8 +31,8 @@ const hiringStatuses = [
 const searchSchema = z.object({
     candidateName: z.string().optional(),
     hiringStatus: z.string().default('any'),
-    dateFrom: dateString,
-    dateTo: dateString,
+    dateFrom: z.string().optional(),
+    dateTo: z.string().optional(),
 });
 
 type FormData = z.infer<typeof searchSchema>;
@@ -55,11 +49,14 @@ export default function AdvancedSearchClient() {
     const [hasMore, setHasMore] = useState(false);
     const [isLoading, startSearchTransition] = useTransition();
     const [sendingEmailId, setSendingEmailId] = useState<string | null>(null);
+    const [indexError, setIndexError] = useState<string | null>(null);
     const router = useRouter();
     const { toast } = useToast();
 
     const fetchResults = useCallback((isNewSearch: boolean = true) => {
         const data = form.getValues();
+        setIndexError(null);
+
         startSearchTransition(async () => {
             const params = {
                 namePrefix: data.candidateName,
@@ -72,6 +69,11 @@ export default function AdvancedSearchClient() {
 
             const response = await searchCandidatesAction(params);
             
+            if (response.error) {
+                setIndexError(response.error);
+                return;
+            }
+
             if (isNewSearch) {
                 setResults(response.results);
             } else {
@@ -127,7 +129,7 @@ export default function AdvancedSearchClient() {
         );
     };
     
-    const StatusBadge = ({ status, candidateId }: { status: string, candidateId: string }) => {
+    const StatusBadge = ({ status }: { status: string }) => {
         const colorClass = 
             status === 'Hired' ? 'bg-green-500' :
             status === 'Orientation Scheduled' ? 'bg-cyan-500' :
@@ -173,9 +175,23 @@ export default function AdvancedSearchClient() {
                 </form>
             </Form>
 
+            {indexError && (
+                <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Index Required</AlertTitle>
+                    <AlertDescription>
+                        This specific combination of filters requires a Firestore index. 
+                        <br />
+                        <a href={indexError.split('here: ')[1]} target="_blank" rel="noopener noreferrer" className="underline font-bold">
+                            Click here to create the required index in the Firebase Console.
+                        </a>
+                    </AlertDescription>
+                </Alert>
+            )}
+
             <Card>
                 <CardHeader>
-                    <CardTitle>Results (Limit 10 per page)</CardTitle>
+                    <CardTitle>Results</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <Table>
@@ -190,14 +206,14 @@ export default function AdvancedSearchClient() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {results.map(candidate => (
+                            {results.length > 0 ? results.map(candidate => (
                                 <TableRow key={candidate.id}>
                                     <TableCell>
                                         <div className="font-medium">{candidate.fullName}</div>
                                         <div className="text-xs text-muted-foreground">{candidate.email}</div>
                                     </TableCell>
                                     <TableCell>{candidate.city}</TableCell>
-                                    <TableCell><StatusBadge status={candidate.hiringStatus} candidateId={candidate.id} /></TableCell>
+                                    <TableCell><StatusBadge status={candidate.hiringStatus} /></TableCell>
                                     <TableCell>
                                         <div className="text-xs">
                                             {candidate.nextStepText}
@@ -218,7 +234,13 @@ export default function AdvancedSearchClient() {
                                         </Button>
                                     </TableCell>
                                 </TableRow>
-                            ))}
+                            )) : (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                                        {isLoading ? "Loading..." : "No candidates found."}
+                                    </TableCell>
+                                </TableRow>
+                            )}
                         </TableBody>
                     </Table>
                     {hasMore && (
