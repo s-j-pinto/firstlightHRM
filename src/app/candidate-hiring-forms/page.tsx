@@ -329,7 +329,7 @@ function CandidateHiringFormsContent() {
             <div className="flex items-center gap-2">
                 {isAnAdmin && (
                   <Button asChild variant="outline">
-                    <Link href="/admin/manage-interviews">
+                    <Link href={candidateId ? `/admin/manage-interviews?candidateId=${candidateId}` : "/admin/manage-interviews"}>
                       <ArrowLeft className="mr-2" />
                       Back to Interviews
                     </Link>
