@@ -20,8 +20,13 @@ export async function createAppointmentAndSendAdminEmail({caregiverId, preferred
     const primaryStartTime = preferredTimes[0];
 
     try {
+        const caregiverDoc = await firestore.collection('caregiver_profiles').doc(caregiverId).get();
+        const caregiverData = caregiverDoc.data();
+        
         const appointmentData = {
             caregiverId: caregiverId,
+            caregiverName: caregiverData?.fullName || 'Unknown',
+            caregiverEmail: caregiverData?.email || '',
             startTime: primaryStartTime,
             endTime: new Date(primaryStartTime.getTime() + 60 * 60 * 1000),
             preferredTimes: preferredTimes,
