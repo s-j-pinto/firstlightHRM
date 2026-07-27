@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect, useCallback } from 'react';
@@ -42,7 +41,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Search, Sparkles, UserCheck, CheckCircle, Save, FileText, FileCheck2, ClipboardList, CheckSquare, Car } from 'lucide-react';
 import { format, isDate, isValid, parse } from 'date-fns';
-import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
+import { formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription } from './ui/alert';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
@@ -223,24 +222,76 @@ export default function ManageInterviewsClient() {
 
   const interviewQuestionsForm = useForm<InterviewQuestionsFormData>({
       resolver: zodResolver(interviewQuestionsSchema),
+      defaultValues: {
+        q_decideBecomeCaregiver: '',
+        q_rewardingChallenging: '',
+        q_strengthsWeaknesses: '',
+        q_specializedTraining: '',
+        q_careerGoals: '',
+        q_dementiaExperience: '',
+        q_clientUpsetHome: '',
+        q_clientTellingLeave: '',
+        q_clientCombative: '',
+        q_clientHittingScratching: '',
+        q_deceasedSpouse: '',
+        q_difficultSituation: '',
+        q_clientRefusal: '',
+        q_criticismFeedback: '',
+        q_medicalEmergencyNoOffice: '',
+        q_clientNotes: '',
+      }
   });
 
   const skillsForm = useForm<SkillsFormData>({
       resolver: zodResolver(skillsSchema),
+      defaultValues: {
+        hasHospiceExperience: false,
+        canWorkWithBedBound: false,
+        canChangeBrief: false,
+        canTransfer: false,
+        canPrepareMeals: false,
+        canDoBedBath: false,
+        canUseHoyerLift: false,
+        canUseGaitBelt: false,
+        canUsePurwick: false,
+        canEmptyCatheter: false,
+        canEmptyColostomyBag: false,
+        canGiveMedication: false,
+        canTakeBloodPressure: false,
+      }
   });
 
   const transportationForm = useForm<TransportationFormData>({
       resolver: zodResolver(transportationFormSchema),
+      defaultValues: {
+        hasCar: false,
+        validLicense: false,
+        q_hasAutoInsurance: '',
+        q_movingViolations: '',
+        q_misdemeanorCharges: '',
+        q_ieTravelAreas: '',
+        q_preferredNotWorkAreas: '',
+      }
   });
 
   const scheduleEventForm = useForm<ScheduleEventFormData>({
     resolver: zodResolver(scheduleEventSchema),
-    defaultValues: { includeReferenceForm: false },
+    defaultValues: {
+        interviewPathway: 'separate',
+        interviewMethod: 'In-Person',
+        eventDate: '',
+        eventTime: '',
+        includeReferenceForm: false
+    },
   });
   
   const orientationForm = useForm<OrientationFormData>({
     resolver: zodResolver(orientationSchema),
-    defaultValues: { includeReferenceForm: false }
+    defaultValues: {
+        orientationDate: '',
+        orientationTime: '',
+        includeReferenceForm: false
+    }
   });
 
   const hiringForm = useForm<HiringFormData>({
@@ -248,6 +299,8 @@ export default function ManageInterviewsClient() {
     defaultValues: {
       hireDate: format(new Date(), 'MM/dd/yyyy'),
       hiringManager: 'Lolita Pinto',
+      teletrackPin: '',
+      hiringComments: '',
     }
   });
 
@@ -320,8 +373,8 @@ export default function ManageInterviewsClient() {
             });
 
             scheduleEventForm.reset({
-                interviewPathway: interviewData.interviewPathway || undefined,
-                interviewMethod: interviewData.interviewType as 'In-Person' | 'Google Meet' | 'Orientation' | undefined,
+                interviewPathway: interviewData.interviewPathway || 'separate',
+                interviewMethod: interviewData.interviewType as 'In-Person' | 'Google Meet' || 'In-Person',
                 eventDate: interviewDate ? format(interviewDate, 'MM/dd/yyyy') : '',
                 eventTime: interviewDate ? format(interviewDate, 'HH:mm') : '',
                 includeReferenceForm: false,
@@ -332,7 +385,8 @@ export default function ManageInterviewsClient() {
                 if (orientationDate) {
                     orientationForm.reset({
                         orientationDate: format(orientationDate, 'MM/dd/yyyy'),
-                        orientationTime: format(orientationDate, 'HH:mm')
+                        orientationTime: format(orientationDate, 'HH:mm'),
+                        includeReferenceForm: false
                     });
                 }
             }
@@ -385,14 +439,68 @@ export default function ManageInterviewsClient() {
     setExistingInterview(null);
     setExistingEmployee(null);
     setAiInsight(null);
-    phoneScreenForm.reset();
-    assessmentForm.reset();
-    interviewQuestionsForm.reset();
-    skillsForm.reset();
-    transportationForm.reset();
-    scheduleEventForm.reset();
-    orientationForm.reset();
-    hiringForm.reset();
+    phoneScreenForm.reset({ interviewNotes: '', phoneScreenPassed: 'Yes' });
+    assessmentForm.reset({ candidateRating: 'C', finalInterviewNotes: '' });
+    interviewQuestionsForm.reset({
+        q_decideBecomeCaregiver: '',
+        q_rewardingChallenging: '',
+        q_strengthsWeaknesses: '',
+        q_specializedTraining: '',
+        q_careerGoals: '',
+        q_dementiaExperience: '',
+        q_clientUpsetHome: '',
+        q_clientTellingLeave: '',
+        q_clientCombative: '',
+        q_clientHittingScratching: '',
+        q_deceasedSpouse: '',
+        q_difficultSituation: '',
+        q_clientRefusal: '',
+        q_criticismFeedback: '',
+        q_medicalEmergencyNoOffice: '',
+        q_clientNotes: '',
+    });
+    skillsForm.reset({
+        hasHospiceExperience: false,
+        canWorkWithBedBound: false,
+        canChangeBrief: false,
+        canTransfer: false,
+        canPrepareMeals: false,
+        canDoBedBath: false,
+        canUseHoyerLift: false,
+        canUseGaitBelt: false,
+        canUsePurwick: false,
+        canEmptyCatheter: false,
+        canEmptyColostomyBag: false,
+        canGiveMedication: false,
+        canTakeBloodPressure: false,
+    });
+    transportationForm.reset({
+        hasCar: false,
+        validLicense: false,
+        q_hasAutoInsurance: '',
+        q_movingViolations: '',
+        q_misdemeanorCharges: '',
+        q_ieTravelAreas: '',
+        q_preferredNotWorkAreas: '',
+    });
+    scheduleEventForm.reset({
+        interviewPathway: 'separate',
+        interviewMethod: 'In-Person',
+        eventDate: '',
+        eventTime: '',
+        includeReferenceForm: false
+    });
+    orientationForm.reset({
+        orientationDate: '',
+        orientationTime: '',
+        includeReferenceForm: false
+    });
+    hiringForm.reset({
+        hireDate: format(new Date(), 'MM/dd/yyyy'),
+        hiringManager: 'Lolita Pinto',
+        teletrackPin: '',
+        hiringComments: '',
+    });
     setAuthUrl(null);
     setSearchTerm('');
     setSearchResults([]);
@@ -704,7 +812,7 @@ export default function ManageInterviewsClient() {
       <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}><DialogContent><DialogHeader><DialogTitle>Reject Candidate</DialogTitle></DialogHeader><RejectCandidateForm onSubmit={handleRejection} isPending={isRejecting} /></DialogContent></Dialog>
       
       <Dialog open={isQuestionsOpen} onOpenChange={setIsQuestionsOpen}>
-        <DialogContent className="sm:max-w-4xl max-h-[90vh]">
+        <DialogContent className="sm:max-w-[80vw] max-h-[90vh]">
             <DialogHeader><DialogTitle>Situation Questions</DialogTitle></DialogHeader>
             <ScrollArea className="flex-1">
                 <Form {...interviewQuestionsForm}>
