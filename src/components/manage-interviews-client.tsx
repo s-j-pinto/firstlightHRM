@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect, useCallback } from 'react';
@@ -28,6 +29,7 @@ import {
   FormField,
   FormItem,
   FormLabel,
+  FormMessage,
 } from '@/components/ui/form';
 import {
   Select,
@@ -45,7 +47,7 @@ import { formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription } from './ui/alert';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { Dialog, DialogFooter, DialogContent, DialogTitle, DialogHeader } from './ui/dialog';
+import { Dialog, DialogFooter, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Label } from './ui/label';
 import { Checkbox } from './ui/checkbox';
 import { DateInput } from './ui/date-input';
@@ -362,6 +364,22 @@ export default function ManageInterviewsClient() {
                 q_clientNotes: interviewData.q_clientNotes || '',
             });
 
+            skillsForm.reset({
+                hasHospiceExperience: !!fullProfile.hasHospiceExperience,
+                canWorkWithBedBound: !!fullProfile.canWorkWithBedBound,
+                canChangeBrief: !!fullProfile.canChangeBrief,
+                canTransfer: !!fullProfile.canTransfer,
+                canPrepareMeals: !!fullProfile.canPrepareMeals,
+                canDoBedBath: !!fullProfile.canDoBedBath,
+                canUseHoyerLift: !!fullProfile.canUseHoyerLift,
+                canUseGaitBelt: !!fullProfile.canUseGaitBelt,
+                canUsePurwick: !!fullProfile.canUsePurwick,
+                canEmptyCatheter: !!fullProfile.canEmptyCatheter,
+                canEmptyColostomyBag: !!fullProfile.canEmptyColostomyBag,
+                canGiveMedication: !!fullProfile.canGiveMedication,
+                canTakeBloodPressure: !!fullProfile.canTakeBloodPressure,
+            });
+
             transportationForm.reset({
                 hasCar: fullProfile.hasCar === 'yes',
                 validLicense: fullProfile.validLicense === 'yes',
@@ -401,7 +419,7 @@ export default function ManageInterviewsClient() {
     } catch (error) {
         console.error("Error fetching detailed candidate data:", error);
     }
-  }, [db, phoneScreenForm, assessmentForm, interviewQuestionsForm, transportationForm, scheduleEventForm, orientationForm, toast]);
+  }, [db, phoneScreenForm, assessmentForm, interviewQuestionsForm, skillsForm, transportationForm, scheduleEventForm, orientationForm, toast]);
 
   const handleSearch = useCallback((overrideTerm?: string) => {
     const term = overrideTerm || searchTerm;
@@ -726,9 +744,9 @@ export default function ManageInterviewsClient() {
                       ) : (
                           <Form {...phoneScreenForm}>
                               <form onSubmit={phoneScreenForm.handleSubmit(onPhoneScreenSubmit)} className="space-y-6">
-                                  <FormField control={phoneScreenForm.control} name="interviewNotes" render={({ field }) => ( <FormItem><FormLabel>Interview Notes</FormLabel><FormControl><Textarea placeholder="Notes..." {...field} rows={4} /></FormControl></FormItem> )} />
+                                  <FormField control={phoneScreenForm.control} name="interviewNotes" render={({ field }) => ( <FormItem><FormLabel>Interview Notes</FormLabel><FormControl><Textarea placeholder="Notes..." {...field} rows={4} /></FormControl><FormMessage /></FormItem> )} />
                                   <div className="flex justify-center"><Button type="button" onClick={handleGenerateInsights} disabled={isAiPending}>{isAiPending ? <Loader2 className="animate-spin" /> : <Sparkles />}<span className="ml-2">Generate AI Summary</span></Button></div>
-                                  <FormField control={phoneScreenForm.control} name="phoneScreenPassed" render={({ field }) => ( <FormItem><FormLabel>Passed?</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4"><FormItem className="flex items-center space-x-2"><RadioGroupItem value="Yes" /><span>Yes</span></FormItem><FormItem className="flex items-center space-x-2"><RadioGroupItem value="No" /><span>No</span></FormItem></RadioGroup></FormControl></FormItem> )} />
+                                  <FormField control={phoneScreenForm.control} name="phoneScreenPassed" render={({ field }) => ( <FormItem><FormLabel>Passed?</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4"><FormItem className="flex items-center space-x-2"><RadioGroupItem value="Yes" /><span>Yes</span></FormItem><FormItem className="flex items-center space-x-2"><RadioGroupItem value="No" /><span>No</span></FormItem></RadioGroup></FormControl><FormMessage /></FormItem> )} />
                                   <div className="flex justify-end"><Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="animate-spin mr-2" />}Save Results</Button></div>
                               </form>
                           </Form>
@@ -742,10 +760,23 @@ export default function ManageInterviewsClient() {
                     <CardContent>
                         <Form {...scheduleEventForm}>
                             <form onSubmit={scheduleEventForm.handleSubmit(onScheduleEventSubmit)} className="space-y-4">
-                                <FormField control={scheduleEventForm.control} name="interviewPathway" render={({ field }) => ( <FormItem><FormLabel>Pathway</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select pathway..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="separate">Separate Interview & Orientation</SelectItem><SelectItem value="combined">Combined Session</SelectItem></SelectContent></Select></FormItem> )} />
+                                <FormField control={scheduleEventForm.control} name="interviewPathway" render={({ field }) => ( <FormItem><FormLabel>Pathway</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select pathway..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="separate">Separate Interview & Orientation</SelectItem><SelectItem value="combined">Combined Session</SelectItem></SelectContent></Select><FormMessage /></FormItem> )} />
+                                <FormField control={scheduleEventForm.control} name="interviewMethod" render={({ field }) => ( 
+                                    <FormItem>
+                                        <FormLabel>Method</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value} disabled={interviewPathway === 'combined'}>
+                                            <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="In-Person">In-Person</SelectItem>
+                                                <SelectItem value="Google Meet">Google Meet</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem> 
+                                )} />
                                 <div className="grid grid-cols-2 gap-4">
-                                    <FormField control={scheduleEventForm.control} name="eventDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><FormControl><DateInput {...field} /></FormControl></FormItem> )} />
-                                    <FormField control={scheduleEventForm.control} name="eventTime" render={({ field }) => ( <FormItem><FormLabel>Time</FormLabel><FormControl><Input type="time" {...field} /></FormControl></FormItem> )} />
+                                    <FormField control={scheduleEventForm.control} name="eventDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><FormControl><DateInput {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                    <FormField control={scheduleEventForm.control} name="eventTime" render={({ field }) => ( <FormItem><FormLabel>Time</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem> )} />
                                 </div>
                                 <div className="flex justify-end"><Button type="submit" disabled={isScheduleSubmitting}>{isScheduleSubmitting && <Loader2 className="animate-spin mr-2" />}Schedule</Button></div>
                             </form>
@@ -761,13 +792,13 @@ export default function ManageInterviewsClient() {
                     <CardContent>
                         <Form {...assessmentForm}>
                             <form onSubmit={assessmentForm.handleSubmit(onAssessmentSubmit)} className="space-y-4">
-                                <FormField control={assessmentForm.control} name="candidateRating" render={({ field }) => ( <FormItem><FormLabel>Rating</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{ratingOptions.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent></Select></FormItem> )} />
+                                <FormField control={assessmentForm.control} name="candidateRating" render={({ field }) => ( <FormItem><FormLabel>Rating</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{ratingOptions.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
                                 {areNotesEditable && (
                                     <div className="grid grid-cols-1 gap-2 pt-2">
                                         <Button type="button" variant="outline" size="sm" onClick={() => setIsQuestionsOpen(true)}><ClipboardList className="mr-2 h-4 w-4" />Situations</Button>
                                         <Button type="button" variant="outline" size="sm" onClick={() => setIsSkillsOpen(true)}><CheckSquare className="mr-2 h-4 w-4" />Skills & Exp</Button>
                                         <Button type="button" variant="outline" size="sm" onClick={() => setIsTransportationOpen(true)}><Car className="mr-2 h-4 w-4" />Transportation</Button>
-                                        <FormField control={assessmentForm.control} name="finalInterviewNotes" render={({ field }) => ( <FormItem><FormLabel>Interview Notes</FormLabel><FormControl><Textarea {...field} /></FormControl></FormItem> )} />
+                                        <FormField control={assessmentForm.control} name="finalInterviewNotes" render={({ field }) => ( <FormItem><FormLabel>Interview Notes</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem> )} />
                                     </div>
                                 )}
                                 <div className="flex justify-between">
@@ -796,8 +827,8 @@ export default function ManageInterviewsClient() {
                             <Form {...hiringForm}>
                                 <form onSubmit={hiringForm.handleSubmit(onHiringSubmit)} className="space-y-4">
                                     <div className="grid grid-cols-2 gap-4">
-                                        <FormField control={hiringForm.control} name="hireDate" render={({ field }) => ( <FormItem><FormLabel>Hire Date</FormLabel><FormControl><DateInput {...field} /></FormControl></FormItem> )} />
-                                        <FormField control={hiringForm.control} name="teletrackPin" render={({ field }) => ( <FormItem><FormLabel>TeleTrack PIN</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
+                                        <FormField control={hiringForm.control} name="hireDate" render={({ field }) => ( <FormItem><FormLabel>Hire Date</FormLabel><FormControl><DateInput {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                        <FormField control={hiringForm.control} name="teletrackPin" render={({ field }) => ( <FormItem><FormLabel>TeleTrack PIN</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                                     </div>
                                     <Button type="submit" className="w-full" disabled={isSubmitting || !signaturesData?.hcs501EmployeeSignature}><UserCheck className="mr-2 h-4 w-4" />Hire Candidate</Button>
                                 </form>
@@ -820,7 +851,7 @@ export default function ManageInterviewsClient() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {Object.entries(interviewQuestionsSchema.shape).map(([key, value]) => (
                                 <FormField key={key} control={interviewQuestionsForm.control} name={key as any} render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs">{key.replace('q_', '').replace(/([A-Z])/g, ' $1')}</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl></FormItem>
+                                    <FormItem><FormLabel className="text-xs">{key.replace('q_', '').replace(/([A-Z])/g, ' $1')}</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl><FormMessage /></FormItem>
                                 )} />
                             ))}
                         </div>
@@ -832,7 +863,7 @@ export default function ManageInterviewsClient() {
       </Dialog>
 
       <Dialog open={isSkillsOpen} onOpenChange={setIsSkillsOpen}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-[600px]">
             <DialogHeader><DialogTitle>Skills & Experience</DialogTitle></DialogHeader>
             <Form {...skillsForm}>
                 <form onSubmit={skillsForm.handleSubmit(onSkillsSubmit)} className="space-y-4">
@@ -858,11 +889,11 @@ export default function ManageInterviewsClient() {
                         <FormField control={transportationForm.control} name="hasCar" render={({ field }) => ( <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Has Car</FormLabel></FormItem> )} />
                         <FormField control={transportationForm.control} name="validLicense" render={({ field }) => ( <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Valid License</FormLabel></FormItem> )} />
                     </div>
-                    <FormField control={transportationForm.control} name="q_hasAutoInsurance" render={({ field }) => ( <FormItem><FormLabel>Auto Insurance</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
-                    <FormField control={transportationForm.control} name="q_movingViolations" render={({ field }) => ( <FormItem><FormLabel>Moving Violations</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
-                    <FormField control={transportationForm.control} name="q_misdemeanorCharges" render={({ field }) => ( <FormItem><FormLabel>Misdemeanor Charges</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
-                    <FormField control={transportationForm.control} name="q_ieTravelAreas" render={({ field }) => ( <FormItem><FormLabel>Travel Areas</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
-                    <FormField control={transportationForm.control} name="q_preferredNotWorkAreas" render={({ field }) => ( <FormItem><FormLabel>Preferred NOT to work areas</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
+                    <FormField control={transportationForm.control} name="q_hasAutoInsurance" render={({ field }) => ( <FormItem><FormLabel>Auto Insurance</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={transportationForm.control} name="q_movingViolations" render={({ field }) => ( <FormItem><FormLabel>Moving Violations</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={transportationForm.control} name="q_misdemeanorCharges" render={({ field }) => ( <FormItem><FormLabel>Misdemeanor Charges</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={transportationForm.control} name="q_ieTravelAreas" render={({ field }) => ( <FormItem><FormLabel>Travel Areas</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={transportationForm.control} name="q_preferredNotWorkAreas" render={({ field }) => ( <FormItem><FormLabel>Preferred NOT to work areas</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                     <DialogFooter><Button type="submit" disabled={isTransportationSaving}>{isTransportationSaving && <Loader2 className="animate-spin mr-2" />}Save Transportation</Button></DialogFooter>
                 </form>
             </Form>
