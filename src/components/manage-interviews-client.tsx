@@ -54,6 +54,7 @@ import { DateInput } from './ui/date-input';
 import { ScrollArea } from './ui/scroll-area';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Badge } from './ui/badge';
+import Link from 'next/link';
 
 const safeToDate = (value: any): Date | null => {
     if (!value) return null;
@@ -840,7 +841,20 @@ export default function ManageInterviewsClient() {
                     <Card>
                         <CardHeader>
                             <CardTitle>Hire & Onboard</CardTitle>
-                            <Button onClick={handleInitiateOnboarding} disabled={existingInterview?.onboardingFormsInitiated} className="mt-2" size="sm"><FileText className="mr-2 h-4 w-4"/>Initiate Docs</Button>
+                            <div className="flex flex-wrap items-center gap-2 mt-2">
+                                {existingInterview?.onboardingFormsInitiated && (
+                                    <Button asChild variant="outline" size="sm">
+                                        <Link href={`/candidate-hiring-forms?candidateId=${selectedCaregiver.id}`}>
+                                            <FileCheck2 className="mr-2 h-4 w-4" />
+                                            View Hiring Forms
+                                        </Link>
+                                    </Button>
+                                )}
+                                <Button onClick={handleInitiateOnboarding} disabled={existingInterview?.onboardingFormsInitiated} size="sm">
+                                    <FileText className="mr-2 h-4 w-4"/>
+                                    {existingInterview?.onboardingFormsInitiated ? 'Docs Initiated' : 'Initiate Docs'}
+                                </Button>
+                            </div>
                         </CardHeader>
                         <CardContent>
                             <Form {...hiringForm}>
