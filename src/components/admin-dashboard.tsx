@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useTransition, useMemo } from "react";
@@ -28,7 +27,7 @@ import {
   Clock4
 } from "lucide-react";
 import Link from 'next/link';
-import { collection } from "firebase/firestore";
+import { collection, query, where, orderBy, limit } from "firebase/firestore";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 
 import type { Appointment, CaregiverProfile } from "@/lib/types";
@@ -97,34 +96,41 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const firestore = useFirestore();
 
-  const appointmentsRef = useMemoFirebase(() => collection(firestore, 'appointments'), [firestore]);
+  const fourWeeksAgo = subWeeks(new Date(), 4);
+
+  // Optimized query: only fetch recent, active appointments
+  const appointmentsRef = useMemoFirebase(() => 
+    firestore ? query(
+        collection(firestore, 'appointments'), 
+        where('startTime', '>=', fourWeeksAgo),
+        orderBy('startTime', 'desc'),
+        limit(100)
+    ) : null, 
+    [firestore, fourWeeksAgo]
+  );
   const { data: appointmentsData, isLoading: appointmentsLoading } = useCollection<Appointment>(appointmentsRef);
 
-  const caregiverProfilesRef = useMemoFirebase(() => collection(firestore, 'caregiver_profiles'), [firestore]);
+  // We still need profile data for the dashboard, but we'll fetch them individually as needed 
+  // or use the denormalized data once available. For now, we'll fetch profiles in bulk 
+  // but we should consider denormalizing the name/email into the appointment doc.
+  const caregiverProfilesRef = useMemoFirebase(() => firestore ? collection(firestore, 'caregiver_profiles') : null, [firestore]);
   const { data: caregiversData, isLoading: caregiversLoading } = useCollection<CaregiverProfile>(caregiverProfilesRef);
   
   const [editingAppointment, setEditingAppointment] = useState<AppointmentWithCaregiver | null>(null);
 
   const appointments: AppointmentWithCaregiver[] = useMemo(() => {
     if (!appointmentsData || !caregiversData) return [];
-    
     const caregiversMap = new Map(caregiversData.map(c => [c.id, c]));
-    const fourWeeksAgo = subWeeks(new Date(), 4);
 
-    const activeAppointments = appointmentsData.filter(
-        (appt) => {
-          const apptDate = (appt.startTime as any).toDate();
-          return appt.appointmentStatus !== "cancelled" && apptDate >= fourWeeksAgo;
-        }
-    );
-
-    return activeAppointments.map(appt => ({
-      ...appt,
-      startTime: (appt.startTime as any).toDate(),
-      endTime: (appt.endTime as any).toDate(),
-      preferredTimes: appt.preferredTimes?.map(t => (t as any).toDate()),
-      caregiver: caregiversMap.get(appt.caregiverId),
-    }));
+    return appointmentsData
+      .filter(appt => appt.appointmentStatus !== "cancelled")
+      .map(appt => ({
+        ...appt,
+        startTime: (appt.startTime as any).toDate(),
+        endTime: (appt.endTime as any).toDate(),
+        preferredTimes: appt.preferredTimes?.map(t => (t as any).toDate()),
+        caregiver: caregiversMap.get(appt.caregiverId),
+      }));
   }, [appointmentsData, caregiversData]);
 
 
@@ -153,9 +159,7 @@ export default function AdminDashboard() {
   };
 
   const safeAppointments = appointments || [];
-  const groupedAppointments = groupAppointmentsByDay(
-    safeAppointments.sort((a, b) => b.startTime.getTime() - a.startTime.getTime())
-  );
+  const groupedAppointments = groupAppointmentsByDay(safeAppointments);
   
   const isLoading = appointmentsLoading || caregiversLoading;
 

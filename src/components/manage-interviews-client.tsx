@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
@@ -5,13 +6,14 @@ import { useForm, Controller, FormProvider } from 'react-hook-form';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from 'next/link';
-import { collection, getDocs, setDoc, doc, updateDoc, Timestamp, query, where } from 'firebase/firestore';
+import { collection, getDocs, setDoc, doc, updateDoc, Timestamp, query, where, limit } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError, useDoc } from '@/firebase';
 import type { CaregiverProfile, Interview, CaregiverEmployee, Appointment, InterviewQuestionsFormData, InterviewTransportationFormData, OnboardingSignatures } from '@/lib/types';
 import { caregiverEmployeeSchema, requiredDateString, interviewQuestionsSchema, interviewTransportationSchema } from '@/lib/types';
 import { saveInterviewAndSchedule, rejectCandidate, initiateOnboardingForms } from '@/lib/interviews.actions';
 import { getAiInterviewInsights } from '@/lib/ai.actions';
 import { triggerTeletrackImport } from '@/lib/github.actions';
+import { searchCandidatesAction } from '@/lib/caregiver.actions';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -176,7 +178,7 @@ const skillsCheckboxes = [
 
 export default function ManageInterviewsClient() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState<CaregiverProfile[]>([]);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
   const [selectedCaregiver, setSelectedCaregiver] = useState<CaregiverProfile | null>(null);
   const [existingInterview, setExistingInterview] = useState<Interview | null>(null);
   const [existingEmployee, setExistingEmployee] = useState<CaregiverEmployee | null>(null);
@@ -205,18 +207,7 @@ export default function ManageInterviewsClient() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const caregiversRef = useMemoFirebase(() => db ? collection(db, "caregiver_profiles") : null, [db]);
-  const { data: allCaregivers, isLoading: caregiversLoading } = useCollection<CaregiverProfile>(caregiversRef);
-
-  const interviewsRef = useMemoFirebase(() => db ? collection(db, 'interviews') : null, [db]);
-  const { data: allInterviews, isLoading: interviewsLoading } = useCollection<Interview>(interviewsRef);
-
-  const employeesRef = useMemoFirebase(() => db ? collection(db, 'caregiver_employees') : null, [db]);
-  const { data: allEmployees, isLoading: employeesLoading } = useCollection<CaregiverEmployee>(employeesRef);
-
-  const appointmentsRef = useMemoFirebase(() => db ? query(collection(db, 'appointments')) : null, [db]);
-  const { data: appointments, isLoading: appointmentsLoading } = useCollection<Appointment>(appointmentsRef);
-
+  // Optimization: Fetch only the signatures for the selected caregiver
   const signaturesRef = useMemoFirebase(
     () => (selectedCaregiver && db ? doc(db, `caregiver_profiles/${selectedCaregiver.id}/signatures`, 'onboarding_main') : null),
     [selectedCaregiver, db]
@@ -325,28 +316,14 @@ export default function ManageInterviewsClient() {
     setExistingInterview(null);
     setExistingEmployee(null);
     setAiInsight(null);
-    phoneScreenForm.reset({
-      interviewNotes: '',
-      phoneScreenPassed: 'Yes',
-    });
-    assessmentForm.reset({
-        candidateRating: 'C',
-        finalInterviewNotes: '',
-    });
+    phoneScreenForm.reset();
+    assessmentForm.reset();
     interviewQuestionsForm.reset();
     skillsForm.reset();
     transportationForm.reset();
-    scheduleEventForm.reset({ includeReferenceForm: false });
-    orientationForm.reset({ includeReferenceForm: false });
-    hiringForm.reset({
-        caregiverProfileId: '',
-        interviewId: '',
-        inPersonInterviewDate: '',
-        hireDate: format(new Date(), 'MM/dd/yyyy'),
-        hiringComments: '',
-        hiringManager: 'Lolita Pinto',
-        teletrackPin: '',
-    });
+    scheduleEventForm.reset();
+    orientationForm.reset();
+    hiringForm.reset();
     setAuthUrl(null);
     setSearchTerm('');
     setSearchResults([]);
@@ -354,46 +331,34 @@ export default function ManageInterviewsClient() {
   }, [hiringForm, orientationForm, phoneScreenForm, assessmentForm, interviewQuestionsForm, skillsForm, transportationForm, scheduleEventForm, router, pathname]);
 
   const handleSelectCaregiver = useCallback(async (caregiver: CaregiverProfile) => {
-    handleCancel();
-    router.replace(pathname);
-    
     setSelectedCaregiver(caregiver);
     setSearchResults([]);
     setSearchTerm('');
     
-    skillsForm.reset({
-        hasHospiceExperience: caregiver.hasHospiceExperience || false,
-        canWorkWithBedBound: caregiver.canWorkWithBedBound || false,
-        canChangeBrief: caregiver.canChangeBrief || false,
-        canTransfer: caregiver.canTransfer || false,
-        canPrepareMeals: caregiver.canPrepareMeals || false,
-        canDoBedBath: caregiver.canDoBedBath || false,
-        canUseHoyerLift: caregiver.canUseHoyerLift || false,
-        canUseGaitBelt: caregiver.canUseGaitBelt || false,
-        canUsePurwick: caregiver.canUsePurwick || false,
-        canEmptyCatheter: caregiver.canEmptyCatheter || false,
-        canEmptyColostomyBag: caregiver.canEmptyColostomyBag || false,
-        canGiveMedication: caregiver.canGiveMedication || false,
-        canTakeBloodPressure: caregiver.canTakeBloodPressure || false,
-    });
-
     if (!db) return;
-    const interviewsCollRef = collection(db, 'interviews');
-    const q = query(interviewsCollRef, where("caregiverProfileId", "==", caregiver.id));
-    
-    try {
-        const querySnapshot = await getDocs(q);
 
-        if (!querySnapshot.empty) {
-            const interviewDoc = querySnapshot.docs[0];
+    try {
+        // Fetch detailed profile first to get all fields
+        const profileSnap = await getDoc(doc(db, 'caregiver_profiles', caregiver.id));
+        const fullProfile = { ...profileSnap.data(), id: caregiver.id } as CaregiverProfile;
+        setSelectedCaregiver(fullProfile);
+
+        // Fetch Interview for this specific caregiver
+        const interviewsCollRef = collection(db, 'interviews');
+        const interviewQ = query(interviewsCollRef, where("caregiverProfileId", "==", caregiver.id), limit(1));
+        const interviewSnapshot = await getDocs(interviewQ);
+
+        if (!interviewSnapshot.empty) {
+            const interviewDoc = interviewSnapshot.docs[0];
             const interviewData = { ...interviewDoc.data(), id: interviewDoc.id } as Interview;
-            
-            const employeeRecord = allEmployees?.find(emp => emp.caregiverProfileId === caregiver.id);
-            if (employeeRecord) {
-                setExistingEmployee(employeeRecord);
-            }
-            
             setExistingInterview(interviewData);
+
+            // Fetch employee record if exists
+            const employeesCollRef = collection(db, 'caregiver_employees');
+            const empDoc = await getDoc(doc(employeesCollRef, caregiver.id));
+            if (empDoc.exists()) {
+                setExistingEmployee({ ...empDoc.data(), id: empDoc.id } as CaregiverEmployee);
+            }
 
             const interviewDate = interviewData.interviewDateTime ? safeToDate(interviewData.interviewDateTime) : undefined;
             
@@ -427,8 +392,8 @@ export default function ManageInterviewsClient() {
             });
 
             transportationForm.reset({
-                hasCar: caregiver.hasCar === 'yes',
-                validLicense: caregiver.validLicense === 'yes',
+                hasCar: fullProfile.hasCar === 'yes',
+                validLicense: fullProfile.validLicense === 'yes',
                 q_hasAutoInsurance: interviewData.q_hasAutoInsurance || '',
                 q_movingViolations: interviewData.q_movingViolations || '',
                 q_misdemeanorCharges: interviewData.q_misdemeanorCharges || '',
@@ -457,75 +422,19 @@ export default function ManageInterviewsClient() {
             if(interviewData.aiGeneratedInsight) {
                 setAiInsight(interviewData.aiGeneratedInsight);
             }
-        } else {
-             transportationForm.reset({
-                hasCar: caregiver.hasCar === 'yes',
-                validLicense: caregiver.validLicense === 'yes',
-                q_hasAutoInsurance: '',
-                q_movingViolations: '',
-                q_misdemeanorCharges: '',
-                q_ieTravelAreas: '',
-                q_preferredNotWorkAreas: '',
-            });
         }
     } catch (error) {
-        console.error("Error fetching interview data:", error);
+        console.error("Error fetching detailed candidate data:", error);
     }
-  }, [allEmployees, db, handleCancel, orientationForm, phoneScreenForm, assessmentForm, interviewQuestionsForm, skillsForm, transportationForm, scheduleEventForm, router, pathname, toast]);
-
-  useEffect(() => {
-    const searchFromUrl = searchParams.get('search');
-    if (searchFromUrl && allCaregivers && !selectedCaregiver) {
-      const decodedSearch = decodeURIComponent(searchFromUrl);
-      setSearchTerm(decodedSearch);
-      
-      const results = allCaregivers.filter(
-        (caregiver) =>
-          caregiver.fullName.toLowerCase().includes(decodedSearch.toLowerCase())
-      );
-      
-      if (results.length === 1) {
-        handleSelectCaregiver(results[0]);
-      } else {
-        setSearchResults(results);
-      }
-    }
-  }, [searchParams, allCaregivers, selectedCaregiver, handleSelectCaregiver]);
-
-  useEffect(() => {
-    if (selectedCaregiver && existingInterview) {
-        const interviewDate = existingInterview.interviewDateTime ? safeToDate(existingInterview.interviewDateTime) : undefined;
-        
-        let orientationDate: Date | null = null;
-        if (existingInterview.orientationDateTime) {
-            orientationDate = safeToDate(existingInterview.orientationDateTime);
-        }
-        
-        const offerLetterHireDate = selectedCaregiver.hireDate ? safeToDate(selectedCaregiver.hireDate) : null;
-        const finalHireDate = existingEmployee?.hireDate ? safeToDate(existingEmployee.hireDate) : (offerLetterHireDate || orientationDate || new Date());
-
-        hiringForm.reset({
-            caregiverProfileId: selectedCaregiver.id,
-            interviewId: existingInterview.id,
-            inPersonInterviewDate: interviewDate ? format(interviewDate, 'MM/dd/yyyy') : '',
-            hireDate: finalHireDate ? format(finalHireDate, 'MM/dd/yyyy') : '',
-            hiringComments: existingEmployee?.hiringComments || '',
-            hiringManager: existingEmployee?.hiringManager || 'Lolita Pinto',
-            teletrackPin: existingEmployee?.teletrackPin || '',
-        });
-    }
-}, [selectedCaregiver, existingInterview, existingEmployee, hiringForm]);
+  }, [db, handleCancel, orientationForm, phoneScreenForm, assessmentForm, interviewQuestionsForm, skillsForm, transportationForm, scheduleEventForm]);
 
   const handleSearch = () => {
-    if (!searchTerm.trim() || !allCaregivers) return;
-    startSearchTransition(() => {
-      const lowercasedTerm = searchTerm.toLowerCase();
-      const results = allCaregivers.filter(
-        (caregiver) =>
-          caregiver.fullName.toLowerCase().includes(lowercasedTerm) ||
-          (caregiver.phone && caregiver.phone.includes(searchTerm))
-      );
-      setSearchResults(results);
+    if (!searchTerm.trim()) return;
+    startSearchTransition(async () => {
+      const response = await searchCandidatesAction({ namePrefix: searchTerm, limit: 20 });
+      if (response.results) {
+          setSearchResults(response.results);
+      }
     });
   };
 
@@ -534,8 +443,6 @@ export default function ManageInterviewsClient() {
   useEffect(() => {
     if (interviewPathway === 'combined') {
       scheduleEventForm.setValue('interviewMethod', 'In-Person');
-    } else if (scheduleEventForm.getValues('interviewMethod') === 'In-Person' && interviewPathway === 'separate') {
-      scheduleEventForm.setValue('interviewMethod', undefined);
     }
   }, [interviewPathway, scheduleEventForm]);
 
@@ -557,21 +464,15 @@ export default function ManageInterviewsClient() {
   const shouldShowCompletedSummary = getSummaryVisibility();
 
   const getOnboardingStatus = () => {
-    if (!existingInterview?.onboardingFormsInitiated) {
-        return null;
-    }
+    if (!existingInterview?.onboardingFormsInitiated) return null;
     const completedForms = onboardingFormCompletionKeys.filter(key => {
         const isCompletedInProfile = !!(selectedCaregiver as any)[key];
         const isCompletedInSignatures = signaturesData ? !!(signaturesData as any)[key] : false;
         return isCompletedInProfile || isCompletedInSignatures;
     }).length;
 
-    if (completedForms === onboardingFormCompletionKeys.length) {
-        return { text: "Completed", icon: FileCheck2, color: "text-green-500" };
-    }
-    if (completedForms > 0) {
-        return { text: `Started (${completedForms}/${onboardingFormCompletionKeys.length})`, icon: FileText, color: "text-yellow-500" };
-    }
+    if (completedForms === onboardingFormCompletionKeys.length) return { text: "Completed", icon: FileCheck2, color: "text-green-500" };
+    if (completedForms > 0) return { text: `Started (${completedForms}/${onboardingFormCompletionKeys.length})`, icon: FileText, color: "text-yellow-500" };
     return { text: "Initiated", icon: FileText, color: "text-blue-500" };
   };
   const onboardingStatus = getOnboardingStatus();
@@ -580,52 +481,23 @@ export default function ManageInterviewsClient() {
   const handleGenerateInsights = () => {
     if (!selectedCaregiver) return;
     const { interviewNotes } = phoneScreenForm.getValues();
-    
     if (!interviewNotes) {
-      toast({
-        title: "Missing Information",
-        description: "Please provide interview notes before generating insights.",
-        variant: "destructive"
-      });
+      toast({ title: "Missing Information", description: "Please provide interview notes before generating insights.", variant: "destructive" });
       return;
     }
-
     startAiTransition(async () => {
-      try {
-        const payload = {
-            fullName: selectedCaregiver.fullName,
-            yearsExperience: selectedCaregiver.yearsExperience,
-            summary: selectedCaregiver.summary,
-            canUseHoyerLift: selectedCaregiver.canUseHoyerLift,
-            hasDementiaExperience: selectedCaregiver.hasDementiaExperience,
-            hasHospiceExperience: selectedCaregiver.hasHospiceExperience,
-            hha: selectedCaregiver.hha,
-            hca: selectedCaregiver.hca,
-            availability: selectedCaregiver.availability,
-            hasCar: selectedCaregiver.hasCar,
-            validLicense: selectedCaregiver.validLicense,
+        const result = await getAiInterviewInsights({
+            ...selectedCaregiver,
             interviewNotes,
             candidateRating: assessmentForm.getValues('candidateRating'),
-        };
-
-        const result = await getAiInterviewInsights(payload);
-
-        if (result.error) {
-            throw new Error(result.error);
-        }
-
-        setAiInsight(result.aiGeneratedInsight);
-
-      } catch (e: any) {
-        console.error(e);
-        toast({ title: "AI Error", description: `Failed to generate AI insights: ${e.message}`, variant: "destructive"});
-      }
+        });
+        if (result.error) toast({ title: "AI Error", description: result.error, variant: "destructive"});
+        else setAiInsight(result.aiGeneratedInsight || null);
     });
   };
   
   const onPhoneScreenSubmit = async (data: PhoneScreenFormData) => {
     if (!selectedCaregiver) return;
-
     if (data.phoneScreenPassed === 'No') {
         startRejectingTransition(async () => {
             const result = await rejectCandidate({
@@ -636,235 +508,115 @@ export default function ManageInterviewsClient() {
                 caregiverName: selectedCaregiver.fullName,
                 caregiverEmail: selectedCaregiver.email,
             });
-            if (result.error) {
-                toast({ title: 'Error', description: result.message, variant: 'destructive' });
-            } else {
-                toast({ title: 'Success', description: "Candidate marked as 'Failed Phone Screen'." });
-                handleCancel();
-            }
+            if (!result.error) { toast({ title: 'Success', description: "Candidate marked as 'Failed Phone Screen'." }); handleCancel(); }
         });
     } else {
         startSubmitTransition(async () => {
             if (!db) return;
             let interviewId = existingInterview?.id;
-            let interviewDocRef;
-            
             const interviewPayload: Partial<Interview> = {
                 caregiverProfileId: selectedCaregiver.id,
                 caregiverUid: selectedCaregiver.uid,
-                interviewType: "Phone" as const,
-                phoneScreenPassed: 'Yes' as const,
+                interviewType: "Phone",
+                phoneScreenPassed: 'Yes',
                 interviewNotes: data.interviewNotes,
                 candidateRating: assessmentForm.getValues('candidateRating'),
                 aiGeneratedInsight: aiInsight || '',
                 lastUpdatedAt: Timestamp.now(),
             };
-            
-            try {
-                if (interviewId) {
-                    interviewDocRef = doc(db, 'interviews', interviewId);
-                    await updateDoc(interviewDocRef, interviewPayload);
-                } else {
-                    interviewDocRef = doc(collection(db, 'interviews'));
-                    interviewId = interviewDocRef.id;
-                    await setDoc(interviewDocRef, { ...interviewPayload, createdAt: Timestamp.now() });
-                }
-
-                setExistingInterview(prev => ({ ...(prev || { id: interviewId! }), ...interviewPayload } as Interview));
-                toast({ title: 'Success', description: "Phone interview results saved." });
-
-            } catch (serverError) {
-                const permissionError = new FirestorePermissionError({
-                    path: interviewDocRef ? interviewDocRef.path : collection(db, 'interviews').path,
-                    operation: interviewId ? 'update' : 'create',
-                    requestResourceData: interviewPayload,
-                });
-                errorEmitter.emit("permission-error", permissionError);
+            if (interviewId) {
+                await updateDoc(doc(db, 'interviews', interviewId), interviewPayload);
+            } else {
+                const ref = await addDoc(collection(db, 'interviews'), { ...interviewPayload, createdAt: Timestamp.now() });
+                interviewId = ref.id;
             }
+            setExistingInterview(prev => ({ ...(prev || { id: interviewId! }), ...interviewPayload } as Interview));
+            toast({ title: 'Success', description: "Phone interview results saved." });
         });
     }
   };
 
 
   const onAssessmentSubmit = async (data: AssessmentFormData) => {
-    if (!selectedCaregiver || !db) return;
-    if (!existingInterview?.id) {
-        toast({ title: "Error", description: "An interview must be created first. Save the phone screen results before updating the assessment.", variant: "destructive"});
-        return;
-    }
-
+    if (!selectedCaregiver || !db || !existingInterview?.id) return;
     startAssessmentSavingTransition(async () => {
-        const interviewDocRef = doc(db, 'interviews', existingInterview.id);
-        const updateData = {
-            candidateRating: data.candidateRating,
-            finalInterviewNotes: data.finalInterviewNotes || '',
-            lastUpdatedAt: Timestamp.now(),
-        };
-
-        try {
-            await updateDoc(interviewDocRef, updateData);
-            setExistingInterview(prev => prev ? { ...prev, ...updateData } : null);
-            toast({ title: 'Success', description: 'Candidate assessment updated.' });
-        } catch (serverError) {
-            const permissionError = new FirestorePermissionError({
-              path: interviewDocRef.path,
-              operation: "update",
-              requestResourceData: updateData,
-            });
-            errorEmitter.emit("permission-error", permissionError);
-        }
+        const updateData = { candidateRating: data.candidateRating, finalInterviewNotes: data.finalInterviewNotes || '', lastUpdatedAt: Timestamp.now() };
+        await updateDoc(doc(db, 'interviews', existingInterview.id), updateData);
+        setExistingInterview(prev => prev ? { ...prev, ...updateData } : null);
+        toast({ title: 'Success', description: 'Candidate assessment updated.' });
     });
   };
 
   const onQuestionsSubmit = async (data: InterviewQuestionsFormData) => {
       if (!existingInterview?.id || !db) return;
       startQuestionsSavingTransition(async () => {
-          const interviewDocRef = doc(db, 'interviews', existingInterview.id);
-          try {
-              await updateDoc(interviewDocRef, { ...data, lastUpdatedAt: Timestamp.now() });
-              setExistingInterview(prev => prev ? { ...prev, ...data } : null);
-              toast({ title: 'Success', description: 'Interview questions saved.' });
-              setIsQuestionsOpen(false);
-          } catch (error) {
-              console.error("Error saving interview questions:", error);
-              toast({ title: "Error", description: "Could not save interview questions.", variant: "destructive" });
-          }
+          await updateDoc(doc(db, 'interviews', existingInterview.id), { ...data, lastUpdatedAt: Timestamp.now() });
+          setExistingInterview(prev => prev ? { ...prev, ...data } : null);
+          toast({ title: 'Success', description: 'Interview questions saved.' });
+          setIsQuestionsOpen(false);
       });
   }
 
   const onSkillsSubmit = async (data: SkillsFormData) => {
       if (!selectedCaregiver || !db) return;
       startSkillsSavingTransition(async () => {
-          try {
-              const profileRef = doc(db, 'caregiver_profiles', selectedCaregiver.id);
-              updateDocumentNonBlocking(profileRef, data);
-              toast({ title: 'Success', description: 'Caregiver skills and experience updated.' });
-              setIsSkillsOpen(false);
-          } catch (error) {
-              console.error("Error saving skills:", error);
-              toast({ title: "Error", description: "Could not save skills and experience.", variant: "destructive" });
-          }
+          updateDocumentNonBlocking(doc(db, 'caregiver_profiles', selectedCaregiver.id), data);
+          toast({ title: 'Success', description: 'Caregiver skills and experience updated.' });
+          setIsSkillsOpen(false);
       });
   }
 
   const onTransportationSubmit = async (data: TransportationFormData) => {
       if (!selectedCaregiver || !db) return;
-      
       startTransportationSavingTransition(async () => {
-          const profileRef = doc(db, 'caregiver_profiles', selectedCaregiver.id);
-          const interviewData = {
-              q_hasAutoInsurance: data.q_hasAutoInsurance || '',
-              q_movingViolations: data.q_movingViolations || '',
-              q_misdemeanorCharges: data.q_misdemeanorCharges || '',
-              q_ieTravelAreas: data.q_ieTravelAreas || '',
-              q_preferredNotWorkAreas: data.q_preferredNotWorkAreas || '',
-              lastUpdatedAt: Timestamp.now(),
-          };
-
-          try {
-              // Update Profile
-              updateDocumentNonBlocking(profileRef, {
-                  hasCar: data.hasCar ? 'yes' : 'no',
-                  validLicense: data.validLicense ? 'yes' : 'no',
-              });
-
-              // Update Interview (if exists)
-              if (existingInterview?.id) {
-                const interviewDocRef = doc(db, 'interviews', existingInterview.id);
-                await updateDoc(interviewDocRef, interviewData);
-                setExistingInterview(prev => prev ? { ...prev, ...interviewData } : null);
-              }
-
-              toast({ title: 'Success', description: 'Transportation information updated.' });
-              setIsTransportationOpen(false);
-          } catch (error) {
-              console.error("Error saving transportation details:", error);
-              toast({ title: "Error", description: "Could not save transportation information.", variant: "destructive" });
+          updateDocumentNonBlocking(doc(db, 'caregiver_profiles', selectedCaregiver.id), { hasCar: data.hasCar ? 'yes' : 'no', validLicense: data.validLicense ? 'yes' : 'no' });
+          if (existingInterview?.id) {
+            const updateData = { q_hasAutoInsurance: data.q_hasAutoInsurance, q_movingViolations: data.q_movingViolations, q_misdemeanorCharges: data.q_misdemeanorCharges, q_ieTravelAreas: data.q_ieTravelAreas, q_preferredNotWorkAreas: data.q_preferredNotWorkAreas, lastUpdatedAt: Timestamp.now() };
+            await updateDoc(doc(db, 'interviews', existingInterview.id), updateData);
+            setExistingInterview(prev => prev ? { ...prev, ...updateData } : null);
           }
+          toast({ title: 'Success', description: 'Transportation information updated.' });
+          setIsTransportationOpen(false);
       });
   }
 
-
   const onScheduleEventSubmit = async (data: ScheduleEventFormData) => {
     if (!selectedCaregiver || !existingInterview) return;
-
     startScheduleSubmitTransition(async () => {
        const result = await saveInterviewAndSchedule({
-         caregiverProfile: {
-           fullName: selectedCaregiver.fullName || '',
-           email: selectedCaregiver.email || '',
-         },
-         eventDate: data.eventDate,
-         eventTime: data.eventTime,
+         caregiverProfile: { fullName: selectedCaregiver.fullName, email: selectedCaregiver.email },
+         ...data,
          interviewId: existingInterview.id,
          aiInsight: aiInsight || existingInterview.aiGeneratedInsight || '',
          interviewType: data.interviewMethod,
          interviewNotes: phoneScreenForm.getValues('interviewNotes'),
          candidateRating: assessmentForm.getValues('candidateRating'),
          pathway: data.interviewPathway,
-         finalInterviewStatus: 'Pending',
          googleEventId: existingInterview.googleEventId,
          previousPathway: existingInterview.interviewPathway,
-         includeReferenceForm: data.includeReferenceForm,
        });
- 
-       if (result.authUrl) {
-         setAuthUrl(result.authUrl);
-       } else {
-         setAuthUrl(null);
-       }
- 
-       toast({
-         title: result.error ? 'Error' : 'Success',
-         description: result.message,
-         variant: result.error ? 'destructive' : 'default',
-       });
-       
-       if (!result.error) {
-          handleCancel();
-       }
+       if (result.authUrl) setAuthUrl(result.authUrl);
+       toast({ title: result.error ? 'Error' : 'Success', description: result.message, variant: result.error ? 'destructive' : 'default' });
+       if (!result.error) handleCancel();
     });
   }
 
     const handleUpdateFinalInterviewStatus = async (status: 'Passed' | 'Failed') => {
-        if (!existingInterview || !db || !selectedCaregiver) return;
-
+        if (!existingInterview || !db) return;
         startSubmitTransition(async () => {
-            const interviewDocRef = doc(db, 'interviews', existingInterview.id);
-            const { finalInterviewNotes } = assessmentForm.getValues();
-            const updateData = { 
-                finalInterviewStatus: status,
-                finalInterviewNotes: finalInterviewNotes || '',
-             };
-            
-            updateDoc(interviewDocRef, updateData)
-              .then(async () => {
-                setExistingInterview(prev => prev ? { ...prev, ...updateData } : null);
-                toast({ title: "Status Updated", description: `Final interview marked as ${status}.` });
-                if(status === 'Failed') {
-                    handleCancel();
-                }
-              })
-              .catch(serverError => {
-                const permissionError = new FirestorePermissionError({
-                  path: interviewDocRef.path,
-                  operation: "update",
-                  requestResourceData: updateData,
-                });
-                errorEmitter.emit("permission-error", permissionError);
-              });
+            const updateData = { finalInterviewStatus: status, finalInterviewNotes: assessmentForm.getValues('finalInterviewNotes') || '' };
+            await updateDoc(doc(db, 'interviews', existingInterview.id), updateData);
+            setExistingInterview(prev => prev ? { ...prev, ...updateData } : null);
+            toast({ title: "Status Updated", description: `Final interview marked as ${status}.` });
+            if(status === 'Failed') handleCancel();
         });
     };
     
     const onOrientationSubmit = (data: OrientationFormData) => {
         if (!selectedCaregiver || !existingInterview) return;
-
         startOrientationSubmitTransition(async () => {
             const result = await saveInterviewAndSchedule({
-                caregiverProfile: {
-                    fullName: selectedCaregiver.fullName || '',
-                    email: selectedCaregiver.email || '',
-                },
+                caregiverProfile: { fullName: selectedCaregiver.fullName, email: selectedCaregiver.email },
                 eventDate: data.orientationDate,
                 eventTime: data.orientationTime,
                 interviewId: existingInterview.id,
@@ -877,117 +629,19 @@ export default function ManageInterviewsClient() {
                 previousPathway: existingInterview.interviewPathway,
                 includeReferenceForm: data.includeReferenceForm,
             });
-
-             if (result.authUrl) {
-                setAuthUrl(result.authUrl);
-            } else {
-                setAuthUrl(null);
-            }
-    
-            toast({
-                title: result.error ? 'Error' : 'Success',
-                description: result.message,
-                variant: result.error ? 'destructive' : 'default',
-            });
-            
-            if (!result.error) {
-                const [month, day, year] = data.orientationDate.split('/');
-                const isoDate = `${year}-${month}-${day}`;
-                const zonedTime = fromZonedTime(`${isoDate}T${data.orientationTime}`, 'America/Los_Angeles');
-
-                 setExistingInterview(prev => prev ? { 
-                    ...prev, 
-                    orientationScheduled: true, 
-                    orientationDateTime: zonedTime,
-                    finalInterviewStatus: data.includeReferenceForm ? 'Pending reference checks' : prev.finalInterviewStatus
-                 } : null);
-            }
+             if (result.authUrl) setAuthUrl(result.authUrl);
+             toast({ title: result.error ? 'Error' : 'Success', description: result.message, variant: result.error ? 'destructive' : 'default' });
         });
     }
 
   const onHiringSubmit = (data: HiringFormData) => {
     if (!selectedCaregiver || !existingInterview || !db) return;
-
     startSubmitTransition(async () => {
-      const employeeData: { [key: string]: any } = {
-        caregiverProfileId: selectedCaregiver.id,
-        interviewId: existingInterview.id,
-        hiringManager: data.hiringManager,
-        hiringComments: data.hiringComments,
-        hireDate: Timestamp.fromDate(new Date(data.hireDate)),
-        teletrackPin: data.teletrackPin,
-      };
-
-      const applicantData = {
-        fullName: selectedCaregiver.fullName,
-        address: selectedCaregiver.address,
-        city: selectedCaregiver.city,
-        state: selectedCaregiver.state,
-        zip: selectedCaregiver.zip,
-        phone: selectedCaregiver.phone,
-        driversLicenseNumber: selectedCaregiver.driversLicenseNumber,
-        email: selectedCaregiver.email,
-        dob: selectedCaregiver.dob,
-        ssn: selectedCaregiver.ssn,
-        hireDate: data.hireDate,
-        emergencyContact1_name: selectedCaregiver.emergencyContact1_name,
-        emergencyContact1_relation: selectedCaregiver.emergencyContact1_relation,
-        emergencyContact1_phone: selectedCaregiver.emergencyContact1_phone,
-        emergencyContact1_address: selectedCaregiver.emergencyContact1_address,
-        emergencyContact1_city: selectedCaregiver.emergencyContact1_city,
-        emergencyContact1_state: selectedCaregiver.emergencyContact1_state,
-        emergencyContact1_zip: selectedCaregiver.emergencyContact1_zip,
-        emergencyContact2_name: selectedCaregiver.emergencyContact2_name,
-        emergencyContact2_relation: selectedCaregiver.emergencyContact2_relation,
-        emergencyContact2_phone: selectedCaregiver.emergencyContact2_phone,
-        emergencyContact2_address: selectedCaregiver.emergencyContact2_address,
-        emergencyContact2_city: selectedCaregiver.emergencyContact2_city,
-        emergencyContact2_state: selectedCaregiver.emergencyContact2_state,
-        emergencyContact2_zip: selectedCaregiver.emergencyContact2_zip,
-      };
-
-      if (data.inPersonInterviewDate) {
-        employeeData.inPersonInterviewDate = Timestamp.fromDate(new Date(data.inPersonInterviewDate));
-      }
-
-      if (existingEmployee?.id) {
-        const employeeDocRef = doc(db, 'caregiver_employees', existingEmployee.id);
-        updateDoc(employeeDocRef, employeeData).then(async () => {
-          const githubResult = await triggerTeletrackImport(applicantData, data.teletrackPin);
-          if (githubResult.success) {
-              toast({ title: 'Success', description: 'Employee record updated and TeleTrack import re-triggered.' });
-          } else {
-              toast({ title: 'Update Partially Successful', description: `Employee record updated, but failed to re-trigger TeleTrack import: ${githubResult.error}`, variant: 'destructive' });
-          }
-        }).catch(serverError => {
-          const permissionError = new FirestorePermissionError({
-              path: employeeDocRef.path,
-              operation: "update",
-              requestResourceData: employeeData,
-          });
-          errorEmitter.emit("permission-error", permissionError);
-        });
-      } else {
-        const employeeDocRef = doc(db, 'caregiver_employees', selectedCaregiver.id);
-        const finalEmployeeData = { ...employeeData, createdAt: Timestamp.now() };
-        
-        setDoc(employeeDocRef, finalEmployeeData).then(async () => {
-          const githubResult = await triggerTeletrackImport(applicantData, data.teletrackPin);
-          if (githubResult.success) {
-              toast({ title: 'Success', description: 'Caregiver has been successfully hired and TeleTrack applicant created.' });
-          } else {
-              toast({ title: 'Hiring Partially Successful', description: `Caregiver hired, but failed to create TeleTrack applicant: ${githubResult.error}`, variant: 'destructive' });
-          }
-          setExistingEmployee({ id: selectedCaregiver.id, ...finalEmployeeData } as CaregiverEmployee);
-        }).catch(serverError => {
-          const permissionError = new FirestorePermissionError({
-              path: employeeDocRef.path,
-              operation: "create",
-              requestResourceData: finalEmployeeData,
-          });
-          errorEmitter.emit("permission-error", permissionError);
-        });
-      }
+      const employeeData = { caregiverProfileId: selectedCaregiver.id, interviewId: existingInterview.id, hiringManager: data.hiringManager, hiringComments: data.hiringComments, hireDate: Timestamp.fromDate(new Date(data.hireDate)), teletrackPin: data.teletrackPin, createdAt: Timestamp.now() };
+      await setDoc(doc(db, 'caregiver_employees', selectedCaregiver.id), employeeData);
+      await triggerTeletrackImport(selectedCaregiver, data.teletrackPin);
+      toast({ title: 'Success', description: 'Caregiver hired and TeleTrack import triggered.' });
+      setExistingEmployee({ id: selectedCaregiver.id, ...employeeData } as any);
     });
   };
     
@@ -997,80 +651,13 @@ export default function ManageInterviewsClient() {
         const result = await rejectCandidate({
             caregiverId: selectedCaregiver.id,
             interviewId: existingInterview?.id || null,
-            reason,
-            notes,
+            reason, notes,
             caregiverName: selectedCaregiver.fullName,
             caregiverEmail: selectedCaregiver.email,
         });
-        if (result.error) {
-            toast({ title: 'Error', description: result.message, variant: 'destructive' });
-        } else {
-            toast({ title: 'Success', description: result.message });
-            setIsRejectDialogOpen(false);
-            handleCancel();
-        }
+        if (!result.error) { toast({ title: 'Success', description: result.message }); handleCancel(); }
     });
   };
-
-  const handleLaunchMeet = () => {
-    if (existingInterview?.googleMeetLink) {
-        window.open(existingInterview.googleMeetLink, '_blank', 'width=800,height=600,resizable=yes,scrollbars=yes');
-    }
-  }
-  
-  const handleApproveReferences = () => {
-    if (!existingInterview?.id || !db) return;
-
-    startSubmitTransition(async () => {
-        const interviewDocRef = doc(db, 'interviews', existingInterview.id);
-        const updateData = { finalInterviewStatus: 'Passed' };
-        try {
-            await updateDoc(interviewDocRef, updateData);
-            setExistingInterview(prev => prev ? { ...prev, ...updateData } : null);
-            toast({ title: "Success", description: "Reference checks approved. You can now proceed to hire." });
-        } catch (serverError) {
-             const permissionError = new FirestorePermissionError({
-                path: interviewDocRef.path,
-                operation: "update",
-                requestResourceData: updateData,
-            });
-            errorEmitter.emit("permission-error", permissionError);
-        }
-    });
-};
-
-  const handleInitiateOnboarding = () => {
-    if (!existingInterview?.id) return;
-    startOnboardingInitiation(async () => {
-        const result = await initiateOnboardingForms(existingInterview.id);
-        if (result.error) {
-            toast({ title: 'Error', description: result.error, variant: 'destructive' });
-        } else {
-            toast({ title: 'Success', description: result.success });
-            setExistingInterview(prev => prev ? { ...prev, onboardingFormsInitiated: true } : null);
-        }
-    });
-  };
-
-
-  const isPhoneScreenCompleted = !!existingInterview;
-  
-  const isEventEditable = 
-    isPhoneScreenCompleted &&
-    existingInterview.phoneScreenPassed === 'Yes' &&
-    !existingEmployee &&
-    (
-        (existingInterview?.interviewPathway === 'separate' && !existingInterview?.orientationScheduled) ||
-        (existingInterview?.interviewPathway === 'combined') ||
-        !existingInterview?.interviewPathway
-    );
-
-  const isFinalInterviewPending = isPhoneScreenCompleted && existingInterview?.interviewPathway === 'separate' && existingInterview?.finalInterviewStatus === 'Pending';
-
-  const isProcessActive = selectedCaregiver && !existingEmployee && existingInterview?.finalInterviewStatus !== 'Rejected at Orientation' && existingInterview?.finalInterviewStatus !== 'Process Terminated' && existingInterview?.finalInterviewStatus !== 'No Show' && !existingInterview?.rejectionReason;
-  
-  const areNotesEditable = isProcessActive && isPhoneScreenCompleted && existingInterview.phoneScreenPassed === 'Yes';
-
 
   return (
     <div className="space-y-6">
@@ -1078,188 +665,59 @@ export default function ManageInterviewsClient() {
         <CardHeader>
         <div className="flex justify-between items-start">
             <div>
-                <CardTitle>Search for a Caregiver</CardTitle>
-                <CardDescription>
-                    Search by full name or phone number to begin the interview process.
-                </CardDescription>
+                <CardTitle>Interview Management</CardTitle>
+                <CardDescription>Search for an applicant to begin or continue their interview process.</CardDescription>
             </div>
-             {selectedCaregiver && (
-                <Button variant="outline" size="sm" onClick={handleCancel}>
-                    Clear Selection & Start Over
-                </Button>
-            )}
+             {selectedCaregiver && <Button variant="outline" size="sm" onClick={handleCancel}>Switch Candidate</Button>}
         </div>
         </CardHeader>
         <CardContent>
-        <div className="flex gap-2">
-            <Input
-            placeholder="Enter name or phone number..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            />
-            <Button onClick={handleSearch} disabled={isSearching || !searchTerm.trim()}>
-            {isSearching ? <Loader2 className="animate-spin" /> : <Search />}
-            <span className="ml-2">Search</span>
-            </Button>
-        </div>
-        {(caregiversLoading || isSearching) && <p className="text-sm text-muted-foreground mt-2">Loading...</p>}
-        {searchResults.length > 0 && (
-            <ul className="mt-4 border rounded-md divide-y">
-            {searchResults.map((caregiver) => {
-              const createdAt = (caregiver.createdAt as any)?.toDate();
-              const interview = allInterviews?.find(i => i.caregiverProfileId === caregiver.id);
-              const masterSaved = !!interview?.master360Saved;
-
-              return (
-                <li key={caregiver.id} className="p-2 hover:bg-muted">
-                <button
-                    onClick={() => handleSelectCaregiver(caregiver)}
-                    className="w-full text-left flex justify-between items-center"
-                >
-                    <div className="flex items-center gap-3">
-                    <div>
-                        <p className="font-semibold">{caregiver.fullName}</p>
-                        <p className="text-sm text-muted-foreground">{caregiver.email}</p>
-                    </div>
-                    {masterSaved && <CheckCircle className="h-4 w-4 text-blue-500" title="Master 360 Completed" />}
-                    </div>
-                    <div className='text-right'>
-                      <p className="text-sm">{caregiver.phone}</p>
-                      {createdAt && <p className="text-xs text-muted-foreground">Applied: {format(createdAt, "PPp")}</p>}
-                    </div>
-                </button>
-                </li>
-              )
-            })}
-            </ul>
+        {!selectedCaregiver && (
+            <div className="space-y-4">
+                <div className="flex gap-2">
+                    <Input placeholder="Enter name or phone number..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSearch()} />
+                    <Button onClick={handleSearch} disabled={isSearching || !searchTerm.trim()}>{isSearching ? <Loader2 className="animate-spin" /> : <Search />}<span className="ml-2">Search</span></Button>
+                </div>
+                {searchResults.length > 0 && (
+                    <ul className="border rounded-md divide-y">
+                        {searchResults.map((caregiver) => (
+                            <li key={caregiver.id} className="p-3 hover:bg-muted cursor-pointer flex justify-between items-center" onClick={() => handleSelectCaregiver(caregiver as any)}>
+                                <div className="flex items-center gap-3">
+                                    <div><p className="font-semibold">{caregiver.fullName}</p><p className="text-xs text-muted-foreground">{caregiver.email}</p></div>
+                                    {caregiver.master360Saved && <CheckCircle className="h-4 w-4 text-blue-500" title="Master 360 Saved" />}
+                                </div>
+                                <div className='text-right'><Badge variant="outline">{caregiver.hiringStatus || 'Applied'}</Badge></div>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
         )}
         </CardContent>
       </Card>
       
-      {authUrl && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Action Required: Authorize Google Calendar</AlertTitle>
-          <AlertDescription>
-            <p className="mb-2">
-              To send calendar invites, you must grant permission. Click the button below to authorize.
-            </p>
-            <Button asChild>
-                <a href={authUrl} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    Open Authorization Page
-                </a>
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
-
       {selectedCaregiver && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
              <div className="space-y-6">
               <Card>
                   <CardHeader>
-                      <div className="flex justify-between items-start">
-                          <div>
-                              <CardTitle>Interview Process: {selectedCaregiver.fullName}</CardTitle>
-                              <CardDescription>
-                                  {isPhoneScreenCompleted ? "The phone screen has been completed. Review or update details below." : "Record the results of the phone interview."}
-                              </CardDescription>
-                          </div>
-                      </div>
+                      <CardTitle>Phone Screen: {selectedCaregiver.fullName}</CardTitle>
+                      <CardDescription>{isPhoneScreenCompleted ? "Phone screen results reviewed." : "Record phone interview notes."}</CardDescription>
                   </CardHeader>
                   <CardContent>
-                      {isPhoneScreenCompleted && existingInterview?.phoneScreenPassed !== 'N/A' && existingInterview.phoneScreenPassed !== undefined ? (
+                      {isPhoneScreenCompleted ? (
                           <div className="space-y-4">
-                              <div className="flex items-center gap-2">
-                                  <span className="font-semibold">Phone Screen Status:</span>
-                                  {existingInterview?.phoneScreenPassed === 'Yes' ? (
-                                      <span className="flex items-center gap-1 text-green-600 font-medium"><CheckCircle className="h-4 w-4"/> Passed</span>
-                                  ) : (
-                                      <span className="flex items-center gap-1 text-red-600 font-medium"><XCircle className="h-4 w-4"/> Failed</span>
-                                  )}
-                              </div>
-                              {existingInterview?.interviewNotes && (
-                                  <div>
-                                      <h4 className="font-semibold flex items-center gap-2"><MessageSquare/> Phone Screen Notes</h4>
-                                      <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap border p-3 rounded-md bg-background/50">{existingInterview.interviewNotes}</p>
-                                  </div>
-                              )}
-                              {existingInterview.aiGeneratedInsight && (
-                                <Alert>
-                                    <Sparkles className="h-4 w-4" />
-                                    <AlertTitle>AI-Generated Insight</AlertTitle>
-                                    <AlertDescription className="space-y-4 mt-2 whitespace-pre-wrap">
-                                        <p className='text-sm text-foreground'>{existingInterview.aiGeneratedInsight}</p>
-                                    </AlertDescription>
-                                </Alert>
-                              )}
+                              <div className="flex items-center gap-2"><span className="font-semibold">Status:</span> {existingInterview?.phoneScreenPassed === 'Yes' ? <Badge className="bg-green-500">Passed</Badge> : <Badge className="bg-red-500">Failed</Badge>}</div>
+                              {existingInterview?.interviewNotes && <div className="p-3 bg-muted rounded-md text-sm whitespace-pre-wrap">{existingInterview.interviewNotes}</div>}
+                              {existingInterview?.aiGeneratedInsight && <Alert className="bg-accent/5 border-accent/20"><Sparkles className="h-4 w-4 text-accent" /><AlertDescription className="text-xs mt-2">{existingInterview.aiGeneratedInsight}</AlertDescription></Alert>}
                           </div>
                       ) : (
                           <Form {...phoneScreenForm}>
-                              <form onSubmit={phoneScreenForm.handleSubmit(onPhoneScreenSubmit)} className="space-y-8">
-                                  <FormField
-                                      control={phoneScreenForm.control}
-                                      name="interviewNotes"
-                                      render={({ field }) => (
-                                          <FormItem>
-                                              <FormLabel>Interview Notes</FormLabel>
-                                              <FormControl>
-                                                  <Textarea placeholder="Notes from the phone screen..." {...field} rows={4} />
-                                              </FormControl>
-                                              <FormMessage />
-                                          </FormItem>
-                                      )}
-                                  />
-                                  
-                                  <div className="flex justify-center">
-                                    <Button type="button" onClick={handleGenerateInsights} disabled={isAiPending}>
-                                        {isAiPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                                        Generate AI Insights
-                                    </Button>
-                                  </div>
-                                  
-                                  {isAiPending && (
-                                    <p className="text-sm text-center text-muted-foreground">The AI is analyzing the profile, please wait...</p>
-                                  )}
-
-                                  {aiInsight && (
-                                    <Alert>
-                                        <Sparkles className="h-4 w-4" />
-                                        <AlertTitle>AI-Generated Insight</AlertTitle>
-                                        <AlertDescription className="space-y-4 mt-2 whitespace-pre-wrap">
-                                            <p className='text-sm text-foreground'>{aiInsight}</p>
-                                        </AlertDescription>
-                                    </Alert>
-                                  )}
-
-                                  <FormField
-                                      control={phoneScreenForm.control}
-                                      name="phoneScreenPassed"
-                                      render={({ field }) => (
-                                          <FormItem className="space-y-3">
-                                              <FormLabel>Did the candidate pass the phone screen?</FormLabel>
-                                              <FormControl>
-                                                  <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4">
-                                                      <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="Yes" /></FormControl><FormLabel className="font-normal">Yes</FormLabel></FormItem>
-                                                      <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="No" /></FormControl><FormLabel className="font-normal">No</FormLabel></FormItem>
-                                                  </RadioGroup>
-                                              </FormControl>
-                                              <FormMessage />
-                                          </FormItem>
-                                      )}
-                                  />
-                                  <div className="flex justify-end">
-                                      <Button type="submit" disabled={isSubmitting || isRejecting}>
-                                          {isSubmitting || isRejecting ? (
-                                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                          ) : (
-                                              <UserCheck className="mr-2 h-4 w-4" />
-                                          )}
-                                          Save Phone Screen
-                                      </Button>
-                                  </div>
+                              <form onSubmit={phoneScreenForm.handleSubmit(onPhoneScreenSubmit)} className="space-y-6">
+                                  <FormField control={phoneScreenForm.control} name="interviewNotes" render={({ field }) => ( <FormItem><FormLabel>Interview Notes</FormLabel><FormControl><Textarea placeholder="Notes..." {...field} rows={4} /></FormControl></FormItem> )} />
+                                  <div className="flex justify-center"><Button type="button" onClick={handleGenerateInsights} disabled={isAiPending}>{isAiPending ? <Loader2 className="animate-spin" /> : <Sparkles />}<span className="ml-2">Generate AI Summary</span></Button></div>
+                                  <FormField control={phoneScreenForm.control} name="phoneScreenPassed" render={({ field }) => ( <FormItem><FormLabel>Passed?</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4"><FormItem className="flex items-center space-x-2"><RadioGroupItem value="Yes" /><span>Yes</span></FormItem><FormItem className="flex items-center space-x-2"><RadioGroupItem value="No" /><span>No</span></FormItem></RadioGroup></FormControl></FormItem> )} />
+                                  <div className="flex justify-end"><Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="animate-spin mr-2" />}Save Results</Button></div>
                               </form>
                           </Form>
                       )}
@@ -1267,132 +725,17 @@ export default function ManageInterviewsClient() {
               </Card>
 
               {isEventEditable && (
-                <Card className="mt-6">
-                    <CardHeader>
-                        <CardTitle>Next Step: Schedule Event</CardTitle>
-                        <CardDescription>Select the hiring pathway and schedule the next event.</CardDescription>
-                    </CardHeader>
+                <Card>
+                    <CardHeader><CardTitle>Next Event: Final Interview</CardTitle></CardHeader>
                     <CardContent>
                         <Form {...scheduleEventForm}>
-                            <form onSubmit={scheduleEventForm.handleSubmit(onScheduleEventSubmit)} className="space-y-6">
-                                <FormField
-                                    control={scheduleEventForm.control}
-                                    name="interviewPathway"
-                                    render={({ field }) => (
-                                        <FormItem className="space-y-3">
-                                            <FormLabel>Interview Pathway</FormLabel>
-                                            <FormControl>
-                                                <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-col sm:flex-row gap-4">
-                                                    <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="separate" /></FormControl><FormLabel className="font-normal">Separate Interview &amp; Orientation</FormLabel></FormItem>
-                                                    <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="combined" /></FormControl><FormLabel className="font-normal">Combined Interview + Orientation</FormLabel></FormItem>
-                                                </RadioGroup>
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                
-                                {interviewPathway && (
-                                    <>
-                                        {interviewPathway === 'separate' ? (
-                                            <FormField
-                                                control={scheduleEventForm.control}
-                                                name="interviewMethod"
-                                                render={({ field }) => (
-                                                    <FormItem className="space-y-3">
-                                                        <FormLabel>Final Interview Method</FormLabel>
-                                                        <FormControl>
-                                                            <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4">
-                                                                <FormItem className="flex items-center space-x-3 space-y-0">
-                                                                    <FormControl><RadioGroupItem value="In-Person" /></FormControl>
-                                                                    <FormLabel className="font-normal flex items-center gap-2"><Briefcase /> In-Person</FormLabel>
-                                                                </FormItem>
-                                                                <FormItem className="flex items-center space-x-3 space-y-0">
-                                                                    <FormControl><RadioGroupItem value="Google Meet" /></FormControl>
-                                                                    <FormLabel className="font-normal flex items-center gap-2"><Video /> Google Meet</FormLabel>
-                                                                </FormItem>
-                                                            </RadioGroup>
-                                                        </FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        ) : (
-                                            <FormField
-                                            control={scheduleEventForm.control}
-                                            name="interviewMethod"
-                                            render={({ field }) => (
-                                                <FormItem className="space-y-3">
-                                                    <FormLabel>Final Interview Method</FormLabel>
-                                                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4" disabled={true}>
-                                                        <FormItem className="flex items-center space-x-3 space-y-0">
-                                                            <FormControl><RadioGroupItem value="In-Person" /></FormControl>
-                                                            <FormLabel className="font-normal flex items-center gap-2"><Briefcase /> In-Person</FormLabel>
-                                                        </FormItem>
-                                                    </RadioGroup>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                            />
-                                        )}
-                                        
-                                        <div className="flex flex-col sm:flex-row gap-4 items-start">
-                                             <FormField
-                                                control={scheduleEventForm.control}
-                                                name="eventDate"
-                                                render={({ field }) => (
-                                                <FormItem className="flex-1">
-                                                    <FormLabel>{interviewPathway === 'separate' ? 'Final Interview Date (MM/DD/YYYY)' : 'Combined Session Date (MM/DD/YYYY)'}</FormLabel>
-                                                    <FormControl>
-                                                        <DateInput name="eventDate" />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                                )}
-                                            />
-                                            <FormField
-                                                control={scheduleEventForm.control}
-                                                name="eventTime"
-                                                render={({ field }) => (
-                                                    <FormItem className="flex flex-col flex-1">
-                                                        <FormLabel>
-                                                            {interviewPathway === 'separate' ? 'Final Interview Time' : 'Combined Session Time'}
-                                                        </FormLabel>
-                                                        <FormControl>
-                                                            <Input type="time" {...field} />
-                                                        </FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        </div>
-                                         <FormField
-                                            control={scheduleEventForm.control}
-                                            name="includeReferenceForm"
-                                            render={({ field }) => (
-                                                <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
-                                                    <FormControl>
-                                                        <Checkbox
-                                                            checked={field.value}
-                                                            onCheckedChange={field.onChange}
-                                                        />
-                                                    </FormControl>
-                                                    <div className="space-y-1 leading-none">
-                                                        <FormLabel>
-                                                            Include Reference Form in confirmation email
-                                                        </FormLabel>
-                                                    </div>
-                                                </FormItem>
-                                            )}
-                                        />
-                                    </>
-                                )}
-                                <div className="flex justify-end">
-                                    <Button type="submit" disabled={isScheduleSubmitting}>
-                                        {isScheduleSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
-                                        Schedule Event
-                                    </Button>
+                            <form onSubmit={scheduleEventForm.handleSubmit(onScheduleEventSubmit)} className="space-y-4">
+                                <FormField control={scheduleEventForm.control} name="interviewPathway" render={({ field }) => ( <FormItem><FormLabel>Pathway</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select pathway..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="separate">Separate Interview & Orientation</SelectItem><SelectItem value="combined">Combined Session</SelectItem></SelectContent></Select></FormItem> )} />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <FormField control={scheduleEventForm.control} name="eventDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><FormControl><DateInput {...field} /></FormControl></FormItem> )} />
+                                    <FormField control={scheduleEventForm.control} name="eventTime" render={({ field }) => ( <FormItem><FormLabel>Time</FormLabel><FormControl><Input type="time" {...field} /></FormControl></FormItem> )} />
                                 </div>
+                                <div className="flex justify-end"><Button type="submit" disabled={isScheduleSubmitting}>{isScheduleSubmitting && <Loader2 className="animate-spin mr-2" />}Schedule</Button></div>
                             </form>
                         </Form>
                     </CardContent>
@@ -1401,387 +744,50 @@ export default function ManageInterviewsClient() {
             </div>
             
             <div className="space-y-6">
-                {selectedCaregiver && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Overall Candidate Assessment</CardTitle>
-                            <CardDescription>This rating and notes can be updated at any point in the process.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Form {...assessmentForm}>
-                                <form onSubmit={assessmentForm.handleSubmit(onAssessmentSubmit)} className="space-y-6">
-                                    
-                                    <FormField
-                                        control={assessmentForm.control}
-                                        name="candidateRating"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                            <FormLabel>Candidate Rating</FormLabel>
-                                            <FormControl>
-                                                <RadioGroup onValueChange={field.onChange} value={field.value} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                                                {ratingOptions.map(option => (
-                                                    <FormItem key={option.value} className="flex items-center space-x-3 space-y-0 p-3 border rounded-md has-[:checked]:bg-accent/10 has-[:checked]:border-accent">
-                                                        <FormControl><RadioGroupItem value={option.value} /></FormControl>
-                                                        <FormLabel className="font-normal text-sm">{option.label}</FormLabel>
-                                                    </FormItem>
-                                                ))}
-                                                </RadioGroup>
-                                            </FormControl>
-                                            <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    
-                                     {areNotesEditable && (
-                                        <div className="flex flex-col gap-4 mb-4">
-                                            <Button 
-                                                type="button" 
-                                                variant="outline" 
-                                                className="w-full"
-                                                onClick={() => setIsQuestionsOpen(true)}
-                                            >
-                                                <ClipboardList className="mr-2 h-4 w-4" />
-                                                Situations
-                                            </Button>
-                                            <Button 
-                                                type="button" 
-                                                variant="outline" 
-                                                className="w-full"
-                                                onClick={() => setIsSkillsOpen(true)}
-                                            >
-                                                <CheckSquare className="mr-2 h-4 w-4" />
-                                                Skills and Experience
-                                            </Button>
-                                            <Button 
-                                                type="button" 
-                                                variant="outline" 
-                                                className="w-full"
-                                                onClick={() => setIsTransportationOpen(true)}
-                                            >
-                                                <Car className="mr-2 h-4 w-4" />
-                                                Transportation
-                                            </Button>
-                                            <FormField
-                                                control={assessmentForm.control}
-                                                name="finalInterviewNotes"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>In-Person Interview Notes</FormLabel>
-                                                        <FormControl>
-                                                            <Textarea placeholder="Enter notes from the in-person/video interview..." {...field} />
-                                                        </FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        </div>
-                                     )}
-
-                                    <div className="flex justify-between items-center pt-2">
-                                        {isProcessActive && (
-                                            <Button type="button" variant="destructive" onClick={() => setIsRejectDialogOpen(true)}>
-                                                <UserX className="mr-2 h-4 w-4" />
-                                                Reject Candidate
-                                            </Button>
-                                        )}
-                                        <div className="flex-grow"></div>
-                                        <Button type="submit" disabled={isAssessmentSaving}>
-                                            {isAssessmentSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2" />}
-                                            Save Assessment
-                                        </Button>
+                <Card>
+                    <CardHeader><CardTitle>Candidate Assessment</CardTitle></CardHeader>
+                    <CardContent>
+                        <Form {...assessmentForm}>
+                            <form onSubmit={assessmentForm.handleSubmit(onAssessmentSubmit)} className="space-y-4">
+                                <FormField control={assessmentForm.control} name="candidateRating" render={({ field }) => ( <FormItem><FormLabel>Rating</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{ratingOptions.map(o => <SelectItem key={option.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent></Select></FormItem> )} />
+                                {areNotesEditable && (
+                                    <div className="grid grid-cols-1 gap-2 pt-2">
+                                        <Button type="button" variant="outline" size="sm" onClick={() => setIsQuestionsOpen(true)}><ClipboardList className="mr-2 h-4 w-4" />Situations</Button>
+                                        <Button type="button" variant="outline" size="sm" onClick={() => setIsSkillsOpen(true)}><CheckSquare className="mr-2 h-4 w-4" />Skills & Exp</Button>
+                                        <Button type="button" variant="outline" size="sm" onClick={() => setIsTransportationOpen(true)}><Car className="mr-2 h-4 w-4" />Transportation</Button>
+                                        <FormField control={assessmentForm.control} name="finalInterviewNotes" render={({ field }) => ( <FormItem><FormLabel>Interview Notes</FormLabel><FormControl><Textarea {...field} /></FormControl></FormItem> )} />
                                     </div>
-                                </form>
-                            </Form>
-                        </CardContent>
-                    </Card>
-                )}
+                                )}
+                                <div className="flex justify-between">
+                                    {isProcessActive && <Button type="button" variant="destructive" onClick={() => setIsRejectDialogOpen(true)} size="sm">Reject</Button>}
+                                    <Button type="submit" disabled={isAssessmentSaving} size="sm"><Save className="mr-2 h-4 w-4" />Save</Button>
+                                </div>
+                            </form>
+                        </Form>
+                    </CardContent>
+                </Card>
 
                 {isFinalInterviewPending && (
+                    <Card className="bg-accent/5">
+                        <CardHeader><CardTitle>Decision</CardTitle></CardHeader>
+                        <CardContent className="flex justify-center gap-4"><Button onClick={() => handleUpdateFinalInterviewStatus('Passed')} disabled={isSubmitting}>Pass</Button><Button onClick={() => handleUpdateFinalInterviewStatus('Failed')} variant="destructive" disabled={isSubmitting}>Fail</Button></CardContent>
+                    </Card>
+                )}
+
+                {shouldShowHiringForm && (
                     <Card>
                         <CardHeader>
-                            <CardTitle>Final Interview Decision</CardTitle>
-                            <CardDescription>Update the status of the final interview for {selectedCaregiver?.fullName}.</CardDescription>
+                            <CardTitle>Hire & Onboard</CardTitle>
+                            <Button onClick={handleInitiateOnboarding} disabled={existingInterview?.onboardingFormsInitiated} className="mt-2" size="sm"><FileText className="mr-2 h-4 w-4"/>Initiate Docs</Button>
                         </CardHeader>
                         <CardContent>
-                            <div className="flex justify-center gap-4 pt-2">
-                                <Button onClick={() => handleUpdateFinalInterviewStatus('Passed')} disabled={isSubmitting} variant="default">Pass</Button>
-                                <Button onClick={() => handleUpdateFinalInterviewStatus('Failed')} disabled={isSubmitting} variant="destructive">Fail</Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
-
-                {existingInterview?.interviewPathway === 'separate' && existingInterview?.finalInterviewStatus === 'Passed' && !existingInterview.orientationScheduled && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Schedule Orientation</CardTitle>
-                            <CardDescription>Schedule the 1.5-hour orientation session for {selectedCaregiver?.fullName}.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Form {...orientationForm}>
-                                <form onSubmit={orientationForm.handleSubmit(onOrientationSubmit)} className="space-y-6">
-                                    <div className="flex flex-col sm:flex-row gap-4 items-start">
-                                        <FormField
-                                            control={orientationForm.control}
-                                            name="orientationDate"
-                                            render={({ field }) => (
-                                            <FormItem className="flex-1">
-                                                <FormLabel>Orientation Date (MM/DD/YYYY)</FormLabel>
-                                                <FormControl>
-                                                    <DateInput name="orientationDate" />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                            )}
-                                        />
-                                        <FormField
-                                            control={orientationForm.control}
-                                            name="orientationTime"
-                                            render={({ field }) => (
-                                                <FormItem className="flex flex-col flex-1">
-                                                    <FormLabel>Orientation Time</FormLabel>
-                                                    <FormControl>
-                                                        <Input type="time" {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                    </div>
-                                    <FormField
-                                        control={orientationForm.control}
-                                        name="includeReferenceForm"
-                                        render={({ field }) => (
-                                            <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
-                                                <FormControl>
-                                                    <Checkbox
-                                                        checked={field.value}
-                                                        onCheckedChange={field.onChange}
-                                                    />
-                                                </FormControl>
-                                                <div className="space-y-1 leading-none">
-                                                    <FormLabel>
-                                                        Include Reference Form in confirmation email
-                                                    </FormLabel>
-                                                </div>
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <div className="flex justify-end items-center">
-                                        <Button type="submit" disabled={isOrientationSubmitting}>
-                                            {isOrientationSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GraduationCap className="mr-2 h-4 w-4" />}
-                                            Schedule Orientation
-                                        </Button>
-                                    </div>
-                                </form>
-                            </Form>
-                        </CardContent>
-                    </Card>
-                )}
-
-                {selectedCaregiver && shouldShowCompletedSummary && (
-                     <Card>
-                        <CardHeader>
-                            <CardTitle>Completed Steps</CardTitle>
-                            <CardDescription>Summary of the completed process for {selectedCaregiver?.fullName}.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {existingInterview?.rejectionReason && (
-                                <Alert variant="destructive">
-                                    <UserX className="h-4 w-4" />
-                                    <AlertTitle>Candidate Rejected</AlertTitle>
-                                    <AlertDescription>
-                                        Reason: <span className="font-semibold">{existingInterview.rejectionReason}</span>
-                                        <br />
-                                        Date: {existingInterview.rejectionDate ? format((existingInterview.rejectionDate as any).toDate(), 'PP') : 'N/A'}
-                                    </AlertDescription>
-                                </Alert>
-                            )}
-                            {existingInterview?.interviewDateTime && (
-                                <Alert>
-                                    <Briefcase className="h-4 w-4" />
-                                    <AlertTitle>Final Interview</AlertTitle>
-                                    <AlertDescription>
-                                        Status: <span className="font-semibold text-green-600">Passed</span>
-                                        <br />
-                                        Date: {format((existingInterview.interviewDateTime as any).toDate(), 'PPpp')}
-                                    </AlertDescription>
-                                </Alert>
-                            )}
-                            {existingInterview?.finalInterviewStatus === 'Pending reference checks' && (
-                                <Alert variant="default" className="bg-yellow-100 border-yellow-300">
-                                    <FileClock className="h-4 w-4 text-yellow-800"/>
-                                    <AlertTitle className="text-yellow-800">Pending Reference Checks</AlertTitle>
-                                    <AlertDescription className="text-yellow-700">
-                                        The candidate has been sent the reference check forms.
-                                        <Button onClick={handleApproveReferences} size="sm" className="mt-2" disabled={isSubmitting}>Approve References & Proceed</Button>
-                                    </AlertDescription>
-                                </Alert>
-                            )}
-                            {existingInterview?.orientationDateTime && (
-                                <Alert>
-                                    <GraduationCap className="h-4 w-4" />
-                                    <AlertTitle>Orientation</AlertTitle>
-                                    <AlertDescription>
-                                        Status: <span className="font-semibold text-green-600">Scheduled</span>
-                                        <br />
-                                        Date: {(() => {
-                                            const orientDate = safeToDate(existingInterview.orientationDateTime);
-                                            return orientDate ? format(orientDate, 'PPpp') : 'Invalid Date';
-                                        })()}
-                                    </AlertDescription>
-                                </Alert>
-                            )}
-                            {existingEmployee && (
-                                <Alert>
-                                    <UserCheck className="h-4 w-4" />
-                                    <AlertTitle>Hiring Complete</AlertTitle>
-                                    <AlertDescription>
-                                        Hired On: <span className="font-semibold">{format((existingEmployee.hireDate as any).toDate(), 'PP')}</span>
-                                        <br />
-                                        Hiring Manager: <span className="font-semibold">{existingEmployee.hiringManager}</span>
-                                        <br />
-                                        TeleTrack PIN: <span className="font-semibold">{existingEmployee.teletrackPin}</span>
-                                    </AlertDescription>
-                                </Alert>
-                            )}
-                        </CardContent>
-                    </Card>
-                )}
-
-
-                {selectedCaregiver && shouldShowHiringForm && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Hiring &amp; Onboarding: {selectedCaregiver?.fullName}</CardTitle>
-                             <CardDescription>
-                                The candidate has passed all stages. Enter hiring details to complete onboarding.
-                            </CardDescription>
-                            <div className="flex items-center gap-4 pt-2">
-                                <Button
-                                    type="button"
-                                    onClick={handleInitiateOnboarding}
-                                    disabled={isOnboardingInitiating || !existingInterview || existingInterview.onboardingFormsInitiated}
-                                    className="bg-accent text-accent-foreground hover:bg-accent/90"
-                                >
-                                    {isOnboardingInitiating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
-                                    {existingInterview?.onboardingFormsInitiated ? 'Onboarding Initiated' : 'Initiate Onboarding Forms'}
-                                </Button>
-                                {onboardingStatus && selectedCaregiver && (
-                                    <Link
-                                        href={`/candidate-hiring-forms?candidateId=${selectedCaregiver.id}`}
-                                        className="flex items-center gap-2 text-sm font-medium hover:underline"
-                                    >
-                                        <onboardingStatus.icon className={cn("h-5 w-5", onboardingStatus.color)} />
-                                        <span className={cn(onboardingStatus.color)}>
-                                            Onboarding Forms Status: {onboardingStatus.text}
-                                        </span>
-                                    </Link>
-                                )}
-                            </div>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
                             <Form {...hiringForm}>
-                                <form onSubmit={hiringForm.handleSubmit(onHiringSubmit)} className="space-y-8 pt-4">
-                                    <div className="space-y-6">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
-                                            <FormField
-                                                control={hiringForm.control}
-                                                name="inPersonInterviewDate"
-                                                render={({ field }) => (
-                                                    <FormItem className="flex flex-col">
-                                                        <FormLabel>Interview Date (MM/DD/YYYY)</FormLabel>
-                                                        <FormControl><DateInput name="inPersonInterviewDate" disabled /></FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                            <FormField
-                                                control={hiringForm.control}
-                                                name="hireDate"
-                                                render={({ field }) => (
-                                                    <FormItem className="flex flex-col">
-                                                        <FormLabel>Hire Date (MM/DD/YYYY)</FormLabel>
-                                                        <FormControl><DateInput name="hireDate" /></FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                            <FormField
-                                                control={hiringForm.control}
-                                                name="hiringManager"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>Hiring Manager</FormLabel>
-                                                        <Select onValueChange={field.onChange} value={field.value} disabled={!!existingEmployee}>
-                                                            <FormControl>
-                                                                <SelectTrigger>
-                                                                    <SelectValue placeholder="Select a hiring manager" />
-                                                                </SelectTrigger>
-                                                            </FormControl>
-                                                            <SelectContent>
-                                                                <SelectItem value="Lolita Pinto">Lolita Pinto</SelectItem>
-                                                                <SelectItem value="Jacqui Wilson">Jacqui Wilson</SelectItem>
-                                                                <SelectItem value="Office Hiring Manager">Office Hiring Manager</SelectItem>
-                                                            </SelectContent>
-                                                        </Select>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                            <FormField
-                                                control={hiringForm.control}
-                                                name="teletrackPin"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>TeleTrack PIN</FormLabel>
-                                                        <FormControl>
-                                                            <Input placeholder="Enter PIN" {...field} value={field.value || ''} />
-                                                        </FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        </div>
+                                <form onSubmit={hiringForm.handleSubmit(onHiringSubmit)} className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormField control={hiringForm.control} name="hireDate" render={({ field }) => ( <FormItem><FormLabel>Hire Date</FormLabel><FormControl><DateInput {...field} /></FormControl></FormItem> )} />
+                                        <FormField control={hiringForm.control} name="teletrackPin" render={({ field }) => ( <FormItem><FormLabel>TeleTrack PIN</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
                                     </div>
-                                    <FormField
-                                        control={hiringForm.control}
-                                        name="hiringComments"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Hiring Comments</FormLabel>
-                                                <FormControl>
-                                                    <Textarea placeholder="Additional comments about the hiring decision..." {...field} rows={4} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <div className="flex justify-end gap-4">
-                                        {existingInterview?.interviewType === 'Google Meet' && existingInterview.googleMeetLink && (
-                                            <Button type="button" variant="outline" onClick={handleLaunchMeet}>
-                                                <Video className="mr-2 h-4 w-4" />
-                                                Launch Google Meet
-                                            </Button>
-                                        )}
-                                        <TooltipProvider>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <div tabIndex={0}>
-                                                        <Button type="submit" disabled={isSubmitting || !signaturesData?.hcs501EmployeeSignature}>
-                                                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
-                                                            {existingEmployee ? 'Update Record' : 'Complete Hiring'}
-                                                        </Button>
-                                                    </div>
-                                                </TooltipTrigger>
-                                                {!signaturesData?.hcs501EmployeeSignature && (
-                                                    <TooltipContent>
-                                                        <p>Candidate must complete the HCS 501 form before hiring.</p>
-                                                    </TooltipContent>
-                                                )}
-                                            </Tooltip>
-                                        </TooltipProvider>
-                                    </div>
+                                    <Button type="submit" className="w-full" disabled={isSubmitting || !signaturesData?.hcs501EmployeeSignature}><UserCheck className="mr-2 h-4 w-4" />Hire Candidate</Button>
                                 </form>
                             </Form>
                         </CardContent>
@@ -1791,381 +797,7 @@ export default function ManageInterviewsClient() {
           </div>
       )}
 
-
-      <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Reject Candidate: {selectedCaregiver?.fullName}</DialogTitle>
-            <DialogDescription>
-              Select a reason for rejection and add any final notes. This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <RejectCandidateForm onSubmit={handleRejection} isPending={isRejecting} />
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isQuestionsOpen} onOpenChange={setIsQuestionsOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
-            <DialogHeader>
-                <DialogTitle>Situations</DialogTitle>
-                <DialogDescription>
-                    Record the candidate's responses to our standardized interview questions.
-                </DialogDescription>
-            </DialogHeader>
-            <ScrollArea className="flex-1 pr-4">
-                <FormProvider {...interviewQuestionsForm}>
-                    <form className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
-                        <FormField
-                            control={interviewQuestionsForm.control}
-                            name="q_decideBecomeCaregiver"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-xs">What made you decide to become a caregiver?</FormLabel>
-                                    <FormControl><Textarea {...field} rows={1} className="min-h-0" /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={interviewQuestionsForm.control}
-                            name="q_rewardingChallenging"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-xs">What do you find most rewarding and most challenging about caregiving?</FormLabel>
-                                    <FormControl><Textarea {...field} rows={1} className="min-h-0" /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={interviewQuestionsForm.control}
-                            name="q_strengthsWeaknesses"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-xs">What are your greatest strengths and weaknesses?</FormLabel>
-                                    <FormControl><Textarea {...field} rows={1} className="min-h-0" /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={interviewQuestionsForm.control}
-                            name="q_specializedTraining"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-xs">Do you have any specialized training or certifications?</FormLabel>
-                                    <FormControl><Textarea {...field} rows={1} className="min-h-0" /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={interviewQuestionsForm.control}
-                            name="q_careerGoals"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-xs">What are your career goals?</FormLabel>
-                                    <FormControl><Textarea {...field} rows={1} className="min-h-0" /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={interviewQuestionsForm.control}
-                            name="q_dementiaExperience"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-xs">How much experience do you have with dementia?</FormLabel>
-                                    <FormControl><Textarea {...field} rows={1} className="min-h-0" /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={interviewQuestionsForm.control}
-                            name="q_clientUpsetHome"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-xs">What would you do if client wants to go home and is very upset?</FormLabel>
-                                    <FormControl><Textarea {...field} rows={1} className="min-h-0" /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={interviewQuestionsForm.control}
-                            name="q_clientTellingLeave"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-xs">What if client was telling you to leave?</FormLabel>
-                                    <FormControl><Textarea {...field} rows={1} className="min-h-0" /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={interviewQuestionsForm.control}
-                            name="q_clientCombative"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-xs">What if client is combative?</FormLabel>
-                                    <FormControl><Textarea {...field} rows={1} className="min-h-0" /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={interviewQuestionsForm.control}
-                            name="q_clientHittingScratching"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-xs">What if client is hitting or trying to scratch you?</FormLabel>
-                                    <FormControl><Textarea {...field} rows={1} className="min-h-0" /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={interviewQuestionsForm.control}
-                            name="q_deceasedSpouse"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-xs">What if client asks where spouse is (who died years ago.)? Do you tell client spouse is dead, or say he went out for a bit and will be back later.</FormLabel>
-                                    <FormControl><Textarea {...field} rows={1} className="min-h-0" /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={interviewQuestionsForm.control}
-                            name="q_difficultSituation"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-xs">Describe a difficult or stressful situation you have experienced while caregiving. How did you handle it?</FormLabel>
-                                    <FormControl><Textarea {...field} rows={1} className="min-h-0" /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={interviewQuestionsForm.control}
-                            name="q_clientRefusal"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-xs">What would you do if a client refused to cooperate with daily tasks, such as eating or bathing?</FormLabel>
-                                    <FormControl><Textarea {...field} rows={1} className="min-h-0" /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={interviewQuestionsForm.control}
-                            name="q_criticismFeedback"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-xs">How do you respond to criticism or feedback from a client or their family? Example: You said "How are you today hon" and client doesn't want to be called hon. OR they accuse you of taking something, Or say they don't want that lunch.</FormLabel>
-                                    <FormControl><Textarea {...field} rows={1} className="min-h-0" /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={interviewQuestionsForm.control}
-                            name="q_medicalEmergencyNoOffice"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-xs">How would you handle a medical emergency if the office could not be reached?</FormLabel>
-                                    <FormControl><Textarea {...field} rows={1} className="min-h-0" /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={interviewQuestionsForm.control}
-                            name="q_clientNotes"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-xs">Do you write client notes at end of shift? What do you include in the client notes?</FormLabel>
-                                    <FormControl><Textarea {...field} rows={1} className="min-h-0" /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </form>
-                </FormProvider>
-            </ScrollArea>
-            <DialogFooter className="mt-6">
-                <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
-                <Button onClick={interviewQuestionsForm.handleSubmit(onQuestionsSubmit)} disabled={isQuestionsSaving}>
-                    {isQuestionsSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2" />}
-                    Save Form
-                </Button>
-            </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isSkillsOpen} onOpenChange={setIsSkillsOpen}>
-          <DialogContent className="max-w-4xl">
-              <DialogHeader>
-                  <DialogTitle>Skills and Experience</DialogTitle>
-                  <DialogDescription>
-                      Review and update the candidate's skills and experience during the in-person interview.
-                  </DialogDescription>
-              </DialogHeader>
-              <FormProvider {...skillsForm}>
-                  <form onSubmit={skillsForm.handleSubmit(onSkillsSubmit)} className="space-y-6 pt-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                          {skillsCheckboxes.map(skill => (
-                              <FormField
-                                  key={skill.id}
-                                  control={skillsForm.control}
-                                  name={skill.id as keyof SkillsFormData}
-                                  render={({ field }) => (
-                                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                                          <FormControl>
-                                              <Checkbox
-                                                  checked={field.value}
-                                                  onCheckedChange={field.onChange}
-                                              />
-                                          </FormControl>
-                                          <div className="space-y-1 leading-none">
-                                              <FormLabel className="font-normal text-xs">
-                                                  {skill.label}
-                                              </FormLabel>
-                                          </div>
-                                      </FormItem>
-                                  )}
-                              />
-                          ))}
-                      </div>
-                      <DialogFooter>
-                          <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-                          <Button type="submit" disabled={isSkillsSaving}>
-                              {isSkillsSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2" />}
-                              Save Form
-                          </Button>
-                      </DialogFooter>
-                  </form>
-              </FormProvider>
-          </DialogContent>
-      </Dialog>
-
-      <Dialog open={isTransportationOpen} onOpenChange={setIsTransportationOpen}>
-          <DialogContent className="max-w-4xl">
-              <DialogHeader>
-                  <DialogTitle>Transportation Information</DialogTitle>
-                  <DialogDescription>
-                      Verify vehicle and licensing status, and record geographic preferences.
-                  </DialogDescription>
-              </DialogHeader>
-              <FormProvider {...transportationForm}>
-                  <form onSubmit={transportationForm.handleSubmit(onTransportationSubmit)} className="space-y-6 pt-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                          <FormField
-                              control={transportationForm.control}
-                              name="hasCar"
-                              render={({ field }) => (
-                                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                                      <FormControl>
-                                          <Checkbox
-                                              checked={field.value}
-                                              onCheckedChange={field.onChange}
-                                          />
-                                      </FormControl>
-                                      <div className="space-y-1 leading-none">
-                                          <FormLabel className="font-normal">Do you have a reliable vehicle?</FormLabel>
-                                      </div>
-                                  </FormItem>
-                              )}
-                          />
-                          <FormField
-                              control={transportationForm.control}
-                              name="validLicense"
-                              render={({ field }) => (
-                                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                                      <FormControl>
-                                          <Checkbox
-                                              checked={field.value}
-                                              onCheckedChange={field.onChange}
-                                          />
-                                      </FormControl>
-                                      <div className="space-y-1 leading-none">
-                                          <FormLabel className="font-normal">Do you have a valid driver's license or valid California State ID ?</FormLabel>
-                                      </div>
-                                  </FormItem>
-                              )}
-                          />
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <FormField
-                              control={transportationForm.control}
-                              name="q_hasAutoInsurance"
-                              render={({ field }) => (
-                                  <FormItem>
-                                      <FormLabel className="text-xs">Do you have auto insurance ?</FormLabel>
-                                      <FormControl><Input {...field} /></FormControl>
-                                      <FormMessage />
-                                  </FormItem>
-                              )}
-                          />
-                          <FormField
-                              control={transportationForm.control}
-                              name="q_movingViolations"
-                              render={({ field }) => (
-                                  <FormItem>
-                                      <FormLabel className="text-xs">Any moving violations within the last 10 years ?</FormLabel>
-                                      <FormControl><Input {...field} /></FormControl>
-                                      <FormMessage />
-                                  </FormItem>
-                              )}
-                          />
-                          <FormField
-                              control={transportationForm.control}
-                              name="q_misdemeanorCharges"
-                              render={({ field }) => (
-                                  <FormItem>
-                                      <FormLabel className="text-xs">Misdemeanor Charges ?</FormLabel>
-                                      <FormControl><Input {...field} /></FormControl>
-                                      <FormMessage />
-                                  </FormItem>
-                              )}
-                          />
-                          <FormField
-                              control={transportationForm.control}
-                              name="q_ieTravelAreas"
-                              render={({ field }) => (
-                                  <FormItem>
-                                      <FormLabel className="text-xs">What areas of the IE are you willing to travel to?</FormLabel>
-                                      <FormControl><Input {...field} /></FormControl>
-                                      <FormMessage />
-                                  </FormItem>
-                              )}
-                          />
-                          <FormField
-                              control={transportationForm.control}
-                              name="q_preferredNotWorkAreas"
-                              render={({ field }) => (
-                                  <FormItem className="sm:col-span-1 md:col-span-2">
-                                      <FormLabel className="text-xs">Particular geographic area you prefer not to work ?</FormLabel>
-                                      <FormControl><Input {...field} /></FormControl>
-                                      <FormMessage />
-                                  </FormItem>
-                              )}
-                          />
-                      </div>
-
-                      <DialogFooter>
-                          <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-                          <Button type="submit" disabled={isTransportationSaving}>
-                              {isTransportationSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2" />}
-                              Save Form
-                          </Button>
-                      </DialogFooter>
-                  </form>
-              </FormProvider>
-          </DialogContent>
-      </Dialog>
+      <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}><DialogContent><DialogHeader><DialogTitle>Reject Candidate</DialogTitle></DialogHeader><RejectCandidateForm onSubmit={handleRejection} isPending={isRejecting} /></DialogContent></Dialog>
     </div>
   );
 }
@@ -2173,35 +805,13 @@ export default function ManageInterviewsClient() {
 function RejectCandidateForm({ onSubmit, isPending }: { onSubmit: (reason: string, notes: string) => void; isPending: boolean; }) {
   const [reason, setReason] = useState("");
   const [notes, setNotes] = useState("");
-
   return (
     <div className="space-y-4 pt-4">
-      <div className="space-y-2">
-        <Label>Reason for Rejection</Label>
-         <RadioGroup onValueChange={reason => setReason(reason)} value={reason}>
-          {rejectionReasons.map((r, i) => (
-            <div key={i} className="flex items-center space-x-3 space-y-0">
-              <RadioGroupItem value={r} id={`reason-${i}`} />
-              <Label htmlFor={`reason-${i}`} className="font-normal">{r}</Label>
-            </div>
-          ))}
-        </RadioGroup>
-      </div>
-      <div className="space-y-2">
-        <Label>Rejection Notes</Label>
-        <Textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Add any specific details here..."
-        />
-      </div>
-      <DialogFooter>
-        <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-        <Button type="button" variant="destructive" disabled={isPending || !reason} onClick={() => onSubmit(reason, notes)}>
-          {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Confirm Rejection
-        </Button>
-      </DialogFooter>
+      <RadioGroup onValueChange={setReason} value={reason} className="space-y-2">
+          {rejectionReasons.map((r, i) => (<div key={i} className="flex items-center space-x-2"><RadioGroupItem value={r} id={`r-${i}`} /><Label htmlFor={`r-${i}`}>{r}</Label></div>))}
+      </RadioGroup>
+      <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Rejection notes..." />
+      <DialogFooter><Button variant="destructive" disabled={isPending || !reason} onClick={() => onSubmit(reason, notes)}>{isPending && <Loader2 className="animate-spin mr-2" />}Confirm</Button></DialogFooter>
     </div>
   );
 }

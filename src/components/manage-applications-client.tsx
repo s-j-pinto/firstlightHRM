@@ -1,18 +1,17 @@
 
-
 "use client";
 
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
-import { collection, doc } from "firebase/firestore";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
 import type { CaregiverProfile } from "@/lib/types";
 import { generalInfoSchema } from "@/lib/types";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { format } from "date-fns";
-import { deleteCaregiverProfile, resetCaregiverInterview } from "@/lib/caregiver.actions";
+import { deleteCaregiverProfile, resetCaregiverInterview, searchCandidatesAction } from "@/lib/caregiver.actions";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -45,8 +44,6 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
@@ -56,9 +53,8 @@ type GeneralInfoFormData = z.infer<typeof generalInfoSchema>;
 
 export default function ManageApplicationsClient() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [searchResults, setSearchResults] = useState<CaregiverProfile[]>([]);
-  const [selectedCaregiver, setSelectedCaregiver] =
-    useState<CaregiverProfile | null>(null);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [selectedCaregiver, setSelectedCaregiver] = useState<CaregiverProfile | null>(null);
 
   const [isSearching, startSearchTransition] = useTransition();
   const [isSubmitting, startSubmitTransition] = useTransition();
@@ -69,86 +65,55 @@ export default function ManageApplicationsClient() {
   const { toast } = useToast();
   const db = useFirestore();
 
-  const caregiverProfilesRef = useMemoFirebase(
-    () => (db ? collection(db, "caregiver_profiles") : null),
-    [db]
-  );
-  const { data: allCaregivers, isLoading: caregiversLoading } =
-    useCollection<CaregiverProfile>(caregiverProfilesRef);
-
   const form = useForm<GeneralInfoFormData>({
     resolver: zodResolver(generalInfoSchema),
   });
 
   const handleSearch = () => {
-    if (!searchTerm.trim() || !allCaregivers) return;
-    startSearchTransition(() => {
-      const lowercasedTerm = searchTerm.toLowerCase();
-      const results = allCaregivers.filter(
-        (caregiver) =>
-          caregiver.fullName.toLowerCase().includes(lowercasedTerm) ||
-          (caregiver.phone && caregiver.phone.includes(searchTerm))
-      );
-      setSearchResults(results);
+    if (!searchTerm.trim()) return;
+    startSearchTransition(async () => {
+        const response = await searchCandidatesAction({ namePrefix: searchTerm, limit: 20 });
+        if (response.results) {
+            setSearchResults(response.results);
+        }
     });
   };
 
-  const handleSelectCaregiver = (caregiver: CaregiverProfile) => {
-    setSelectedCaregiver(caregiver);
-    setSearchResults([]);
-    setSearchTerm("");
-    form.reset({
-      fullName: caregiver.fullName,
-      email: caregiver.email,
-      phone: caregiver.phone,
-      address: caregiver.address,
-      city: caregiver.city,
-      state: caregiver.state,
-      zip: caregiver.zip,
-      gender: caregiver.gender,
-    });
+  const handleSelectCaregiver = async (candidate: any) => {
+    if (!db) return;
+    try {
+        const docRef = doc(db, "caregiver_profiles", candidate.id);
+        const snapshot = await getDoc(docRef);
+        if (snapshot.exists()) {
+            const caregiver = { ...snapshot.data(), id: snapshot.id } as CaregiverProfile;
+            setSelectedCaregiver(caregiver);
+            setSearchResults([]);
+            setSearchTerm("");
+            form.reset({
+              fullName: caregiver.fullName,
+              email: caregiver.email,
+              phone: caregiver.phone,
+              address: caregiver.address,
+              city: caregiver.city,
+              state: caregiver.state,
+              zip: caregiver.zip,
+              gender: caregiver.gender,
+            });
+        }
+    } catch (error) {
+        toast({ title: "Error", description: "Failed to fetch candidate profile.", variant: "destructive" });
+    }
   };
 
   const onSubmit = (data: GeneralInfoFormData) => {
     if (!selectedCaregiver || !db) return;
     
     startSubmitTransition(() => {
-      try {
-        const profileRef = doc(db, "caregiver_profiles", selectedCaregiver.id);
-        
-        // Sanitize data to remove undefined fields which Firestore doesn't allow.
-        const updateData: { [key: string]: any } = {};
-        for (const key in data) {
-            if (data[key as keyof GeneralInfoFormData] !== undefined) {
-                updateData[key] = data[key as keyof GeneralInfoFormData];
-            }
-        }
-        
-        // Normalize email to lowercase before updating
-        if(data.email) {
-            updateData.email = data.email.trim().toLowerCase();
-        }
-
-        updateDocumentNonBlocking(profileRef, updateData);
-        
-        toast({
-          title: "Success",
-          description: "Caregiver profile update initiated.",
-        });
-        
-        // The UI will update via real-time listener.
-        // We'll clear the selection to allow a new search.
-        setSelectedCaregiver(null);
-
-      } catch (error) {
-        // The non-blocking update function will emit a global error, which is caught by FirebaseErrorListener.
-        // We can also show a local toast here.
-        toast({
-            title: "Error",
-            description: "Failed to update profile. Check console for details.",
-            variant: "destructive",
-        });
-      }
+      const profileRef = doc(db, "caregiver_profiles", selectedCaregiver.id);
+      const updateData = { ...data, fullNameLowercase: data.fullName.toLowerCase() };
+      updateDocumentNonBlocking(profileRef, updateData);
+      toast({ title: "Success", description: "Profile update initiated." });
+      setSelectedCaregiver(null);
     });
   };
 
@@ -161,12 +126,7 @@ export default function ManageApplicationsClient() {
     if (!selectedCaregiver) return;
     startDeleteTransition(async () => {
       const result = await deleteCaregiverProfile(selectedCaregiver.id);
-      if (result.error) {
-        toast({ title: 'Error', description: result.message, variant: 'destructive' });
-      } else {
-        toast({ title: 'Success', description: result.message });
-        handleCancel();
-      }
+      if (!result.error) { toast({ title: 'Success', description: result.message }); handleCancel(); }
     });
   };
 
@@ -174,12 +134,7 @@ export default function ManageApplicationsClient() {
     if (!selectedCaregiver) return;
     startResetTransition(async () => {
       const result = await resetCaregiverInterview(selectedCaregiver.id);
-      if (result.error) {
-        toast({ title: 'Error', description: result.message, variant: 'destructive' });
-      } else {
-        toast({ title: 'Success', description: result.message });
-        handleCancel();
-      }
+      if (!result.error) { toast({ title: 'Success', description: result.message }); handleCancel(); }
     });
   };
 
@@ -187,55 +142,22 @@ export default function ManageApplicationsClient() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Search for a Caregiver</CardTitle>
-          <CardDescription>
-            Search by full name or phone number to edit their application information.
-          </CardDescription>
+          <CardTitle>Applicant Search</CardTitle>
+          <CardDescription>Search for an applicant to edit their profile information.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-2">
-            <Input
-              placeholder="Enter name or phone number..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              disabled={!!selectedCaregiver}
-            />
-            <Button
-              onClick={handleSearch}
-              disabled={isSearching || !searchTerm.trim() || !!selectedCaregiver}
-            >
-              {isSearching ? <Loader2 className="animate-spin" /> : <Search />}
-              <span className="ml-2">Search</span>
-            </Button>
+            <Input placeholder="Enter name or phone..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSearch()} />
+            <Button onClick={handleSearch} disabled={isSearching || !searchTerm.trim()}>{isSearching ? <Loader2 className="animate-spin" /> : <Search />}<span className="ml-2">Search</span></Button>
           </div>
-          {(isSearching || caregiversLoading) && (
-            <p className="text-sm text-muted-foreground mt-2">Loading...</p>
-          )}
           {searchResults.length > 0 && (
             <ul className="mt-4 border rounded-md divide-y">
-              {searchResults.map((caregiver) => {
-                const createdAt = (caregiver.createdAt as any)?.toDate();
-                return (
-                  <li key={caregiver.id} className="p-2 hover:bg-muted">
-                    <button
-                      onClick={() => handleSelectCaregiver(caregiver)}
-                      className="w-full text-left flex justify-between items-center"
-                    >
-                      <div>
-                        <p className="font-semibold">{caregiver.fullName}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {caregiver.email}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm">{caregiver.phone}</p>
-                        {createdAt && <p className="text-xs text-muted-foreground">Applied: {format(createdAt, "PPp")}</p>}
-                      </div>
-                    </button>
-                  </li>
-                );
-              })}
+              {searchResults.map((caregiver) => (
+                <li key={caregiver.id} className="p-2 hover:bg-muted cursor-pointer flex justify-between items-center" onClick={() => handleSelectCaregiver(caregiver)}>
+                  <div><p className="font-semibold">{caregiver.fullName}</p><p className="text-sm text-muted-foreground">{caregiver.email}</p></div>
+                  <Badge variant="outline">{caregiver.hiringStatus || 'Applied'}</Badge>
+                </li>
+              ))}
             </ul>
           )}
         </CardContent>
@@ -243,107 +165,34 @@ export default function ManageApplicationsClient() {
 
       {selectedCaregiver && (
         <Card>
-          <CardHeader>
-            <CardTitle>Editing Profile for: {selectedCaregiver.fullName}</CardTitle>
-            <CardDescription>
-              Update the general information below and click save.
-            </CardDescription>
-          </CardHeader>
+          <CardHeader><CardTitle>Editing Profile: {selectedCaregiver.fullName}</CardTitle></CardHeader>
           <CardContent>
             <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-8"
-              >
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField control={form.control} name="fullName" render={({ field }) => ( <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                  <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel>Email</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                  <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                  <FormField
-                    control={form.control}
-                    name="gender"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Gender</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a gender" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Male">Male</SelectItem>
-                            <SelectItem value="Female">Female</SelectItem>
-                            <SelectItem value="Other">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField control={form.control} name="address" render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                  <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                  <FormField control={form.control} name="state" render={({ field }) => ( <FormItem><FormLabel>State</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                  <FormField control={form.control} name="zip" render={({ field }) => ( <FormItem><FormLabel>Zip Code</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                  <FormField control={form.control} name="fullName" render={({ field }) => ( <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
+                  <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel>Email</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
+                  <FormField control={form.control} name="phone" render={({ field }) => ( <FormItem><FormLabel>Phone</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
+                  <FormField control={form.control} name="gender" render={({ field }) => ( <FormItem><FormLabel>Gender</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Male">Male</SelectItem><SelectItem value="Female">Female</SelectItem><SelectItem value="Other">Other</SelectItem></SelectContent></Select></FormItem> )} />
+                  <FormField control={form.control} name="address" render={({ field }) => ( <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
+                  <FormField control={form.control} name="city" render={({ field }) => ( <FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
+                  <FormField control={form.control} name="state" render={({ field }) => ( <FormItem><FormLabel>State</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
+                  <FormField control={form.control} name="zip" render={({ field }) => ( <FormItem><FormLabel>Zip Code</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
                 </div>
                  <div className="flex justify-between items-center pt-6">
                     <div className="flex gap-2">
                         <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                            <Button type="button" variant="destructive" disabled={isDeleting}>
-                                {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
-                                Delete Profile
-                            </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete the caregiver's profile and all associated interview and appointment records.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleDeleteProfile}>
-                                Continue
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                            </AlertDialogContent>
+                            <AlertDialogTrigger asChild><Button type="button" variant="destructive" disabled={isDeleting} size="sm"><Trash2 className="mr-2 h-4 w-4" />Delete</Button></AlertDialogTrigger>
+                            <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Profile?</AlertDialogTitle><AlertDialogDescription>This will permanently delete the caregiver profile and all related records.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleDeleteProfile}>Continue</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
                         </AlertDialog>
                         <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                            <Button type="button" variant="outline" disabled={isResetting}>
-                                {isResetting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
-                                Reset Interview
-                            </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                This will delete all interview and hiring records for this candidate, allowing the interview process to start over. The main profile will not be deleted.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleResetInterview}>
-                                Continue
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                            </AlertDialogContent>
+                            <AlertDialogTrigger asChild><Button type="button" variant="outline" disabled={isResetting} size="sm"><RotateCcw className="mr-2 h-4 w-4" />Reset Interview</Button></AlertDialogTrigger>
+                            <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Reset Interview?</AlertDialogTitle><AlertDialogDescription>This will delete interview records but keep the profile.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleResetInterview}>Continue</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
                         </AlertDialog>
                     </div>
                     <div className="flex gap-4">
-                        <Button type="button" variant="outline" onClick={handleCancel}>
-                            Cancel
-                        </Button>
-                        <Button type="submit" disabled={isSubmitting}>
-                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Save Changes
-                        </Button>
+                        <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
+                        <Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="animate-spin mr-2" />}Save Changes</Button>
                     </div>
                 </div>
               </form>

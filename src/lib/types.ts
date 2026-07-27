@@ -594,6 +594,7 @@ export const caregiverFormSchema = generalInfoSchema
     nextStepTime: z.any().optional(),
     fullNameLowercase: z.string().optional(),
     newHireChecklistComplete: z.boolean().optional(),
+    master360Saved: z.boolean().optional(),
   });
 
 
