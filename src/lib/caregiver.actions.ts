@@ -25,6 +25,7 @@ export async function searchCandidatesAction(params: SearchParams) {
     let query = serverDb.collection('caregiver_profiles') as FirebaseFirestore.Query;
 
     // 1. Prefix Matching for Name or Email
+    // We prioritize name search because it dictates the primary ordering in Firestore
     if (params.namePrefix && params.namePrefix.trim() !== '') {
         const term = params.namePrefix.trim();
         const prefix = term.toLowerCase();
@@ -34,6 +35,7 @@ export async function searchCandidatesAction(params: SearchParams) {
             query = query.where('email', '==', prefix).orderBy('createdAt', 'desc');
         } else {
             // Standard Firestore prefix range query
+            // NOTE: Docs missing 'fullNameLowercase' will be excluded from this search.
             query = query.where('fullNameLowercase', '>=', prefix)
                          .where('fullNameLowercase', '<=', prefix + '\uf8ff')
                          .orderBy('fullNameLowercase', 'asc');
@@ -80,6 +82,7 @@ export async function searchCandidatesAction(params: SearchParams) {
     query = query.limit(pageSize);
 
     // 5. Field Projection
+    // We select only the fields needed for the summary table to save bandwidth
     const selectFields = [
         'fullName', 
         'fullNameLowercase',
@@ -124,11 +127,13 @@ export async function searchCandidatesAction(params: SearchParams) {
             hasMore: results.length === pageSize
         };
     } catch (error: any) {
-        console.error("[searchCandidatesAction] Error:", error.message);
-        if (error.message?.includes('FAILED_PRECONDITION')) {
-            return { results: [], hasMore: false, error: error.message };
-        }
-        throw error;
+        console.error("[searchCandidatesAction] Firestore Error:", error.message);
+        // Return the error message so the UI can display index creation links
+        return { 
+            results: [], 
+            hasMore: false, 
+            error: error.message || "An unexpected database error occurred." 
+        };
     }
 }
 

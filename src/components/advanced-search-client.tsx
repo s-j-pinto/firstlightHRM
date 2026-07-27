@@ -69,6 +69,8 @@ export default function AdvancedSearchClient() {
             const response = await searchCandidatesAction(params);
             
             if (response.error) {
+                // If it's a Firestore error that doesn't contain the specific index URL, 
+                // we'll still show it in the UI for debugging.
                 setIndexError(response.error);
                 return;
             }
@@ -141,6 +143,8 @@ export default function AdvancedSearchClient() {
         return <Badge className={cn("text-white whitespace-normal text-center", colorClass)}>{status}</Badge>;
     };
 
+    const hasIndexLink = indexError?.includes('https://console.firebase.google.com');
+
     return (
         <div className="space-y-6">
             <Form {...form}>
@@ -177,13 +181,19 @@ export default function AdvancedSearchClient() {
             {indexError && (
                 <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Performance Index Required</AlertTitle>
-                    <AlertDescription>
-                        This specific combination of filters requires a Firestore index to run efficiently. 
-                        <br />
-                        <a href={indexError.split('here: ')[1]} target="_blank" rel="noopener noreferrer" className="underline font-bold">
-                            Click here to create the required index in the Firebase Console.
-                        </a>
+                    <AlertTitle>{hasIndexLink ? "Performance Index Required" : "Database Error"}</AlertTitle>
+                    <AlertDescription className="text-xs">
+                        {hasIndexLink ? (
+                            <>
+                                This specific combination of filters requires a Firestore index to run efficiently. 
+                                <br />
+                                <a href={indexError.split('here: ')[1]} target="_blank" rel="noopener noreferrer" className="underline font-bold mt-2 inline-block">
+                                    Click here to create the required index in the Firebase Console.
+                                </a>
+                            </>
+                        ) : (
+                            indexError
+                        )}
                     </AlertDescription>
                 </Alert>
             )}
