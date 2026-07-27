@@ -175,6 +175,25 @@ const skillsCheckboxes = [
     { id: "canTakeBloodPressure", label: "Able to take blood Pressure?" },
 ] as const;
 
+const situationQuestionsList = [
+    { id: 'q_decideBecomeCaregiver', label: 'What made you decide to become a caregiver?' },
+    { id: 'q_rewardingChallenging', label: 'What do you find most rewarding and most challenging about caregiving?' },
+    { id: 'q_strengthsWeaknesses', label: 'What are your strengths and weaknesses as a caregiver?' },
+    { id: 'q_specializedTraining', label: 'Do you have any specialized training or certifications (e.g., dementia, hospice, first aid)?' },
+    { id: 'q_careerGoals', label: 'What are your long-term career goals in the healthcare field?' },
+    { id: 'q_dementiaExperience', label: 'How much experience do you have with dementia?' },
+    { id: 'q_clientUpsetHome', label: 'What would you do if client wants to go home and is very upset?' },
+    { id: 'q_clientTellingLeave', label: 'What if client was telling you to leave?' },
+    { id: 'q_clientCombative', label: 'What if client is combative?' },
+    { id: 'q_clientHittingScratching', label: 'What if client is hitting or trying to scratch you?' },
+    { id: 'q_deceasedSpouse', label: 'What if client asks where spouse is (who died years ago.)?' },
+    { id: 'q_difficultSituation', label: 'Describe a difficult or stressful situation you have experienced while caregiving. How did you handle it?' },
+    { id: 'q_clientRefusal', label: 'What would you do if a client refused to cooperate with daily tasks, such as eating or bathing?' },
+    { id: 'q_criticismFeedback', label: 'How do you respond to criticism or feedback from a client or their family?' },
+    { id: 'q_medicalEmergencyNoOffice', label: 'How would you handle a medical emergency if the office could not be reached?' },
+    { id: 'q_clientNotes', label: 'Do you write client notes at end of shift? What do you include in the client notes?' },
+] as const;
+
 export default function ManageInterviewsClient() {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -849,9 +868,9 @@ export default function ManageInterviewsClient() {
                 <Form {...interviewQuestionsForm}>
                     <form onSubmit={interviewQuestionsForm.handleSubmit(onQuestionsSubmit)} className="space-y-4 p-1">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {Object.entries(interviewQuestionsSchema.shape).map(([key, value]) => (
-                                <FormField key={key} control={interviewQuestionsForm.control} name={key as any} render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs">{key.replace('q_', '').replace(/([A-Z])/g, ' $1')}</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl><FormMessage /></FormItem>
+                            {situationQuestionsList.map((question) => (
+                                <FormField key={question.id} control={interviewQuestionsForm.control} name={question.id as any} render={({ field }) => (
+                                    <FormItem><FormLabel className="text-xs">{question.label}</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl><FormMessage /></FormItem>
                                 )} />
                             ))}
                         </div>
