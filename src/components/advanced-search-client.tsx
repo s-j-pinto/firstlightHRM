@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect, useCallback } from 'react';
@@ -15,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, SlidersHorizontal, FilterX, Mail, CheckCircle, BellOff, Bell, Edit2, XCircle, AlertCircle, ClipboardList, ClipboardCheck } from 'lucide-react';
+import { Loader2, Search, SlidersHorizontal, FilterX, Mail, CheckCircle, BellOff, Bell, Edit2, XCircle, AlertCircle, ClipboardList, CheckSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { sendHiringDocsNotification } from '@/lib/communication.actions';
@@ -69,8 +68,6 @@ export default function AdvancedSearchClient() {
             const response = await searchCandidatesAction(params);
             
             if (response.error) {
-                // If it's a Firestore error that doesn't contain the specific index URL, 
-                // we'll still show it in the UI for debugging.
                 setIndexError(response.error);
                 return;
             }
@@ -88,7 +85,7 @@ export default function AdvancedSearchClient() {
 
     useEffect(() => {
         performSearch(true);
-    }, []); // Initial load
+    }, []);
 
     const handleClearFilters = () => {
         reset({ candidateName: "", hiringStatus: 'any', dateFrom: '', dateTo: '' });
@@ -209,6 +206,7 @@ export default function AdvancedSearchClient() {
                                 <TableHead>Candidate</TableHead>
                                 <TableHead>Location</TableHead>
                                 <TableHead>Current Status</TableHead>
+                                <TableHead>Date Applied</TableHead>
                                 <TableHead>Progress</TableHead>
                                 <TableHead>Actions</TableHead>
                                 <TableHead className="text-right">Manage</TableHead>
@@ -220,13 +218,19 @@ export default function AdvancedSearchClient() {
                                     <TableCell>
                                         <div className="font-medium">{candidate.fullName}</div>
                                         <div className="text-xs text-muted-foreground">{candidate.email}</div>
+                                        <div className="text-xs text-muted-foreground">{candidate.phone}</div>
                                     </TableCell>
                                     <TableCell>{candidate.city}</TableCell>
                                     <TableCell><StatusBadge status={candidate.hiringStatus} /></TableCell>
                                     <TableCell>
+                                        <div className="text-sm">
+                                            {candidate.createdAt ? format(new Date(candidate.createdAt), 'PP') : 'N/A'}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
                                         <div className="flex items-center gap-3">
                                             {candidate.master360Saved ? <ClipboardList className="h-5 w-5 text-blue-500" title="Master 360 Complete" /> : <ClipboardList className="h-5 w-5 text-muted-foreground opacity-30" />}
-                                            {candidate.newHireChecklistComplete ? <ClipboardCheck className="h-5 w-5 text-blue-500" title="Checklist Complete" /> : <ClipboardCheck className="h-5 w-5 text-muted-foreground opacity-30" />}
+                                            {candidate.newHireChecklistComplete ? <CheckSquare className="h-5 w-5 text-blue-500" title="Checklist Complete" /> : <CheckSquare className="h-5 w-5 text-muted-foreground opacity-30" />}
                                             <DocsStatusIcon status={candidate.docsStatus} candidateId={candidate.id} />
                                         </div>
                                     </TableCell>
@@ -243,7 +247,7 @@ export default function AdvancedSearchClient() {
                                 </TableRow>
                             )) : (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                                         {isLoading ? "Consulting database..." : "No candidates found matching your criteria."}
                                     </TableCell>
                                 </TableRow>
