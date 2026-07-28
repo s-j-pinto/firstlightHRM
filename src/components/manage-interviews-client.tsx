@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect, useCallback } from 'react';
@@ -844,7 +843,7 @@ export default function ManageInterviewsClient() {
                                         <Button type="button" variant="outline" size="sm" onClick={() => setIsQuestionsOpen(true)}><ClipboardList className="mr-2 h-4 w-4" />Situations</Button>
                                         <Button type="button" variant="outline" size="sm" onClick={() => setIsSkillsOpen(true)}><CheckSquare className="mr-2 h-4 w-4" />Skills & Exp</Button>
                                         <Button type="button" variant="outline" size="sm" onClick={() => setIsTransportationOpen(true)}><Car className="mr-2 h-4 w-4" />Transportation</Button>
-                                        <FormField control={assessmentForm.control} name="finalInterviewNotes" render={({ field }) => ( <FormItem><FormLabel>Interview Notes</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                        <FormField control={assessmentForm.control} name="finalInterviewNotes" render={({ field }) => ( <FormItem><FormLabel>Interview Notes</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                                     </div>
                                 )}
                                 <div className="flex justify-between">
@@ -910,7 +909,7 @@ export default function ManageInterviewsClient() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {situationQuestionsList.map((question) => (
                                 <FormField key={question.id} control={interviewQuestionsForm.control} name={question.id as any} render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs">{question.label}</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel className="text-xs">{question.label}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                                 )} />
                             ))}
                         </div>
