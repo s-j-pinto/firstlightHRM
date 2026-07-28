@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useTransition, useMemo } from "react";
@@ -47,6 +46,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { EditAppointment } from "@/components/edit-appointment";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 type AppointmentWithCaregiver = Appointment & { caregiver?: CaregiverProfile };
 
