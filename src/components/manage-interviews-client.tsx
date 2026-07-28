@@ -552,9 +552,15 @@ export default function ManageInterviewsClient() {
   const isFinalInterviewPending = existingInterview?.finalInterviewStatus === 'Pending' || existingInterview?.finalInterviewStatus === 'Pending reference checks';
   const isProcessActive = !existingInterview?.rejectionReason && !existingEmployee;
   
-  const isEventEditable = isPhoneScreenCompleted && isProcessActive && existingInterview?.finalInterviewStatus !== 'Passed';
+  const isEventEditable = isPhoneScreenCompleted && isProcessActive && (existingInterview?.finalInterviewStatus === 'Pending' || !existingInterview?.finalInterviewStatus);
   const isOrientationEditable = existingInterview?.finalInterviewStatus === 'Passed' && isProcessActive;
   const areNotesEditable = isPhoneScreenCompleted && isProcessActive;
+
+  // New logic for read-only Final Interview summary
+  const showFinalInterviewSummary = 
+    existingInterview?.interviewPathway === 'separate' && 
+    existingInterview?.finalInterviewStatus && 
+    ['Passed', 'Failed', 'Pending reference checks'].includes(existingInterview.finalInterviewStatus);
 
   const handleInitiateOnboarding = () => {
       if (!existingInterview?.id) return;
@@ -807,6 +813,38 @@ export default function ManageInterviewsClient() {
                       )}
                   </CardContent>
               </Card>
+
+              {showFinalInterviewSummary && (
+                <Card className="animate-in fade-in slide-in-from-left-4">
+                    <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                            <CheckCircle className="h-5 w-5 text-accent" />
+                            Final Interview Summary
+                        </CardTitle>
+                        <CardDescription>Outcome of the final evaluation session.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3 text-sm">
+                        <div className="flex justify-between py-1 border-b border-muted">
+                            <span className="font-semibold text-muted-foreground">Scheduled:</span>
+                            <span className="font-medium">{existingInterview?.interviewDateTime ? format(safeToDate(existingInterview.interviewDateTime)!, 'PPp') : 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between py-1 border-b border-muted">
+                            <span className="font-semibold text-muted-foreground">Method:</span>
+                            <span className="font-medium">{existingInterview?.interviewType}</span>
+                        </div>
+                        <div className="flex justify-between items-center py-1">
+                            <span className="font-semibold text-muted-foreground">Outcome:</span>
+                            <Badge className={cn(
+                                existingInterview?.finalInterviewStatus === 'Passed' ? "bg-green-500 hover:bg-green-600" : 
+                                existingInterview?.finalInterviewStatus === 'Pending reference checks' ? "bg-blue-500 hover:bg-blue-600" :
+                                "bg-red-500 hover:bg-red-600 text-white"
+                            )}>
+                                {existingInterview?.finalInterviewStatus}
+                            </Badge>
+                        </div>
+                    </CardContent>
+                </Card>
+              )}
 
               {isEventEditable && (
                 <Card>
