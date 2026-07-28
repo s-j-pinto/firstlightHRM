@@ -23,7 +23,8 @@ import {
   AlertCircle,
   ExternalLink,
   Calendar as CalendarIcon,
-  Clock4
+  Clock4,
+  Edit2
 } from "lucide-react";
 import Link from 'next/link';
 import { collection, query, where, orderBy, limit } from "firebase/firestore";
