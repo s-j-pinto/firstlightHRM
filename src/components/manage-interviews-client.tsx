@@ -551,8 +551,9 @@ export default function ManageInterviewsClient() {
   const isPhoneScreenCompleted = !!existingInterview?.interviewNotes;
   const isFinalInterviewPending = existingInterview?.finalInterviewStatus === 'Pending' || existingInterview?.finalInterviewStatus === 'Pending reference checks';
   const isProcessActive = !existingInterview?.rejectionReason && !existingEmployee;
-  const isEventEditable = isPhoneScreenCompleted && isProcessActive && !existingInterview?.orientationScheduled && existingInterview?.finalInterviewStatus !== 'Passed';
-  const isOrientationEditable = existingInterview?.finalInterviewStatus === 'Passed' && !existingInterview?.orientationScheduled && isProcessActive;
+  
+  const isEventEditable = isPhoneScreenCompleted && isProcessActive && existingInterview?.finalInterviewStatus !== 'Passed';
+  const isOrientationEditable = existingInterview?.finalInterviewStatus === 'Passed' && isProcessActive;
   const areNotesEditable = isPhoneScreenCompleted && isProcessActive;
 
   const handleInitiateOnboarding = () => {
@@ -663,7 +664,6 @@ export default function ManageInterviewsClient() {
        if (result.authUrl) setAuthUrl(result.authUrl);
        toast({ title: result.error ? 'Error' : 'Success', description: result.message, variant: result.error ? 'destructive' : 'default' });
        if (!result.error) {
-           // Refetch interview data to update the UI
            const interviewSnap = await getDoc(doc(db, 'interviews', existingInterview.id));
            if(interviewSnap.exists()) setExistingInterview({ ...interviewSnap.data(), id: interviewSnap.id } as Interview);
        }
@@ -810,7 +810,10 @@ export default function ManageInterviewsClient() {
 
               {isEventEditable && (
                 <Card>
-                    <CardHeader><CardTitle>Next Step: Final Interview</CardTitle></CardHeader>
+                    <CardHeader>
+                        <CardTitle>{existingInterview?.interviewDateTime ? "Manage Final Interview" : "Next Step: Final Interview"}</CardTitle>
+                        <CardDescription>{existingInterview?.interviewDateTime ? `Scheduled for: ${format(safeToDate(existingInterview.interviewDateTime)!, 'PPp')}` : "Set the date and time for the interview."}</CardDescription>
+                    </CardHeader>
                     <CardContent>
                         <Form {...scheduleEventForm}>
                             <form onSubmit={scheduleEventForm.handleSubmit(onScheduleEventSubmit)} className="space-y-4">
@@ -832,7 +835,12 @@ export default function ManageInterviewsClient() {
                                     <FormField control={scheduleEventForm.control} name="eventDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><FormControl><DateInput {...field} /></FormControl><FormMessage /></FormItem> )} />
                                     <FormField control={scheduleEventForm.control} name="eventTime" render={({ field }) => ( <FormItem><FormLabel>Time</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem> )} />
                                 </div>
-                                <div className="flex justify-end"><Button type="submit" disabled={isScheduleSubmitting}>{isScheduleSubmitting && <Loader2 className="animate-spin mr-2" />}Schedule</Button></div>
+                                <div className="flex justify-end">
+                                    <Button type="submit" disabled={isScheduleSubmitting}>
+                                        {isScheduleSubmitting && <Loader2 className="animate-spin mr-2" />}
+                                        {existingInterview?.interviewDateTime ? "Update & Resend" : "Schedule Interview"}
+                                    </Button>
+                                </div>
                             </form>
                         </Form>
                     </CardContent>
@@ -841,7 +849,10 @@ export default function ManageInterviewsClient() {
 
               {isOrientationEditable && (
                   <Card>
-                      <CardHeader><CardTitle>Next Step: Schedule Orientation</CardTitle></CardHeader>
+                      <CardHeader>
+                          <CardTitle>{existingInterview?.orientationDateTime ? "Manage Orientation" : "Next Step: Schedule Orientation"}</CardTitle>
+                          <CardDescription>{existingInterview?.orientationDateTime ? `Scheduled for: ${format(safeToDate(existingInterview.orientationDateTime)!, 'PPp')}` : "Set the orientation date and time."}</CardDescription>
+                      </CardHeader>
                       <CardContent>
                           <Form {...orientationForm}>
                               <form onSubmit={orientationForm.handleSubmit(onOrientationSubmit)} className="space-y-4">
@@ -849,7 +860,12 @@ export default function ManageInterviewsClient() {
                                       <FormField control={orientationForm.control} name="orientationDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><FormControl><DateInput {...field} /></FormControl><FormMessage /></FormItem> )} />
                                       <FormField control={orientationForm.control} name="orientationTime" render={({ field }) => ( <FormItem><FormLabel>Time</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem> )} />
                                   </div>
-                                  <div className="flex justify-end"><Button type="submit" disabled={isOrientationSubmitting}>{isOrientationSubmitting && <Loader2 className="animate-spin mr-2" />}Schedule Orientation</Button></div>
+                                  <div className="flex justify-end">
+                                      <Button type="submit" disabled={isOrientationSubmitting}>
+                                          {isOrientationSubmitting && <Loader2 className="animate-spin mr-2" />}
+                                          {existingInterview?.orientationDateTime ? "Update & Resend" : "Schedule Orientation"}
+                                      </Button>
+                                  </div>
                               </form>
                           </Form>
                       </CardContent>
