@@ -82,8 +82,6 @@ export default function AdminDashboard() {
 
   const fourWeeksAgo = useMemo(() => subWeeks(new Date(), 4), []);
 
-  // Optimized query: only fetch recent, active appointments
-  // We project fields in the dashboard to save bytes
   const appointmentsRef = useMemoFirebase(() => 
     firestore ? query(
         collection(firestore, 'appointments'), 
@@ -95,10 +93,15 @@ export default function AdminDashboard() {
   );
   const { data: appointmentsData, isLoading: appointmentsLoading, error: appointmentsError } = useCollection<Appointment>(appointmentsRef);
 
+  const profilesRef = useMemoFirebase(() => firestore ? collection(firestore, 'caregiver_profiles') : null, [firestore]);
+  const { data: profiles, isLoading: profilesLoading } = useCollection<CaregiverProfile>(profilesRef);
+
   const [editingAppointment, setEditingAppointment] = useState<AppointmentWithCaregiver | null>(null);
 
   const appointments: AppointmentWithCaregiver[] = useMemo(() => {
-    if (!appointmentsData) return [];
+    if (!appointmentsData || !profiles) return [];
+
+    const profilesMap = new Map(profiles.map(p => [p.id, p]));
 
     return appointmentsData
       .filter(appt => appt.appointmentStatus !== "cancelled")
@@ -108,15 +111,21 @@ export default function AdminDashboard() {
         
         if (!startTime || !endTime) return null;
 
+        const caregiver = profilesMap.get(appt.caregiverId);
+
         return {
           ...appt,
+          caregiver,
+          // Use denormalized name/email if present, otherwise fallback to the profile record
+          caregiverName: appt.caregiverName || caregiver?.fullName || 'Unknown',
+          caregiverEmail: appt.caregiverEmail || caregiver?.email || 'No email',
           startTime,
           endTime,
           preferredTimes: appt.preferredTimes?.map(t => safeToDate(t)).filter((t): t is Date => t !== null),
         };
       })
       .filter((appt): appt is AppointmentWithCaregiver => appt !== null);
-  }, [appointmentsData]);
+  }, [appointmentsData, profiles]);
 
 
   const handleSendInvite = (appointment: AppointmentWithCaregiver) => {
@@ -141,7 +150,9 @@ export default function AdminDashboard() {
 
   const groupedAppointments = groupAppointmentsByDay(appointments);
   
-  if (appointmentsLoading) {
+  const isLoading = appointmentsLoading || profilesLoading;
+
+  if (isLoading) {
     return (
        <div className="flex justify-center items-center h-64">
             <Loader2 className="h-8 w-8 animate-spin text-accent" />
