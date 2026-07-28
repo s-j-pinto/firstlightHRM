@@ -920,8 +920,29 @@ export default function ManageInterviewsClient() {
                         <CardContent>
                             <Form {...hiringForm}>
                                 <form onSubmit={hiringForm.handleSubmit(onHiringSubmit)} className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <FormField control={hiringForm.control} name="hireDate" render={({ field }) => ( <FormItem><FormLabel>Hire Date</FormLabel><FormControl><DateInput {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                        <FormField
+                                            control={hiringForm.control}
+                                            name="hiringManager"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Hiring Manager</FormLabel>
+                                                    <Select onValueChange={field.onChange} value={field.value}>
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Select manager" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            <SelectItem value="Lolita Pinto">Lolita Pinto</SelectItem>
+                                                            <SelectItem value="Jacqui Wilson">Jacqui Wilson</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
                                         <FormField control={hiringForm.control} name="teletrackPin" render={({ field }) => ( <FormItem><FormLabel>TeleTrack PIN</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                                     </div>
                                     <Button type="submit" className="w-full" disabled={isSubmitting || !signaturesData?.hcs501EmployeeSignature}><UserCheck className="mr-2 h-4 w-4" />Hire Candidate</Button>
