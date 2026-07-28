@@ -4,7 +4,7 @@
 import { Suspense, useTransition, useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, CheckCircle, Loader2, ArrowLeft, Printer, Download, XCircle, Bell, BellOff, Edit2, FileCheck2, FileClock, ClipboardList, ClipboardCheck } from "lucide-react";
+import { FileText, CheckCircle, Loader2, ArrowLeft, Printer, Download, XCircle, Bell, BellOff, Edit2, FileCheck2, FileClock, ClipboardList, CheckSquare } from "lucide-react";
 import Link from 'next/link';
 import { useUser, useDoc, useCollection, useMemoFirebase, useFirestore } from '@/firebase';
 import { doc, query, where, collection, limit } from 'firebase/firestore';
@@ -157,7 +157,8 @@ function CandidateHiringFormsContent() {
     // Filter out Admin only forms for non-admins
     const finalForms = isAnAdmin ? formsWithStatus : formsWithStatus.filter(f => !f.adminOnly);
 
-    const allCandidateFormsComplete = formsWithStatus.every(f => f.isCandidateCompleted);
+    const candidateForms = formsWithStatus.filter(f => !f.adminOnly);
+    const allCandidateFormsComplete = candidateForms.length > 0 && candidateForms.every(f => f.isCandidateCompleted);
     const allAdminFieldsComplete = formsWithStatus.every(f => f.isAdminCompleted);
 
     return { allCandidateFormsComplete, allAdminFieldsComplete, formsToRender: finalForms };
