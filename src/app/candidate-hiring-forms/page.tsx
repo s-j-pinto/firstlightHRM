@@ -1,10 +1,9 @@
-
 'use client';
 
 import { Suspense, useTransition, useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, CheckCircle, Loader2, ArrowLeft, Printer, Download, XCircle, Bell, BellOff, Edit2, FileCheck2, FileClock, ClipboardList, CheckSquare } from "lucide-react";
+import { FileText, CheckCircle, Loader2, ArrowLeft, Printer, Download, XCircle, Bell, BellOff, Edit2, FileCheck2, FileClock, ClipboardList, CheckSquare, ClipboardCheck } from "lucide-react";
 import Link from 'next/link';
 import { useUser, useDoc, useCollection, useMemoFirebase, useFirestore } from '@/firebase';
 import { doc, query, where, collection, limit } from 'firebase/firestore';
