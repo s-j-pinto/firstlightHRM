@@ -43,6 +43,8 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
@@ -67,6 +69,16 @@ export default function ManageApplicationsClient() {
 
   const form = useForm<GeneralInfoFormData>({
     resolver: zodResolver(generalInfoSchema),
+    defaultValues: {
+      fullName: "",
+      email: "",
+      phone: "",
+      address: "",
+      city: "",
+      state: "",
+      zip: "",
+      gender: undefined,
+    }
   });
 
   const handleSearch = () => {
@@ -90,13 +102,13 @@ export default function ManageApplicationsClient() {
             setSearchResults([]);
             setSearchTerm("");
             form.reset({
-              fullName: caregiver.fullName,
-              email: caregiver.email,
-              phone: caregiver.phone,
-              address: caregiver.address,
-              city: caregiver.city,
-              state: caregiver.state,
-              zip: caregiver.zip,
+              fullName: caregiver.fullName || "",
+              email: caregiver.email || "",
+              phone: caregiver.phone || "",
+              address: caregiver.address || "",
+              city: caregiver.city || "",
+              state: caregiver.state || "",
+              zip: caregiver.zip || "",
               gender: caregiver.gender,
             });
         }
