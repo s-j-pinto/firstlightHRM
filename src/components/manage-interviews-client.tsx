@@ -40,11 +40,11 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Search, Sparkles, UserCheck, CheckCircle, Save, FileText, FileCheck2, ClipboardList, CheckSquare, Car, Calendar as CalendarIcon } from 'lucide-react';
+import { Loader2, Search, Sparkles, UserCheck, CheckCircle, Save, FileText, FileCheck2, ClipboardList, CheckSquare, Car, Calendar as CalendarIcon, Info } from 'lucide-react';
 import { format, isDate, isValid, parse } from 'date-fns';
 import { formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { cn } from '@/lib/utils';
-import { Alert, AlertDescription } from './ui/alert';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Dialog, DialogFooter, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Label } from './ui/label';
@@ -662,7 +662,11 @@ export default function ManageInterviewsClient() {
        const result = await saveInterviewAndSchedule({ caregiverProfile: { fullName: selectedCaregiver.fullName, email: selectedCaregiver.email }, ...data, interviewId: existingInterview.id, aiInsight: aiInsight || existingInterview.aiGeneratedInsight || '', interviewType: data.interviewMethod, interviewNotes: phoneScreenForm.getValues('interviewNotes'), candidateRating: assessmentForm.getValues('candidateRating'), pathway: data.interviewPathway, googleEventId: existingInterview.googleEventId, previousPathway: existingInterview.interviewPathway });
        if (result.authUrl) setAuthUrl(result.authUrl);
        toast({ title: result.error ? 'Error' : 'Success', description: result.message, variant: result.error ? 'destructive' : 'default' });
-       if (!result.error) handleCancel();
+       if (!result.error) {
+           // Refetch interview data to update the UI
+           const interviewSnap = await getDoc(doc(db, 'interviews', existingInterview.id));
+           if(interviewSnap.exists()) setExistingInterview({ ...interviewSnap.data(), id: interviewSnap.id } as Interview);
+       }
     });
   }
 
@@ -683,6 +687,10 @@ export default function ManageInterviewsClient() {
           const result = await saveInterviewAndSchedule({ caregiverProfile: { fullName: selectedCaregiver.fullName, email: selectedCaregiver.email }, eventDate: data.orientationDate, eventTime: data.orientationTime, interviewId: existingInterview.id, aiInsight: aiInsight || '', interviewType: 'Orientation', interviewNotes: existingInterview.interviewNotes || '', candidateRating: assessmentForm.getValues('candidateRating'), pathway: 'separate', googleEventId: existingInterview.googleEventId, previousPathway: existingInterview.interviewPathway, includeReferenceForm: data.includeReferenceForm });
           if (result.authUrl) setAuthUrl(result.authUrl);
           toast({ title: result.error ? 'Error' : 'Success', description: result.message, variant: result.error ? 'destructive' : 'default' });
+          if (!result.error) {
+              const interviewSnap = await getDoc(doc(db, 'interviews', existingInterview.id));
+              if(interviewSnap.exists()) setExistingInterview({ ...interviewSnap.data(), id: interviewSnap.id } as Interview);
+          }
       });
   }
 
@@ -878,6 +886,16 @@ export default function ManageInterviewsClient() {
                         <CardHeader><CardTitle>Decision</CardTitle></CardHeader>
                         <CardContent className="flex justify-center gap-4"><Button onClick={() => handleUpdateFinalInterviewStatus('Passed')} disabled={isSubmitting}>Pass</Button><Button onClick={() => handleUpdateFinalInterviewStatus('Failed')} variant="destructive" disabled={isSubmitting}>Fail</Button></CardContent>
                     </Card>
+                )}
+                
+                {existingInterview?.interviewPathway === 'combined' && existingInterview?.finalInterviewStatus === 'Passed' && !existingEmployee && (
+                    <Alert className="bg-blue-50 border-blue-200">
+                        <Info className="h-4 w-4 text-blue-600" />
+                        <AlertTitle className="text-blue-800">Combined Session Active</AlertTitle>
+                        <AlertDescription className="text-blue-700 text-xs">
+                            The candidate is scheduled for a combined Interview + Orientation. They have been automatically marked as "Passed" so you can initiate onboarding.
+                        </AlertDescription>
+                    </Alert>
                 )}
 
                 {shouldShowHiringForm && (
