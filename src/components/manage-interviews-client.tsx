@@ -40,7 +40,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Search, Sparkles, UserCheck, CheckCircle, Save, FileText, FileCheck2, ClipboardList, CheckSquare, Car } from 'lucide-react';
+import { Loader2, Search, Sparkles, UserCheck, CheckCircle, Save, FileText, FileCheck2, ClipboardList, CheckSquare, Car, Calendar as CalendarIcon } from 'lucide-react';
 import { format, isDate, isValid, parse } from 'date-fns';
 import { formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { cn } from '@/lib/utils';
@@ -552,6 +552,7 @@ export default function ManageInterviewsClient() {
   const isFinalInterviewPending = existingInterview?.finalInterviewStatus === 'Pending' || existingInterview?.finalInterviewStatus === 'Pending reference checks';
   const isProcessActive = !existingInterview?.rejectionReason && !existingEmployee;
   const isEventEditable = isPhoneScreenCompleted && isProcessActive && !existingInterview?.orientationScheduled && existingInterview?.finalInterviewStatus !== 'Passed';
+  const isOrientationEditable = existingInterview?.finalInterviewStatus === 'Passed' && !existingInterview?.orientationScheduled && isProcessActive;
   const areNotesEditable = isPhoneScreenCompleted && isProcessActive;
 
   const handleInitiateOnboarding = () => {
@@ -563,7 +564,7 @@ export default function ManageInterviewsClient() {
       });
   };
 
-  const shouldShowHiringForm = !existingEmployee && existingInterview?.finalInterviewStatus !== 'Rejected at Orientation' && existingInterview?.orientationScheduled && existingInterview?.finalInterviewStatus !== 'Pending reference checks';
+  const shouldShowHiringForm = !existingEmployee && existingInterview?.finalInterviewStatus !== 'Rejected at Orientation' && (existingInterview?.orientationScheduled || existingInterview?.finalInterviewStatus === 'Passed') && existingInterview?.finalInterviewStatus !== 'Pending reference checks';
 
   const getOnboardingStatus = () => {
     if (!existingInterview?.onboardingFormsInitiated) return null;
@@ -801,7 +802,7 @@ export default function ManageInterviewsClient() {
 
               {isEventEditable && (
                 <Card>
-                    <CardHeader><CardTitle>Next Event: Final Interview</CardTitle></CardHeader>
+                    <CardHeader><CardTitle>Next Step: Final Interview</CardTitle></CardHeader>
                     <CardContent>
                         <Form {...scheduleEventForm}>
                             <form onSubmit={scheduleEventForm.handleSubmit(onScheduleEventSubmit)} className="space-y-4">
@@ -828,6 +829,23 @@ export default function ManageInterviewsClient() {
                         </Form>
                     </CardContent>
                 </Card>
+              )}
+
+              {isOrientationEditable && (
+                  <Card>
+                      <CardHeader><CardTitle>Next Step: Schedule Orientation</CardTitle></CardHeader>
+                      <CardContent>
+                          <Form {...orientationForm}>
+                              <form onSubmit={orientationForm.handleSubmit(onOrientationSubmit)} className="space-y-4">
+                                  <div className="grid grid-cols-2 gap-4">
+                                      <FormField control={orientationForm.control} name="orientationDate" render={({ field }) => ( <FormItem><FormLabel>Date</FormLabel><FormControl><DateInput {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                      <FormField control={orientationForm.control} name="orientationTime" render={({ field }) => ( <FormItem><FormLabel>Time</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                  </div>
+                                  <div className="flex justify-end"><Button type="submit" disabled={isOrientationSubmitting}>{isOrientationSubmitting && <Loader2 className="animate-spin mr-2" />}Schedule Orientation</Button></div>
+                              </form>
+                          </Form>
+                      </CardContent>
+                  </Card>
               )}
             </div>
             
