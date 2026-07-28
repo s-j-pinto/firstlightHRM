@@ -757,14 +757,40 @@ export default function ManageInterviewsClient() {
                   <CardContent>
                       {isPhoneScreenCompleted ? (
                           <div className="space-y-4">
-                              <div className="flex items-center gap-2"><span className="font-semibold">Status:</span> {existingInterview?.phoneScreenPassed === 'Yes' ? <Badge className="bg-green-500">Passed</Badge> : <Badge className="bg-red-500">Failed</Badge>}</div>
+                              <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2"><span className="font-semibold">Status:</span> {existingInterview?.phoneScreenPassed === 'Yes' ? <Badge className="bg-green-500">Passed</Badge> : <Badge className="bg-red-500">Failed</Badge>}</div>
+                                  <Button asChild variant="link" size="sm" className="h-auto p-0 text-accent font-normal">
+                                      <Link href={`/candidate-hiring-forms?candidateId=${selectedCaregiver.id}`}>
+                                          <FileText className="mr-1 h-4 w-4" />
+                                          Go to Hiring Forms (Master 360)
+                                      </Link>
+                                  </Button>
+                              </div>
                               {existingInterview?.interviewNotes && <div className="p-3 bg-muted rounded-md text-sm whitespace-pre-wrap">{existingInterview.interviewNotes}</div>}
                               {existingInterview?.aiGeneratedInsight && <Alert className="bg-accent/5 border-accent/20"><Sparkles className="h-4 w-4 text-accent" /><AlertDescription className="text-xs mt-2">{existingInterview.aiGeneratedInsight}</AlertDescription></Alert>}
                           </div>
                       ) : (
                           <Form {...phoneScreenForm}>
                               <form onSubmit={phoneScreenForm.handleSubmit(onPhoneScreenSubmit)} className="space-y-6">
-                                  <FormField control={phoneScreenForm.control} name="interviewNotes" render={({ field }) => ( <FormItem><FormLabel>Interview Notes</FormLabel><FormControl><Textarea placeholder="Notes..." {...field} rows={4} /></FormControl><FormMessage /></FormItem> )} />
+                                  <FormField 
+                                    control={phoneScreenForm.control} 
+                                    name="interviewNotes" 
+                                    render={({ field }) => ( 
+                                      <FormItem>
+                                          <div className="flex justify-between items-end">
+                                              <FormLabel>Interview Notes</FormLabel>
+                                              <Button asChild variant="link" size="sm" className="h-auto p-0 text-accent font-normal">
+                                                  <Link href={`/candidate-hiring-forms?candidateId=${selectedCaregiver.id}`}>
+                                                      <FileText className="mr-1 h-4 w-4" />
+                                                      Go to Hiring Forms (Master 360)
+                                                  </Link>
+                                              </Button>
+                                          </div>
+                                          <FormControl><Textarea placeholder="Notes..." {...field} rows={4} /></FormControl>
+                                          <FormMessage />
+                                      </FormItem> 
+                                    )} 
+                                  />
                                   <div className="flex justify-center"><Button type="button" onClick={handleGenerateInsights} disabled={isAiPending}>{isAiPending ? <Loader2 className="animate-spin" /> : <Sparkles />}<span className="ml-2">Generate AI Summary</span></Button></div>
                                   <FormField control={phoneScreenForm.control} name="phoneScreenPassed" render={({ field }) => ( <FormItem><FormLabel>Passed?</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4"><FormItem className="flex items-center space-x-2"><RadioGroupItem value="Yes" /><span>Yes</span></FormItem><FormItem className="flex items-center space-x-2"><RadioGroupItem value="No" /><span>No</span></FormItem></RadioGroup></FormControl><FormMessage /></FormItem> )} />
                                   <div className="flex justify-end"><Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="animate-spin mr-2" />}Save Results</Button></div>
