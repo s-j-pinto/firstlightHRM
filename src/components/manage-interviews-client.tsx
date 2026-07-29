@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect, useCallback } from 'react';
@@ -556,7 +557,6 @@ export default function ManageInterviewsClient() {
   const isOrientationEditable = existingInterview?.finalInterviewStatus === 'Passed' && isProcessActive;
   const areNotesEditable = isPhoneScreenCompleted && isProcessActive;
 
-  // New logic for read-only Final Interview summary
   const showFinalInterviewSummary = 
     existingInterview?.interviewPathway === 'separate' && 
     existingInterview?.finalInterviewStatus && 
@@ -704,8 +704,21 @@ export default function ManageInterviewsClient() {
     if (!selectedCaregiver || !existingInterview || !db) return;
     startSubmitTransition(async () => {
       const employeeData = { caregiverProfileId: selectedCaregiver.id, interviewId: existingInterview.id, hiringManager: data.hiringManager, hiringComments: data.hiringComments, hireDate: Timestamp.fromDate(new Date(data.hireDate)), teletrackPin: data.teletrackPin, createdAt: Timestamp.now() };
+      
+      // 1. Save the employee record
       await setDoc(doc(db, 'caregiver_employees', selectedCaregiver.id), employeeData);
+      
+      // 2. Explicitly update the profile status to Hired
+      await updateDoc(doc(db, 'caregiver_profiles', selectedCaregiver.id), {
+        hiringStatus: 'Hired',
+        nextStepText: '',
+        nextStepTime: null,
+        lastUpdatedAt: Timestamp.now()
+      });
+
+      // 3. Trigger TeleTrack Import
       await triggerTeletrackImport(selectedCaregiver, data.teletrackPin);
+      
       toast({ title: 'Success', description: 'Caregiver hired and TeleTrack import triggered.' });
       setExistingEmployee({ id: selectedCaregiver.id, ...employeeData } as any);
     });
