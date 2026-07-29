@@ -347,6 +347,16 @@ export default function ManageInterviewsClient() {
             const interviewData = { ...interviewDoc.data(), id: interviewDoc.id } as Interview;
             setExistingInterview(interviewData);
 
+            // Populate hiring form with required IDs
+            hiringForm.reset({
+                caregiverProfileId: caregiver.id,
+                interviewId: interviewData.id,
+                hireDate: format(new Date(), 'MM/dd/yyyy'),
+                hiringManager: 'Lolita Pinto',
+                teletrackPin: '',
+                hiringComments: '',
+            });
+
             const employeesCollRef = collection(db, 'caregiver_employees');
             const empDoc = await getDoc(doc(employeesCollRef, caregiver.id));
             if (empDoc.exists()) {
@@ -439,7 +449,7 @@ export default function ManageInterviewsClient() {
     } catch (error) {
         console.error("Error fetching detailed candidate data:", error);
     }
-  }, [db, phoneScreenForm, assessmentForm, interviewQuestionsForm, skillsForm, transportationForm, scheduleEventForm, orientationForm, toast]);
+  }, [db, phoneScreenForm, assessmentForm, interviewQuestionsForm, skillsForm, transportationForm, scheduleEventForm, orientationForm, hiringForm, toast]);
 
   const handleSearch = useCallback((overrideTerm?: string) => {
     const term = overrideTerm || searchTerm;
@@ -614,7 +624,16 @@ export default function ManageInterviewsClient() {
             const interviewPayload: Partial<Interview> = { caregiverProfileId: selectedCaregiver.id, caregiverUid: selectedCaregiver.uid, interviewType: "Phone", phoneScreenPassed: 'Yes', interviewNotes: data.interviewNotes, candidateRating: assessmentForm.getValues('candidateRating'), aiGeneratedInsight: aiInsight || '', lastUpdatedAt: Timestamp.now() };
             if (interviewId) await updateDoc(doc(db, 'interviews', interviewId), interviewPayload);
             else { const ref = await addDoc(collection(db, 'interviews'), { ...interviewPayload, createdAt: Timestamp.now() }); interviewId = ref.id; }
-            setExistingInterview(prev => ({ ...(prev || { id: interviewId! }), ...interviewPayload } as Interview));
+            
+            // Re-fetch or update existing interview to ensure hiringForm gets initialized
+            const interviewSnap = await getDoc(doc(db, 'interviews', interviewId!));
+            if (interviewSnap.exists()) {
+                const fullInterview = { ...interviewSnap.data(), id: interviewSnap.id } as Interview;
+                setExistingInterview(fullInterview);
+                hiringForm.setValue('caregiverProfileId', selectedCaregiver.id);
+                hiringForm.setValue('interviewId', fullInterview.id);
+            }
+            
             toast({ title: 'Success', description: "Phone interview results saved." });
         });
     }
@@ -701,26 +720,49 @@ export default function ManageInterviewsClient() {
   }
 
   const onHiringSubmit = (data: HiringFormData) => {
-    if (!selectedCaregiver || !existingInterview || !db) return;
+    if (!selectedCaregiver || !existingInterview || !db) {
+        console.error("Missing critical data for hiring submit:", { selectedCaregiver: !!selectedCaregiver, existingInterview: !!existingInterview, db: !!db });
+        return;
+    }
+    
     startSubmitTransition(async () => {
-      const employeeData = { caregiverProfileId: selectedCaregiver.id, interviewId: existingInterview.id, hiringManager: data.hiringManager, hiringComments: data.hiringComments, hireDate: Timestamp.fromDate(new Date(data.hireDate)), teletrackPin: data.teletrackPin, createdAt: Timestamp.now() };
-      
-      // 1. Save the employee record
-      await setDoc(doc(db, 'caregiver_employees', selectedCaregiver.id), employeeData);
-      
-      // 2. Explicitly update the profile status to Hired
-      await updateDoc(doc(db, 'caregiver_profiles', selectedCaregiver.id), {
-        hiringStatus: 'Hired',
-        nextStepText: '',
-        nextStepTime: null,
-        lastUpdatedAt: Timestamp.now()
-      });
+      try {
+        const parsedHireDate = parse(data.hireDate, 'MM/dd/yyyy', new Date());
+        if (!isValid(parsedHireDate)) {
+            toast({ title: "Invalid Date", description: "Please enter a valid hire date (MM/DD/YYYY).", variant: "destructive" });
+            return;
+        }
 
-      // 3. Trigger TeleTrack Import
-      await triggerTeletrackImport(selectedCaregiver, data.teletrackPin);
-      
-      toast({ title: 'Success', description: 'Caregiver hired and TeleTrack import triggered.' });
-      setExistingEmployee({ id: selectedCaregiver.id, ...employeeData } as any);
+        const employeeData = { 
+            caregiverProfileId: selectedCaregiver.id, 
+            interviewId: existingInterview.id, 
+            hiringManager: data.hiringManager, 
+            hiringComments: data.hiringComments || '', 
+            hireDate: Timestamp.fromDate(parsedHireDate), 
+            teletrackPin: data.teletrackPin, 
+            createdAt: Timestamp.now() 
+        };
+        
+        // 1. Save the employee record
+        await setDoc(doc(db, 'caregiver_employees', selectedCaregiver.id), employeeData);
+        
+        // 2. Explicitly update the profile status to Hired
+        await updateDoc(doc(db, 'caregiver_profiles', selectedCaregiver.id), {
+          hiringStatus: 'Hired',
+          nextStepText: '',
+          nextStepTime: null,
+          lastUpdatedAt: Timestamp.now()
+        });
+
+        // 3. Trigger TeleTrack Import
+        await triggerTeletrackImport({ ...selectedCaregiver, hireDate: parsedHireDate }, data.teletrackPin);
+        
+        toast({ title: 'Success', description: 'Caregiver hired and TeleTrack import triggered.' });
+        setExistingEmployee({ id: selectedCaregiver.id, ...employeeData } as any);
+      } catch (e: any) {
+        console.error("Hiring workflow error:", e);
+        toast({ title: "Hiring Failed", description: e.message || "An unexpected error occurred while finalizing employment.", variant: "destructive" });
+      }
     });
   };
     
