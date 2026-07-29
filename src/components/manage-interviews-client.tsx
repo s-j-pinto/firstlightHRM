@@ -41,7 +41,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Search, Sparkles, UserCheck, CheckCircle, Save, FileText, FileCheck2, ClipboardList, CheckSquare, Car, Calendar as CalendarIcon, Info } from 'lucide-react';
+import { Loader2, Search, Sparkles, UserCheck, CheckCircle, Save, FileText, FileCheck2, ClipboardList, CheckSquare, Car, Calendar as CalendarIcon, Info, History } from 'lucide-react';
 import { format, isDate, isValid, parse } from 'date-fns';
 import { formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { cn } from '@/lib/utils';
@@ -348,14 +348,8 @@ export default function ManageInterviewsClient() {
             setExistingInterview(interviewData);
 
             // Populate hiring form with required IDs
-            hiringForm.reset({
-                caregiverProfileId: caregiver.id,
-                interviewId: interviewData.id,
-                hireDate: format(new Date(), 'MM/dd/yyyy'),
-                hiringManager: 'Lolita Pinto',
-                teletrackPin: '',
-                hiringComments: '',
-            });
+            hiringForm.setValue('caregiverProfileId', caregiver.id);
+            hiringForm.setValue('interviewId', interviewData.id);
 
             const employeesCollRef = collection(db, 'caregiver_employees');
             const empDoc = await getDoc(doc(employeesCollRef, caregiver.id));
@@ -563,14 +557,29 @@ export default function ManageInterviewsClient() {
   const isFinalInterviewPending = existingInterview?.finalInterviewStatus === 'Pending' || existingInterview?.finalInterviewStatus === 'Pending reference checks';
   const isProcessActive = !existingInterview?.rejectionReason && !existingEmployee;
   
-  const isEventEditable = isPhoneScreenCompleted && isProcessActive && (existingInterview?.finalInterviewStatus === 'Pending' || !existingInterview?.finalInterviewStatus);
-  const isOrientationEditable = existingInterview?.finalInterviewStatus === 'Passed' && isProcessActive;
+  const isEventEditable = isPhoneScreenCompleted && isProcessActive && (
+    existingInterview?.finalInterviewStatus === 'Pending' || 
+    existingInterview?.finalInterviewStatus === 'Pending reference checks' ||
+    !existingInterview?.finalInterviewStatus ||
+    (existingInterview?.interviewPathway === 'combined')
+  );
+  const isOrientationEditable = existingInterview?.finalInterviewStatus === 'Passed' && isProcessActive && existingInterview?.interviewPathway === 'separate';
   const areNotesEditable = isPhoneScreenCompleted && isProcessActive;
 
   const showFinalInterviewSummary = 
     existingInterview?.interviewPathway === 'separate' && 
     existingInterview?.finalInterviewStatus && 
     ['Passed', 'Failed', 'Pending reference checks'].includes(existingInterview.finalInterviewStatus);
+
+  const showOrientationSummary =
+    existingInterview?.interviewPathway === 'separate' &&
+    existingInterview?.orientationScheduled &&
+    !isProcessActive;
+
+  const showCombinedSummary =
+    existingInterview?.interviewPathway === 'combined' &&
+    existingInterview?.orientationScheduled &&
+    !isProcessActive;
 
   const handleInitiateOnboarding = () => {
       if (!existingInterview?.id) return;
@@ -755,7 +764,6 @@ export default function ManageInterviewsClient() {
         });
 
         // 3. Trigger TeleTrack Import
-        // Create a plain object for the server action to avoid serialization errors with Timestamps
         const ttPayload: any = {
             fullName: selectedCaregiver.fullName,
             address: selectedCaregiver.address,
@@ -929,6 +937,54 @@ export default function ManageInterviewsClient() {
                 </Card>
               )}
 
+              {showOrientationSummary && (
+                <Card className="animate-in fade-in slide-in-from-left-4">
+                    <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                            <CalendarIcon className="h-5 w-5 text-accent" />
+                            Orientation Summary
+                        </CardTitle>
+                        <CardDescription>Final orientation session details.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3 text-sm">
+                        <div className="flex justify-between py-1 border-b border-muted">
+                            <span className="font-semibold text-muted-foreground">Scheduled:</span>
+                            <span className="font-medium">{existingInterview?.orientationDateTime ? format(safeToDate(existingInterview.orientationDateTime)!, 'PPp') : 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between items-center py-1">
+                            <span className="font-semibold text-muted-foreground">Status:</span>
+                            <Badge className="bg-green-500">Scheduled</Badge>
+                        </div>
+                    </CardContent>
+                </Card>
+              )}
+
+              {showCombinedSummary && (
+                <Card className="animate-in fade-in slide-in-from-left-4">
+                    <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                            <CheckCircle className="h-5 w-5 text-accent" />
+                            Orientation & Final Interview Summary
+                        </CardTitle>
+                        <CardDescription>Combined session details.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3 text-sm">
+                        <div className="flex justify-between py-1 border-b border-muted">
+                            <span className="font-semibold text-muted-foreground">Scheduled:</span>
+                            <span className="font-medium">{existingInterview?.interviewDateTime ? format(safeToDate(existingInterview.interviewDateTime)!, 'PPp') : 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between py-1 border-b border-muted">
+                            <span className="font-semibold text-muted-foreground">Method:</span>
+                            <span className="font-medium">{existingInterview?.interviewType}</span>
+                        </div>
+                        <div className="flex justify-between items-center py-1">
+                            <span className="font-semibold text-muted-foreground">Status:</span>
+                            <Badge className="bg-green-500">Passed & Scheduled</Badge>
+                        </div>
+                    </CardContent>
+                </Card>
+              )}
+
               {isEventEditable && (
                 <Card>
                     <CardHeader>
@@ -1085,6 +1141,22 @@ export default function ManageInterviewsClient() {
                                     <Button type="submit" className="w-full" disabled={isSubmitting || !signaturesData?.hcs501EmployeeSignature}><UserCheck className="mr-2 h-4 w-4" />Hire Candidate</Button>
                                 </form>
                             </Form>
+                        </CardContent>
+                    </Card>
+                )}
+                
+                {existingEmployee && (
+                    <Card className="border-green-500 bg-green-50">
+                        <CardHeader>
+                            <CardTitle className="text-green-800 flex items-center gap-2">
+                                <UserCheck className="h-5 w-5" />
+                                Employment Finalized
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="text-sm space-y-2">
+                            <p><strong>Hire Date:</strong> {existingEmployee.hireDate ? format(safeToDate(existingEmployee.hireDate)!, 'PP') : 'N/A'}</p>
+                            <p><strong>Manager:</strong> {existingEmployee.hiringManager}</p>
+                            <p><strong>TeleTrack PIN:</strong> {existingEmployee.teletrackPin}</p>
                         </CardContent>
                     </Card>
                 )}
