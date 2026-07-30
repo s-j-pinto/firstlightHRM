@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect, useCallback } from 'react';
@@ -557,6 +556,7 @@ export default function ManageInterviewsClient() {
   const isFinalInterviewPending = existingInterview?.finalInterviewStatus === 'Pending' || existingInterview?.finalInterviewStatus === 'Pending reference checks';
   const isProcessActive = !existingInterview?.rejectionReason && !existingEmployee;
   
+  const areNotesEditable = isProcessActive;
   const isEventEditable = isPhoneScreenCompleted && isProcessActive && (
     existingInterview?.finalInterviewStatus === 'Pending' || 
     existingInterview?.finalInterviewStatus === 'Pending reference checks' ||
@@ -564,7 +564,6 @@ export default function ManageInterviewsClient() {
     (existingInterview?.interviewPathway === 'combined')
   );
   const isOrientationEditable = existingInterview?.finalInterviewStatus === 'Passed' && isProcessActive && existingInterview?.interviewPathway === 'separate';
-  const areNotesEditable = isPhoneScreenCompleted && isProcessActive;
 
   const showFinalInterviewSummary = 
     existingInterview?.interviewPathway === 'separate' && 
@@ -634,7 +633,6 @@ export default function ManageInterviewsClient() {
             if (interviewId) await updateDoc(doc(db, 'interviews', interviewId), interviewPayload);
             else { const ref = await addDoc(collection(db, 'interviews'), { ...interviewPayload, createdAt: Timestamp.now() }); interviewId = ref.id; }
             
-            // Re-fetch or update existing interview to ensure hiringForm gets initialized
             const interviewSnap = await getDoc(doc(db, 'interviews', interviewId!));
             if (interviewSnap.exists()) {
                 const fullInterview = { ...interviewSnap.data(), id: interviewSnap.id } as Interview;
@@ -649,20 +647,61 @@ export default function ManageInterviewsClient() {
   };
 
   const onAssessmentSubmit = async (data: AssessmentFormData) => {
-    if (!selectedCaregiver || !db || !existingInterview?.id) return;
+    if (!selectedCaregiver || !db) return;
     startAssessmentSavingTransition(async () => {
+        let interviewId = existingInterview?.id;
         const updateData = { candidateRating: data.candidateRating, finalInterviewNotes: data.finalInterviewNotes || '', lastUpdatedAt: Timestamp.now() };
-        await updateDoc(doc(db, 'interviews', existingInterview.id), updateData);
-        setExistingInterview(prev => prev ? { ...prev, ...updateData } : null);
+        
+        if (interviewId) {
+            await updateDoc(doc(db, 'interviews', interviewId), updateData);
+        } else {
+             const interviewPayload = {
+                  ...updateData,
+                  caregiverProfileId: selectedCaregiver.id,
+                  caregiverUid: selectedCaregiver.uid,
+                  interviewType: "Phone",
+                  phoneScreenPassed: 'N/A', 
+                  createdAt: Timestamp.now()
+              };
+              const ref = await addDoc(collection(db, 'interviews'), interviewPayload);
+              interviewId = ref.id;
+        }
+
+        const interviewSnap = await getDoc(doc(db, 'interviews', interviewId!));
+        if (interviewSnap.exists()) {
+            setExistingInterview({ ...interviewSnap.data(), id: interviewSnap.id } as Interview);
+        }
+
         toast({ title: 'Success', description: 'Candidate assessment updated.' });
     });
   };
 
   const onQuestionsSubmit = async (data: InterviewQuestionsFormData) => {
-      if (!existingInterview?.id || !db) return;
+      if (!selectedCaregiver || !db) return;
       startQuestionsSavingTransition(async () => {
-          await updateDoc(doc(db, 'interviews', existingInterview.id), { ...data, lastUpdatedAt: Timestamp.now() });
-          setExistingInterview(prev => prev ? { ...prev, ...data } : null);
+          let interviewId = existingInterview?.id;
+          const updateData = { ...data, lastUpdatedAt: Timestamp.now() };
+          
+          if (interviewId) {
+              await updateDoc(doc(db, 'interviews', interviewId), updateData);
+          } else {
+              const interviewPayload = {
+                  ...updateData,
+                  caregiverProfileId: selectedCaregiver.id,
+                  caregiverUid: selectedCaregiver.uid,
+                  interviewType: "Phone",
+                  phoneScreenPassed: 'N/A',
+                  createdAt: Timestamp.now()
+              };
+              const ref = await addDoc(collection(db, 'interviews'), interviewPayload);
+              interviewId = ref.id;
+          }
+          
+          const interviewSnap = await getDoc(doc(db, 'interviews', interviewId!));
+          if (interviewSnap.exists()) {
+              setExistingInterview({ ...interviewSnap.data(), id: interviewSnap.id } as Interview);
+          }
+          
           toast({ title: 'Success', description: 'Interview questions saved.' });
           setIsQuestionsOpen(false);
       });
@@ -681,11 +720,30 @@ export default function ManageInterviewsClient() {
       if (!selectedCaregiver || !db) return;
       startTransportationSavingTransition(async () => {
           updateDocumentNonBlocking(doc(db, 'caregiver_profiles', selectedCaregiver.id), { hasCar: data.hasCar ? 'yes' : 'no', validLicense: data.validLicense ? 'yes' : 'no' });
-          if (existingInterview?.id) {
-            const updateData = { q_hasAutoInsurance: data.q_hasAutoInsurance, q_movingViolations: data.q_movingViolations, q_misdemeanorCharges: data.q_misdemeanorCharges, q_ieTravelAreas: data.q_ieTravelAreas, q_preferredNotWorkAreas: data.q_preferredNotWorkAreas, lastUpdatedAt: Timestamp.now() };
-            await updateDoc(doc(db, 'interviews', existingInterview.id), updateData);
-            setExistingInterview(prev => prev ? { ...prev, ...updateData } : null);
+          
+          let interviewId = existingInterview?.id;
+          const updateData = { q_hasAutoInsurance: data.q_hasAutoInsurance, q_movingViolations: data.q_movingViolations, q_misdemeanorCharges: data.q_misdemeanorCharges, q_ieTravelAreas: data.q_ieTravelAreas, q_preferredNotWorkAreas: data.q_preferredNotWorkAreas, lastUpdatedAt: Timestamp.now() };
+
+          if (interviewId) {
+            await updateDoc(doc(db, 'interviews', interviewId), updateData);
+          } else {
+              const interviewPayload = {
+                  ...updateData,
+                  caregiverProfileId: selectedCaregiver.id,
+                  caregiverUid: selectedCaregiver.uid,
+                  interviewType: "Phone",
+                  phoneScreenPassed: 'N/A',
+                  createdAt: Timestamp.now()
+              };
+              const ref = await addDoc(collection(db, 'interviews'), interviewPayload);
+              interviewId = ref.id;
           }
+          
+          const interviewSnap = await getDoc(doc(db, 'interviews', interviewId!));
+          if (interviewSnap.exists()) {
+              setExistingInterview({ ...interviewSnap.data(), id: interviewSnap.id } as Interview);
+          }
+          
           toast({ title: 'Success', description: 'Transportation information updated.' });
           setIsTransportationOpen(false);
       });
@@ -729,10 +787,7 @@ export default function ManageInterviewsClient() {
   }
 
   const onHiringSubmit = (data: HiringFormData) => {
-    if (!selectedCaregiver || !existingInterview || !db) {
-        console.error("Missing critical data for hiring submit:", { selectedCaregiver: !!selectedCaregiver, existingInterview: !!existingInterview, db: !!db });
-        return;
-    }
+    if (!selectedCaregiver || !existingInterview || !db) return;
     
     startSubmitTransition(async () => {
       try {
@@ -752,10 +807,8 @@ export default function ManageInterviewsClient() {
             createdAt: Timestamp.now() 
         };
         
-        // 1. Save the employee record
         await setDoc(doc(db, 'caregiver_employees', selectedCaregiver.id), employeeData);
         
-        // 2. Explicitly update the profile status to Hired
         await updateDoc(doc(db, 'caregiver_profiles', selectedCaregiver.id), {
           hiringStatus: 'Hired',
           nextStepText: '',
@@ -763,7 +816,6 @@ export default function ManageInterviewsClient() {
           lastUpdatedAt: Timestamp.now()
         });
 
-        // 3. Trigger TeleTrack Import
         const ttPayload: any = {
             fullName: selectedCaregiver.fullName,
             address: selectedCaregiver.address,
@@ -1112,7 +1164,7 @@ export default function ManageInterviewsClient() {
                         </CardHeader>
                         <CardContent>
                             <Form {...hiringForm}>
-                                <form onSubmit={hiringForm.handleSubmit(onHiringSubmit)} className="space-y-4">
+                                <form hiringForm.handleSubmit(onHiringSubmit) className="space-y-4">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <FormField control={hiringForm.control} name="hireDate" render={({ field }) => ( <FormItem><FormLabel>Hire Date</FormLabel><FormControl><DateInput {...field} /></FormControl><FormMessage /></FormItem> )} />
                                         <FormField
