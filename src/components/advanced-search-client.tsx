@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect, useCallback } from 'react';
@@ -14,13 +15,38 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, SlidersHorizontal, FilterX, Mail, CheckCircle, BellOff, Bell, Edit2, XCircle, AlertCircle, ClipboardList, CheckSquare } from 'lucide-react';
+import { 
+    Loader2, 
+    Search, 
+    SlidersHorizontal, 
+    FilterX, 
+    Mail, 
+    CheckCircle, 
+    BellOff, 
+    Bell, 
+    Edit2, 
+    XCircle, 
+    AlertCircle, 
+    ClipboardList, 
+    CheckSquare,
+    Brain,
+    Heart,
+    Pill,
+    ArrowUpFromLine,
+    Utensils,
+    Bath,
+    Stethoscope,
+    Droplets,
+    Award,
+    Check
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { sendHiringDocsNotification } from '@/lib/communication.actions';
 import { Input } from './ui/input';
 import { searchCandidatesAction } from '@/lib/caregiver.actions';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
 const hiringStatuses = [
   'Applied', 'Phonescreen Invite Needed', 'Phonescreen Scheduled', 'Hired', 'Orientation Scheduled', 'Final Interview Passed', 'Final Interview Pending', 'Final Interview Failed', 'Phone Screen Failed', 'Rejected at Orientation', 'Process Terminated', 'No Show'
@@ -34,6 +60,18 @@ const searchSchema = z.object({
 });
 
 type FormData = z.infer<typeof searchSchema>;
+
+const skillIcons = [
+    { key: 'hasDementiaExperience', label: 'Dementia', icon: Brain },
+    { key: 'hasHospiceExperience', label: 'Hospice', icon: Heart },
+    { key: 'canGiveMedication', label: 'Medication', icon: Pill },
+    { key: 'canUseHoyerLift', label: 'Hoyer Lift', icon: ArrowUpFromLine },
+    { key: 'canPrepareMeals', label: 'Meals', icon: Utensils },
+    { key: 'canDoBedBath', label: 'Bed Bath', icon: Bath },
+    { key: 'canTakeBloodPressure', label: 'Vitals/BP', icon: Stethoscope },
+    { key: 'canChangeBrief', label: 'Incontinence', icon: Droplets },
+    { key: 'hca', label: 'HCA', icon: Award },
+];
 
 export default function AdvancedSearchClient() {
     const form = useForm<FormData>({
@@ -108,6 +146,13 @@ export default function AdvancedSearchClient() {
             performSearch(true);
         }
     }
+
+    const hasOvernightAvailability = (availability: any) => {
+        if (!availability) return false;
+        return Object.values(availability).some((shifts: any) => 
+            Array.isArray(shifts) && shifts.includes('night')
+        );
+    };
 
     const DocsStatusIcon = ({ status, candidateId }: { status: string, candidateId: string }) => {
         const content = () => {
@@ -200,11 +245,25 @@ export default function AdvancedSearchClient() {
                     <CardTitle className="font-headline">Staffing Pool</CardTitle>
                 </CardHeader>
                 <CardContent>
+                    <TooltipProvider>
                     <Table>
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Candidate</TableHead>
                                 <TableHead>Location</TableHead>
+                                <TableHead className="text-center">Overnight Shifts</TableHead>
+                                <TableHead className="min-w-[200px]">
+                                    <div className="flex flex-col gap-1">
+                                        <span>Skills & Experience</span>
+                                        <div className="flex flex-wrap gap-x-3 gap-y-1 py-1 px-2 bg-muted/50 rounded text-[10px] font-normal text-muted-foreground uppercase tracking-tight">
+                                            {skillIcons.map(s => (
+                                                <div key={s.key} className="flex items-center gap-1">
+                                                    <s.icon className="h-3 w-3" /> {s.label}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </TableHead>
                                 <TableHead>Current Status</TableHead>
                                 <TableHead>Date Applied</TableHead>
                                 <TableHead>Progress</TableHead>
@@ -221,6 +280,35 @@ export default function AdvancedSearchClient() {
                                         <div className="text-xs text-muted-foreground">{candidate.phone}</div>
                                     </TableCell>
                                     <TableCell>{candidate.city}</TableCell>
+                                    <TableCell className="text-center">
+                                        {hasOvernightAvailability(candidate.availability) ? (
+                                            <div className="flex justify-center">
+                                                <Check className="h-5 w-5 text-green-600" />
+                                            </div>
+                                        ) : (
+                                            <span className="text-muted-foreground opacity-30">-</span>
+                                        )}
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex flex-wrap gap-2">
+                                            {skillIcons.map(s => {
+                                                const hasSkill = !!candidate[s.key];
+                                                if (!hasSkill) return null;
+                                                return (
+                                                    <Tooltip key={s.key}>
+                                                        <TooltipTrigger asChild>
+                                                            <div className="p-1.5 rounded-full bg-accent/10 text-accent">
+                                                                <s.icon className="h-4 w-4" />
+                                                            </div>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            <p>{s.label}</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                );
+                                            })}
+                                        </div>
+                                    </TableCell>
                                     <TableCell><StatusBadge status={candidate.hiringStatus} /></TableCell>
                                     <TableCell>
                                         <div className="text-sm">
@@ -247,13 +335,14 @@ export default function AdvancedSearchClient() {
                                 </TableRow>
                             )) : (
                                 <TableRow>
-                                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                                    <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
                                         {isLoading ? "Consulting database..." : "No candidates found matching your criteria."}
                                     </TableCell>
                                 </TableRow>
                             )}
                         </TableBody>
                     </Table>
+                    </TooltipProvider>
                     {hasMore && (
                         <div className="flex justify-center mt-6">
                             <Button variant="ghost" onClick={() => performSearch(false)} disabled={isLoading}>

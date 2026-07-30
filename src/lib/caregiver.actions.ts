@@ -95,7 +95,19 @@ export async function searchCandidatesAction(params: SearchParams) {
         'nextStepText', 
         'nextStepTime',
         'master360Saved',
-        'newHireChecklistComplete'
+        'newHireChecklistComplete',
+        'availability',
+        'canChangeBrief',
+        'canTransfer',
+        'canPrepareMeals',
+        'canDoBedBath',
+        'canUseHoyerLift',
+        'canGiveMedication',
+        'canTakeBloodPressure',
+        'hasDementiaExperience',
+        'hasHospiceExperience',
+        'hca',
+        'hha'
     ];
     
     try {
@@ -116,6 +128,19 @@ export async function searchCandidatesAction(params: SearchParams) {
                 nextStepTime: data.nextStepTime ? data.nextStepTime.toDate().toISOString() : null,
                 master360Saved: !!data.master360Saved,
                 newHireChecklistComplete: !!data.newHireChecklistComplete,
+                // Add new fields
+                availability: data.availability || null,
+                canChangeBrief: !!data.canChangeBrief,
+                canTransfer: !!data.canTransfer,
+                canPrepareMeals: !!data.canPrepareMeals,
+                canDoBedBath: !!data.canDoBedBath,
+                canUseHoyerLift: !!data.canUseHoyerLift,
+                canGiveMedication: !!data.canGiveMedication,
+                canTakeBloodPressure: !!data.canTakeBloodPressure,
+                hasDementiaExperience: !!data.hasDementiaExperience,
+                hasHospiceExperience: !!data.hasHospiceExperience,
+                hca: !!data.hca,
+                hha: !!data.hha
             };
         });
 
