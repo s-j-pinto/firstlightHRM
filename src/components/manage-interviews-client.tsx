@@ -1164,7 +1164,7 @@ export default function ManageInterviewsClient() {
                         </CardHeader>
                         <CardContent>
                             <Form {...hiringForm}>
-                                <form hiringForm.handleSubmit(onHiringSubmit) className="space-y-4">
+                                <form onSubmit={hiringForm.handleSubmit(onHiringSubmit)} className="space-y-4">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <FormField control={hiringForm.control} name="hireDate" render={({ field }) => ( <FormItem><FormLabel>Hire Date</FormLabel><FormControl><DateInput {...field} /></FormControl><FormMessage /></FormItem> )} />
                                         <FormField
