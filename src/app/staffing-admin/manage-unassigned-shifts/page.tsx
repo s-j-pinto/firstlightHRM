@@ -14,7 +14,7 @@ export default function ManageUnassignedShiftsPage() {
             Identify open shifts from TeleTrack and find the best matching caregivers.
           </p>
         </div>
-        <HelpDialog topic="manageCalloffs" />
+        <HelpDialog topic="manageUnassignedShifts" />
       </div>
       <div className="mt-6">
         <ManageUnassignedShiftsClient />

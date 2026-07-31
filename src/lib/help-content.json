@@ -510,7 +510,7 @@
                 "<strong>Email List:</strong> The left pane shows a chronological list of all sent emails. You can see the recipient, subject, and time sent.",
                 "<strong>Search & Filter:</strong> Use the search bar to find emails by recipient or subject. Use the dropdown to filter by delivery status (Success, Error, Pending).",
                 "<strong>Status Indicators:</strong> A quick-glance icon next to each email shows its delivery status: a green check for success, a red 'X' for error, a clock for pending, and a spinner for processing.",
-                "<strong>Email Preview:</strong> Click an email in the list to see its full, formatted content in the right pane, exactly as the recipient saw it.",
+                "<strong>Email Preview:</strong> Click an email in the list to see its full, formatted content in the right panel, exactly as the recipient saw it.",
                 "<strong>Error Details:</strong> If an email failed to send, a prominent error box will appear in the preview pane, showing the specific reason for the failure (e.g., 'Invalid email address')."
             ]
         }
@@ -631,6 +631,29 @@
           "<strong>2. Select a Client:</strong> The dropdown list will show all clients who have scheduled shifts in that week's inventory.",
           "<strong>3. Identify the Shift:</strong> View all scheduled shifts for that client. Click on the card of the shift where the caregiver has called off.",
           "<strong>4. Replacement Recommendations:</strong> Once a shift is selected, click the button to find available caregivers who are a good match for the client's needs and proximity."
+        ]
+      }
+    ]
+  },
+  "manageUnassignedShifts": {
+    "title": "Unassigned Shift Management Guide",
+    "content": [
+      {
+        "type": "paragraph",
+        "text": "This feature identifies open shifts synced from TeleTrack and uses a deterministic rules engine to rank matching caregivers."
+      },
+      {
+        "type": "heading",
+        "text": "Workflow"
+      },
+      {
+        "type": "list",
+        "items": [
+          "<strong>1. Sync Data:</strong> Ensure the weekly inventory sync has run to populate the current week's open shifts.",
+          "<strong>2. Select Shift:</strong> Choose an unassigned shift from the sidebar list.",
+          "<strong>3. Automated Ranking:</strong> The engine scores all active caregivers based on proximity, prior client relationship, workload, and shift availability overlap.",
+          "<strong>4. Denied Filter:</strong> Caregivers explicitly denied for a client are automatically marked as ineligible.",
+          "<strong>5. Communicate:</strong> Click 'Email Recommendations' to send the top matches to management for final approval."
         ]
       }
     ]
