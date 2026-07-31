@@ -7,6 +7,7 @@ import { Timestamp } from 'firebase-admin/firestore';
 /**
  * API route to handle a weekly cron job for syncing TeleTrack unassigned inventory data.
  * This job reads two JSON files from GCS and stores them as single documents in Firestore.
+ * It ensures only the most current run data is maintained by deleting existing documents first.
  */
 export async function GET(request: NextRequest) {
   const logMessages: string[] = [`[SYNC-UNASSIGNED-INVENTORY] Job started at ${new Date().toISOString()}`];
@@ -30,6 +31,15 @@ export async function GET(request: NextRequest) {
     
     logMessages.push(`Inventory data fetched for week: ${inventoryData.weekStart} to ${inventoryData.weekEnd}`);
 
+    // Deleting any existing unassigned shifts inventory documents (Maintain only current run)
+    const existingInventorySnap = await serverDb.collection('teletrack_weekly_unassigned_shifts_inventory').get();
+    if (!existingInventorySnap.empty) {
+        const batch = serverDb.batch();
+        existingInventorySnap.docs.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+        logMessages.push(`Deleted ${existingInventorySnap.size} existing unassigned shift inventory documents.`);
+    }
+
     const inventoryRef = serverDb.collection('teletrack_weekly_unassigned_shifts_inventory').doc();
     await inventoryRef.set({
         ...inventoryData,
@@ -44,6 +54,15 @@ export async function GET(request: NextRequest) {
     const caregiversData = JSON.parse(caregiversContent.toString());
 
     logMessages.push(`Unassigned caregivers list fetched. Total clients: ${caregiversData.totalClients}`);
+
+    // Deleting any existing unassigned caregivers list documents (Maintain only current run)
+    const existingListSnap = await serverDb.collection('teletrack_unassigned_weekly_caregivers_list').get();
+    if (!existingListSnap.empty) {
+        const batch = serverDb.batch();
+        existingListSnap.docs.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+        logMessages.push(`Deleted ${existingListSnap.size} existing unassigned caregivers list documents.`);
+    }
 
     const caregiversListRef = serverDb.collection('teletrack_unassigned_weekly_caregivers_list').doc();
     await caregiversListRef.set({
