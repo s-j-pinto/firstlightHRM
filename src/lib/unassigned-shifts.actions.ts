@@ -1,3 +1,4 @@
+
 'use server';
 
 import { serverDb } from '@/firebase/server-init';
@@ -36,7 +37,7 @@ function timeToMinutes(timeStr: string): number {
 
 /**
  * Rules Engine for unassigned shift recommendations.
- * Bypasses Firestore indexes by fetching relevant docs and sorting in-memory.
+ * Ranks caregivers based on Prior Relationship, Availability, Workload, and Proximity.
  */
 export async function getUnassignedRecommendations(payload: GetRecommendationsPayload) {
     const { shiftIndex, weekStart } = payload;
@@ -64,7 +65,7 @@ export async function getUnassignedRecommendations(payload: GetRecommendationsPa
         const shiftStartMins = timeToMinutes(shift.arrivalTime);
         const shiftEndMins = timeToMinutes(shift.departureTime);
 
-        // 2. Get client preferences (Prior/Denied lists)
+        // 2. Get client preferences (Prior/Denied lists from the latest sync)
         const listQuery = await firestore.collection('teletrack_unassigned_weekly_caregivers_list').get();
         const listDocs = listQuery.docs;
         listDocs.sort((a, b) => b.data().syncedAt.toMillis() - a.data().syncedAt.toMillis());
@@ -95,17 +96,18 @@ export async function getUnassignedRecommendations(payload: GetRecommendationsPa
             const caregiver = doc.data() as ActiveCaregiver;
             const caregiverNameNormalized = caregiver.Name.trim().toLowerCase();
             
-            // Availability Filter
+            // Filter: Must have availability record for current week
             const availDoc = await doc.ref.collection('availability').doc('current_week').get();
             if (!availDoc.exists) continue;
 
             const dayAvail = availDoc.data()?.[dayName];
+            // Filter: Must have an availability block for the day
             if (!dayAvail || !dayAvail.hasAvailabilityBlock) continue;
 
             let score = 0;
             const reasons: string[] = [];
 
-            // RULE: Denied Filter (Hard Reject)
+            // RULE: Denied Filter (Hard Reject / Visibility Rule)
             const isDenied = deniedCaregiverNames.includes(caregiverNameNormalized);
             if (isDenied) {
                 recommendations.push({
@@ -160,9 +162,9 @@ export async function getUnassignedRecommendations(payload: GetRecommendationsPa
             const buffer = dayAvail.nonOvertimeHours || 0;
             if (buffer >= shift.hours) {
                 score += 15;
-                reasons.push(`Safe Workload: Sufficient regular hours available (+15 pts).`);
+                reasons.push(`Safe Workload: Sufficient regular hours available today (+15 pts).`);
             } else if (buffer > 0) {
-                reasons.push(`Overtime Risk: Shift will incur ~${(shift.hours - buffer).toFixed(1)}h of daily overtime.`);
+                reasons.push(`Overtime Risk: Shift (${shift.hours}h) will incur ~${(shift.hours - buffer).toFixed(1)}h of daily overtime.`);
             }
 
             recommendations.push({
@@ -178,7 +180,7 @@ export async function getUnassignedRecommendations(payload: GetRecommendationsPa
             });
         }
 
-        // --- RANKING LOGIC ---
+        // --- FINAL RANKING LOGIC ---
         // 1. Prior relationship (True first)
         // 2. Denied (Moved to absolute bottom)
         // 3. Score (Descending)
@@ -197,8 +199,8 @@ export async function getUnassignedRecommendations(payload: GetRecommendationsPa
         };
 
     } catch (error: any) {
-        console.error("[getUnassignedRecommendations] Error:", error);
-        return { error: `Engine Error: ${error.message}` };
+        console.error("[getUnassignedRecommendations] Rules Engine Error:", error);
+        return { error: `Matching Error: ${error.message}` };
     }
 }
 
@@ -227,23 +229,23 @@ export async function sendUnassignedRecommendationsEmail(payload: {
     const email = {
         to: [adminEmail, ownerEmail],
         message: {
-            subject: `CareConnect Unassigned Shift Recommendations for ${payload.clientName}, ${payload.shiftDate}, ${payload.shiftTime} and ${payload.shiftHours} hrs`,
+            subject: `CareConnect Unassigned Shift Recommendations for ${payload.clientName}, ${payload.shiftDate}, ${payload.shiftTime} (${payload.shiftHours} hrs)`,
             html: `
                 <body style="font-family: sans-serif; line-height: 1.6;">
                     <div style="max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
-                        <h2 style="color: #333;">Unassigned Shift Alert</h2>
-                        <p>Our matching rules engine has identified the best caregivers for the following unassigned shift:</p>
+                        <h2 style="color: #333;">Unassigned Shift Match Results</h2>
+                        <p>The CareConnect rules engine has identified the following top matches for an open shift:</p>
                         <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
                             <p><strong>Client:</strong> ${payload.clientName}</p>
                             <p><strong>Date:</strong> ${payload.shiftDate}</p>
                             <p><strong>Time:</strong> ${payload.shiftTime}</p>
                             <p><strong>Duration:</strong> ${payload.shiftHours} hours</p>
                         </div>
-                        <h3>Top Ranked Matches</h3>
+                        <h3>Ranked Caregivers</h3>
                         ${recsHtml}
                         <div style="text-align: center; margin-top: 30px;">
                             <a href="${process.env.NEXT_PUBLIC_BASE_URL}/staffing-admin/manage-unassigned-shifts" style="background-color: #E07A5F; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; display: inline-block;">
-                                View on Dashboard
+                                View Details on Dashboard
                             </a>
                         </div>
                     </div>
@@ -254,7 +256,7 @@ export async function sendUnassignedRecommendationsEmail(payload: {
 
     try {
         await firestore.collection('mail').add(email);
-        return { success: true, message: "Recommendations email sent to management." };
+        return { success: true, message: "Recommendations email sent successfully." };
     } catch (e: any) {
         return { error: `Failed to send email: ${e.message}` };
     }
