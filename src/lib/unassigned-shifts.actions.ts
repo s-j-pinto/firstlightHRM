@@ -49,7 +49,7 @@ export async function getUnassignedRecommendations(payload: GetRecommendationsPa
             .get();
         
         if (inventoryQuery.empty) {
-            return { error: "Unassigned shift inventory not found for this week." };
+            return { error: "Unassigned shift inventory not found for this week. Please ensure the weekly sync has run." };
         }
         
         const inventoryDocs = inventoryQuery.docs;
@@ -57,14 +57,14 @@ export async function getUnassignedRecommendations(payload: GetRecommendationsPa
         const inventory = inventoryDocs[0].data() as TeleTrackWeeklyUnassignedShiftsInventory;
         const shift = inventory.shifts[shiftIndex];
         
-        if (!shift) return { error: "Specific shift details not found." };
+        if (!shift) return { error: "Specific shift details not found in the current inventory." };
 
         const clientName = shift.client.name;
         const dayName = format(parseISO(shift.date), 'eeee').toLowerCase();
         const shiftStartMins = timeToMinutes(shift.arrivalTime);
         const shiftEndMins = timeToMinutes(shift.departureTime);
 
-        // 2. Get client preferences
+        // 2. Get client preferences (Prior/Denied lists)
         const listQuery = await firestore.collection('teletrack_unassigned_weekly_caregivers_list').get();
         const listDocs = listQuery.docs;
         listDocs.sort((a, b) => b.data().syncedAt.toMillis() - a.data().syncedAt.toMillis());
@@ -74,16 +74,16 @@ export async function getUnassignedRecommendations(payload: GetRecommendationsPa
         
         if (listDocs.length > 0) {
             const list = listDocs[0].data() as TeleTrackUnassignedWeeklyCaregiversList;
-            const clientEntry = list.clients.find(c => c.clientName === clientName);
+            const clientEntry = list.clients.find(c => c.clientName.trim().toLowerCase() === clientName.trim().toLowerCase());
             if (clientEntry) {
-                priorCaregiverNames = clientEntry.caregivers.map(cg => cg.caregiverName.trim());
+                priorCaregiverNames = clientEntry.caregivers.map(cg => cg.caregiverName.trim().toLowerCase());
                 deniedCaregiverNames = clientEntry.deniedCaregivers
-                    .map(cg => cg.caregiverName.trim())
-                    .filter(name => name !== "There are no denied caregivers.");
+                    .map(cg => cg.caregiverName.trim().toLowerCase())
+                    .filter(name => name !== "there are no denied caregivers.");
             }
         }
 
-        // 3. Fetch client address for distance
+        // 3. Fetch client address for distance calculations
         const clientQuery = await firestore.collection('Clients').where('Client Name', '==', clientName).limit(1).get();
         const clientAddress = clientQuery.empty ? null : `${clientQuery.docs[0].data().Address}, ${clientQuery.docs[0].data().City}`;
 
@@ -93,6 +93,7 @@ export async function getUnassignedRecommendations(payload: GetRecommendationsPa
 
         for (const doc of activeCaregiversSnap.docs) {
             const caregiver = doc.data() as ActiveCaregiver;
+            const caregiverNameNormalized = caregiver.Name.trim().toLowerCase();
             
             // Availability Filter
             const availDoc = await doc.ref.collection('availability').doc('current_week').get();
@@ -105,7 +106,7 @@ export async function getUnassignedRecommendations(payload: GetRecommendationsPa
             const reasons: string[] = [];
 
             // RULE: Denied Filter (Hard Reject)
-            const isDenied = deniedCaregiverNames.includes(caregiver.Name);
+            const isDenied = deniedCaregiverNames.includes(caregiverNameNormalized);
             if (isDenied) {
                 recommendations.push({
                     caregiverId: doc.id,
@@ -121,7 +122,7 @@ export async function getUnassignedRecommendations(payload: GetRecommendationsPa
             }
 
             // RULE 1: Continuity (40 pts)
-            const isPrior = priorCaregiverNames.includes(caregiver.Name);
+            const isPrior = priorCaregiverNames.includes(caregiverNameNormalized);
             if (isPrior) {
                 score += 40;
                 reasons.push("Prior Relationship: Caregiver has serviced this client in the last 30 days (+40 pts).");
@@ -177,17 +178,17 @@ export async function getUnassignedRecommendations(payload: GetRecommendationsPa
             });
         }
 
-        // Sort by Prior Relationship first, then Denied status (at bottom), then Score
+        // --- RANKING LOGIC ---
+        // 1. Prior relationship (True first)
+        // 2. Denied (Moved to absolute bottom)
+        // 3. Score (Descending)
         const sortedRecommendations = recommendations.sort((a, b) => {
-            // 1. Prior relationship (True first)
-            if (a.isPriorCaregiver !== b.isPriorCaregiver) {
-                return a.isPriorCaregiver ? -1 : 1;
-            }
-            // 2. Denied (False first - put denied at bottom of their priority level)
             if (a.isDenied !== b.isDenied) {
                 return a.isDenied ? 1 : -1;
             }
-            // 3. Score (Descending)
+            if (a.isPriorCaregiver !== b.isPriorCaregiver) {
+                return a.isPriorCaregiver ? -1 : 1;
+            }
             return b.score - a.score;
         });
 
@@ -213,8 +214,8 @@ export async function sendUnassignedRecommendationsEmail(payload: {
     const ownerEmail = "lpinto@firstlighthomecare.com";
 
     const recsHtml = payload.recommendations.map((rec, i) => `
-        <div style="margin-bottom: 15px; padding: 10px; border: 1px solid #eee; border-left: 4px solid ${rec.isDenied ? '#ef4444' : '#E07A5F'};">
-            <h4 style="margin: 0; color: #333;">${i+1}. ${rec.caregiverName} ${rec.isDenied ? '<span style="color:red;">(DENIED)</span>' : ''} ${rec.isPriorCaregiver ? '<span style="color:green;">(PRIOR)</span>' : ''}</h4>
+        <div style="margin-bottom: 15px; padding: 10px; border: 1px solid #eee; border-left: 4px solid ${rec.isDenied ? '#ef4444' : '#E07A5F'}; opacity: ${rec.isDenied ? '0.7' : '1'};">
+            <h4 style="margin: 0; color: #333;">${i+1}. ${rec.caregiverName} ${rec.isDenied ? '<span style="color:#ef4444; font-weight:bold;">(DENIED)</span>' : ''} ${rec.isPriorCaregiver ? '<span style="color:#22c55e; font-weight:bold;">(PRIOR)</span>' : ''}</h4>
             <p style="margin: 5px 0; font-size: 14px;"><strong>Match Score:</strong> ${rec.score}/100</p>
             ${rec.distance ? `<p style="margin: 5px 0; font-size: 13px;"><strong>Distance:</strong> ${rec.distance}</p>` : ''}
             <ul style="margin: 5px 0; font-size: 13px; color: #666;">

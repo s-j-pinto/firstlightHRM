@@ -165,12 +165,12 @@ export default function ManageUnassignedShiftsClient() {
                                                     <div>
                                                         <h4 className="font-bold text-lg flex items-center gap-2">
                                                             {formatCaregiverName(rec.caregiverName)}
-                                                            {rec.isDenied && <XCircle className="text-destructive h-5 w-5" title="DENIED" />}
+                                                            {rec.isDenied && <XCircle className="text-destructive h-7 w-7 animate-pulse" title="EXPLICITLY DENIED" />}
                                                             {rec.isPriorCaregiver && <History className="text-green-500 h-5 w-5" title="Prior Caregiver" />}
                                                         </h4>
                                                         <div className="flex flex-wrap gap-2 mt-1">
                                                             {rec.isPriorCaregiver && <Badge className="bg-green-100 text-green-800 border-green-200 uppercase text-[9px] font-bold">Continuity Match</Badge>}
-                                                            {rec.isDenied && <Badge variant="destructive" className="uppercase text-[9px] font-bold">Denied</Badge>}
+                                                            {rec.isDenied && <Badge variant="destructive" className="uppercase text-[9px] font-bold">Explicitly Denied</Badge>}
                                                             <Badge variant="outline" className="text-[10px] uppercase font-bold">Score: {rec.score}</Badge>
                                                             {rec.distance && <Badge variant="outline" className="text-[10px] flex items-center gap-1"><MapPin className="h-2.5 w-2.5"/> {rec.distance}</Badge>}
                                                             <Badge variant="outline" className={cn("text-[10px]", rec.overtimeHoursAvailable > 0 ? "text-green-600" : "text-red-600")}>
@@ -186,7 +186,7 @@ export default function ManageUnassignedShiftsClient() {
                                                 <div className="mt-3 pt-3 border-t">
                                                     <ul className="space-y-1">
                                                         {rec.reasons.map((reason: string, rIdx: number) => (
-                                                            <li key={rIdx} className="text-xs text-muted-foreground flex items-start gap-2">
+                                                            <li key={rIdx} className={cn("text-xs flex items-start gap-2", rec.isDenied ? "text-destructive font-bold" : "text-muted-foreground")}>
                                                                 <span className={cn("mt-1.5 h-1.5 w-1.5 rounded-full shrink-0", rec.isDenied ? "bg-destructive" : "bg-accent")} />
                                                                 {reason}
                                                             </li>
@@ -198,7 +198,7 @@ export default function ManageUnassignedShiftsClient() {
                                     ))}
                                 </div>
                             ) : (
-                                <p className="text-center py-20 text-muted-foreground italic">No eligible caregivers found.</p>
+                                <p className="text-center py-20 text-muted-foreground italic">No eligible caregivers found for this shift.</p>
                             )}
                         </CardContent>
                     </Card>
@@ -207,7 +207,7 @@ export default function ManageUnassignedShiftsClient() {
                 <div className="h-full flex items-center justify-center border-2 border-dashed rounded-xl p-12 text-center text-muted-foreground">
                     <div className="space-y-3">
                         <Calendar className="h-12 w-12 mx-auto opacity-20" />
-                        <p>Select a shift from the list to see the best matching caregivers.</p>
+                        <p>Select an unassigned shift from the list to see the best matching caregivers.</p>
                     </div>
                 </div>
             )}
