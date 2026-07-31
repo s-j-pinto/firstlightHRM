@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useTransition } from "react";
@@ -167,9 +166,11 @@ export default function ManageUnassignedShiftsClient() {
                                                         <h4 className="font-bold text-lg flex items-center gap-2">
                                                             {formatCaregiverName(rec.caregiverName)}
                                                             {rec.isDenied && <XCircle className="text-destructive h-5 w-5" title="DENIED" />}
-                                                            {rec.isPriorCaregiver && <History className="text-green-500 h-5 w-5" title="Continuity Match" />}
+                                                            {rec.isPriorCaregiver && <History className="text-green-500 h-5 w-5" title="Prior Caregiver" />}
                                                         </h4>
                                                         <div className="flex flex-wrap gap-2 mt-1">
+                                                            {rec.isPriorCaregiver && <Badge className="bg-green-100 text-green-800 border-green-200 uppercase text-[9px] font-bold">Continuity Match</Badge>}
+                                                            {rec.isDenied && <Badge variant="destructive" className="uppercase text-[9px] font-bold">Denied</Badge>}
                                                             <Badge variant="outline" className="text-[10px] uppercase font-bold">Score: {rec.score}</Badge>
                                                             {rec.distance && <Badge variant="outline" className="text-[10px] flex items-center gap-1"><MapPin className="h-2.5 w-2.5"/> {rec.distance}</Badge>}
                                                             <Badge variant="outline" className={cn("text-[10px]", rec.overtimeHoursAvailable > 0 ? "text-green-600" : "text-red-600")}>

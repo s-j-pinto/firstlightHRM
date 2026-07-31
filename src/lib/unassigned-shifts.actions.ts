@@ -1,4 +1,3 @@
-
 'use server';
 
 import { serverDb } from '@/firebase/server-init';
@@ -178,8 +177,22 @@ export async function getUnassignedRecommendations(payload: GetRecommendationsPa
             });
         }
 
+        // Sort by Prior Relationship first, then Denied status (at bottom), then Score
+        const sortedRecommendations = recommendations.sort((a, b) => {
+            // 1. Prior relationship (True first)
+            if (a.isPriorCaregiver !== b.isPriorCaregiver) {
+                return a.isPriorCaregiver ? -1 : 1;
+            }
+            // 2. Denied (False first - put denied at bottom of their priority level)
+            if (a.isDenied !== b.isDenied) {
+                return a.isDenied ? 1 : -1;
+            }
+            // 3. Score (Descending)
+            return b.score - a.score;
+        });
+
         return { 
-            recommendations: recommendations.sort((a, b) => b.score - a.score).slice(0, 15) 
+            recommendations: sortedRecommendations.slice(0, 10) 
         };
 
     } catch (error: any) {
@@ -201,7 +214,7 @@ export async function sendUnassignedRecommendationsEmail(payload: {
 
     const recsHtml = payload.recommendations.map((rec, i) => `
         <div style="margin-bottom: 15px; padding: 10px; border: 1px solid #eee; border-left: 4px solid ${rec.isDenied ? '#ef4444' : '#E07A5F'};">
-            <h4 style="margin: 0; color: #333;">${i+1}. ${rec.caregiverName} ${rec.isDenied ? '<span style="color:red;">(DENIED)</span>' : ''}</h4>
+            <h4 style="margin: 0; color: #333;">${i+1}. ${rec.caregiverName} ${rec.isDenied ? '<span style="color:red;">(DENIED)</span>' : ''} ${rec.isPriorCaregiver ? '<span style="color:green;">(PRIOR)</span>' : ''}</h4>
             <p style="margin: 5px 0; font-size: 14px;"><strong>Match Score:</strong> ${rec.score}/100</p>
             ${rec.distance ? `<p style="margin: 5px 0; font-size: 13px;"><strong>Distance:</strong> ${rec.distance}</p>` : ''}
             <ul style="margin: 5px 0; font-size: 13px; color: #666;">
