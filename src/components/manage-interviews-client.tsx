@@ -101,6 +101,7 @@ const orientationSchema = z.object({
 
 const skillsSchema = z.object({
     hasHospiceExperience: z.boolean().default(false),
+    hasDementiaExperience: z.boolean().default(false),
     canWorkWithBedBound: z.boolean().default(false),
     canChangeBrief: z.boolean().default(false),
     canTransfer: z.boolean().default(false),
@@ -161,6 +162,7 @@ const onboardingFormCompletionKeys: (keyof CaregiverProfile)[] = [
 
 const skillsCheckboxes = [
     { id: "hasHospiceExperience", label: "Hospice patient experience?" },
+    { id: "hasDementiaExperience", label: "Dementia experience?" },
     { id: "canWorkWithBedBound", label: "Work with Bed Bound clients?" },
     { id: "canChangeBrief", label: "Able to change briefs?" },
     { id: "canTransfer", label: "Able to Transfer (Transfer board?)" },
@@ -267,6 +269,7 @@ export default function ManageInterviewsClient() {
       resolver: zodResolver(skillsSchema),
       defaultValues: {
         hasHospiceExperience: false,
+        hasDementiaExperience: false,
         canWorkWithBedBound: false,
         canChangeBrief: false,
         canTransfer: false,
@@ -337,6 +340,34 @@ export default function ManageInterviewsClient() {
         const fullProfile = { ...profileSnap.data(), id: caregiver.id } as CaregiverProfile;
         setSelectedCaregiver(fullProfile);
 
+        // ALWAYS pre-populate skills and transportation from the profile (application data)
+        skillsForm.reset({
+            hasHospiceExperience: !!fullProfile.hasHospiceExperience,
+            hasDementiaExperience: !!fullProfile.hasDementiaExperience,
+            canWorkWithBedBound: !!fullProfile.canWorkWithBedBound,
+            canChangeBrief: !!fullProfile.canChangeBrief,
+            canTransfer: !!fullProfile.canTransfer,
+            canPrepareMeals: !!fullProfile.canPrepareMeals,
+            canDoBedBath: !!fullProfile.canDoBedBath,
+            canUseHoyerLift: !!fullProfile.canUseHoyerLift,
+            canUseGaitBelt: !!fullProfile.canUseGaitBelt,
+            canUsePurwick: !!fullProfile.canUsePurwick,
+            canEmptyCatheter: !!fullProfile.canEmptyCatheter,
+            canEmptyColostomyBag: !!fullProfile.canEmptyColostomyBag,
+            canGiveMedication: !!fullProfile.canGiveMedication,
+            canTakeBloodPressure: !!fullProfile.canTakeBloodPressure,
+        });
+
+        transportationForm.reset({
+            hasCar: fullProfile.hasCar === 'yes',
+            validLicense: fullProfile.validLicense === 'yes',
+            q_hasAutoInsurance: '',
+            q_movingViolations: '',
+            q_misdemeanorCharges: '',
+            q_ieTravelAreas: '',
+            q_preferredNotWorkAreas: '',
+        });
+
         const interviewsCollRef = collection(db, 'interviews');
         const interviewQ = query(interviewsCollRef, where("caregiverProfileId", "==", caregiver.id), limit(1));
         const interviewSnapshot = await getDocs(interviewQ);
@@ -346,18 +377,7 @@ export default function ManageInterviewsClient() {
             const interviewData = { ...interviewDoc.data(), id: interviewDoc.id } as Interview;
             setExistingInterview(interviewData);
 
-            // Populate hiring form with required IDs
-            hiringForm.setValue('caregiverProfileId', caregiver.id);
-            hiringForm.setValue('interviewId', interviewData.id);
-
-            const employeesCollRef = collection(db, 'caregiver_employees');
-            const empDoc = await getDoc(doc(employeesCollRef, caregiver.id));
-            if (empDoc.exists()) {
-                setExistingEmployee({ ...empDoc.data(), id: empDoc.id } as CaregiverEmployee);
-            }
-
-            const interviewDate = interviewData.interviewDateTime ? safeToDate(interviewData.interviewDateTime) : undefined;
-            
+            // Populate forms from interview data
             phoneScreenForm.reset({
                 interviewNotes: interviewData.interviewNotes || '',
                 phoneScreenPassed: interviewData.phoneScreenPassed as 'Yes' | 'No' || 'Yes',
@@ -387,22 +407,7 @@ export default function ManageInterviewsClient() {
                 q_clientNotes: interviewData.q_clientNotes || '',
             });
 
-            skillsForm.reset({
-                hasHospiceExperience: !!fullProfile.hasHospiceExperience,
-                canWorkWithBedBound: !!fullProfile.canWorkWithBedBound,
-                canChangeBrief: !!fullProfile.canChangeBrief,
-                canTransfer: !!fullProfile.canTransfer,
-                canPrepareMeals: !!fullProfile.canPrepareMeals,
-                canDoBedBath: !!fullProfile.canDoBedBath,
-                canUseHoyerLift: !!fullProfile.canUseHoyerLift,
-                canUseGaitBelt: !!fullProfile.canUseGaitBelt,
-                canUsePurwick: !!fullProfile.canUsePurwick,
-                canEmptyCatheter: !!fullProfile.canEmptyCatheter,
-                canEmptyColostomyBag: !!fullProfile.canEmptyColostomyBag,
-                canGiveMedication: !!fullProfile.canGiveMedication,
-                canTakeBloodPressure: !!fullProfile.canTakeBloodPressure,
-            });
-
+            // Update transportation with interview-specific questions while keeping profile-derived booleans
             transportationForm.reset({
                 hasCar: fullProfile.hasCar === 'yes',
                 validLicense: fullProfile.validLicense === 'yes',
@@ -413,6 +418,7 @@ export default function ManageInterviewsClient() {
                 q_preferredNotWorkAreas: interviewData.q_preferredNotWorkAreas || '',
             });
 
+            const interviewDate = interviewData.interviewDateTime ? safeToDate(interviewData.interviewDateTime) : undefined;
             scheduleEventForm.reset({
                 interviewPathway: interviewData.interviewPathway || 'separate',
                 interviewMethod: interviewData.interviewType as 'In-Person' | 'Google Meet' || 'In-Person',
@@ -432,12 +438,41 @@ export default function ManageInterviewsClient() {
                 }
             }
             if(interviewData.aiGeneratedInsight) setAiInsight(interviewData.aiGeneratedInsight);
+            
+            // Populate hiring form with required IDs
+            hiringForm.setValue('caregiverProfileId', caregiver.id);
+            hiringForm.setValue('interviewId', interviewData.id);
+
+            const employeesCollRef = collection(db, 'caregiver_employees');
+            const empDoc = await getDoc(doc(employeesCollRef, caregiver.id));
+            if (empDoc.exists()) {
+                setExistingEmployee({ ...empDoc.data(), id: empDoc.id } as CaregiverEmployee);
+            }
         } else {
             setExistingInterview(null);
             setExistingEmployee(null);
             setAiInsight(null);
             phoneScreenForm.reset({ interviewNotes: '', phoneScreenPassed: 'Yes' });
             assessmentForm.reset({ candidateRating: 'C', finalInterviewNotes: '' });
+            interviewQuestionsForm.reset({
+                q_decideBecomeCaregiver: '',
+                q_rewardingChallenging: '',
+                q_strengthsWeaknesses: '',
+                q_specializedTraining: '',
+                q_careerGoals: '',
+                q_dementiaExperience: '',
+                q_clientUpsetHome: '',
+                q_clientTellingLeave: '',
+                q_clientCombative: '',
+                q_clientHittingScratching: '',
+                q_deceasedSpouse: '',
+                q_difficultSituation: '',
+                q_clientRefusal: '',
+                q_criticismFeedback: '',
+                q_medicalEmergencyNoOffice: '',
+                q_clientNotes: '',
+            });
+            hiringForm.setValue('caregiverProfileId', caregiver.id);
         }
     } catch (error) {
         console.error("Error fetching detailed candidate data:", error);
@@ -502,6 +537,7 @@ export default function ManageInterviewsClient() {
     });
     skillsForm.reset({
         hasHospiceExperience: false,
+        hasDementiaExperience: false,
         canWorkWithBedBound: false,
         canChangeBrief: false,
         canTransfer: false,
