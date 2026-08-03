@@ -111,18 +111,18 @@ export default function MasterInterview360Page() {
     });
 
     useEffect(() => {
-        if (profileData && interviewData) {
+        if (profileData) {
             form.reset({
                 source: profileData.source || '',
                 overnightStayAvailability: profileData.overnightStayAvailability,
-                workPermitVisaSpanish: interviewData.workPermitVisaSpanish || '',
-                flhcOverview: interviewData.flhcOverview || '',
-                promptedCallFLHC: interviewData.promptedCallFLHC || '',
-                roleDurationPreference: interviewData.roleDurationPreference || '',
-                experiencedConditions: interviewData.experiencedConditions || '',
-                payExpectation: interviewData.payExpectation || '',
-                howSoonStart: interviewData.howSoonStart || '',
-                earliestStartTime: interviewData.earliestStartTime || '',
+                workPermitVisaSpanish: interviewData?.workPermitVisaSpanish || '',
+                flhcOverview: interviewData?.flhcOverview || '',
+                promptedCallFLHC: interviewData?.promptedCallFLHC || '',
+                roleDurationPreference: interviewData?.roleDurationPreference || '',
+                experiencedConditions: interviewData?.experiencedConditions || '',
+                payExpectation: interviewData?.payExpectation || '',
+                howSoonStart: interviewData?.howSoonStart || '',
+                earliestStartTime: interviewData?.earliestStartTime || '',
                 availability: profileData.availability || {
                     monday: [],
                     tuesday: [],
