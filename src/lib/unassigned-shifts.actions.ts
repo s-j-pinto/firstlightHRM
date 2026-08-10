@@ -6,11 +6,6 @@ import { format, parseISO, isValid, parse } from 'date-fns';
 import type { TeleTrackWeeklyUnassignedShiftsInventory, TeleTrackUnassignedWeeklyCaregiversList, ActiveCaregiver } from './types';
 import { getDistance } from './services/google-maps';
 
-interface GetRecommendationsPayload {
-    shiftIndex: number;
-    weekStart: string;
-}
-
 /**
  * Robust time parser for TeleTrack formats like "9:00:00 am" or "10:00 am".
  */
@@ -24,7 +19,6 @@ function timeToMinutes(timeStr: string): number {
         let date = parse(cleaned, formatStr, new Date());
         
         if (!isValid(date)) {
-            // Fallback for missing spaces before AM/PM
             const normalized = cleaned.replace(/([AP]M)$/, ' $1');
             date = parse(normalized, formatStr, new Date());
         }
@@ -36,171 +30,142 @@ function timeToMinutes(timeStr: string): number {
 }
 
 /**
- * Rules Engine for unassigned shift recommendations.
- * Ranks caregivers based on Prior Relationship, Availability, Workload, and Proximity.
+ * Core matching logic that ranks caregivers for a specific shift.
+ * This is exported so it can be called by both the cron job (for pre-calculation)
+ * and potentially the UI/Server Actions for real-time refreshes.
  */
+export async function calculateUnassignedRecommendations(params: {
+    shift: any;
+    priorCaregiverNames: string[];
+    deniedCaregiverNames: string[];
+    activeCaregivers: any[];
+    clientAddress: string | null;
+}) {
+    const { shift, priorCaregiverNames, deniedCaregiverNames, activeCaregivers, clientAddress } = params;
+    
+    const dayName = format(parseISO(shift.date), 'eeee').toLowerCase();
+    const shiftStartMins = timeToMinutes(shift.arrivalTime);
+    const shiftEndMins = timeToMinutes(shift.departureTime);
+
+    const recommendations = [];
+
+    for (const caregiverDoc of activeCaregivers) {
+        const caregiver = caregiverDoc.data;
+        const caregiverNameNormalized = caregiver.Name.trim().toLowerCase();
+        
+        const dayAvail = caregiver.availability?.[dayName];
+        if (!dayAvail || !dayAvail.hasAvailabilityBlock) continue;
+
+        let score = 0;
+        const reasons: string[] = [];
+
+        // RULE: Denied Filter (Hard Reject)
+        const isDenied = deniedCaregiverNames.includes(caregiverNameNormalized);
+        if (isDenied) {
+            recommendations.push({
+                caregiverId: caregiverDoc.id,
+                caregiverName: caregiver.Name,
+                score: 0,
+                reasons: ["CAREGIVER IS EXPLICITLY DENIED FOR THIS CLIENT"],
+                isPriorCaregiver: false,
+                isDenied: true,
+                overtimeHoursAvailable: 0,
+                dailyAvailability: "N/A",
+            });
+            continue;
+        }
+
+        // RULE 1: Continuity (40 pts)
+        const isPrior = priorCaregiverNames.includes(caregiverNameNormalized);
+        if (isPrior) {
+            score += 40;
+            reasons.push("Prior Relationship: Caregiver has serviced this client in the last 30 days (+40 pts).");
+        }
+
+        // RULE 2: Availability Match (30 pts)
+        const availRegex = /(?:Available|Scheduled Availability)\s*(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)\s*To\s*(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)/gi;
+        let bestAvailScore = 0;
+        let match;
+        while ((match = availRegex.exec(dayAvail.schedule || "")) !== null) {
+            const aStart = timeToMinutes(match[1]);
+            const aEnd = timeToMinutes(match[2]);
+            if (aStart !== -1 && aEnd !== -1) {
+                if (aStart <= shiftStartMins && aEnd >= shiftEndMins) bestAvailScore = 30;
+                else if (aStart < shiftEndMins && aEnd > shiftStartMins) bestAvailScore = Math.max(bestAvailScore, 10);
+            }
+        }
+        score += bestAvailScore;
+        if (bestAvailScore > 0) reasons.push(`${bestAvailScore === 30 ? "Perfect" : "Partial"} Schedule Match (+${bestAvailScore} pts).`);
+
+        // RULE 3: Proximity (15 pts)
+        let distanceText = "";
+        if (clientAddress && caregiver.Address && caregiver.City) {
+            const dist = await getDistance(clientAddress, `${caregiver.Address}, ${caregiver.City}`);
+            if (dist) {
+                distanceText = dist.distanceText;
+                const miles = dist.distanceValue / 1609.34;
+                const pPts = miles < 5 ? 15 : (miles < 15 ? 10 : 5);
+                score += pPts;
+                reasons.push(`Proximity: Caregiver is ${dist.distanceText} away (+${pPts} pts).`);
+            }
+        }
+
+        // RULE 4: Workload (15 pts)
+        const buffer = dayAvail.nonOvertimeHours || 0;
+        if (buffer >= shift.hours) {
+            score += 15;
+            reasons.push(`Safe Workload: Sufficient regular hours available today (+15 pts).`);
+        } else if (buffer > 0) {
+            reasons.push(`Overtime Risk: Shift (${shift.hours}h) will incur ~${(shift.hours - buffer).toFixed(1)}h of daily overtime.`);
+        }
+
+        recommendations.push({
+            caregiverId: caregiverDoc.id,
+            caregiverName: caregiver.Name,
+            score,
+            reasons,
+            isPriorCaregiver: isPrior,
+            isDenied: false,
+            overtimeHoursAvailable: parseFloat(buffer.toFixed(2)),
+            dailyAvailability: dayAvail.schedule || "Not specified",
+            distance: distanceText,
+        });
+    }
+
+    const sortedRecommendations = recommendations.sort((a, b) => {
+        if (a.isDenied !== b.isDenied) return a.isDenied ? 1 : -1;
+        if (a.isPriorCaregiver !== b.isPriorCaregiver) return a.isPriorCaregiver ? -1 : 1;
+        return b.score - a.score;
+    });
+
+    return sortedRecommendations.slice(0, 10);
+}
+
 export async function getUnassignedRecommendations(payload: GetRecommendationsPayload) {
+    // This server action is now a fallback/proxy to retrieve pre-calculated data 
+    // or run a manual refresh if needed. For now, we'll keep it as a proxy for the UI.
     const { shiftIndex, weekStart } = payload;
     const firestore = serverDb;
 
     try {
-        // 1. Get shift details (Memory-safe fetch to avoid index errors)
         const inventoryQuery = await firestore.collection('teletrack_weekly_unassigned_shifts_inventory')
             .where('weekStart', '==', weekStart)
             .get();
         
-        if (inventoryQuery.empty) {
-            return { error: "Unassigned shift inventory not found for this week. Please ensure the weekly sync has run." };
-        }
+        if (inventoryQuery.empty) return { error: "Inventory not found." };
         
         const inventoryDocs = inventoryQuery.docs;
         inventoryDocs.sort((a, b) => b.data().syncedAt.toMillis() - a.data().syncedAt.toMillis());
         const inventory = inventoryDocs[0].data() as TeleTrackWeeklyUnassignedShiftsInventory;
         const shift = inventory.shifts[shiftIndex];
         
-        if (!shift) return { error: "Specific shift details not found in the current inventory." };
+        if (!shift) return { error: "Shift not found." };
 
-        const clientName = shift.client.name;
-        const dayName = format(parseISO(shift.date), 'eeee').toLowerCase();
-        const shiftStartMins = timeToMinutes(shift.arrivalTime);
-        const shiftEndMins = timeToMinutes(shift.departureTime);
-
-        // 2. Get client preferences (Prior/Denied lists from the latest sync)
-        const listQuery = await firestore.collection('teletrack_unassigned_weekly_caregivers_list').get();
-        const listDocs = listQuery.docs;
-        listDocs.sort((a, b) => b.data().syncedAt.toMillis() - a.data().syncedAt.toMillis());
-        
-        let priorCaregiverNames: string[] = [];
-        let deniedCaregiverNames: string[] = [];
-        
-        if (listDocs.length > 0) {
-            const list = listDocs[0].data() as TeleTrackUnassignedWeeklyCaregiversList;
-            const clientEntry = list.clients.find(c => c.clientName.trim().toLowerCase() === clientName.trim().toLowerCase());
-            if (clientEntry) {
-                priorCaregiverNames = clientEntry.caregivers.map(cg => cg.caregiverName.trim().toLowerCase());
-                deniedCaregiverNames = clientEntry.deniedCaregivers
-                    .map(cg => cg.caregiverName.trim().toLowerCase())
-                    .filter(name => name !== "there are no denied caregivers.");
-            }
-        }
-
-        // 3. Fetch client address for distance calculations
-        const clientQuery = await firestore.collection('Clients').where('Client Name', '==', clientName).limit(1).get();
-        const clientAddress = clientQuery.empty ? null : `${clientQuery.docs[0].data().Address}, ${clientQuery.docs[0].data().City}`;
-
-        // 4. Fetch and Score All Active Caregivers
-        const activeCaregiversSnap = await firestore.collection('caregivers_active').where('status', '==', 'Active').get();
-        const recommendations = [];
-
-        for (const doc of activeCaregiversSnap.docs) {
-            const caregiver = doc.data() as ActiveCaregiver;
-            const caregiverNameNormalized = caregiver.Name.trim().toLowerCase();
-            
-            // Filter: Must have availability record for current week
-            const availDoc = await doc.ref.collection('availability').doc('current_week').get();
-            if (!availDoc.exists) continue;
-
-            const dayAvail = availDoc.data()?.[dayName];
-            // Filter: Must have an availability block for the day
-            if (!dayAvail || !dayAvail.hasAvailabilityBlock) continue;
-
-            let score = 0;
-            const reasons: string[] = [];
-
-            // RULE: Denied Filter (Hard Reject / Visibility Rule)
-            const isDenied = deniedCaregiverNames.includes(caregiverNameNormalized);
-            if (isDenied) {
-                recommendations.push({
-                    caregiverId: doc.id,
-                    caregiverName: caregiver.Name,
-                    score: 0,
-                    reasons: ["CAREGIVER IS EXPLICITLY DENIED FOR THIS CLIENT"],
-                    isPriorCaregiver: false,
-                    isDenied: true,
-                    overtimeHoursAvailable: 0,
-                    dailyAvailability: "N/A",
-                });
-                continue;
-            }
-
-            // RULE 1: Continuity (40 pts)
-            const isPrior = priorCaregiverNames.includes(caregiverNameNormalized);
-            if (isPrior) {
-                score += 40;
-                reasons.push("Prior Relationship: Caregiver has serviced this client in the last 30 days (+40 pts).");
-            }
-
-            // RULE 2: Availability Match (30 pts)
-            const availRegex = /(?:Available|Scheduled Availability)\s*(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)\s*To\s*(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M)/gi;
-            let bestAvailScore = 0;
-            let match;
-            while ((match = availRegex.exec(dayAvail.schedule || "")) !== null) {
-                const aStart = timeToMinutes(match[1]);
-                const aEnd = timeToMinutes(match[2]);
-                if (aStart !== -1 && aEnd !== -1) {
-                    if (aStart <= shiftStartMins && aEnd >= shiftEndMins) bestAvailScore = 30;
-                    else if (aStart < shiftEndMins && aEnd > shiftStartMins) bestAvailScore = Math.max(bestAvailScore, 10);
-                }
-            }
-            score += bestAvailScore;
-            if (bestAvailScore > 0) reasons.push(`${bestAvailScore === 30 ? "Perfect" : "Partial"} Schedule Match (+${bestAvailScore} pts).`);
-
-            // RULE 3: Proximity (15 pts)
-            let distanceText = "";
-            if (clientAddress && caregiver.Address && caregiver.City) {
-                const dist = await getDistance(clientAddress, `${caregiver.Address}, ${caregiver.City}`);
-                if (dist) {
-                    distanceText = dist.distanceText;
-                    const miles = dist.distanceValue / 1609.34;
-                    const pPts = miles < 5 ? 15 : (miles < 15 ? 10 : 5);
-                    score += pPts;
-                    reasons.push(`Proximity: Caregiver is ${dist.distanceText} away (+${pPts} pts).`);
-                }
-            }
-
-            // RULE 4: Workload (15 pts)
-            const buffer = dayAvail.nonOvertimeHours || 0;
-            if (buffer >= shift.hours) {
-                score += 15;
-                reasons.push(`Safe Workload: Sufficient regular hours available today (+15 pts).`);
-            } else if (buffer > 0) {
-                reasons.push(`Overtime Risk: Shift (${shift.hours}h) will incur ~${(shift.hours - buffer).toFixed(1)}h of daily overtime.`);
-            }
-
-            recommendations.push({
-                caregiverId: doc.id,
-                caregiverName: caregiver.Name,
-                score,
-                reasons,
-                isPriorCaregiver: isPrior,
-                isDenied: false,
-                overtimeHoursAvailable: parseFloat(buffer.toFixed(2)),
-                dailyAvailability: dayAvail.schedule || "Not specified",
-                distance: distanceText,
-            });
-        }
-
-        // --- FINAL RANKING LOGIC ---
-        // 1. Prior relationship (True first)
-        // 2. Denied (Moved to absolute bottom)
-        // 3. Score (Descending)
-        const sortedRecommendations = recommendations.sort((a, b) => {
-            if (a.isDenied !== b.isDenied) {
-                return a.isDenied ? 1 : -1;
-            }
-            if (a.isPriorCaregiver !== b.isPriorCaregiver) {
-                return a.isPriorCaregiver ? -1 : 1;
-            }
-            return b.score - a.score;
-        });
-
-        return { 
-            recommendations: sortedRecommendations.slice(0, 10) 
-        };
+        // Return the pre-calculated recommendations stored in the shift
+        return { recommendations: (shift as any).recommendations || [] };
 
     } catch (error: any) {
-        console.error("[getUnassignedRecommendations] Rules Engine Error:", error);
-        return { error: `Matching Error: ${error.message}` };
+        return { error: `Retrieval Error: ${error.message}` };
     }
 }
 

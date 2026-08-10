@@ -3,16 +3,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getStorage } from 'firebase-admin/storage';
 import { serverDb, serverApp } from '@/firebase/server-init';
 import { Timestamp } from 'firebase-admin/firestore';
+import { calculateUnassignedRecommendations } from '@/lib/unassigned-shifts.actions';
+import type { TeleTrackWeeklyUnassignedShiftsInventory, TeleTrackUnassignedWeeklyCaregiversList, ActiveCaregiver } from '@/lib/types';
 
 /**
  * API route to handle a weekly cron job for syncing TeleTrack unassigned inventory data.
- * This job reads two JSON files from GCS and stores them as single documents in Firestore.
- * It ensures only the most current run data is maintained by deleting existing documents first.
+ * This job reads two JSON files from GCS, pre-calculates caregiver recommendations for 
+ * each shift using the rules engine, and stores everything as single documents in Firestore.
  */
 export async function GET(request: NextRequest) {
   const logMessages: string[] = [`[SYNC-UNASSIGNED-INVENTORY] Job started at ${new Date().toISOString()}`];
   
-  // 1. Secure the endpoint
   const authHeader = request.headers.get('authorization');
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     console.error('[CRON] Unauthorized access attempt.');
@@ -23,81 +24,122 @@ export async function GET(request: NextRequest) {
     const bucket = getStorage(serverApp).bucket('gs://firstlighthomecare-hrm.firebasestorage.app');
     const now = Timestamp.now();
 
-    // --- Task 1: Sync Unassigned Shifts Inventory ---
+    // 1. Fetch Inventory JSON
     logMessages.push("Fetching TeleTrack-unassigned-weekly-shifts-inventory.json...");
     const inventoryFile = bucket.file('caregiver-scheduling/TeleTrack-unassigned-weekly-shifts-inventory.json');
     const [inventoryContent] = await inventoryFile.download();
-    const inventoryData = JSON.parse(inventoryContent.toString());
-    
+    const inventoryData = JSON.parse(inventoryContent.toString()) as TeleTrackWeeklyUnassignedShiftsInventory;
     logMessages.push(`Inventory data fetched for week: ${inventoryData.weekStart} to ${inventoryData.weekEnd}`);
 
-    // Deleting any existing unassigned shifts inventory documents (Maintain only current run)
+    // 2. Fetch Caregivers List JSON (Prior/Denied)
+    logMessages.push("Fetching TeleTrack-unassigned-shifts-caregivers-list.json...");
+    const caregiversListFile = bucket.file('caregiver-scheduling/TeleTrack-unassigned-shifts-caregivers-list.json');
+    const [caregiversListContent] = await caregiversListFile.download();
+    const caregiversListData = JSON.parse(caregiversListContent.toString()) as TeleTrackUnassignedWeeklyCaregiversList;
+    logMessages.push(`Unassigned caregivers list fetched. Total clients: ${caregiversListData.totalClients}`);
+
+    // 3. Prepare Bulk Data for Rules Engine
+    logMessages.push("Fetching master data for pre-calculation...");
+    
+    // Fetch all active caregivers and their availability in bulk
+    const activeCaregiversSnap = await serverDb.collection('caregivers_active').where('status', '==', 'Active').get();
+    const activeCaregiversPool = [];
+    for (const doc of activeCaregiversSnap.docs) {
+        const availDoc = await doc.ref.collection('availability').doc('current_week').get();
+        activeCaregiversPool.push({
+            id: doc.id,
+            data: {
+                ...doc.data(),
+                availability: availDoc.exists ? availDoc.data() : null
+            }
+        });
+    }
+
+    // Fetch all clients to get their addresses for distance checks
+    const clientsSnap = await serverDb.collection('Clients').get();
+    const clientsMap = new Map();
+    clientsSnap.forEach(doc => {
+        const d = doc.data();
+        clientsMap.set(d['Client Name']?.trim().toLowerCase(), d);
+    });
+
+    logMessages.push(`Processing recommendations for ${inventoryData.shifts.length} unassigned shifts...`);
+
+    // 4. Run Rules Engine for each shift
+    const enrichedShifts = [];
+    for (const shift of inventoryData.shifts) {
+        const clientNameNormalized = shift.client.name.trim().toLowerCase();
+        
+        // Get Prior/Denied lists for this specific client
+        const clientListEntry = caregiversListData.clients.find(c => c.clientName.trim().toLowerCase() === clientNameNormalized);
+        const priorCaregiverNames = clientListEntry ? clientListEntry.caregivers.map(cg => cg.caregiverName.trim().toLowerCase()) : [];
+        const deniedCaregiverNames = clientListEntry ? clientListEntry.deniedCaregivers.map(cg => cg.caregiverName.trim().toLowerCase()).filter(n => n !== "there are no denied caregivers.") : [];
+
+        // Get Client Address for proximity
+        const clientDoc = clientsMap.get(clientNameNormalized);
+        const clientAddress = clientDoc ? `${clientDoc.Address}, ${clientDoc.City}` : null;
+
+        const recs = await calculateUnassignedRecommendations({
+            shift,
+            priorCaregiverNames,
+            deniedCaregiverNames,
+            activeCaregivers: activeCaregiversPool,
+            clientAddress
+        });
+
+        enrichedShifts.push({
+            ...shift,
+            recommendations: recs
+        });
+    }
+
+    // 5. Purge and Save Inventory
+    logMessages.push("Purging old inventory and saving pre-calculated recommendations...");
     const existingInventorySnap = await serverDb.collection('teletrack_weekly_unassigned_shifts_inventory').get();
     if (!existingInventorySnap.empty) {
         const batch = serverDb.batch();
         existingInventorySnap.docs.forEach(doc => batch.delete(doc.ref));
         await batch.commit();
-        logMessages.push(`Deleted ${existingInventorySnap.size} existing unassigned shift inventory documents.`);
+        logMessages.push(`Deleted ${existingInventorySnap.size} existing inventory documents.`);
     }
 
     const inventoryRef = serverDb.collection('teletrack_weekly_unassigned_shifts_inventory').doc();
     await inventoryRef.set({
         ...inventoryData,
+        shifts: enrichedShifts,
         syncedAt: now,
     });
-    logMessages.push(`Saved unassigned shift inventory as document: ${inventoryRef.id}`);
+    logMessages.push(`Saved unassigned inventory with recommendations: ${inventoryRef.id}`);
 
-    // --- Task 2: Sync Unassigned Caregivers List ---
-    logMessages.push("Fetching TeleTrack-unassigned-shifts-caregivers-list.json...");
-    const caregiversFile = bucket.file('caregiver-scheduling/TeleTrack-unassigned-shifts-caregivers-list.json');
-    const [caregiversContent] = await caregiversFile.download();
-    const caregiversData = JSON.parse(caregiversContent.toString());
-
-    logMessages.push(`Unassigned caregivers list fetched. Total clients: ${caregiversData.totalClients}`);
-
-    // Deleting any existing unassigned caregivers list documents (Maintain only current run)
+    // 6. Purge and Save Caregivers List
     const existingListSnap = await serverDb.collection('teletrack_unassigned_weekly_caregivers_list').get();
     if (!existingListSnap.empty) {
         const batch = serverDb.batch();
         existingListSnap.docs.forEach(doc => batch.delete(doc.ref));
         await batch.commit();
-        logMessages.push(`Deleted ${existingListSnap.size} existing unassigned caregivers list documents.`);
     }
 
     const caregiversListRef = serverDb.collection('teletrack_unassigned_weekly_caregivers_list').doc();
     await caregiversListRef.set({
-        ...caregiversData,
+        ...caregiversListData,
         syncedAt: now,
     });
-    logMessages.push(`Saved unassigned caregivers list as document: ${caregiversListRef.id}`);
 
-    // --- Save Log ---
+    // 7. Finalize Log
     try {
         const logFile = bucket.file('caregiver-scheduling/sync-unassigned-run.log');
         await logFile.save(logMessages.join('\n'), { contentType: 'text/plain' });
-    } catch (logError) {
-        console.error("Failed to save run.log:", logError);
-    }
+    } catch (logError) {}
 
-    console.log('[CRON] Sync Unassigned Inventory successful.');
     return NextResponse.json({ 
         success: true, 
-        message: "Unassigned Inventory and Caregivers list synchronized successfully.",
-        inventoryDocId: inventoryRef.id,
-        caregiversDocId: caregiversListRef.id
+        message: "Inventory synced and recommendations pre-calculated successfully.",
+        inventoryDocId: inventoryRef.id
     });
 
   } catch (error: any) {
     logMessages.push(`[ERROR] Job failed: ${error.message}`);
     console.error('[CRON-ERROR] /api/cron/sync-unassigned-inventory:', error);
-    
-    // Attempt to save error log
-    try {
-        const bucket = getStorage(serverApp).bucket('gs://firstlighthomecare-hrm.firebasestorage.app');
-        const logFile = bucket.file('caregiver-scheduling/sync-unassigned-run.log');
-        await logFile.save(logMessages.join('\n'), { contentType: 'text/plain' });
-    } catch (logError) {}
-
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

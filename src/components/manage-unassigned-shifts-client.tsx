@@ -6,7 +6,7 @@ import { collection, query, orderBy, limit } from "firebase/firestore";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { format, parseISO } from "date-fns";
 import type { TeleTrackWeeklyUnassignedShiftsInventory } from "@/lib/types";
-import { getUnassignedRecommendations, sendUnassignedRecommendationsEmail } from "@/lib/unassigned-shifts.actions";
+import { sendUnassignedRecommendationsEmail } from "@/lib/unassigned-shifts.actions";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,8 +22,6 @@ export default function ManageUnassignedShiftsClient() {
   const { toast } = useToast();
 
   const [selectedShiftIndex, setSelectedShiftId] = useState<number | null>(null);
-  const [recommendations, setRecommendations] = useState<any[]>([]);
-  const [isRecommending, startRecommendationTransition] = useTransition();
   const [isSending, startSendTransition] = useTransition();
 
   // Fetch Inventory (Sorted locally to ensure we get the latest document)
@@ -35,33 +33,18 @@ export default function ManageUnassignedShiftsClient() {
   
   const currentInventory = useMemo(() => {
       if (!inventoryData || inventoryData.length === 0) return null;
-      // deterministic latest document based on sync timestamp
       return [...inventoryData].sort((a, b) => (b.syncedAt as any).toMillis() - (a.syncedAt as any).toMillis())[0];
   }, [inventoryData]);
+
+  const recommendations = useMemo(() => {
+    if (selectedShiftIndex === null || !currentInventory) return [];
+    return (currentInventory.shifts[selectedShiftIndex] as any).recommendations || [];
+  }, [selectedShiftIndex, currentInventory]);
 
   const formatCaregiverName = (name: string) => {
     if (!name || !name.includes(',')) return name;
     const [last, first] = name.split(',').map(s => s.trim());
     return `${first} ${last}`;
-  };
-
-  const handleGetRecommendations = (index: number) => {
-    if (!currentInventory) return;
-    setSelectedShiftId(index);
-    setRecommendations([]);
-
-    startRecommendationTransition(async () => {
-        const result = await getUnassignedRecommendations({
-            shiftIndex: index,
-            weekStart: currentInventory.weekStart,
-        });
-
-        if (result.error) {
-            toast({ title: "Recommendation Error", description: result.error, variant: "destructive" });
-        } else if (result.recommendations) {
-            setRecommendations(result.recommendations);
-        }
-    });
   };
 
   const handleSendEmail = () => {
@@ -74,7 +57,7 @@ export default function ManageUnassignedShiftsClient() {
             shiftDate: shift.date,
             shiftTime: `${shift.arrivalTime} - ${shift.departureTime}`,
             shiftHours: shift.hours,
-            recommendations: recommendations.slice(0, 10), // Send all top matches
+            recommendations: recommendations.slice(0, 10),
         });
 
         if (result.error) {
@@ -116,7 +99,7 @@ export default function ManageUnassignedShiftsClient() {
                     <Card 
                         key={idx} 
                         className={cn("cursor-pointer transition-all border-l-4 hover:bg-muted/50", selectedShiftIndex === idx ? "ring-2 ring-accent border-accent bg-accent/5" : "border-muted-foreground/30")}
-                        onClick={() => handleGetRecommendations(idx)}
+                        onClick={() => setSelectedShiftId(idx)}
                     >
                         <CardContent className="p-4 space-y-2">
                             <div className="flex justify-between items-start">
@@ -158,14 +141,9 @@ export default function ManageUnassignedShiftsClient() {
                             </div>
                         </CardHeader>
                         <CardContent className="pt-6">
-                            {isRecommending ? (
-                                <div className="flex flex-col items-center justify-center py-24 gap-3">
-                                    <Loader2 className="animate-spin text-accent h-10 w-10" />
-                                    <p className="text-sm text-muted-foreground font-medium italic animate-pulse">Running matching algorithm: Proximity, Continuity, and Overtime check...</p>
-                                </div>
-                            ) : recommendations.length > 0 ? (
+                            {recommendations.length > 0 ? (
                                 <div className="space-y-4">
-                                    {recommendations.map((rec, i) => (
+                                    {recommendations.map((rec: any, i: number) => (
                                         <Card key={rec.caregiverId} className={cn("overflow-hidden border transition-all", rec.isDenied ? "border-destructive bg-destructive/5" : "hover:border-accent hover:shadow-sm")}>
                                             <CardContent className="p-4">
                                                 <div className="flex justify-between items-start">
@@ -183,7 +161,7 @@ export default function ManageUnassignedShiftsClient() {
                                                         </div>
                                                     </div>
                                                     <div className="text-right">
-                                                        <Label className="text-[10px] text-muted-foreground uppercase block mb-1">Availability Today</Label>
+                                                        <Label className="text-[10px] text-muted-foreground uppercase block mb-1">Availability</Label>
                                                         <div className="flex items-center gap-2 justify-end">
                                                             <Badge variant={rec.overtimeHoursAvailable > 0 ? "outline" : "destructive"} className="font-mono text-[11px]">
                                                                 <Zap className={cn("h-3 w-3 mr-1", rec.overtimeHoursAvailable > 0 ? "text-yellow-500" : "text-white")} />
@@ -215,7 +193,7 @@ export default function ManageUnassignedShiftsClient() {
                                 </div>
                             ) : (
                                 <div className="text-center py-20 bg-muted/20 rounded-lg border border-dashed">
-                                    <p className="text-muted-foreground italic">No eligible caregivers found who meet the minimum criteria for this shift.</p>
+                                    <p className="text-muted-foreground italic">No eligible caregivers were found during the pre-calculation run for this shift.</p>
                                 </div>
                             )}
                         </CardContent>
@@ -228,7 +206,7 @@ export default function ManageUnassignedShiftsClient() {
                             <Calendar className="h-10 w-10 opacity-30 text-accent" />
                         </div>
                         <h3 className="text-lg font-semibold text-foreground">Awaiting Shift Selection</h3>
-                        <p className="text-sm">Choose an unassigned shift from the inventory sidebar to trigger the rules-based matching engine.</p>
+                        <p className="text-sm">Choose an unassigned shift from the inventory sidebar to view its pre-calculated best matches.</p>
                     </div>
                 </div>
             )}
