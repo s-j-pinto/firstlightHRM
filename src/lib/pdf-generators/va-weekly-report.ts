@@ -237,7 +237,7 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         const rowHeight = 18 * 1.2;
         taskLabels.forEach((task: string) => {
             const taskLabel = task.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase());
-            const textY = y - (rowHeight / 2) + 3; // Center align text
+            const textY = y - (rowHeight / 2) - 4; // Adjusted for centering size 8
             drawText(page, taskLabel, { x: leftMargin + 5, y: textY, font: boldFont, size: 8 });
 
             for (let i = 0; i < 7; i++) {
@@ -251,14 +251,14 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
             y -= rowHeight;
         });
 
-        const providerSigY = y - (rowHeight / 2) + 3; // Center align text
-        drawText(page, "Provider Signature", { x: leftMargin + 5, y: providerSigY, font: boldFont, size: 8 });
+        const providerSigLabelY = y - (rowHeight / 2) - 4; // Adjusted for centering size 8
+        drawText(page, "Provider Signature", { x: leftMargin + 5, y: providerSigLabelY, font: boldFont, size: 8 });
         for (let i = 0; i < 7; i++) {
             const shiftsForDay = shiftsByDay[i];
             if (shiftsForDay && shiftsForDay.length > 0) {
                 const dayX = leftMargin + firstColWidth + (i * ((contentWidth - firstColWidth) / 7));
                 const signatures = shiftsForDay.map(s => s.providerSignature || getInitials(s.caregiverName)).join(', ');
-                const sigY = y - (rowHeight / 2) + 4;
+                const sigY = y - (rowHeight / 2) - 5; // Adjusted for centering size 10
                 drawText(page, signatures, { x: dayX + 5, y: sigY, font: cursiveFont, size: 10 });
             }
         }
@@ -299,5 +299,3 @@ export async function generateVaWeeklyReportPdf(data: any): Promise<{ pdfData?: 
         return { error: `Failed to generate PDF: ${errorMessage}` };
     }
 }
-
-    
