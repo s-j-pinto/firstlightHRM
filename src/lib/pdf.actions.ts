@@ -106,13 +106,15 @@ export async function generateVaWeeklyReportPdf(data: {
         const weekEndInPT = endOfWeek(weekStartInPT, { weekStartsOn: 0 });
         const filterInterval = { start: weekStartInPT, end: weekEndInPT };
 
-        const allClientShiftsQuery = serverDb.collection('va_teletrack_shifts').where('clientName', '==', groupData.clientName);
+        // We use the raw name for the query to ensure we find the records
+        const rawClientName = groupData?.clientName;
+        const allClientShiftsQuery = serverDb.collection('va_teletrack_shifts').where('clientName', '==', rawClientName);
         const shiftsSnapshot = await allClientShiftsQuery.get();
         const allServerShifts = shiftsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         const serverShiftsForReport = allServerShifts.filter(shift => {
             if (!shift.date?.toDate) return false;
-            const shiftDate = shift.date.toDate(); // This is a UTC date object
+            const shiftDate = (shift as any).date.toDate(); // This is a UTC date object
             return isWithinInterval(shiftDate, filterInterval);
         });
         
@@ -120,21 +122,24 @@ export async function generateVaWeeklyReportPdf(data: {
         
         const mergedAndSanitizedShifts = serverShiftsForReport.map(shift => {
             const updates = clientShiftUpdates.get(shift.id);
-            const { date, createdAt, lastUpdatedAt, ...restOfShift } = shift;
+            const { date, createdAt, lastUpdatedAt, ...restOfShift } = shift as any;
             return {
                 ...restOfShift,
                 date: date.toDate().toISOString(), // 'date' is required
                 createdAt: createdAt.toDate().toISOString(), // 'createdAt' is required
                 lastUpdatedAt: lastUpdatedAt ? lastUpdatedAt.toDate().toISOString() : new Date().toISOString(),
-                tasks: updates?.tasks || shift.tasks || {},
-                providerSignature: updates?.providerSignature || shift.providerSignature || '',
+                tasks: updates?.tasks || (shift as any).tasks || {},
+                providerSignature: updates?.providerSignature || (shift as any).providerSignature || '',
             };
         });
         
+        // Clean up client name for PDF display: Remove "(VA)" and any preceding whitespace
+        const displayClientName = rawClientName ? rawClientName.replace(/\s*\(VA\)/gi, '').trim() : 'N/A';
+
         const payload = {
             selectedWeek: data.selectedWeek,
             shifts: mergedAndSanitizedShifts,
-            groupData: groupData,
+            groupData: { ...groupData, clientName: displayClientName },
             clientData: clientDoc?.exists ? clientDoc.data() : {},
             templateData: templateDoc.data(),
         };
