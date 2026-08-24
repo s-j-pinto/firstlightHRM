@@ -1,0 +1,19 @@
+
+name: Weekly Certifications Reminder
+
+on:
+  schedule:
+    # Runs at 15:30 UTC (8:30 AM PST) every Monday.
+    - cron: '30 15 * * 1'
+  workflow_dispatch: # Allows manual triggering from the Actions tab in GitHub for testing
+
+jobs:
+  send_cert_reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call certifications reminder webhook
+        run: |
+          curl --request GET \
+          --url https://care-connect-360--firstlighthomecare-hrm.us-central1.hosted.app/api/cron/certifications-reminder \
+          --header 'Authorization: Bearer ${{ secrets.CRON_SECRET }}' \
+          --fail
