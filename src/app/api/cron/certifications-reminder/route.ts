@@ -7,6 +7,8 @@ import { serverDb, serverApp } from '@/firebase/server-init';
  * API route to handle a weekly cron job for sending certification renewal reminders.
  * This job reads a JSON file from GCS, matches caregivers to their emails,
  * and sends a formatted notification via the 'mail' collection.
+ * 
+ * Update: Columns with "-" are now dynamically excluded from the output table.
  */
 export async function GET(request: NextRequest) {
     // 1. Secure the endpoint
@@ -82,6 +84,32 @@ export async function GET(request: NextRequest) {
                 continue;
             }
 
+            // --- Dynamic Table Construction ---
+            // Define the columns we want to check for exclusion
+            const columnsToCheck = [
+                { key: "License #", label: "License #" },
+                { key: "DL Exp", label: "DL Exp" },
+                { key: "HCA Registration", label: "HCA Registration" },
+                { key: "TB-Test", label: "TB-Test" }
+            ];
+
+            // Filter out columns where the value is "-"
+            const activeColumns = columnsToCheck.filter(col => {
+                const value = record[col.key];
+                return value && value !== "-";
+            });
+
+            // If for some reason all columns were "-", we still send the email with a basic table or handle it
+            if (activeColumns.length === 0) continue;
+
+            const tableHeaderHtml = activeColumns
+                .map(col => `<th style="border: 1px solid #ddd; padding: 10px; text-align: left;">${col.label}</th>`)
+                .join('');
+
+            const tableBodyHtml = activeColumns
+                .map(col => `<td style="border: 1px solid #ddd; padding: 10px;">${record[col.key] || '-'}</td>`)
+                .join('');
+
             const emailHtml = `
                 <div style="font-family: sans-serif; color: #333; line-height: 1.6; max-width: 650px;">
                     <p style="font-size: 16px;">${caregiverName},</p>
@@ -90,18 +118,12 @@ export async function GET(request: NextRequest) {
                     <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 13px; border: 1px solid #eee;">
                         <thead>
                             <tr style="background-color: #f2f2f2;">
-                                <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">License #</th>
-                                <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">DL Exp</th>
-                                <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">HCA Registration</th>
-                                <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">TB-Test</th>
+                                ${tableHeaderHtml}
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                                <td style="border: 1px solid #ddd; padding: 10px;">${record["License #"] || '-'}</td>
-                                <td style="border: 1px solid #ddd; padding: 10px;">${record["DL Exp"] || '-'}</td>
-                                <td style="border: 1px solid #ddd; padding: 10px;">${record["HCA Registration"] || '-'}</td>
-                                <td style="border: 1px solid #ddd; padding: 10px;">${record["TB-Test"] || '-'}</td>
+                                ${tableBodyHtml}
                             </tr>
                         </tbody>
                     </table>
