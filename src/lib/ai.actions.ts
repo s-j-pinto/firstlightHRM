@@ -1,4 +1,3 @@
-
 'use server';
 
 import { generateInterviewInsights, InterviewInsightsInput } from '@/ai/flows/interview-insights';
@@ -13,12 +12,12 @@ import { recommendCaregivers as recommendCaregiversFlow } from '@/ai/flows/recom
  * It takes the candidate's profile and interview feedback, passes it
  * to a Genkit flow, and returns the AI-generated analysis.
  *
- * @param payload - The data for the candidate and interview.
+ * @param payload - The sanitized data for the candidate and interview.
  * @returns An object containing the AI-generated insight.
  */
-export async function getAiInterviewInsights(payload: Omit<InterviewInsightsInput, 'cna'>) {
+export async function getAiInterviewInsights(payload: InterviewInsightsInput) {
   try {
-    const result = await generateInterviewInsights({...payload, cna: false});
+    const result = await generateInterviewInsights(payload);
     return { aiGeneratedInsight: result.aiGeneratedInsight };
   } catch (e: any) {
     console.error("Error in getAiInterviewInsights Server Action:", e);
@@ -52,5 +51,3 @@ export async function getAiCaregiverRecommendations(payload: RecommendationPaylo
     return { error: `An error occurred while generating recommendations: ${e.message}` };
   }
 }
-
-    

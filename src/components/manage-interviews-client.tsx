@@ -648,7 +648,23 @@ export default function ManageInterviewsClient() {
       return;
     }
     startAiTransition(async () => {
-        const result = await getAiInterviewInsights({ ...selectedCaregiver, interviewNotes, candidateRating: assessmentForm.getValues('candidateRating') });
+        // Only pass required plain fields to avoid serialization errors with Firestore Timestamps
+        const payload = {
+            fullName: selectedCaregiver.fullName,
+            yearsExperience: selectedCaregiver.yearsExperience,
+            summary: selectedCaregiver.summary,
+            canUseHoyerLift: selectedCaregiver.canUseHoyerLift,
+            hasDementiaExperience: selectedCaregiver.hasDementiaExperience,
+            hasHospiceExperience: selectedCaregiver.hasHospiceExperience,
+            hha: selectedCaregiver.hha,
+            hca: selectedCaregiver.hca,
+            availability: selectedCaregiver.availability,
+            hasCar: selectedCaregiver.hasCar,
+            validLicense: selectedCaregiver.validLicense,
+            interviewNotes,
+            candidateRating: assessmentForm.getValues('candidateRating'),
+        };
+        const result = await getAiInterviewInsights(payload);
         if (result.error) toast({ title: "AI Error", description: result.error, variant: "destructive"});
         else setAiInsight(result.aiGeneratedInsight || null);
     });

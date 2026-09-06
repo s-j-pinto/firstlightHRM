@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from 'react';
@@ -64,13 +63,22 @@ export default function ReferralsPage() {
     defaultValues: { friendEmail: '', friendName: '', personalMessage: '' }
   });
 
-  const handleCopyCode = () => {
+  const handleCopyCode = async () => {
     if (!referralProfile?.referralCode) return;
-    navigator.clipboard.writeText(referralProfile.referralCode);
-    toast({
-      title: "Copied!",
-      description: "Your referral code has been copied to the clipboard.",
-    });
+    try {
+        await navigator.clipboard.writeText(referralProfile.referralCode);
+        toast({
+          title: "Copied!",
+          description: "Your referral code has been copied to the clipboard.",
+        });
+    } catch (err) {
+        console.warn("Clipboard access failed:", err);
+        toast({
+            title: "Copy Failed",
+            description: "Clipboard access is restricted. Please manually copy the code.",
+            variant: "destructive"
+        });
+    }
   };
 
   const onInviteSubmit = (data: ReferralInviteFormData) => {
@@ -210,7 +218,7 @@ export default function ReferralsPage() {
                                     <li key={rew.id} className="flex justify-between items-center p-3 bg-muted/50 rounded-md">
                                         <div>
                                             <p className="font-semibold">{rew.description}</p>
-                                            <p className="text-xs text-muted-foreground">Earned on: {format((rew.createdAt as any).toDate(), 'PP')}</p>
+                                            <p className="text-xs text-muted-foreground">Earned on: {format((rew.createdAt as any).toDate(), "PP")}</p>
                                         </div>
                                         <RewardStatusBadge status={rew.status} />
                                     </li>
