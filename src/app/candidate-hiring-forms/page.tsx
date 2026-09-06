@@ -70,11 +70,21 @@ function CandidateHiringFormsContent() {
   );
   const { data: profileData, isLoading: isProfileLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
   
-  const signaturesRef = useMemoFirebase(
-    () => (profileIdToLoad && firestore ? doc(firestore, `caregiver_profiles/${profileIdToLoad}/signatures`, 'onboarding_main') : null),
+  // Isolated Signatures Strategy: We now load all documents from the signatures subcollection and merge them
+  const signaturesQuery = useMemoFirebase(
+    () => (profileIdToLoad && firestore ? collection(firestore, `caregiver_profiles/${profileIdToLoad}/signatures`) : null),
     [profileIdToLoad, firestore]
   );
-  const { data: signaturesData, isLoading: isSignaturesLoading } = useDoc<OnboardingSignatures>(signaturesRef);
+  const { data: signaturesList, isLoading: isSignaturesLoading } = useCollection<any>(signaturesQuery);
+
+  const mergedSignatures = useMemo(() => {
+    if (!signaturesList) return null;
+    const merged: any = {};
+    signaturesList.forEach(doc => {
+        Object.assign(merged, doc);
+    });
+    return merged as OnboardingSignatures;
+  }, [signaturesList]);
   
   const interviewQuery = useMemoFirebase(
     () => (profileIdToLoad && firestore ? query(collection(firestore, 'interviews'), where('caregiverProfileId', '==', profileIdToLoad), limit(1)) : null),
@@ -104,7 +114,7 @@ function CandidateHiringFormsContent() {
       return { allCandidateFormsComplete: false, allAdminFieldsComplete: false, formsToRender: [] };
     }
 
-    const sanitizedProfileData: { [key: string]: any } = { ...profileData, ...signaturesData };
+    const sanitizedProfileData: { [key: string]: any } = { ...profileData, ...mergedSignatures };
     
     // Sanitize all date-like fields to strings for validation
     for (const key in sanitizedProfileData) {
@@ -134,8 +144,8 @@ function CandidateHiringFormsContent() {
       } else if (form.pdfAction === 'newHireChecklist') {
           isCandidateCompleted = !!profileData.newHireChecklistComplete;
           isAdminCompleted = !!profileData.newHireChecklistComplete;
-      } else if (Object.keys(signaturesData || {}).includes(form.completionKey)) {
-          isCandidateCompleted = !!signaturesData?.[form.completionKey as keyof OnboardingSignatures];
+      } else if (mergedSignatures && Object.keys(mergedSignatures).includes(form.completionKey)) {
+          isCandidateCompleted = !!mergedSignatures[form.completionKey as keyof OnboardingSignatures];
       } else {
           isCandidateCompleted = !!profileData[form.completionKey as keyof CaregiverProfile];
       }
@@ -161,7 +171,7 @@ function CandidateHiringFormsContent() {
     const allAdminFieldsComplete = formsWithStatus.every(f => f.isAdminCompleted);
 
     return { allCandidateFormsComplete, allAdminFieldsComplete, formsToRender: finalForms };
-  }, [profileData, signaturesData, isAnAdmin, allAvailableForms, interview?.master360Saved]);
+  }, [profileData, mergedSignatures, isAnAdmin, allAvailableForms, interview?.master360Saved]);
 
   useEffect(() => {
     setIsVerified(false);

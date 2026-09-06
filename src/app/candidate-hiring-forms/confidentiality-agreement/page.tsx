@@ -122,8 +122,9 @@ export default function ConfidentialityAgreementPage() {
     );
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
 
+    // Look specifically at the confidentiality_agreement signature document
     const signaturesRef = useMemoFirebase(
-        () => (profileIdToLoad ? doc(firestore, `caregiver_profiles/${profileIdToLoad}/signatures`, 'onboarding_main') : null),
+        () => (profileIdToLoad ? doc(firestore, `caregiver_profiles/${profileIdToLoad}/signatures`, 'confidentiality_agreement') : null),
         [profileIdToLoad, firestore]
     );
     const { data: signaturesData, isLoading: isSignaturesLoading } = useDoc<OnboardingSignatures>(signaturesRef);
