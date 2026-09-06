@@ -1,13 +1,9 @@
-
-
 'use server';
 
 import { z } from 'zod';
 import { ai } from '@/ai/genkit';
-import { googleAI } from '@genkit-ai/google-genai';
 
 // Defines the schema for the data that will be passed into the AI prompt.
-// This ensures the data is structured correctly before being sent to the model.
 const InterviewInsightsInputSchema = z.object({
   fullName: z.string(),
   yearsExperience: z.coerce.number(),
@@ -25,9 +21,7 @@ const InterviewInsightsInputSchema = z.object({
 });
 export type InterviewInsightsInput = z.infer<typeof InterviewInsightsInputSchema>;
 
-
 // Defines the schema for the expected output from the AI model.
-// This tells the model how to structure its response.
 const InterviewInsightsOutputSchema = z.object({
   aiGeneratedInsight: z.string().describe('A concise summary of the candidate (max 200 words), followed by a clear hiring recommendation (e.g., "Recommend for in-person interview," "Proceed with caution," "Do not recommend") with a brief justification.'),
 });
@@ -42,15 +36,13 @@ export async function generateInterviewInsights(input: InterviewInsightsInput): 
   return generateInterviewInsightsFlow(input);
 }
 
-
 // Defines the prompt template that will be sent to the AI model.
-// It uses Handlebars syntax `{{...}}` to insert the input data.
 const interviewAnalysisPrompt = ai.definePrompt(
   {
     name: 'interviewAnalysisPrompt',
     input: { schema: InterviewInsightsInputSchema },
     output: { schema: InterviewInsightsOutputSchema },
-    model: 'googleai/gemini-2.5-flash-lite',
+    model: 'googleai/gemini-1.5-flash',
     prompt: `You are an expert HR assistant for a home care agency. Your task is to analyze a caregiver candidate's profile and the notes from their phone screen to provide a single, combined insight containing a summary and a hiring recommendation.
 
 Analyze the following information:

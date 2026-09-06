@@ -1,11 +1,6 @@
-
 'use server';
 /**
  * @fileOverview A specialized AI agent for recommending caregivers for unassigned shifts.
- *
- * This flow analyzes an unassigned shift and a pool of active caregivers,
- * ranking them based on continuity of care (prior relationship), availability overlap,
- * workload, and proximity.
  */
 
 import { ai } from '@/ai/genkit';
@@ -14,11 +9,11 @@ import { z } from 'zod';
 const CandidateSchema = z.object({
     id: z.string(),
     name: z.string(),
-    isPriorCaregiver: z.boolean().describe("Whether this caregiver has worked with the client before (last 30 days)."),
-    isDenied: z.boolean().describe("Whether this caregiver is explicitly denied from working with this client."),
-    availabilityText: z.string().describe("The raw text description of the caregiver's availability for the day."),
-    nonOvertimeHours: z.number().describe("Number of hours the caregiver can work today before hitting a daily overtime cap."),
-    distanceText: z.string().optional().describe("Distance from caregiver address to client address."),
+    isPriorCaregiver: z.boolean(),
+    isDenied: z.boolean(),
+    availabilityText: z.string(),
+    nonOvertimeHours: z.number(),
+    distanceText: z.string().optional(),
 });
 
 const UnassignedInputSchema = z.object({
@@ -47,7 +42,7 @@ const unassignedPrompt = ai.definePrompt({
     name: 'unassignedPrompt',
     input: { schema: UnassignedInputSchema },
     output: { schema: UnassignedOutputSchema },
-    model: 'googleai/gemini-2.5-flash-lite',
+    model: 'googleai/gemini-1.5-flash',
     prompt: `You are an expert staffing coordinator for FirstLight Home Care. Your task is to recommend the best caregiver for an unassigned shift.
 
 **Shift Details:**

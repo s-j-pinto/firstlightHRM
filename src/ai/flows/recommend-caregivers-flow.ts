@@ -1,11 +1,8 @@
-
-
 'use server';
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { ClientCareNeedsSchema, CaregiverForRecommendationSchema } from '@/lib/types';
-import { googleAI } from '@genkit-ai/google-genai';
 import { getDistance } from '@/lib/services/google-maps';
 
 const CaregiverWithDistanceSchema = CaregiverForRecommendationSchema.extend({
@@ -17,21 +14,21 @@ const CaregiverWithDistanceSchema = CaregiverForRecommendationSchema.extend({
 type CaregiverWithDistance = z.infer<typeof CaregiverWithDistanceSchema>;
 
 const RecommendationPayloadSchema = z.object({
-  clientCareNeeds: ClientCareNeedsSchema.describe('An object containing all known information about the client\'s care needs, preferences, and situation.'),
-  availableCaregivers: z.array(CaregiverForRecommendationSchema).describe('An array of all available caregivers, including their skills, experience, availability schedules, and preferences.'),
+  clientCareNeeds: ClientCareNeedsSchema,
+  availableCaregivers: z.array(CaregiverForRecommendationSchema),
 });
 
 const RecommendationOutputSchema = z.object({
   recommendations: z.array(z.object({
-    id: z.string().describe("The unique ID of the recommended caregiver."),
-    name: z.string().describe("The full name of the recommended caregiver."),
-    score: z.number().describe("A match score from 0 to 100 indicating how well the caregiver fits the client's needs."),
-    reasons: z.array(z.string()).describe("A list of explicit reasons explaining why this caregiver is a good match, including the distance if available."),
+    id: z.string(),
+    name: z.string(),
+    score: z.number(),
+    reasons: z.array(z.string()),
   })),
   exclusions: z.array(z.object({
-      name: z.string().describe("The name of a caregiver who was excluded."),
-      reason: z.string().describe("The specific reason why this caregiver was not considered a match (the hard filter they failed).")
-  })).optional().describe("A list of caregivers who were excluded and the reason for their exclusion."),
+      name: z.string(),
+      reason: z.string()
+  })).optional(),
 });
 
 const recommendCaregiversPrompt = ai.definePrompt({
@@ -41,7 +38,7 @@ const recommendCaregiversPrompt = ai.definePrompt({
     availableCaregivers: z.array(CaregiverWithDistanceSchema)
   }) },
   output: { schema: RecommendationOutputSchema },
-  model: 'googleai/gemini-2.5-flash-lite',
+  model: 'googleai/gemini-1.5-flash',
   prompt: `You are an expert scheduler for a home care agency. Your task is to recommend the best-fit caregivers for a client based on a comprehensive set of data.
 
 You must follow a strict two-step process: Hard Filters and Weighted Scoring.

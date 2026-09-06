@@ -1,21 +1,11 @@
-
 'use server';
 /**
  * @fileOverview A Genkit flow for extracting structured data from care log images or text.
- *
- * This file defines a flow that uses a multimodal AI model to perform OCR on a
- * handwritten care log or analyze plain text, extract the full content, and
- * identify a specific shift date and time.
- *
- * - extractCareLogData - A function that handles the data extraction process.
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'zod';
-import { googleAI } from '@genkit-ai/google-genai';
 import type { ExtractCareLogInput, ExtractCareLogOutput } from '@/lib/types';
 import { ExtractCareLogInputSchema, ExtractCareLogOutputSchema } from '@/lib/types';
-
 
 /**
  * A server action that wraps the Genkit flow for use on the client.
@@ -31,7 +21,7 @@ const careLogPrompt = ai.definePrompt({
   name: 'careLogPrompt',
   input: { schema: ExtractCareLogInputSchema },
   output: { schema: ExtractCareLogOutputSchema },
-  model: 'googleai/gemini-2.5-flash-lite',
+  model: 'googleai/gemini-1.5-flash',
   prompt: `You are an expert at reading and transcribing handwritten notes.
     
   Analyze the following image and transcribe the text you see as accurately as possible.

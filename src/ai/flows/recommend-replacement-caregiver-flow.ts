@@ -1,13 +1,6 @@
-
 'use server';
 /**
  * @fileOverview A specialized AI agent for recommending replacement caregivers when a call-off occurs.
- *
- * This flow analyzes a specific open shift and a pool of candidate caregivers,
- * ranking them based on continuity of care (prior relationship), availability overlap,
- * and workload/overtime risk.
- *
- * - recommendReplacementCaregivers - Wrapper function for the flow.
  */
 
 import { ai } from '@/ai/genkit';
@@ -16,9 +9,9 @@ import { z } from 'zod';
 const CandidateSchema = z.object({
     id: z.string(),
     name: z.string(),
-    isPriorCaregiver: z.boolean().describe("Whether this caregiver has worked with the client before."),
-    availabilityText: z.string().describe("The raw text description of the caregiver's availability for the day."),
-    nonOvertimeHours: z.number().describe("Number of hours the caregiver can work today before hitting a daily overtime cap (9h)."),
+    isPriorCaregiver: z.boolean(),
+    availabilityText: z.string(),
+    nonOvertimeHours: z.number(),
 });
 
 const ReplacementInputSchema = z.object({
@@ -45,7 +38,7 @@ const replacementPrompt = ai.definePrompt({
     name: 'replacementPrompt',
     input: { schema: ReplacementInputSchema },
     output: { schema: ReplacementOutputSchema },
-    model: 'googleai/gemini-2.5-flash-lite',
+    model: 'googleai/gemini-1.5-flash',
     prompt: `You are an expert staffing coordinator for a home care agency. Your task is to recommend the best replacement caregiver for an open shift.
 
 **Shift Details:**
