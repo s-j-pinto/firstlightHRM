@@ -38,7 +38,7 @@ const replacementPrompt = ai.definePrompt({
     name: 'replacementPrompt',
     input: { schema: ReplacementInputSchema },
     output: { schema: ReplacementOutputSchema },
-    model: 'googleai/gemini-1.5-flash',
+    model: 'googleai/gemini-2.5-flash-lite',
     prompt: `You are an expert staffing coordinator for a home care agency. Your task is to recommend the best replacement caregiver for an open shift.
 
 **Shift Details:**
