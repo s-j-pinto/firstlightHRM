@@ -17,7 +17,9 @@ import { recommendCaregivers as recommendCaregiversFlow } from '@/ai/flows/recom
  */
 export async function getAiInterviewInsights(payload: InterviewInsightsInput) {
   try {
-    const result = await generateInterviewInsights(payload);
+    // Ensure payload is a plain object without any hidden Firestore properties
+    const sanitizedPayload = JSON.parse(JSON.stringify(payload));
+    const result = await generateInterviewInsights(sanitizedPayload);
     return { aiGeneratedInsight: result.aiGeneratedInsight };
   } catch (e: any) {
     console.error("Error in getAiInterviewInsights Server Action:", e);
@@ -34,7 +36,8 @@ export async function getAiInterviewInsights(payload: InterviewInsightsInput) {
  */
 export async function extractCareLogData(payload: ExtractCareLogInput): Promise<ExtractCareLogOutput | { error: string }> {
   try {
-    const result = await extractCareLogDataFlow(payload);
+    const sanitizedPayload = JSON.parse(JSON.stringify(payload));
+    const result = await extractCareLogDataFlow(sanitizedPayload);
     return result;
   } catch (e: any) {
     console.error("Error in extractCareLogData Server Action:", e);
@@ -44,7 +47,8 @@ export async function extractCareLogData(payload: ExtractCareLogInput): Promise<
 
 export async function getAiCaregiverRecommendations(payload: RecommendationPayload) {
   try {
-    const result = await recommendCaregiversFlow(payload);
+    const sanitizedPayload = JSON.parse(JSON.stringify(payload));
+    const result = await recommendCaregiversFlow(sanitizedPayload);
     return result;
   } catch (e: any) {
     console.error("Error in getCaregiverRecommendations Server Action:", e);

@@ -38,7 +38,7 @@ const replacementPrompt = ai.definePrompt({
     name: 'replacementPrompt',
     input: { schema: ReplacementInputSchema },
     output: { schema: ReplacementOutputSchema },
-    model: 'googleai/gemini-2.5-flash-lite',
+    model: 'googleai/gemini-1.5-flash',
     prompt: `You are an expert staffing coordinator for a home care agency. Your task is to recommend the best replacement caregiver for an open shift.
 
 **Shift Details:**
@@ -46,9 +46,6 @@ const replacementPrompt = ai.definePrompt({
 - Date: {{shiftDate}}
 - Time: {{shiftTime}}
 - Duration: {{shiftHours}} hours
-
-**Candidate Pool:**
-{{{json candidates}}}
 
 **Scoring Criteria (Max 100 points):**
 1. **Continuity of Care (50 pts):** Awarded if 'isPriorCaregiver' is true. This is the highest priority.

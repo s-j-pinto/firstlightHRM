@@ -38,17 +38,15 @@ const recommendCaregiversPrompt = ai.definePrompt({
     availableCaregivers: z.array(CaregiverWithDistanceSchema)
   }) },
   output: { schema: RecommendationOutputSchema },
-  model: 'googleai/gemini-2.5-flash-lite',
+  model: 'googleai/gemini-1.5-flash',
   prompt: `You are an expert scheduler for a home care agency. Your task is to recommend the best-fit caregivers for a client based on a comprehensive set of data.
 
 You must follow a strict two-step process: Hard Filters and Weighted Scoring.
 
 **Client's Needs Profile:**
-{{{json clientCareNeeds}}}
-
-**Available Caregiver Pool (with distance from client):**
-{{{json availableCaregivers}}}
-
+Address: {{clientCareNeeds.clientAddress}}, {{clientCareNeeds.clientCity}}
+Pets: {{clientCareNeeds.pets}}
+Hours: {{clientCareNeeds.estimatedHours}}
 
 **Step 1: Hard Filters (Exclusion Criteria)**
 First, you MUST exclude any caregiver who does not meet the following mandatory requirements. List any excluded caregivers and the specific reason for their exclusion in the 'exclusions' output field.

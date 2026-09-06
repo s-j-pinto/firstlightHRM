@@ -42,7 +42,7 @@ const unassignedPrompt = ai.definePrompt({
     name: 'unassignedPrompt',
     input: { schema: UnassignedInputSchema },
     output: { schema: UnassignedOutputSchema },
-    model: 'googleai/gemini-2.5-flash-lite',
+    model: 'googleai/gemini-1.5-flash',
     prompt: `You are an expert staffing coordinator for FirstLight Home Care. Your task is to recommend the best caregiver for an unassigned shift.
 
 **Shift Details:**
@@ -50,9 +50,6 @@ const unassignedPrompt = ai.definePrompt({
 - Date: {{shiftDate}}
 - Time: {{shiftTime}}
 - Duration: {{shiftHours}} hours
-
-**Candidate Pool:**
-{{{json candidates}}}
 
 **Scoring Criteria (Max 100 points):**
 1. **Hard Filter**: If 'isDenied' is true, set 'score' to 0 and 'reasons' to ["CAREGIVER IS DENIED FOR THIS CLIENT"].
