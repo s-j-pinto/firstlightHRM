@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
     const interval = { start: startOfDay(now), end: endOfDay(threeDaysFromNow) };
 
     const adminEmail = "care-rc@firstlighthomecare.com";
+    const hrAssistEmail = "hr_assist@firstlighthomecare.com";
     const ownerEmail = "lpinto@firstlighthomecare.com";
     const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
 
@@ -85,7 +86,7 @@ export async function GET(request: NextRequest) {
             `;
 
             await firestore.collection('mail').add({
-                to: [adminEmail, ownerEmail],
+                to: [adminEmail, hrAssistEmail, ownerEmail],
                 message: {
                     subject: `Missing documents reminder for ${reminder.name} before Orientation on ${reminder.orientDate}`,
                     html: emailHtml,

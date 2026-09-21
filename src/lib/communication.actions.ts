@@ -154,6 +154,7 @@ export async function sendHiringDocsNotification(payload: {
 }) {
     const { caregiverId, fullName, email, phone } = payload;
     const adminEmail = "care-rc@firstlighthomecare.com";
+    const hrAssistEmail = "hr_assist@firstlighthomecare.com";
     const logoUrl = "https://firebasestorage.googleapis.com/v0/b/firstlighthomecare-hrm.firebasestorage.app/o/FirstlightLogo_transparent.png?alt=media&token=9d4d3205-17ec-4bb5-a7cc-571a47db9fcc";
 
     const loginUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/candidate-login`;
@@ -188,7 +189,7 @@ export async function sendHiringDocsNotification(payload: {
     try {
         await serverDb.collection("mail").add({
             to: [email],
-            cc: [adminEmail],
+            cc: [adminEmail, hrAssistEmail],
             message: {
                 subject: "Action Required: Complete Your Hiring Forms -FirstLight Home Care of Rancho Cucamonga",
                 html: emailHtml,

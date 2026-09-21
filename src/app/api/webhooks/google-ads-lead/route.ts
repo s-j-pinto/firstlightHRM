@@ -113,7 +113,8 @@ export async function POST(request: NextRequest) {
     // --- Internal Notification Logic ---
     const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL || 'lpinto@firstlighthomecare.com';
     const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "care-rc@firstlighthomecare.com";
-    const internalRecipients = [ownerEmail, adminEmail].filter(Boolean) as string[];
+    const hrAssistEmail = "hr_assist@firstlighthomecare.com";
+    const internalRecipients = [ownerEmail, adminEmail, hrAssistEmail].filter(Boolean) as string[];
 
     if (internalRecipients.length > 0) {
         const internalEmail = {
