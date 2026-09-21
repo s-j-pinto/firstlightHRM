@@ -53,6 +53,7 @@ export async function sendCalendarInvite(appointment: Appointment & { caregiver:
             },
             attendees: [
                 { email: 'care-rc@firstlighthomecare.com' }, 
+                { email: 'hr_asist@firstlighthomecare.com' },
                 { email: appointment.caregiver?.email }, 
             ],
             reminders: {
@@ -151,6 +152,7 @@ export async function sendHomeVisitInvite(payload: HomeVisitPayload) {
     const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
     const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL || 'lpinto@firstlighthomecare.com';
     const adminEmail = 'care-rc@firstlighthomecare.com';
+    const hrAssistEmail = 'hr_asist@firstlighthomecare.com';
     const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:9002/admin/settings';
 
     if (!clientId || !clientSecret) {
@@ -172,6 +174,7 @@ export async function sendHomeVisitInvite(payload: HomeVisitPayload) {
     const attendees: { email: string }[] = [];
     if (ownerEmail) attendees.push({ email: ownerEmail });
     if (adminEmail) attendees.push({ email: adminEmail });
+    if (hrAssistEmail) attendees.push({ email: hrAssistEmail });
     if (clientEmail) attendees.push({ email: clientEmail });
     if (additionalEmail && additionalEmail.trim() !== '') {
         attendees.push({ email: additionalEmail });
@@ -244,7 +247,7 @@ export async function sendHomeVisitInvite(payload: HomeVisitPayload) {
         
         let errorMessage = `Failed to send invite. Check server logs.`;
         if (err.message?.includes('Invalid attendee')) {
-             const attendeeEmails = `Owner: ${ownerEmail}, Admin: ${adminEmail}, Client: ${clientEmail}, Additional: ${additionalEmail || 'N/A'}`;
+             const attendeeEmails = `Owner: ${ownerEmail}, Admin: ${adminEmail}, HR Assist: ${hrAssistEmail}, Client: ${clientEmail}, Additional: ${additionalEmail || 'N/A'}`;
              errorMessage = `Google API Error: One of the attendee emails is invalid. Please check the client and additional email fields. Attempted emails: [${attendeeEmails}]`;
         } else if (err.message?.includes('invalid_grant') || err.message?.includes('revoked')) {
             const authUrl = oAuth2Client.generateAuthUrl({
