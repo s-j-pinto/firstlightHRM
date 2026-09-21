@@ -53,7 +53,7 @@ export async function sendCalendarInvite(appointment: Appointment & { caregiver:
             },
             attendees: [
                 { email: 'care-rc@firstlighthomecare.com' }, 
-                { email: 'hr_asist@firstlighthomecare.com' },
+                { email: 'hr_assist@firstlighthomecare.com' },
                 { email: appointment.caregiver?.email }, 
             ],
             reminders: {
@@ -152,7 +152,7 @@ export async function sendHomeVisitInvite(payload: HomeVisitPayload) {
     const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
     const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL || 'lpinto@firstlighthomecare.com';
     const adminEmail = 'care-rc@firstlighthomecare.com';
-    const hrAssistEmail = 'hr_asist@firstlighthomecare.com';
+    const hrAssistEmail = 'hr_assist@firstlighthomecare.com';
     const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:9002/admin/settings';
 
     if (!clientId || !clientSecret) {
