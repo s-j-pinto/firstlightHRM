@@ -9,10 +9,16 @@ import type { Appointment } from "./types";
 import { format, toZonedTime, formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 
 const getRedirectUri = () => {
-    // Priority: Env variable > Production Base URL > Localhost fallback
+    // Priority: Env variable > Localhost fallback > Production Base URL
     if (process.env.GOOGLE_REDIRECT_URI) return process.env.GOOGLE_REDIRECT_URI;
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9002';
-    // The redirect URI must match exactly what is in the Google Cloud Console
+    
+    // In local dev, we typically use the port provided by Next.js
+    if (process.env.NODE_ENV === 'development') {
+        const port = process.env.PORT || '3000';
+        return `http://localhost:${port}/admin/settings`;
+    }
+
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://care-connect-360--firstlighthomecare-hrm.us-central1.hosted.app';
     return `${baseUrl}/admin/settings`;
 };
 
@@ -25,10 +31,15 @@ export async function generateGoogleAuthUrl() {
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
     const redirectUri = getRedirectUri();
 
-    if (!clientId || !clientSecret) {
-        console.error("[generateGoogleAuthUrl] Missing credentials:", { hasId: !!clientId, hasSecret: !!clientSecret });
+    if (!clientId) {
         return { 
-            error: "Google credentials (ID or Secret) are missing from the server environment. Ensure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set in your App Hosting secrets." 
+            error: "Missing GOOGLE_CLIENT_ID in environment variables. If testing locally, ensure it is set in your .env.local file." 
+        };
+    }
+
+    if (!clientSecret) {
+        return { 
+            error: "Missing GOOGLE_CLIENT_SECRET in environment variables. If testing locally, ensure it is set in your .env.local file." 
         };
     }
 
