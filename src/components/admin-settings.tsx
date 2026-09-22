@@ -447,6 +447,9 @@ export default function AdminSettings() {
                  <Info className="h-3 w-3 shrink-0 mt-0.5" />
                  <p>Note: We are using the base URL without a path to bypass character restrictions in some Google Cloud environments. After authorizing, you will land on the Home Page; please copy the code from the URL bar there.</p>
              </div>
+             <div className="text-[10px] mt-2 opacity-50 font-mono">
+                [Server Detection]: {process.env.NEXT_PUBLIC_BASE_URL || 'NONE'}
+             </div>
           </AlertDescription>
         </Alert>
 

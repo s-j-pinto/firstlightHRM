@@ -8,6 +8,7 @@ import { OAuth2Client } from 'google-auth-library';
 import type { CaregiverProfile, Interview } from './types';
 import { Timestamp } from 'firebase-admin/firestore';
 import { format, formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
+import { getRedirectUri } from './google-calendar.actions';
 
 interface SaveInterviewPayload {
   caregiverProfile: {
@@ -50,7 +51,7 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload): P
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
     const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
-    const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:9002/admin/settings';
+    const redirectUri = await getRedirectUri();
 
     let conferenceLink: string | undefined = undefined;
     let newGoogleEventId: string | undefined = undefined;

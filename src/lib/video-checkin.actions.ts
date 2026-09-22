@@ -1,5 +1,4 @@
 
-
 "use server";
 
 import { revalidatePath } from 'next/cache';
@@ -10,6 +9,7 @@ import { cookies } from 'next/headers';
 import { google } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
 import { format, set, parse } from 'date-fns';
+import { getRedirectUri } from './google-calendar.actions';
 
 const requestSchema = z.object({
     requestedBy: z.string().min(1),
@@ -134,7 +134,7 @@ export async function scheduleVideoCheckin(payload: SchedulePayload) {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
     const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
-    const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:9002/admin/settings';
+    const redirectUri = await getRedirectUri();
     
     if (!clientId || !clientSecret || !refreshToken) {
         return { message: 'Google Calendar is not configured on the server.', error: true };
@@ -172,14 +172,19 @@ export async function scheduleVideoCheckin(payload: SchedulePayload) {
       status: 'scheduled',
       caregiverEmail,
       scheduledAt: Timestamp.fromDate(scheduledAt),
-      googleMeetLink: meetLink,
+      googleMeetLink: hideProtocol(meetLink),
     });
 
-    revalidatePath('/staffing-admin/manage-video-checkins');
+    revalidatePath('/staffing-admin/manage-client-requests');
     return { message: 'Video check-in scheduled and invites sent.' };
 
   } catch (error: any) {
     console.error("Error scheduling video check-in:", error);
     return { message: `An error occurred: ${error.message}`, error: true };
   }
+}
+
+function hideProtocol(url: string | undefined | null) {
+    if(!url) return '';
+    return url.replace(/^https?:\/\//, '');
 }
