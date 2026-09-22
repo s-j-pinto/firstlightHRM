@@ -5,7 +5,7 @@ import { googleAI } from '@genkit-ai/google-genai';
 // This instance will be used across the Next.js server environment.
 export const ai = genkit({
   plugins: [
-    googleAI(),
+    googleAI({ apiKey: process.env.GEMINI_API_KEY }),
   ],
   // Log all traces to the console for debugging.
   enableTracingAndMetrics: true,

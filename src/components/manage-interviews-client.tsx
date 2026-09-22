@@ -648,25 +648,37 @@ export default function ManageInterviewsClient() {
       return;
     }
     startAiTransition(async () => {
+        const carVal = selectedCaregiver.hasCar ?? transportationForm.getValues('hasCar');
+        const licenseVal = selectedCaregiver.validLicense ?? transportationForm.getValues('validLicense');
+        const formatBoolOrString = (val: any) => {
+            if (typeof val === 'boolean') return val ? 'yes' : 'no';
+            if (val === 'yes' || val === 'no') return val;
+            return val ? 'yes' : 'no';
+        };
+
         // Only pass required plain fields to avoid serialization errors with Firestore Timestamps
         const payload = {
-            fullName: selectedCaregiver.fullName,
-            yearsExperience: selectedCaregiver.yearsExperience,
-            summary: selectedCaregiver.summary,
-            canUseHoyerLift: selectedCaregiver.canUseHoyerLift,
-            hasDementiaExperience: selectedCaregiver.hasDementiaExperience,
-            hasHospiceExperience: selectedCaregiver.hasHospiceExperience,
-            hha: selectedCaregiver.hha,
-            hca: selectedCaregiver.hca,
-            availability: selectedCaregiver.availability,
-            hasCar: selectedCaregiver.hasCar,
-            validLicense: selectedCaregiver.validLicense,
+            fullName: selectedCaregiver.fullName || 'Candidate',
+            yearsExperience: Number(selectedCaregiver.yearsExperience) || 0,
+            summary: selectedCaregiver.summary || '',
+            canUseHoyerLift: !!selectedCaregiver.canUseHoyerLift,
+            hasDementiaExperience: !!selectedCaregiver.hasDementiaExperience,
+            hasHospiceExperience: !!selectedCaregiver.hasHospiceExperience,
+            hha: !!selectedCaregiver.hha,
+            hca: !!selectedCaregiver.hca,
+            availability: selectedCaregiver.availability || {},
+            hasCar: formatBoolOrString(carVal),
+            validLicense: formatBoolOrString(licenseVal),
             interviewNotes,
-            candidateRating: assessmentForm.getValues('candidateRating'),
+            candidateRating: assessmentForm.getValues('candidateRating') || 'C',
         };
         const result = await getAiInterviewInsights(payload);
-        if (result.error) toast({ title: "AI Error", description: result.error, variant: "destructive"});
-        else setAiInsight(result.aiGeneratedInsight || null);
+        if (result.error) {
+            toast({ title: "AI Error", description: result.error, variant: "destructive"});
+        } else {
+            setAiInsight(result.aiGeneratedInsight || null);
+            toast({ title: "AI Summary Generated", description: "AI summary and recommendation ready." });
+        }
     });
   };
   
@@ -976,7 +988,7 @@ export default function ManageInterviewsClient() {
                                   </Button>
                               </div>
                               {existingInterview?.interviewNotes && <div className="p-3 bg-muted rounded-md text-sm whitespace-pre-wrap">{existingInterview.interviewNotes}</div>}
-                              {existingInterview?.aiGeneratedInsight && <Alert className="bg-accent/5 border-accent/20"><Sparkles className="h-4 w-4 text-accent" /><AlertDescription className="text-xs mt-2">{existingInterview.aiGeneratedInsight}</AlertDescription></Alert>}
+                              {(existingInterview?.aiGeneratedInsight || aiInsight) && <Alert className="bg-accent/5 border-accent/20"><Sparkles className="h-4 w-4 text-accent" /><AlertDescription className="text-xs mt-2 whitespace-pre-wrap">{existingInterview?.aiGeneratedInsight || aiInsight}</AlertDescription></Alert>}
                           </div>
                       ) : (
                           <Form {...phoneScreenForm}>
@@ -1001,6 +1013,14 @@ export default function ManageInterviewsClient() {
                                     )} 
                                   />
                                   <div className="flex justify-center"><Button type="button" onClick={handleGenerateInsights} disabled={isAiPending}>{isAiPending ? <Loader2 className="animate-spin" /> : <Sparkles />}<span className="ml-2">Generate AI Summary</span></Button></div>
+                                  {aiInsight && (
+                                      <Alert className="bg-accent/5 border-accent/20 animate-in fade-in">
+                                          <Sparkles className="h-4 w-4 text-accent" />
+                                          <AlertDescription className="text-xs mt-2 whitespace-pre-wrap">
+                                              {aiInsight}
+                                          </AlertDescription>
+                                      </Alert>
+                                  )}
                                   <FormField control={phoneScreenForm.control} name="phoneScreenPassed" render={({ field }) => ( <FormItem><FormLabel>Passed?</FormLabel><FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4"><FormItem className="flex items-center space-x-2"><RadioGroupItem value="Yes" /><span>Yes</span></FormItem><FormItem className="flex items-center space-x-2"><RadioGroupItem value="No" /><span>No</span></FormItem></RadioGroup></FormControl><FormMessage /></FormItem> )} />
                                   <div className="flex justify-end"><Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="animate-spin mr-2" />}Save Results</Button></div>
                               </form>

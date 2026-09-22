@@ -5,19 +5,19 @@ import { ai } from '@/ai/genkit';
 
 // Defines the schema for the data that will be passed into the AI prompt.
 const InterviewInsightsInputSchema = z.object({
-  fullName: z.string(),
-  yearsExperience: z.coerce.number(),
-  summary: z.string().optional(),
-  canUseHoyerLift: z.boolean().optional(),
-  hasDementiaExperience: z.boolean().optional(),
-  hasHospiceExperience: z.boolean().optional(),
-  hha: z.boolean().optional(),
-  hca: z.boolean().optional(),
-  availability: z.any(),
-  hasCar: z.string(),
-  validLicense: z.string(),
-  interviewNotes: z.string(),
-  candidateRating: z.string(),
+  fullName: z.string().optional().default('Candidate'),
+  yearsExperience: z.coerce.number().optional().default(0),
+  summary: z.string().optional().default(''),
+  canUseHoyerLift: z.boolean().optional().default(false),
+  hasDementiaExperience: z.boolean().optional().default(false),
+  hasHospiceExperience: z.boolean().optional().default(false),
+  hha: z.boolean().optional().default(false),
+  hca: z.boolean().optional().default(false),
+  availability: z.any().optional(),
+  hasCar: z.string().optional().default('no'),
+  validLicense: z.string().optional().default('no'),
+  interviewNotes: z.string().optional().default(''),
+  candidateRating: z.string().optional().default('C'),
 });
 export type InterviewInsightsInput = z.infer<typeof InterviewInsightsInputSchema>;
 
