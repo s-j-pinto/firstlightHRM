@@ -139,7 +139,10 @@ export default function AdminSettings() {
 
   useEffect(() => {
     if (interviewSettingsData) {
-      interviewSettingsForm.reset(interviewSettingsData);
+      interviewSettingsForm.reset({
+        ...interviewSettingsData,
+        googleAuthCode: "", // Always clear code field on load
+      });
     } else {
       interviewSettingsForm.reset({
         sunday_slots: "11:00, 12:00, 13:00, 14:00, 15:00, 16:00",
@@ -149,6 +152,7 @@ export default function AdminSettings() {
         thursday_slots: "",
         friday_slots: "",
         saturday_slots: "",
+        googleAuthCode: "",
       });
     }
   }, [interviewSettingsData, interviewSettingsForm]);
