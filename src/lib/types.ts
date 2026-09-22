@@ -612,6 +612,7 @@ export const appointmentSchema = z.object({
   cancelReason: z.string().trim().optional(),
   cancelDateTime: z.date().optional(),
   createdAt: z.date().optional(),
+  googleEventId: z.string().optional(),
 });
 
 export type Appointment = z.infer<typeof appointmentSchema> & { id: string };

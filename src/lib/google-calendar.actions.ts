@@ -62,6 +62,7 @@ export async function generateGoogleAuthUrl() {
 
 /**
  * Sends a Google Calendar invite for a phone interview.
+ * If an event already exists, it updates it instead of creating a new one.
  */
 export async function sendCalendarInvite(appointment: Appointment & { caregiver: any }) {
     const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -115,19 +116,38 @@ export async function sendCalendarInvite(appointment: Appointment & { caregiver:
             },
         };
 
-        await calendar.events.insert({
-            calendarId: 'primary',
-            requestBody: event,
-            sendNotifications: true,
-        });
+        let finalEventId = appointment.googleEventId;
+
+        if (finalEventId) {
+            // Update existing event
+            await calendar.events.update({
+                calendarId: 'primary',
+                eventId: finalEventId,
+                requestBody: event,
+            });
+        } else {
+            // Create new event
+            const res = await calendar.events.insert({
+                calendarId: 'primary',
+                requestBody: event,
+                sendNotifications: true,
+            });
+            finalEventId = res.data.id || undefined;
+        }
         
         const firestore = serverDb;
         const appointmentRef = firestore.collection('appointments').doc(appointment.id);
-        await appointmentRef.update({ inviteSent: true });
+        
+        const updateData: any = { inviteSent: true };
+        if (finalEventId) {
+            updateData.googleEventId = finalEventId;
+        }
+        
+        await appointmentRef.update(updateData);
 
         revalidatePath('/admin');
         
-        return { message: `Calendar invite sent to ${appointment.caregiver.fullName}.` };
+        return { message: `Calendar invite ${appointment.googleEventId ? 'updated' : 'sent'} for ${appointment.caregiver.fullName}.` };
 
     } catch (err: any) {
         console.error("Error sending Google Calendar invite:", err);

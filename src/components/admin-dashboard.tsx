@@ -134,10 +134,11 @@ export default function AdminDashboard() {
       setPendingInviteId(appointment.id);
       
       // Sanitizing the object: Only pass the specific fields needed by the server action.
-      // Passing the full 'appointment' object fails because it contains non-plain Firestore objects (like createdAt).
+      // We explicitly include googleEventId to allow the server to perform an update instead of insert.
       const payload = {
         id: appointment.id,
-        startTime: appointment.startTime, // NextJS 15 supports Date objects in Server Actions
+        googleEventId: appointment.googleEventId,
+        startTime: appointment.startTime, 
         endTime: appointment.endTime,
         caregiver: {
             fullName: appointment.caregiverName,
@@ -280,7 +281,7 @@ export default function AdminDashboard() {
 
                         <Button 
                             onClick={() => handleSendInvite(appointment)} 
-                            disabled={isSending || appointment.inviteSent}
+                            disabled={isSending || (appointment.inviteSent && !appointment.googleEventId)}
                             className="w-full bg-accent hover:bg-accent/90 disabled:bg-gray-300 col-span-2"
                         >
                             {isSending ? (
@@ -288,7 +289,7 @@ export default function AdminDashboard() {
                             ) : (
                                 <Send className="mr-2 h-4 w-4" />
                             )}
-                            {appointment.inviteSent ? 'Invite Sent' : 'Send Invite'}
+                            {appointment.inviteSent ? 'Update Invite' : 'Send Invite'}
                         </Button>
                     </div>
                   </CardContent>
