@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect, useCallback } from 'react';
@@ -49,7 +48,7 @@ import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
 const hiringStatuses = [
-  'Applied', 'Phonescreen Invite Needed', 'Phonescreen Scheduled', 'Hired', 'Orientation Scheduled', 'Final Interview Passed', 'Final Interview Pending', 'Final Interview Failed', 'Phone Screen Failed', 'Rejected at Orientation', 'Process Terminated', 'No Show'
+  'Applied', 'Phonescreen Invite Needed', 'Phonescreen Scheduled', 'Phonescreen invite sent', 'Hired', 'Orientation Scheduled', 'Final Interview Passed', 'Final Interview Pending', 'Final Interview Failed', 'Phone Screen Failed', 'Rejected at Orientation', 'Process Terminated', 'No Show'
 ];
 
 const searchSchema = z.object({
@@ -177,7 +176,7 @@ export default function AdvancedSearchClient() {
             status === 'Hired' ? 'bg-green-500' :
             status === 'Orientation Scheduled' ? 'bg-cyan-500' :
             status === 'Final Interview Passed' ? 'bg-blue-500' :
-            status === 'Phonescreen Scheduled' ? 'bg-purple-500' :
+            (status === 'Phonescreen Scheduled' || status === 'Phonescreen invite sent') ? 'bg-purple-500' :
             status === 'Phonescreen Invite Needed' ? 'bg-orange-500' :
             status === 'Final Interview Pending' ? 'bg-yellow-500' :
             'bg-gray-500';

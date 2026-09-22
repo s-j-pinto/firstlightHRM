@@ -1,4 +1,3 @@
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -7,6 +6,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { serverDb } from "@/firebase/server-init";
 import type { Appointment } from "./types";
 import { format, toZonedTime, formatInTimeZone, fromZonedTime } from 'date-fns-tz';
+import { Timestamp } from "firebase-admin/firestore";
 
 /**
  * Standardized helper to determine the redirect URI.
@@ -145,7 +145,17 @@ export async function sendCalendarInvite(appointment: Appointment & { caregiver:
         
         await appointmentRef.update(updateData);
 
+        // Update the candidate's profile status
+        if (appointment.caregiverId) {
+            await firestore.collection('caregiver_profiles').doc(appointment.caregiverId).update({
+                hiringStatus: 'Phonescreen invite sent',
+                nextStepText: 'Await Phone Interview',
+                lastUpdatedAt: Timestamp.now()
+            });
+        }
+
         revalidatePath('/admin');
+        revalidatePath('/admin/advanced-search');
         
         return { message: `Calendar invite ${appointment.googleEventId ? 'updated' : 'sent'} for ${appointment.caregiver.fullName}.` };
 
