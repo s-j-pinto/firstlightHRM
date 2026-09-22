@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Terminal, Copy, Check, AlertTriangle, Edit2, RefreshCw, ExternalLink, KeyRound } from "lucide-react";
+import { Loader2, Terminal, Copy, Check, AlertTriangle, Edit2, RefreshCw, ExternalLink, KeyRound, Info } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { doc, setDoc } from "firebase/firestore";
 import { useFirestore, useFirebase, useMemoFirebase } from "@/firebase";
@@ -271,9 +271,12 @@ export default function AdminSettings() {
     );
   }
 
-  // Calculate the current redirect URI using the same logic as the server
-  const currentBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9002';
-  const displayRedirectUri = `${currentBaseUrl.replace(/\/$/, '')}/admin/settings`;
+  // Calculate the current redirect URI (Origin only for simplified configuration)
+  const currentBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  let displayRedirectUri = currentBaseUrl;
+  try {
+      displayRedirectUri = new URL(currentBaseUrl).origin;
+  } catch (e) {}
 
   return (
     <div className="space-y-8">
@@ -437,9 +440,13 @@ export default function AdminSettings() {
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Important: Configure Redirect URI</AlertTitle>
-          <AlertDescription>
-             The current redirect URI is: <code className="bg-muted px-1 rounded">{displayRedirectUri}</code>. 
-             Ensure this exact URI is whitelisted in your Google Cloud Console.
+          <AlertDescription className="space-y-2">
+             <p>Ensure the following origin is whitelisted in your Google Cloud Console under <strong>"Authorized redirect URIs"</strong> (not JavaScript origins):</p>
+             <code className="bg-muted px-2 py-1 rounded block w-fit border">{displayRedirectUri}</code>
+             <div className="flex items-start gap-2 mt-2 text-xs opacity-80 bg-background/50 p-2 rounded">
+                 <Info className="h-3 w-3 shrink-0 mt-0.5" />
+                 <p>Note: We are using the base URL without a path to bypass character restrictions in some Google Cloud environments. After authorizing, you will land on the Home Page; please copy the code from the URL bar there.</p>
+             </div>
           </AlertDescription>
         </Alert>
 

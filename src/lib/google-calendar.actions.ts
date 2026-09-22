@@ -12,14 +12,18 @@ const getRedirectUri = () => {
     // Priority 1: Explicitly set redirect URI
     if (process.env.GOOGLE_REDIRECT_URI) return process.env.GOOGLE_REDIRECT_URI;
     
-    // Priority 2: Use the public base URL if defined (works for both local and production)
+    // Priority 2: Use the public base URL origin (no path to avoid Cloud Console restrictions)
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
     if (baseUrl) {
-        return `${baseUrl.replace(/\/$/, '')}/admin/settings`;
+        try {
+            return new URL(baseUrl).origin;
+        } catch (e) {
+            return baseUrl.replace(/\/$/, '');
+        }
     }
 
     // Priority 3: Fallback for local development environment
-    return `http://localhost:9002/admin/settings`;
+    return `http://localhost:3000`;
 };
 
 /**
@@ -32,8 +36,9 @@ export async function generateGoogleAuthUrl() {
     const redirectUri = getRedirectUri();
 
     if (!clientId || !clientSecret) {
+        const missing = !clientId ? 'GOOGLE_CLIENT_ID' : 'GOOGLE_CLIENT_SECRET';
         return { 
-            error: "Google Credentials (ID/Secret) are not configured in environment variables. Ensure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set in your secrets or .env.local file." 
+            error: `Missing ${missing}. Ensure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set in your apphosting.yaml file and provisioned as secrets.` 
         };
     }
 
