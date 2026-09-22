@@ -5,7 +5,7 @@ import { google } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
 import { serverDb } from "@/firebase/server-init";
 import type { Appointment } from "./types";
-import { format, toZonedTime, formatInTimeZone, fromZonedTime } from 'date-fns-tz';
+import { format, hideProtocol } from './utils'; // Helper for formatting
 import { Timestamp } from "firebase-admin/firestore";
 
 /**
@@ -145,10 +145,10 @@ export async function sendCalendarInvite(appointment: Appointment & { caregiver:
         
         await appointmentRef.update(updateData);
 
-        // Update the candidate's profile status
+        // Update the candidate's profile status to "Phonescreen Scheduled"
         if (appointment.caregiverId) {
             await firestore.collection('caregiver_profiles').doc(appointment.caregiverId).update({
-                hiringStatus: 'Phonescreen invite sent',
+                hiringStatus: 'Phonescreen Scheduled',
                 nextStepText: 'Await Phone Interview',
                 lastUpdatedAt: Timestamp.now()
             });

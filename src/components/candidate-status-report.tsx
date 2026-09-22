@@ -24,7 +24,6 @@ type CandidateStatus =
   | 'Applied'
   | 'Phonescreen Invite Needed'
   | 'Phonescreen Scheduled'
-  | 'Phonescreen invite sent'
   | 'Phone Screen Failed'
   | 'No Show'
   | 'Final Interview Pending'
@@ -74,25 +73,22 @@ const getStatus = (
         if (interview.finalInterviewStatus === 'Passed') return { status: 'Final Interview Passed', interview };
         if (interview.finalInterviewStatus === 'Failed') return { status: 'Final Interview Failed', interview };
         
-        // If they have an interview record and specific hiring status is already set
-        if (profile.hiringStatus === 'Phonescreen invite sent') return { status: 'Phonescreen invite sent', interview };
-        
         return { status: 'Final Interview Pending', interview };
     }
 
     if (appointmentsMap.has(profile.id)) {
         const appointment = appointmentsMap.get(profile.id);
-        if (profile.hiringStatus === 'Phonescreen invite sent') {
-            return { status: 'Phonescreen invite sent', interview };
-        }
-        if (appointment?.inviteSent) {
+        if (appointment?.inviteSent || profile.hiringStatus === 'Phonescreen Scheduled' || profile.hiringStatus === 'Phonescreen invite sent') {
             return { status: 'Phonescreen Scheduled', interview };
         } else {
             return { status: 'Phonescreen Invite Needed', interview };
         }
     }
     
-    if (profile.hiringStatus) return { status: profile.hiringStatus, interview };
+    if (profile.hiringStatus) {
+        if (profile.hiringStatus === 'Phonescreen invite sent') return { status: 'Phonescreen Scheduled', interview };
+        return { status: profile.hiringStatus, interview };
+    }
 
     return { status: 'Applied', interview };
 };
@@ -256,7 +252,7 @@ export default function CandidateStatusReport() {
                                     </TableCell>
                                     <TableCell>
                                         {candidate.status === 'Applied' && 'Needs Phone Screen'}
-                                        {(candidate.status === 'Phonescreen Scheduled' || candidate.status === 'Phonescreen invite sent') && candidate.appointment?.startTime && (
+                                        {candidate.status === 'Phonescreen Scheduled' && candidate.appointment?.startTime && (
                                             `PhoneScreen Interview: ${format((candidate.appointment.startTime as any).toDate(), 'PPp')}`
                                         )}
                                         {candidate.status === 'Phonescreen Invite Needed' && 'Needs calendar invite'}
