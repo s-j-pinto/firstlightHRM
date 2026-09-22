@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useTransition, useMemo } from "react";
@@ -131,7 +132,21 @@ export default function AdminDashboard() {
   const handleSendInvite = (appointment: AppointmentWithCaregiver) => {
     startTransition(async () => {
       setPendingInviteId(appointment.id);
-      const result = await sendCalendarInvite(appointment);
+      
+      // Sanitizing the object: Only pass the specific fields needed by the server action.
+      // Passing the full 'appointment' object fails because it contains non-plain Firestore objects (like createdAt).
+      const payload = {
+        id: appointment.id,
+        startTime: appointment.startTime, // NextJS 15 supports Date objects in Server Actions
+        endTime: appointment.endTime,
+        caregiver: {
+            fullName: appointment.caregiverName,
+            email: appointment.caregiverEmail,
+            phone: appointment.caregiver?.phone || 'No phone',
+        }
+      };
+
+      const result = await sendCalendarInvite(payload as any);
 
       if (result.authUrl) {
         setAuthUrl(result.authUrl);
