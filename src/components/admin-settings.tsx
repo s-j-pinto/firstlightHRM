@@ -3,7 +3,7 @@
 
 import { useTransition, useEffect, useState, useRef } from "react";
 import { useForm } from "react-hook-form";
-import { saveAdminSettings } from "@/lib/google-calendar.actions";
+import { saveAdminSettings, generateGoogleAuthUrl } from "@/lib/google-calendar.actions";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,12 +15,11 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Terminal, Copy, Check, AlertTriangle, Edit2, RefreshCw } from "lucide-react";
+import { Loader2, Terminal, Copy, Check, AlertTriangle, Edit2, RefreshCw, ExternalLink, KeyRound } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { doc, setDoc } from "firebase/firestore";
 import { useFirestore, useFirebase, useMemoFirebase } from "@/firebase";
 import { useDoc } from "@/firebase/firestore/use-doc";
-import { CareLogGroupAdmin } from "./carelog-group-admin";
 import SignatureCanvas from 'react-signature-canvas';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
@@ -61,23 +60,18 @@ const SignaturePadModal = ({
     title: string;
 }) => {
     const sigPadRef = useRef<SignatureCanvas>(null);
-    const [isSigned, setIsSigned] = useState(false);
 
     useEffect(() => {
         if (isOpen && sigPadRef.current) {
             sigPadRef.current.clear();
             if (signatureData) {
                 sigPadRef.current.fromDataURL(signatureData);
-                setIsSigned(true);
-            } else {
-                setIsSigned(false);
             }
         }
     }, [isOpen, signatureData]);
     
     const handleClear = () => {
         sigPadRef.current?.clear();
-        setIsSigned(false);
     }
     
     const handleDone = () => {
@@ -100,7 +94,7 @@ const SignaturePadModal = ({
                         ref={sigPadRef}
                         penColor='black'
                         canvasProps={{ className: 'w-full h-full bg-muted/50 rounded-md' }}
-                        onEnd={() => setIsSigned(true)}
+                        onEnd={() => {}}
                     />
                 </div>
                 <div className="flex justify-between p-4 border-t">
@@ -117,7 +111,9 @@ const SignaturePadModal = ({
 
 export default function AdminSettings() {
   const [isPending, startTransition] = useTransition();
+  const [isAuthPending, startAuthTransition] = useTransition();
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
+  const [authUrl, setAuthUrl] = useState<string | null>(null);
   const [hasCopied, setHasCopied] = useState(false);
   const { toast } = useToast();
   const firestore = useFirestore();
@@ -172,6 +168,18 @@ export default function AdminSettings() {
       });
     }
   }, [assessmentSettingsData, assessmentSettingsForm]);
+
+  const handleGenerateAuthUrl = () => {
+      startAuthTransition(async () => {
+          const result = await generateGoogleAuthUrl();
+          if (result.error) {
+              toast({ title: "Error", description: result.error, variant: "destructive" });
+          } else if (result.authUrl) {
+              setAuthUrl(result.authUrl);
+              toast({ title: "Success", description: "Authorization link generated below." });
+          }
+      });
+  };
 
   const onSubmit = (data: SettingsFormValues & AssessmentAvailabilityFormValues) => {
     startTransition(async () => {
@@ -256,7 +264,11 @@ export default function AdminSettings() {
   };
   
   if (isUserAuthLoading || isInterviewSettingsLoading || isAssessmentSettingsLoading) {
-    return <p>Loading settings...</p>;
+    return (
+        <div className="flex justify-center items-center h-64">
+            <Loader2 className="animate-spin text-accent h-8 w-8" />
+        </div>
+    );
   }
 
   return (
@@ -352,11 +364,47 @@ export default function AdminSettings() {
           </CardContent>
         </Card>
 
+        <Card className="border-orange-500/50">
+            <CardHeader className="bg-orange-500/5">
+                <CardTitle className="flex items-center gap-2">
+                    <KeyRound className="text-orange-600" />
+                    Force Re-authorize Google Calendar
+                </CardTitle>
+                <CardDescription>
+                    Use this to switch the integrated calendar to a different Google account (e.g., lpinto@firstlighthomecare.com).
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-4">
+                <p className="text-sm text-muted-foreground">
+                    If you already have a token configured but need to change the account, click the button below to generate a new link.
+                </p>
+                <Button type="button" variant="outline" onClick={handleGenerateAuthUrl} disabled={isAuthPending}>
+                    {isAuthPending && <Loader2 className="mr-2 animate-spin h-4 w-4" />}
+                    Generate Authorization Link
+                </Button>
+
+                {authUrl && (
+                    <Alert className="bg-green-50 border-green-200">
+                        <ExternalLink className="h-4 w-4 text-green-600" />
+                        <AlertTitle className="text-green-800">Authorization Link Ready</AlertTitle>
+                        <AlertDescription className="pt-2">
+                            <p className="mb-4">Click the button below. <strong>Important:</strong> Log in as <strong>lpinto@firstlighthomecare.com</strong> in the page that opens.</p>
+                            <Button asChild>
+                                <a href={authUrl} target="_blank" rel="noopener noreferrer">
+                                    Authorize lpinto@firstlighthomecare.com
+                                </a>
+                            </Button>
+                        </AlertDescription>
+                    </Alert>
+                )}
+            </CardContent>
+        </Card>
+
         <Card>
             <CardHeader>
-                <CardTitle>Google Calendar Setup</CardTitle>
+                <CardTitle>Google Auth Finalization</CardTitle>
                 <CardDescription>
-                    To get or refresh your token, paste the Authorization Code from the Google consent screen URL here and click save.
+                    After authorizing via the link above, paste the resulting "code" from the browser URL here and save.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -369,14 +417,13 @@ export default function AdminSettings() {
                         <Terminal className="h-4 w-4" />
                         <AlertTitle>Your New Refresh Token is Ready!</AlertTitle>
                         <AlertDescription>
-                            <p>This is a one-time step. Copy this new token and update the `GOOGLE_REFRESH_TOKEN` value in your `.env.local` file.</p>
+                            <p>This is a one-time step. Copy this new token and update the `GOOGLE_REFRESH_TOKEN` value in your environment secrets.</p>
                             <pre className="my-2 p-2 bg-muted rounded-md text-xs whitespace-pre-wrap break-all relative pr-10">
                                 GOOGLE_REFRESH_TOKEN={refreshToken}
                                 <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={copyToClipboard}>
                                     {hasCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                                 </Button>
                             </pre>
-                             <p className="text-xs text-muted-foreground">After updating the token, you must restart your development server for the change to take effect.</p>
                         </AlertDescription>
                     </Alert>
                 )}
@@ -387,21 +434,13 @@ export default function AdminSettings() {
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Important: Configure Redirect URI</AlertTitle>
           <AlertDescription>
-             For Google OAuth to work, your app must be running on the expected redirect URI. You must also add this exact URI to the &quot;Authorized redirect URIs&quot; list in your Google Cloud project credentials.
-             By default, this is `http://localhost:9002/admin/settings`.
+             The current redirect URI is: <code className="bg-muted px-1 rounded">{process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9002'}/admin/settings</code>. 
+             Ensure this exact URI is whitelisted in your Google Cloud Console.
           </AlertDescription>
         </Alert>
 
-        <Alert>
-          <Terminal className="h-4 w-4" />
-          <AlertTitle>Google Credentials</AlertTitle>
-          <AlertDescription>
-            To send calendar invites, your Google credentials must be set in a `.env.local` file in your project&apos;s root directory. This file must contain `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and the `GOOGLE_REFRESH_TOKEN` you generate here.
-          </AlertDescription>
-        </Alert>
-
-        <div className="flex justify-end">
-          <Button type="submit" disabled={isPending} className="bg-accent hover:bg-accent/90">
+        <div className="flex justify-end sticky bottom-4 z-10">
+          <Button type="submit" disabled={isPending} className="bg-accent hover:bg-accent/90 shadow-lg">
             {isPending ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : null}

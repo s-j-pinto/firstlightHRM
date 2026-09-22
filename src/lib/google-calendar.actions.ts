@@ -8,6 +8,36 @@ import { serverDb } from "@/firebase/server-init";
 import type { Appointment } from "./types";
 import { format, toZonedTime, formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 
+const getRedirectUri = () => {
+    // Priority: Env variable > Production Base URL > Localhost fallback
+    if (process.env.GOOGLE_REDIRECT_URI) return process.env.GOOGLE_REDIRECT_URI;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9002';
+    return `${baseUrl}/admin/settings`;
+};
+
+/**
+ * Generates a fresh Google Authorization URL.
+ * This is used to manually trigger the OAuth flow if the token needs to be changed.
+ */
+export async function generateGoogleAuthUrl() {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const redirectUri = getRedirectUri();
+
+    if (!clientId || !clientSecret) {
+        return { error: "Google credentials (ID/Secret) are not configured in environment variables." };
+    }
+
+    const oAuth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
+    const authUrl = oAuth2Client.generateAuthUrl({
+        access_type: 'offline',
+        prompt: 'consent',
+        scope: ['https://www.googleapis.com/auth/calendar.events'],
+    });
+
+    return { authUrl };
+}
+
 /**
  * Sends a Google Calendar invite for a phone interview.
  * Note: To switch the primary calendar, you must generate a new GOOGLE_REFRESH_TOKEN 
@@ -17,7 +47,7 @@ export async function sendCalendarInvite(appointment: Appointment & { caregiver:
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
     const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
-    const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:9002/admin/settings';
+    const redirectUri = getRedirectUri();
 
     if (!clientId || !clientSecret) {
         const errorMsg = "Google credentials not found. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your environment.";
@@ -112,10 +142,10 @@ export async function sendCalendarInvite(appointment: Appointment & { caregiver:
 export async function saveAdminSettings({ googleAuthCode }: { googleAuthCode: string }) {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:9002/admin/settings';
+    const redirectUri = getRedirectUri();
 
     if (!clientId || !clientSecret) {
-        return { message: "Cannot get refresh token without Client ID and Secret in .env.local", error: true };
+        return { message: "Cannot get refresh token without Client ID and Secret in environment variables.", error: true };
     }
 
     const oAuth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
@@ -123,7 +153,7 @@ export async function saveAdminSettings({ googleAuthCode }: { googleAuthCode: st
         const { tokens } = await oAuth2Client.getToken(googleAuthCode);
         if (tokens.refresh_token) {
             return { 
-                message: "Refresh token obtained! Add it to your `.env.local` file and restart the server.",
+                message: "Refresh token obtained! Add it to your environment secrets and restart the server.",
                 refreshToken: tokens.refresh_token,
             };
         } else {
@@ -154,7 +184,7 @@ export async function sendHomeVisitInvite(payload: HomeVisitPayload) {
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
     const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
     const ownerEmail = 'lpinto@firstlighthomecare.com';
-    const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:9002/admin/settings';
+    const redirectUri = getRedirectUri();
 
     if (!clientId || !clientSecret) {
         return { message: "Google credentials not configured.", error: true };
