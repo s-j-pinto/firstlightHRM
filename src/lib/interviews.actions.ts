@@ -97,7 +97,11 @@ export async function saveInterviewAndSchedule(payload: SaveInterviewPayload): P
             summary: eventTitle,
             start: { dateTime: startTime.toISOString(), timeZone: pacificTimeZone },
             end: { dateTime: endTime.toISOString(), timeZone: pacificTimeZone },
-            attendees: [{ email: 'lpinto@firstlighthomecare.com' }, { email: caregiverProfile.email }],
+            attendees: [
+                { email: 'lpinto@firstlighthomecare.com' }, 
+                { email: 'hr_assist@firstlighthomecare.com' },
+                { email: caregiverProfile.email }
+            ],
             reminders: { useDefault: false, overrides: [{ method: 'email', minutes: 24 * 60 }, { method: 'popup', minutes: 60 }] },
         };
         

@@ -103,6 +103,7 @@ export async function sendCalendarInvite(appointment: Appointment & { caregiver:
             },
             attendees: [
                 { email: 'lpinto@firstlighthomecare.com' }, 
+                { email: 'hr_assist@firstlighthomecare.com' },
                 { email: appointment.caregiver?.email }, 
             ],
             reminders: {
