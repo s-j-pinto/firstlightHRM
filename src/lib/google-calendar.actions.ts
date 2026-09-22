@@ -12,6 +12,7 @@ const getRedirectUri = () => {
     // Priority: Env variable > Production Base URL > Localhost fallback
     if (process.env.GOOGLE_REDIRECT_URI) return process.env.GOOGLE_REDIRECT_URI;
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9002';
+    // The redirect URI must match exactly what is in the Google Cloud Console
     return `${baseUrl}/admin/settings`;
 };
 
@@ -25,17 +26,24 @@ export async function generateGoogleAuthUrl() {
     const redirectUri = getRedirectUri();
 
     if (!clientId || !clientSecret) {
-        return { error: "Google credentials (ID/Secret) are not configured in environment variables." };
+        console.error("[generateGoogleAuthUrl] Missing credentials:", { hasId: !!clientId, hasSecret: !!clientSecret });
+        return { 
+            error: "Google credentials (ID or Secret) are missing from the server environment. Ensure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set in your App Hosting secrets." 
+        };
     }
 
-    const oAuth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
-    const authUrl = oAuth2Client.generateAuthUrl({
-        access_type: 'offline',
-        prompt: 'consent',
-        scope: ['https://www.googleapis.com/auth/calendar.events'],
-    });
+    try {
+        const oAuth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
+        const authUrl = oAuth2Client.generateAuthUrl({
+            access_type: 'offline',
+            prompt: 'consent',
+            scope: ['https://www.googleapis.com/auth/calendar.events'],
+        });
 
-    return { authUrl };
+        return { authUrl };
+    } catch (e: any) {
+        return { error: `Failed to create auth client: ${e.message}` };
+    }
 }
 
 /**
@@ -50,20 +58,16 @@ export async function sendCalendarInvite(appointment: Appointment & { caregiver:
     const redirectUri = getRedirectUri();
 
     if (!clientId || !clientSecret) {
-        const errorMsg = "Google credentials not found. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your environment.";
+        const errorMsg = "Google credentials (ID/Secret) not found in environment.";
         return { message: errorMsg, error: true };
     }
 
     const oAuth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
     
     if (!refreshToken) {
-        const authUrl = oAuth2Client.generateAuthUrl({
-            access_type: 'offline',
-            prompt: 'consent',
-            scope: ['https://www.googleapis.com/auth/calendar.events'],
-        });
-        const errorMsg = "Admin authorization required. A refresh token is missing. Please authorize the application to generate one."
-        return { message: errorMsg, error: true, authUrl: authUrl };
+        const result = await generateGoogleAuthUrl();
+        const errorMsg = "Admin authorization required. Please go to Admin Settings to authorize Google Calendar."
+        return { message: errorMsg, error: true, authUrl: result.authUrl };
     }
     
     oAuth2Client.setCredentials({ refresh_token: refreshToken });
@@ -117,15 +121,11 @@ export async function sendCalendarInvite(appointment: Appointment & { caregiver:
         let errorMessage = `Failed to send invite. Check server logs for details.`;
         
         if (err.message?.includes('invalid_grant') || err.message?.includes('revoked')) {
-            const authUrl = oAuth2Client.generateAuthUrl({
-                access_type: 'offline',
-                prompt: 'consent',
-                scope: ['https://www.googleapis.com/auth/calendar.events'],
-            });
+            const result = await generateGoogleAuthUrl();
             return {
-                message: "Your Google authentication token is invalid or has expired. Please re-authorize.",
+                message: "Your Google authentication token is invalid or has expired. Please re-authorize in Admin Settings.",
                 error: true,
-                authUrl: authUrl
+                authUrl: result.authUrl
             };
         }
 
@@ -145,7 +145,7 @@ export async function saveAdminSettings({ googleAuthCode }: { googleAuthCode: st
     const redirectUri = getRedirectUri();
 
     if (!clientId || !clientSecret) {
-        return { message: "Cannot get refresh token without Client ID and Secret in environment variables.", error: true };
+        return { message: "Cannot get refresh token: Client ID or Secret is missing from environment.", error: true };
     }
 
     const oAuth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
@@ -153,15 +153,15 @@ export async function saveAdminSettings({ googleAuthCode }: { googleAuthCode: st
         const { tokens } = await oAuth2Client.getToken(googleAuthCode);
         if (tokens.refresh_token) {
             return { 
-                message: "Refresh token obtained! Add it to your environment secrets and restart the server.",
+                message: "Refresh token obtained! Copy the value below, add it to your environment secrets as GOOGLE_REFRESH_TOKEN, and redeploy.",
                 refreshToken: tokens.refresh_token,
             };
         } else {
-             return { message: "Could not obtain refresh token. You might need to generate a new auth code.", error: true };
+             return { message: "Google did not return a refresh token. You may need to revoke access first at https://myaccount.google.com/permissions.", error: true };
         }
     } catch (error: any) {
         console.error("Error in saveAdminSettings:", error);
-        const errorMessage = error.response?.data?.error_description || "Failed to get refresh token. Check logs.";
+        const errorMessage = error.response?.data?.error_description || error.message || "Failed to exchange code for token.";
         return { message: errorMessage, error: true };
     }
 }
@@ -193,10 +193,8 @@ export async function sendHomeVisitInvite(payload: HomeVisitPayload) {
     const oAuth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
     
     if (!refreshToken) {
-        const authUrl = oAuth2Client.generateAuthUrl({
-            access_type: 'offline', prompt: 'consent', scope: ['https://www.googleapis.com/auth/calendar.events'],
-        });
-        return { message: "Admin authorization required for Google Calendar.", error: true, authUrl };
+        const result = await generateGoogleAuthUrl();
+        return { message: "Admin authorization required for Google Calendar.", error: true, authUrl: result.authUrl };
     }
     
     oAuth2Client.setCredentials({ refresh_token: refreshToken });
@@ -279,10 +277,8 @@ export async function sendHomeVisitInvite(payload: HomeVisitPayload) {
              const attendeeEmails = `Owner: ${ownerEmail}, Client: ${clientEmail}, Additional: ${additionalEmail || 'N/A'}`;
              errorMessage = `Google API Error: One of the attendee emails is invalid. Please check the client and additional email fields. Attempted emails: [${attendeeEmails}]`;
         } else if (err.message?.includes('invalid_grant') || err.message?.includes('revoked')) {
-            const authUrl = oAuth2Client.generateAuthUrl({
-                access_type: 'offline', prompt: 'consent', scope: ['https://www.googleapis.com/auth/calendar.events'],
-            });
-            return { message: "Google authentication token is invalid. Please re-authorize.", error: true, authUrl };
+            const result = await generateGoogleAuthUrl();
+            return { message: "Google authentication token is invalid. Please re-authorize.", error: true, authUrl: result.authUrl };
         } else if (err.response?.data?.error?.message) {
              errorMessage = `Google API Error: ${err.response.data.error.message}`;
         } else {
