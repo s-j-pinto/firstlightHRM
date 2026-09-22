@@ -271,6 +271,10 @@ export default function AdminSettings() {
     );
   }
 
+  // Calculate the current redirect URI using the same logic as the server
+  const currentBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9002';
+  const displayRedirectUri = `${currentBaseUrl.replace(/\/$/, '')}/admin/settings`;
+
   return (
     <div className="space-y-8">
       <form onSubmit={(e) => { e.preventDefault(); handleFormSubmit(); }} className="space-y-8">
@@ -434,7 +438,7 @@ export default function AdminSettings() {
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Important: Configure Redirect URI</AlertTitle>
           <AlertDescription>
-             The current redirect URI is: <code className="bg-muted px-1 rounded">{process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:9002'}/admin/settings</code>. 
+             The current redirect URI is: <code className="bg-muted px-1 rounded">{displayRedirectUri}</code>. 
              Ensure this exact URI is whitelisted in your Google Cloud Console.
           </AlertDescription>
         </Alert>

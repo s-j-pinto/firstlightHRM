@@ -9,17 +9,17 @@ import type { Appointment } from "./types";
 import { format, toZonedTime, formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 
 const getRedirectUri = () => {
-    // Priority: Env variable > Localhost fallback > Production Base URL
+    // Priority 1: Explicitly set redirect URI
     if (process.env.GOOGLE_REDIRECT_URI) return process.env.GOOGLE_REDIRECT_URI;
     
-    // In local dev, we typically use the port provided by Next.js
-    if (process.env.NODE_ENV === 'development') {
-        const port = process.env.PORT || '3000';
-        return `http://localhost:${port}/admin/settings`;
+    // Priority 2: Use the public base URL if defined (works for both local and production)
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+    if (baseUrl) {
+        return `${baseUrl.replace(/\/$/, '')}/admin/settings`;
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://care-connect-360--firstlighthomecare-hrm.us-central1.hosted.app';
-    return `${baseUrl}/admin/settings`;
+    // Priority 3: Fallback for local development environment
+    return `http://localhost:9002/admin/settings`;
 };
 
 /**
@@ -31,15 +31,9 @@ export async function generateGoogleAuthUrl() {
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
     const redirectUri = getRedirectUri();
 
-    if (!clientId) {
+    if (!clientId || !clientSecret) {
         return { 
-            error: "Missing GOOGLE_CLIENT_ID in environment variables. If testing locally, ensure it is set in your .env.local file." 
-        };
-    }
-
-    if (!clientSecret) {
-        return { 
-            error: "Missing GOOGLE_CLIENT_SECRET in environment variables. If testing locally, ensure it is set in your .env.local file." 
+            error: "Google Credentials (ID/Secret) are not configured in environment variables. Ensure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set in your secrets or .env.local file." 
         };
     }
 
