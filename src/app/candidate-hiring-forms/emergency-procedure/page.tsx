@@ -57,7 +57,7 @@ const SignaturePadModal = ({
     useEffect(() => {
         if (isOpen && sigPadRef.current) {
             sigPadRef.current.clear();
-            if (signatureData) {
+            if (signatureData && typeof signatureData === 'string' && signatureData.trim().length > 0) {
                 sigPadRef.current.fromDataURL(signatureData);
             }
         }
@@ -136,11 +136,22 @@ export default function EmergencyProcedurePage() {
     const candidateId = searchParams.get('candidateId');
     const profileIdToLoad = isAnAdmin && candidateId ? candidateId : user?.uid;
 
-    const signatureDocRef = useMemoFirebase(
-      () => (profileIdToLoad ? doc(firestore, `caregiver_profiles/${profileIdToLoad}/signatures/onboarding_main`) : null),
+    const caregiverProfileRef = useMemoFirebase(
+      () => (profileIdToLoad ? doc(firestore, 'caregiver_profiles', profileIdToLoad) : null),
       [profileIdToLoad, firestore]
     );
-    const { data: existingData, isLoading: isDataLoading } = useDoc<OnboardingSignatures>(signatureDocRef);
+    const { data: profileData, isLoading: isProfileLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
+
+    const signaturesRef = useMemoFirebase(
+      () => (profileIdToLoad ? doc(firestore, `caregiver_profiles/${profileIdToLoad}/signatures`, 'emergency_procedure') : null),
+      [profileIdToLoad, firestore]
+    );
+    const legacySignaturesRef = useMemoFirebase(
+      () => (profileIdToLoad ? doc(firestore, `caregiver_profiles/${profileIdToLoad}/signatures`, 'onboarding_main') : null),
+      [profileIdToLoad, firestore]
+    );
+    const { data: signaturesData, isLoading: isSignaturesLoading } = useDoc<OnboardingSignatures>(signaturesRef);
+    const { data: legacySignaturesData, isLoading: isLegacySignaturesLoading } = useDoc<OnboardingSignatures>(legacySignaturesRef);
     
     const form = useForm<EmergencyProcedureFormData>({
       resolver: zodResolver(emergencyProcedureSchema),
@@ -148,22 +159,25 @@ export default function EmergencyProcedurePage() {
     });
     
     useEffect(() => {
-        if (isPrintMode && !isDataLoading) {
+        if (isPrintMode && !isDataLoading && !isProfileLoading) {
           setTimeout(() => window.print(), 1000);
         }
-    }, [isPrintMode, isDataLoading]);
+    }, [isPrintMode, isDataLoading, isProfileLoading]);
 
     useEffect(() => {
-        if (existingData) {
-            const formData:Partial<EmergencyProcedureFormData> = {};
+        if (profileData || signaturesData || legacySignaturesData) {
+            const combinedData = { ...profileData, ...legacySignaturesData, ...signaturesData };
+            const formData: Partial<EmergencyProcedureFormData> = {};
             const formSchemaKeys = Object.keys(emergencyProcedureSchema.shape) as Array<keyof EmergencyProcedureFormData>;
             
             formSchemaKeys.forEach(key => {
-                if (Object.prototype.hasOwnProperty.call(existingData, key)) {
-                    const value = (existingData as any)[key];
+                if (Object.prototype.hasOwnProperty.call(combinedData, key)) {
+                    const value = (combinedData as any)[key];
                     if (key.toLowerCase().includes('date') && value) {
                         const date = safeToDate(value);
                         (formData as any)[key] = date ? format(date, 'MM/dd/yyyy') : '';
+                    } else if (key.toLowerCase().includes('signature')) {
+                        (formData as any)[key] = (typeof value === 'string' && value.trim()) ? value : '';
                     } else {
                         (formData as any)[key] = value;
                     }
@@ -172,7 +186,7 @@ export default function EmergencyProcedurePage() {
 
             form.reset(formData);
         }
-    }, [existingData, form]);
+    }, [profileData, signaturesData, legacySignaturesData, form]);
 
     const handleSaveSignature = (dataUrl: string) => {
         if (activeSignature) {
@@ -240,12 +254,21 @@ export default function EmergencyProcedurePage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                         <div className="space-y-2">
                             <FormLabel>Employee Signature</FormLabel>
-                            <div className="relative rounded-md border bg-muted/30 h-28 flex items-center justify-center">
-                                {form.watch('emergencyProcedureSignature') ? (
-                                    <Image src={form.watch('emergencyProcedureSignature')!} alt="Signature" layout="fill" objectFit="contain" />
-                                ) : (
-                                    <span className="text-muted-foreground">Not Signed</span>
-                                )}
+                            <div className="relative rounded-md border bg-muted/30 h-28 flex items-center justify-center overflow-hidden">
+                                {(() => {
+                                    const sig = form.watch('emergencyProcedureSignature');
+                                    const hasValidSig = typeof sig === 'string' && sig.trim().length > 0 && (
+                                        sig.startsWith('data:image/') ||
+                                        sig.startsWith('http://') ||
+                                        sig.startsWith('https://') ||
+                                        sig.startsWith('/')
+                                    );
+                                    return hasValidSig ? (
+                                        <Image src={sig} alt="Signature" fill className="object-contain" />
+                                    ) : (
+                                        <span className="text-muted-foreground">Not Signed</span>
+                                    );
+                                })()}
                                 {!isPrintMode && (
                                     <Button
                                         type="button"

@@ -60,7 +60,7 @@ const SignaturePadModal = ({
     useEffect(() => {
         if (isOpen && sigPadRef.current) {
             sigPadRef.current.clear();
-            if (signatureData) {
+            if (signatureData && typeof signatureData === 'string' && signatureData.trim().length > 0) {
                 sigPadRef.current.fromDataURL(signatureData);
             }
         }
@@ -128,10 +128,15 @@ export default function AcknowledgmentFormPage() {
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
 
     const signaturesRef = useMemoFirebase(
+        () => (profileIdToLoad ? doc(firestore, `caregiver_profiles/${profileIdToLoad}/signatures`, 'acknowledgment_form') : null),
+        [profileIdToLoad, firestore]
+    );
+    const legacySignaturesRef = useMemoFirebase(
         () => (profileIdToLoad ? doc(firestore, `caregiver_profiles/${profileIdToLoad}/signatures`, 'onboarding_main') : null),
         [profileIdToLoad, firestore]
     );
     const { data: signaturesData, isLoading: isSignaturesLoading } = useDoc<OnboardingSignatures>(signaturesRef);
+    const { data: legacySignaturesData, isLoading: isLegacySignaturesLoading } = useDoc<OnboardingSignatures>(legacySignaturesRef);
     
     const form = useForm<AcknowledgmentFormData>({
       resolver: zodResolver(acknowledgmentFormSchema),
@@ -141,13 +146,19 @@ export default function AcknowledgmentFormPage() {
     const SignatureField = ({ fieldName, title }: { fieldName: keyof AcknowledgmentFormData; title: string; }) => {
         const signatureData = form.watch(fieldName);
         const disabled = isPrintMode;
+        const hasValidSignature = typeof signatureData === 'string' && signatureData.trim().length > 0 && (
+            signatureData.startsWith('data:image/') ||
+            signatureData.startsWith('http://') ||
+            signatureData.startsWith('https://') ||
+            signatureData.startsWith('/')
+        );
         
         return (
             <div className="space-y-2">
                 <FormLabel>{title}</FormLabel>
                 <div className="relative rounded-md border bg-muted/30 h-28 flex items-center justify-center overflow-hidden">
-                    {signatureData ? (
-                        <Image src={signatureData as string} alt="Signature" fill className="object-contain" />
+                    {hasValidSignature ? (
+                        <Image src={signatureData} alt="Signature" fill className="object-contain" />
                     ) : (
                         <span className="text-muted-foreground">Not Signed</span>
                     )}
@@ -176,7 +187,7 @@ export default function AcknowledgmentFormPage() {
 
     useEffect(() => {
         if (existingData) {
-            const combinedData = { ...existingData, ...signaturesData };
+            const combinedData = { ...existingData, ...legacySignaturesData, ...signaturesData };
             const formData: Partial<AcknowledgmentFormData> = {};
             const formSchemaKeys = Object.keys(acknowledgmentFormSchema.shape) as Array<keyof AcknowledgmentFormData>;
             
@@ -186,6 +197,8 @@ export default function AcknowledgmentFormPage() {
                     if (key.toLowerCase().includes('date') && value) {
                         const date = safeToDate(value);
                         (formData as any)[key] = date ? format(date, 'MM/dd/yyyy') : '';
+                    } else if (key.toLowerCase().includes('signature')) {
+                        (formData as any)[key] = (typeof value === 'string' && value.trim()) ? value : '';
                     } else {
                         (formData as any)[key] = value || '';
                     }
@@ -194,7 +207,7 @@ export default function AcknowledgmentFormPage() {
 
             form.reset(formData);
         }
-    }, [existingData, signaturesData, form]);
+    }, [existingData, signaturesData, legacySignaturesData, form]);
 
     const handleSaveSignature = (dataUrl: string) => {
         if (activeSignature) {

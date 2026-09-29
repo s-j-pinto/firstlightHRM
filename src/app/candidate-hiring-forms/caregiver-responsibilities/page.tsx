@@ -59,11 +59,8 @@ const SignaturePadModal = ({
     useEffect(() => {
         if (isOpen && sigPadRef.current) {
             sigPadRef.current.clear();
-            if (signatureData) {
-                // Only load if it's PNG data to avoid issues with JPEG
-                if (signatureData.startsWith('data:image/png')) {
-                    sigPadRef.current.fromDataURL(signatureData);
-                }
+            if (signatureData && typeof signatureData === 'string' && signatureData.trim().length > 0) {
+                sigPadRef.current.fromDataURL(signatureData);
             }
         }
     }, [isOpen, signatureData]);
@@ -128,10 +125,15 @@ export default function CaregiverResponsibilitiesPage() {
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
 
     const signaturesRef = useMemoFirebase(
+      () => (profileIdToLoad ? doc(firestore, `caregiver_profiles/${profileIdToLoad}/signatures`, 'caregiver_responsibilities') : null),
+      [profileIdToLoad, firestore]
+    );
+    const legacySignaturesRef = useMemoFirebase(
       () => (profileIdToLoad ? doc(firestore, `caregiver_profiles/${profileIdToLoad}/signatures`, 'onboarding_main') : null),
       [profileIdToLoad, firestore]
     );
     const { data: signaturesData, isLoading: isSignaturesLoading } = useDoc<OnboardingSignatures>(signaturesRef);
+    const { data: legacySignaturesData, isLoading: isLegacySignaturesLoading } = useDoc<OnboardingSignatures>(legacySignaturesRef);
     
     const settingsRef = useMemoFirebase(() => (isAnAdmin ? doc(firestore, 'settings', 'availability') : null), [isAnAdmin, firestore]);
     const { data: settingsData, isLoading: isSettingsLoading } = useDoc<any>(settingsRef);
@@ -144,13 +146,19 @@ export default function CaregiverResponsibilitiesPage() {
     const SignatureField = ({ fieldName, title }: { fieldName: keyof CaregiverResponsibilitiesFormData; title: string; }) => {
         const signatureData = form.watch(fieldName);
         const disabled = isPrintMode;
+        const hasValidSignature = typeof signatureData === 'string' && signatureData.trim().length > 0 && (
+            signatureData.startsWith('data:image/') ||
+            signatureData.startsWith('http://') ||
+            signatureData.startsWith('https://') ||
+            signatureData.startsWith('/')
+        );
         
         return (
             <div className="space-y-2">
                 <FormLabel>{title}</FormLabel>
-                <div className="relative rounded-md border bg-muted/30 h-28 flex items-center justify-center">
-                    {signatureData ? (
-                        <Image src={signatureData as string} alt="Signature" layout="fill" objectFit="contain" />
+                <div className="relative rounded-md border bg-muted/30 h-28 flex items-center justify-center overflow-hidden">
+                    {hasValidSignature ? (
+                        <Image src={signatureData} alt="Signature" fill className="object-contain" />
                     ) : (
                         <span className="text-muted-foreground">Not Signed</span>
                     )}
@@ -179,7 +187,7 @@ export default function CaregiverResponsibilitiesPage() {
 
     useEffect(() => {
         if (existingData) {
-            const combinedData = { ...existingData, ...signaturesData };
+            const combinedData = { ...existingData, ...legacySignaturesData, ...signaturesData };
             const formData:Partial<CaregiverResponsibilitiesFormData> = {};
             const formSchemaKeys = Object.keys(caregiverResponsibilitiesSchema.shape) as Array<keyof CaregiverResponsibilitiesFormData>;
             
@@ -189,6 +197,8 @@ export default function CaregiverResponsibilitiesPage() {
                     if (key.toLowerCase().includes('date') && value) {
                         const date = safeToDate(value);
                         (formData as any)[key] = date ? format(date, 'MM/dd/yyyy') : '';
+                    } else if (key.toLowerCase().includes('signature')) {
+                        (formData as any)[key] = (typeof value === 'string' && value.trim()) ? value : '';
                     } else {
                         (formData as any)[key] = value;
                     }
@@ -196,7 +206,7 @@ export default function CaregiverResponsibilitiesPage() {
             });
             form.reset(formData);
         }
-    }, [existingData, signaturesData, form]);
+    }, [existingData, signaturesData, legacySignaturesData, form]);
 
     const handleSaveSignature = (dataUrl: string) => {
         if (activeSignature) {
@@ -347,9 +357,14 @@ export default function CaregiverResponsibilitiesPage() {
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                         <div className="space-y-2 flex-1">
                             <Label>FLHC Witness</Label>
-                             <div className="relative rounded-md border bg-muted/30 h-28 flex items-center justify-center">
-                                {settingsData?.adminSignature ? (
-                                    <Image src={settingsData.adminSignature as string} alt="Witness Signature" layout="fill" objectFit="contain" />
+                             <div className="relative rounded-md border bg-muted/30 h-28 flex items-center justify-center overflow-hidden">
+                                {typeof settingsData?.adminSignature === 'string' && settingsData.adminSignature.trim().length > 0 && (
+                                    settingsData.adminSignature.startsWith('data:image/') ||
+                                    settingsData.adminSignature.startsWith('http://') ||
+                                    settingsData.adminSignature.startsWith('https://') ||
+                                    settingsData.adminSignature.startsWith('/')
+                                ) ? (
+                                    <Image src={settingsData.adminSignature} alt="Witness Signature" fill className="object-contain" />
                                 ) : (
                                     <span className="text-muted-foreground">Not Signed</span>
                                 )}

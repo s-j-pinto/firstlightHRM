@@ -72,7 +72,7 @@ const SignaturePadModal = ({
     useEffect(() => {
         if (isOpen && sigPadRef.current) {
             sigPadRef.current.clear();
-            if (signatureData) {
+            if (signatureData && typeof signatureData === 'string' && signatureData.trim().length > 0) {
                 sigPadRef.current.fromDataURL(signatureData);
                 setIsSigned(true);
             } else {
@@ -146,10 +146,15 @@ export default function DrugAlcoholPolicyPage() {
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
     
     const signaturesRef = useMemoFirebase(
+      () => (profileIdToLoad ? doc(firestore, `caregiver_profiles/${profileIdToLoad}/signatures`, 'drug_alcohol_policy') : null),
+      [profileIdToLoad, firestore]
+    );
+    const legacySignaturesRef = useMemoFirebase(
       () => (profileIdToLoad ? doc(firestore, `caregiver_profiles/${profileIdToLoad}/signatures`, 'onboarding_main') : null),
       [profileIdToLoad, firestore]
     );
     const { data: signaturesData, isLoading: isSignaturesLoading } = useDoc<OnboardingSignatures>(signaturesRef);
+    const { data: legacySignaturesData, isLoading: isLegacySignaturesLoading } = useDoc<OnboardingSignatures>(legacySignaturesRef);
 
     const settingsRef = useMemoFirebase(() => (isAnAdmin ? doc(firestore, 'settings', 'availability') : null), [isAnAdmin, firestore]);
     const { data: settingsData, isLoading: isSettingsLoading } = useDoc<any>(settingsRef);
@@ -164,13 +169,19 @@ export default function DrugAlcoholPolicyPage() {
     const SignatureField = ({ fieldName, title, adminOnly = false, isReadOnly = false }: { fieldName: keyof DrugAlcoholPolicyFormData; title: string; adminOnly?: boolean; isReadOnly?: boolean; }) => {
         const signatureData = form.watch(fieldName);
         const buttonDisabled = isPrintMode || (adminOnly && !isAnAdmin) || isReadOnly;
+        const hasValidSignature = typeof signatureData === 'string' && signatureData.trim().length > 0 && (
+            signatureData.startsWith('data:image/') ||
+            signatureData.startsWith('http://') ||
+            signatureData.startsWith('https://') ||
+            signatureData.startsWith('/')
+        );
         
         return (
             <div className="space-y-2">
                 <FormLabel>{title}</FormLabel>
-                <div className="relative rounded-md border bg-muted/30 h-28 flex items-center justify-center">
-                    {signatureData ? (
-                        <Image src={signatureData as string} alt="Signature" layout="fill" objectFit="contain" />
+                <div className="relative rounded-md border bg-muted/30 h-28 flex items-center justify-center overflow-hidden">
+                    {hasValidSignature ? (
+                        <Image src={signatureData} alt="Signature" fill className="object-contain" />
                     ) : (
                         <span className="text-muted-foreground">Not Signed</span>
                     )}
@@ -199,7 +210,7 @@ export default function DrugAlcoholPolicyPage() {
 
     useEffect(() => {
         if (existingData) {
-            const combinedData = { ...existingData, ...signaturesData };
+            const combinedData = { ...existingData, ...legacySignaturesData, ...signaturesData };
             const formData:Partial<DrugAlcoholPolicyFormData> = {};
             const formSchemaKeys = Object.keys(drugAlcoholPolicyAdminSchema.shape) as Array<keyof DrugAlcoholPolicyFormData>;
             
@@ -209,6 +220,8 @@ export default function DrugAlcoholPolicyPage() {
                     if (key.toLowerCase().includes('date') && value) {
                         const date = safeToDate(value);
                         (formData as any)[key] = date ? format(date, 'MM/dd/yyyy') : '';
+                    } else if (key.toLowerCase().includes('signature')) {
+                        (formData as any)[key] = (typeof value === 'string' && value.trim()) ? value : '';
                     } else {
                         (formData as any)[key] = value;
                     }
@@ -217,7 +230,7 @@ export default function DrugAlcoholPolicyPage() {
 
             form.reset(formData);
         }
-    }, [existingData, signaturesData, form]);
+    }, [existingData, signaturesData, legacySignaturesData, form]);
     
     useEffect(() => {
         if (settingsData?.adminSignature) {

@@ -86,7 +86,7 @@ const SignaturePadModal = ({
     useEffect(() => {
         if (isOpen && sigPadRef.current) {
             sigPadRef.current.clear();
-            if (signatureData) {
+            if (signatureData && typeof signatureData === 'string' && signatureData.trim().length > 0) {
                 sigPadRef.current.fromDataURL(signatureData);
                 setIsSigned(true);
             } else {
@@ -161,10 +161,15 @@ export default function HCS501Page() {
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
 
     const signaturesRef = useMemoFirebase(
+      () => (profileIdToLoad ? doc(firestore, `caregiver_profiles/${profileIdToLoad}/signatures`, 'hcs501') : null),
+      [profileIdToLoad, firestore]
+    );
+    const legacySignaturesRef = useMemoFirebase(
       () => (profileIdToLoad ? doc(firestore, `caregiver_profiles/${profileIdToLoad}/signatures`, 'onboarding_main') : null),
       [profileIdToLoad, firestore]
     );
     const { data: signaturesData, isLoading: isSignaturesLoading } = useDoc<OnboardingSignatures>(signaturesRef);
+    const { data: legacySignaturesData, isLoading: isLegacySignaturesLoading } = useDoc<OnboardingSignatures>(legacySignaturesRef);
 
     const validationSchema = isAnAdmin ? hcs501AdminSchema : hcs501Schema;
 
@@ -176,13 +181,19 @@ export default function HCS501Page() {
     const SignatureField = ({ fieldName, title }: { fieldName: keyof Hcs501FormData; title: string; }) => {
         const signatureData = form.watch(fieldName);
         const disabled = isPrintMode;
+        const hasValidSignature = typeof signatureData === 'string' && signatureData.trim().length > 0 && (
+            signatureData.startsWith('data:image/') ||
+            signatureData.startsWith('http://') ||
+            signatureData.startsWith('https://') ||
+            signatureData.startsWith('/')
+        );
         
         return (
             <div className="space-y-2">
                 <FormLabel>{title}</FormLabel>
-                <div className="relative rounded-md border bg-muted/30 h-28 flex items-center justify-center">
-                    {signatureData ? (
-                        <Image src={signatureData as string} alt="Signature" layout="fill" objectFit="contain" />
+                <div className="relative rounded-md border bg-muted/30 h-28 flex items-center justify-center overflow-hidden">
+                    {hasValidSignature ? (
+                        <Image src={signatureData} alt="Signature" fill className="object-contain" />
                     ) : (
                         <span className="text-muted-foreground">Not Signed</span>
                     )}
@@ -211,7 +222,7 @@ export default function HCS501Page() {
 
     useEffect(() => {
         if (existingData) {
-            const combinedData = { ...existingData, ...signaturesData };
+            const combinedData = { ...existingData, ...legacySignaturesData, ...signaturesData };
             const formData: Partial<Hcs501FormData> = {};
             const formSchemaKeys = Object.keys(hcs501Object.shape) as Array<keyof Hcs501FormData>;
             const dateFields = ['hireDate', 'separationDate', 'dob', 'tbDate', 'hcs501SignatureDate'];
@@ -222,6 +233,8 @@ export default function HCS501Page() {
                     if (dateFields.includes(key) && value) {
                         const date = safeToDate(value);
                         (formData as any)[key] = date ? formatInTimeZone(date, pacificTimeZone, 'MM/dd/yyyy') : '';
+                    } else if (key.toLowerCase().includes('signature')) {
+                        (formData as any)[key] = (typeof value === 'string' && value.trim()) ? value : '';
                     } else {
                         (formData as any)[key] = value;
                     }
@@ -237,7 +250,7 @@ export default function HCS501Page() {
                 form.trigger();
             }
         }
-    }, [existingData, signaturesData, form, isAnAdmin]);
+    }, [existingData, signaturesData, legacySignaturesData, form, isAnAdmin]);
 
     const handleSaveSignature = (dataUrl: string) => {
         if (activeSignature) {
