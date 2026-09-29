@@ -94,7 +94,7 @@ const SignaturePadModal = ({
     useEffect(() => {
         if (isOpen && sigPadRef.current) {
             sigPadRef.current.clear();
-            if (signatureData) {
+            if (signatureData && typeof signatureData === 'string' && signatureData.trim().length > 0) {
                 sigPadRef.current.fromDataURL(signatureData);
                 setIsSigned(true);
             } else {
@@ -167,10 +167,15 @@ export default function LIC508Page() {
     const { data: existingData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
 
     const signaturesRef = useMemoFirebase(
+      () => (profileIdToLoad ? doc(firestore, `caregiver_profiles/${profileIdToLoad}/signatures`, 'lic508') : null),
+      [profileIdToLoad, firestore]
+    );
+    const legacySignaturesRef = useMemoFirebase(
       () => (profileIdToLoad ? doc(firestore, `caregiver_profiles/${profileIdToLoad}/signatures`, 'onboarding_main') : null),
       [profileIdToLoad, firestore]
     );
     const { data: signaturesData, isLoading: isSignaturesLoading } = useDoc<OnboardingSignatures>(signaturesRef);
+    const { data: legacySignaturesData, isLoading: isLegacySignaturesLoading } = useDoc<OnboardingSignatures>(legacySignaturesRef);
 
     const form = useForm<Lic508PageFormData>({
       resolver: zodResolver(lic508PageSchema),
@@ -179,13 +184,19 @@ export default function LIC508Page() {
     
     const SignatureField = ({ fieldName, title }: { fieldName: keyof Lic508PageFormData; title: string; }) => {
         const signatureData = form.watch(fieldName);
+        const hasValidSignature = typeof signatureData === 'string' && signatureData.trim().length > 0 && (
+            signatureData.startsWith('data:image/') ||
+            signatureData.startsWith('http://') ||
+            signatureData.startsWith('https://') ||
+            signatureData.startsWith('/')
+        );
         
         return (
             <div className="space-y-2">
                 <FormLabel>{title}</FormLabel>
-                <div className="relative rounded-md border bg-muted/30 h-28 flex items-center justify-center">
-                    {signatureData ? (
-                        <Image src={signatureData as string} alt="Signature" layout="fill" objectFit="contain" />
+                <div className="relative rounded-md border bg-muted/30 h-28 flex items-center justify-center overflow-hidden">
+                    {hasValidSignature ? (
+                        <Image src={signatureData} alt="Signature" fill className="object-contain" />
                     ) : (
                         <span className="text-muted-foreground">Not Signed</span>
                     )}
@@ -206,7 +217,7 @@ export default function LIC508Page() {
 
     useEffect(() => {
         if (existingData) {
-            const combinedData = { ...existingData, ...signaturesData };
+            const combinedData = { ...existingData, ...legacySignaturesData, ...signaturesData };
             const formData: Partial<Lic508PageFormData> = {};
             const formSchemaKeys = Object.keys(lic508Object.shape) as Array<keyof Lic508PageFormData>;
             const dateFields = ['lic508SignatureDate', 'dob'];
@@ -217,6 +228,8 @@ export default function LIC508Page() {
                     if (dateFields.includes(key) && value) {
                         const date = safeToDate(value);
                         (formData as any)[key] = date ? format(date, 'MM/dd/yyyy') : '';
+                    } else if (key === 'lic508Signature') {
+                        (formData as any)[key] = (typeof value === 'string' && value.trim()) ? value : '';
                     } else {
                         (formData as any)[key] = value;
                     }
@@ -240,7 +253,7 @@ export default function LIC508Page() {
                 ...formData
             });
         }
-    }, [existingData, signaturesData, form]);
+    }, [existingData, signaturesData, legacySignaturesData, form]);
 
     const handleSaveSignature = (dataUrl: string) => {
         if (activeSignature) {
