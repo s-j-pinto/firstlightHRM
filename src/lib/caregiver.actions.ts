@@ -19,6 +19,8 @@ interface SearchParams {
 
 /**
  * Resolves the true status of a candidate by checking related documents.
+ * This is used to ensure the UI reflects the current stage even if the 
+ * profile's hiringStatus field is slightly out of sync.
  */
 function resolveTrueStatus(profile: any, interview?: any, employee?: any, appointment?: any): string {
     if (employee) return 'Hired';
@@ -37,7 +39,10 @@ function resolveTrueStatus(profile: any, interview?: any, employee?: any, appoin
     }
 
     if (appointment) {
-        return (appointment.inviteSent || profile.hiringStatus === 'Phonescreen Scheduled') ? 'Phonescreen Scheduled' : 'Phonescreen Invite Needed';
+        // Standardize: If invite was sent, it's Scheduled. Otherwise it's Invite Needed.
+        return (appointment.inviteSent || profile.hiringStatus === 'Phonescreen Scheduled') 
+            ? 'Phonescreen Scheduled' 
+            : 'Phonescreen Invite Needed';
     }
 
     if (profile.hiringStatus) {
@@ -48,11 +53,12 @@ function resolveTrueStatus(profile: any, interview?: any, employee?: any, appoin
 }
 
 /**
- * Optimized server-side search for candidates using Admin SDK field projection.
+ * Optimized server-side search for candidates using Admin SDK field projection and data joining.
  */
 export async function searchCandidatesAction(params: SearchParams) {
     let query = serverDb.collection('caregiver_profiles') as FirebaseFirestore.Query;
 
+    // 1. Text Search (Prefix matching on name or exact on email)
     if (params.namePrefix && params.namePrefix.trim() !== '') {
         const term = params.namePrefix.trim();
         const prefix = term.toLowerCase();
@@ -68,10 +74,12 @@ export async function searchCandidatesAction(params: SearchParams) {
         query = query.orderBy('createdAt', 'desc');
     }
 
+    // 2. Filter by Stored Status
     if (params.hiringStatus && params.hiringStatus !== 'any') {
         query = query.where('hiringStatus', '==', params.hiringStatus);
     }
 
+    // 3. Date Range Filters
     if (params.dateFrom) {
         try {
             const fromDate = parse(params.dateFrom, 'MM/dd/yyyy', new Date());
@@ -91,6 +99,7 @@ export async function searchCandidatesAction(params: SearchParams) {
         } catch (e) {}
     }
 
+    // 4. Pagination
     if (params.lastDocId) {
         const lastDoc = await serverDb.collection('caregiver_profiles').doc(params.lastDocId).get();
         if (lastDoc.exists) {
@@ -101,6 +110,7 @@ export async function searchCandidatesAction(params: SearchParams) {
     const pageSize = params.limit || 10;
     query = query.limit(pageSize);
 
+    // 5. Select only necessary fields
     const selectFields = [
         'fullName', 
         'fullNameLowercase',
@@ -138,6 +148,7 @@ export async function searchCandidatesAction(params: SearchParams) {
 
         const candidateIds = profiles.map(p => p.id);
 
+        // 6. Join related data for status resolution
         const [interviewsSnap, employeesSnap, appointmentsSnap] = await Promise.all([
             serverDb.collection('interviews').where('caregiverProfileId', 'in', candidateIds).get(),
             serverDb.collection('caregiver_employees').where('caregiverProfileId', 'in', candidateIds).get(),
@@ -165,6 +176,7 @@ export async function searchCandidatesAction(params: SearchParams) {
                 email: profile.email || '',
                 phone: profile.phone || '',
                 city: profile.city || '',
+                // Resolve true status based on all available data
                 hiringStatus: resolveTrueStatus(profile, interview, employee, appointment),
                 docsStatus: profile.docsStatus || 'not-notified',
                 nextStepText: profile.nextStepText || 'Needs Phone Screen',
@@ -263,6 +275,7 @@ export async function getCandidateStatusReportAction(params: {
                 fullName: profile.fullName,
                 email: profile.email,
                 phone: profile.phone,
+                // Unified status resolution
                 status: resolveTrueStatus(profile, interview, employee, appointment),
                 interview: interview ? JSON.parse(JSON.stringify(interview)) : null,
                 employee: employee ? JSON.parse(JSON.stringify(employee)) : null,

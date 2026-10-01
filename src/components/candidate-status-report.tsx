@@ -85,7 +85,7 @@ export default function CandidateStatusReport() {
             status === 'Final Interview Passed' ? 'bg-blue-500' :
             (status === 'Phonescreen Scheduled') ? 'bg-purple-500' :
             status === 'Phonescreen Invite Needed' ? 'bg-orange-500' :
-            status === 'Final Interview Pending' ? 'bg-yellow-500' :
+            status === 'Final Interview Pending' || status === 'Pending reference checks' ? 'bg-yellow-500' :
             defaultRejectedStatuses.includes(status) ? 'bg-red-500' :
             'bg-gray-500';
 

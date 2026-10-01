@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect, useCallback } from 'react';
@@ -176,9 +177,9 @@ export default function AdvancedSearchClient() {
             status === 'Hired' ? 'bg-green-500' :
             status === 'Orientation Scheduled' ? 'bg-cyan-500' :
             status === 'Final Interview Passed' ? 'bg-blue-500' :
-            (status === 'Phonescreen Scheduled' || status === 'Phonescreen invite sent') ? 'bg-purple-500' :
+            (status === 'Phonescreen Scheduled') ? 'bg-purple-500' :
             status === 'Phonescreen Invite Needed' ? 'bg-orange-500' :
-            status === 'Final Interview Pending' ? 'bg-yellow-500' :
+            status === 'Final Interview Pending' || status === 'Pending reference checks' ? 'bg-yellow-500' :
             'bg-gray-500';
 
         return <Badge className={cn("text-white whitespace-normal text-center", colorClass)}>{status}</Badge>;
