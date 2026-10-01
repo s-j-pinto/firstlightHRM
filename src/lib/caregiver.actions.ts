@@ -4,7 +4,7 @@
 import { revalidatePath } from "next/cache";
 import { serverDb } from "@/firebase/server-init";
 import { z } from "zod";
-import { generalInfoSchema, type CaregiverProfile } from "./types";
+import { generalInfoSchema, type CaregiverProfile, type Interview, type Appointment, type CaregiverEmployee } from "./types";
 import { WriteBatch, Timestamp } from "firebase-admin/firestore";
 import { parse, isValid } from 'date-fns';
 
@@ -18,39 +18,60 @@ interface SearchParams {
 }
 
 /**
+ * Resolves the true status of a candidate by checking related documents.
+ */
+function resolveTrueStatus(profile: any, interview?: any, employee?: any, appointment?: any): string {
+    if (employee) return 'Hired';
+
+    if (interview) {
+        if (interview.rejectionReason) return interview.rejectionReason;
+        if (interview.phoneScreenPassed === 'No') return 'Phone Screen Failed';
+        if (interview.finalInterviewStatus === 'Rejected at Orientation') return 'Rejected at Orientation';
+        if (interview.finalInterviewStatus === 'No Show') return 'No Show';
+        if (interview.finalInterviewStatus === 'Process Terminated') return 'Process Terminated';
+        if (interview.orientationScheduled) return 'Orientation Scheduled';
+        if (interview.finalInterviewStatus === 'Passed') return 'Final Interview Passed';
+        if (interview.finalInterviewStatus === 'Failed') return 'Final Interview Failed';
+        if (interview.finalInterviewStatus === 'Pending reference checks') return 'Pending reference checks';
+        return 'Final Interview Pending';
+    }
+
+    if (appointment) {
+        return (appointment.inviteSent || profile.hiringStatus === 'Phonescreen Scheduled') ? 'Phonescreen Scheduled' : 'Phonescreen Invite Needed';
+    }
+
+    if (profile.hiringStatus) {
+        return profile.hiringStatus;
+    }
+
+    return 'Applied';
+}
+
+/**
  * Optimized server-side search for candidates using Admin SDK field projection.
  */
 export async function searchCandidatesAction(params: SearchParams) {
-    console.log("[searchCandidatesAction] Parameters:", JSON.stringify(params));
     let query = serverDb.collection('caregiver_profiles') as FirebaseFirestore.Query;
 
-    // 1. Prefix Matching for Name or Email
-    // We prioritize name search because it dictates the primary ordering in Firestore
     if (params.namePrefix && params.namePrefix.trim() !== '') {
         const term = params.namePrefix.trim();
         const prefix = term.toLowerCase();
 
-        // Simple check: if it looks like an email, do an equality check
         if (term.includes('@')) {
             query = query.where('email', '==', prefix).orderBy('createdAt', 'desc');
         } else {
-            // Standard Firestore prefix range query
-            // NOTE: Docs missing 'fullNameLowercase' will be excluded from this search.
             query = query.where('fullNameLowercase', '>=', prefix)
                          .where('fullNameLowercase', '<=', prefix + '\uf8ff')
                          .orderBy('fullNameLowercase', 'asc');
         }
     } else {
-        // Default order to newest first if not searching by name
         query = query.orderBy('createdAt', 'desc');
     }
 
-    // 2. Equality filter for status
     if (params.hiringStatus && params.hiringStatus !== 'any') {
         query = query.where('hiringStatus', '==', params.hiringStatus);
     }
 
-    // 3. Date Filters
     if (params.dateFrom) {
         try {
             const fromDate = parse(params.dateFrom, 'MM/dd/yyyy', new Date());
@@ -70,7 +91,6 @@ export async function searchCandidatesAction(params: SearchParams) {
         } catch (e) {}
     }
 
-    // 4. Pagination
     if (params.lastDocId) {
         const lastDoc = await serverDb.collection('caregiver_profiles').doc(params.lastDocId).get();
         if (lastDoc.exists) {
@@ -81,8 +101,6 @@ export async function searchCandidatesAction(params: SearchParams) {
     const pageSize = params.limit || 10;
     query = query.limit(pageSize);
 
-    // 5. Field Projection
-    // We select only the fields needed for the summary table to save bandwidth
     const selectFields = [
         'fullName', 
         'fullNameLowercase',
@@ -112,39 +130,62 @@ export async function searchCandidatesAction(params: SearchParams) {
     
     try {
         const snapshot = await query.select(...selectFields).get();
+        const profiles = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        const results = snapshot.docs.map(doc => {
+        if (profiles.length === 0) {
+            return { results: [], hasMore: false, lastDocId: null };
+        }
+
+        const candidateIds = profiles.map(p => p.id);
+
+        const [interviewsSnap, employeesSnap, appointmentsSnap] = await Promise.all([
+            serverDb.collection('interviews').where('caregiverProfileId', 'in', candidateIds).get(),
+            serverDb.collection('caregiver_employees').where('caregiverProfileId', 'in', candidateIds).get(),
+            serverDb.collection('appointments').where('caregiverId', 'in', candidateIds).get(),
+        ]);
+
+        const interviewsMap = new Map(interviewsSnap.docs.map(doc => [doc.data().caregiverProfileId, doc.data()]));
+        const employeesMap = new Map(employeesSnap.docs.map(doc => [doc.data().caregiverProfileId, doc.data()]));
+        const appointmentsMap = new Map();
+        appointmentsSnap.forEach(doc => {
             const data = doc.data();
-            return {
-                id: doc.id,
-                fullName: data.fullName || 'Unknown',
-                email: data.email || '',
-                phone: data.phone || '',
-                city: data.city || '',
-                hiringStatus: data.hiringStatus || 'Applied',
-                docsStatus: data.docsStatus || 'not-notified',
-                nextStepText: data.nextStepText || 'Needs Phone Screen',
-                createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null,
-                nextStepTime: data.nextStepTime ? data.nextStepTime.toDate().toISOString() : null,
-                master360Saved: !!data.master360Saved,
-                newHireChecklistComplete: !!data.newHireChecklistComplete,
-                // Add new fields
-                availability: data.availability || null,
-                canChangeBrief: !!data.canChangeBrief,
-                canTransfer: !!data.canTransfer,
-                canPrepareMeals: !!data.canPrepareMeals,
-                canDoBedBath: !!data.canDoBedBath,
-                canUseHoyerLift: !!data.canUseHoyerLift,
-                canGiveMedication: !!data.canGiveMedication,
-                canTakeBloodPressure: !!data.canTakeBloodPressure,
-                hasDementiaExperience: !!data.hasDementiaExperience,
-                hasHospiceExperience: !!data.hasHospiceExperience,
-                hca: !!data.hca,
-                hha: !!data.hha
-            };
+            if (data.appointmentStatus !== 'cancelled') {
+                appointmentsMap.set(data.caregiverId, data);
+            }
         });
 
-        console.log(`[searchCandidatesAction] Found ${results.length} results.`);
+        const results = profiles.map(profile => {
+            const interview = interviewsMap.get(profile.id);
+            const employee = employeesMap.get(profile.id);
+            const appointment = appointmentsMap.get(profile.id);
+
+            return {
+                id: profile.id,
+                fullName: profile.fullName || 'Unknown',
+                email: profile.email || '',
+                phone: profile.phone || '',
+                city: profile.city || '',
+                hiringStatus: resolveTrueStatus(profile, interview, employee, appointment),
+                docsStatus: profile.docsStatus || 'not-notified',
+                nextStepText: profile.nextStepText || 'Needs Phone Screen',
+                createdAt: profile.createdAt ? profile.createdAt.toDate().toISOString() : null,
+                nextStepTime: profile.nextStepTime ? profile.nextStepTime.toDate().toISOString() : null,
+                master360Saved: !!profile.master360Saved,
+                newHireChecklistComplete: !!profile.newHireChecklistComplete,
+                availability: profile.availability || null,
+                canChangeBrief: !!profile.canChangeBrief,
+                canTransfer: !!profile.canTransfer,
+                canPrepareMeals: !!profile.canPrepareMeals,
+                canDoBedBath: !!profile.canDoBedBath,
+                canUseHoyerLift: !!profile.canUseHoyerLift,
+                canGiveMedication: !!profile.canGiveMedication,
+                canTakeBloodPressure: !!profile.canTakeBloodPressure,
+                hasDementiaExperience: !!profile.hasDementiaExperience,
+                hasHospiceExperience: !!profile.hasHospiceExperience,
+                hca: !!profile.hca,
+                hha: !!profile.hha
+            };
+        });
 
         return {
             results,
@@ -153,12 +194,91 @@ export async function searchCandidatesAction(params: SearchParams) {
         };
     } catch (error: any) {
         console.error("[searchCandidatesAction] Firestore Error:", error.message);
-        // Return the error message so the UI can display index creation links
-        return { 
-            results: [], 
-            hasMore: false, 
-            error: error.message || "An unexpected database error occurred." 
+        return { results: [], hasMore: false, error: error.message || "An unexpected database error occurred." };
+    }
+}
+
+/**
+ * Server action to fetch paginated data for the Candidate Status Report.
+ */
+export async function getCandidateStatusReportAction(params: {
+    searchTerm?: string;
+    lastDocId?: string;
+    limit?: number;
+}) {
+    let query = serverDb.collection('caregiver_profiles') as FirebaseFirestore.Query;
+
+    if (params.searchTerm && params.searchTerm.trim() !== '') {
+        const term = params.searchTerm.trim().toLowerCase();
+        query = query.where('fullNameLowercase', '>=', term)
+                     .where('fullNameLowercase', '<=', term + '\uf8ff')
+                     .orderBy('fullNameLowercase', 'asc');
+    } else {
+        query = query.orderBy('createdAt', 'desc');
+    }
+
+    if (params.lastDocId) {
+        const lastDoc = await serverDb.collection('caregiver_profiles').doc(params.lastDocId).get();
+        if (lastDoc.exists) {
+            query = query.startAfter(lastDoc);
+        }
+    }
+
+    const pageSize = params.limit || 20;
+    query = query.limit(pageSize);
+
+    try {
+        const snapshot = await query.get();
+        const profiles = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        if (profiles.length === 0) {
+            return { results: [], hasMore: false, lastDocId: null };
+        }
+
+        const candidateIds = profiles.map(p => p.id);
+
+        const [interviewsSnap, employeesSnap, appointmentsSnap] = await Promise.all([
+            serverDb.collection('interviews').where('caregiverProfileId', 'in', candidateIds).get(),
+            serverDb.collection('caregiver_employees').where('caregiverProfileId', 'in', candidateIds).get(),
+            serverDb.collection('appointments').where('caregiverId', 'in', candidateIds).get(),
+        ]);
+
+        const interviewsMap = new Map(interviewsSnap.docs.map(doc => [doc.data().caregiverProfileId, doc.data()]));
+        const employeesMap = new Map(employeesSnap.docs.map(doc => [doc.data().caregiverProfileId, doc.data()]));
+        const appointmentsMap = new Map();
+        appointmentsSnap.forEach(doc => {
+            const data = doc.data();
+            if (data.appointmentStatus !== 'cancelled') {
+                appointmentsMap.set(data.caregiverId, data);
+            }
+        });
+
+        const results = profiles.map(profile => {
+            const interview = interviewsMap.get(profile.id);
+            const employee = employeesMap.get(profile.id);
+            const appointment = appointmentsMap.get(profile.id);
+
+            return {
+                id: profile.id,
+                fullName: profile.fullName,
+                email: profile.email,
+                phone: profile.phone,
+                status: resolveTrueStatus(profile, interview, employee, appointment),
+                interview: interview ? JSON.parse(JSON.stringify(interview)) : null,
+                employee: employee ? JSON.parse(JSON.stringify(employee)) : null,
+                appointment: appointment ? JSON.parse(JSON.stringify(appointment)) : null,
+                createdAt: profile.createdAt ? profile.createdAt.toDate().toISOString() : null,
+            };
+        });
+
+        return {
+            results,
+            lastDocId: results.length > 0 ? results[results.length - 1].id : null,
+            hasMore: results.length === pageSize
         };
+    } catch (error: any) {
+        console.error("[getCandidateStatusReportAction] Error:", error);
+        return { error: error.message, results: [], hasMore: false };
     }
 }
 

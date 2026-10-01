@@ -1,12 +1,11 @@
+
 "use client";
 
-import { useMemo, useState } from 'react';
-import { collection, query } from 'firebase/firestore';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { CaregiverProfile, Interview, CaregiverEmployee, Appointment } from '@/lib/types';
-import { Loader2, Search, Star } from 'lucide-react';
+import { useMemo, useState, useEffect, useTransition, useCallback } from 'react';
+import { Loader2, Search, Star, ChevronRight, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from "@/lib/utils";
+import { getCandidateStatusReportAction } from '@/lib/caregiver.actions';
 
 import {
   Table,
@@ -19,28 +18,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-
-type CandidateStatus = 
-  | 'Applied'
-  | 'Phonescreen Invite Needed'
-  | 'Phonescreen Scheduled'
-  | 'Phone Screen Failed'
-  | 'No Show'
-  | 'Final Interview Pending'
-  | 'Final Interview Failed'
-  | 'Final Interview Passed'
-  | 'Orientation Scheduled'
-  | 'Rejected at Orientation'
-  | 'Process Terminated'
-  | 'Hired'
-  | string; // Allow for custom rejection reasons
-
-interface EnrichedCandidate extends CaregiverProfile {
-  status: CandidateStatus;
-  interview?: Interview;
-  employee?: CaregiverEmployee;
-  appointment?: Appointment;
-}
+import { Button } from './ui/button';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
 const ratingOptions = [
     { value: 'A', label: 'Excellent candidate; ready for hire' },
@@ -50,113 +29,51 @@ const ratingOptions = [
     { value: 'F', label: 'Not recommended for hire' },
 ];
 
-const getStatus = (
-    profile: CaregiverProfile, 
-    interviewsMap: Map<string, Interview>, 
-    employeesMap: Map<string, CaregiverEmployee>,
-    appointmentsMap: Map<string, Appointment>
-): { status: CandidateStatus, interview?: Interview, employee?: CaregiverEmployee } => {
-    
-    const employee = employeesMap.get(profile.id);
-    if (employee) {
-        return { status: 'Hired', employee, interview: interviewsMap.get(profile.id) };
-    }
-
-    const interview = interviewsMap.get(profile.id);
-    if (interview) {
-        if (interview.rejectionReason) return { status: interview.rejectionReason, interview };
-        if (interview.phoneScreenPassed === 'No') return { status: 'Phone Screen Failed', interview };
-        if (interview.finalInterviewStatus === 'Rejected at Orientation') return { status: 'Rejected at Orientation', interview };
-        if (interview.finalInterviewStatus === 'No Show') return { status: 'No Show', interview };
-        if (interview.finalInterviewStatus === 'Process Terminated') return { status: 'Process Terminated', interview };
-        if (interview.orientationScheduled) return { status: 'Orientation Scheduled', interview };
-        if (interview.finalInterviewStatus === 'Passed') return { status: 'Final Interview Passed', interview };
-        if (interview.finalInterviewStatus === 'Failed') return { status: 'Final Interview Failed', interview };
-        
-        return { status: 'Final Interview Pending', interview };
-    }
-
-    if (appointmentsMap.has(profile.id)) {
-        const appointment = appointmentsMap.get(profile.id);
-        if (appointment?.inviteSent || profile.hiringStatus === 'Phonescreen Scheduled' || profile.hiringStatus === 'Phonescreen invite sent') {
-            return { status: 'Phonescreen Scheduled', interview };
-        } else {
-            return { status: 'Phonescreen Invite Needed', interview };
-        }
-    }
-    
-    if (profile.hiringStatus) {
-        if (profile.hiringStatus === 'Phonescreen invite sent') return { status: 'Phonescreen Scheduled', interview };
-        return { status: profile.hiringStatus, interview };
-    }
-
-    return { status: 'Applied', interview };
-};
-
-
 export default function CandidateStatusReport() {
     const [searchTerm, setSearchTerm] = useState('');
-    const firestore = useFirestore();
+    const [candidates, setCandidates] = useState<any[]>([]);
+    const [isLoading, startTransition] = useTransition();
+    const [lastDocId, setLastDocId] = useState<string | null>(null);
+    const [hasMore, setHasMore] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    const profilesRef = useMemoFirebase(() => firestore ? collection(firestore, 'caregiver_profiles') : null, [firestore]);
-    const { data: profiles, isLoading: profilesLoading } = useCollection<CaregiverProfile>(profilesRef);
-
-    const interviewsRef = useMemoFirebase(() => firestore ? collection(firestore, 'interviews') : null, [firestore]);
-    const { data: interviews, isLoading: interviewsLoading } = useCollection<Interview>(interviewsRef);
-
-    const employeesRef = useMemoFirebase(() => firestore ? collection(firestore, 'caregiver_employees') : null, [firestore]);
-    const { data: employees, isLoading: employeesLoading } = useCollection<CaregiverEmployee>(employeesRef);
-    
-    const appointmentsRef = useMemoFirebase(() => firestore ? query(collection(firestore, 'appointments')) : null, [firestore]);
-    const { data: appointments, isLoading: appointmentsLoading } = useCollection<Appointment>(appointmentsRef);
-
-
-    const candidates = useMemo((): EnrichedCandidate[] => {
-        if (!profiles || !interviews || !employees || !appointments) {
-            return [];
-        }
-
-        const interviewsMap = new Map(interviews.map(i => [i.caregiverProfileId, i]));
-        const employeesMap = new Map(employees.map(e => [e.caregiverProfileId, e]));
-        const appointmentsMap = new Map<string, Appointment>();
-        appointments.forEach(appt => {
-            if(appt.appointmentStatus !== 'cancelled') {
-                appointmentsMap.set(appt.caregiverId, appt);
-            }
-        });
-
-
-        return profiles.map(profile => {
-            const { status, interview, employee } = getStatus(profile, interviewsMap, employeesMap, appointmentsMap);
-            return {
-                ...profile,
-                status,
-                interview,
-                employee,
-                appointment: appointmentsMap.get(profile.id),
+    const fetchReportData = useCallback((isNewSearch: boolean = true) => {
+        setError(null);
+        startTransition(async () => {
+            const params = {
+                searchTerm: searchTerm,
+                lastDocId: isNewSearch ? undefined : (lastDocId || undefined),
+                limit: 20
             };
-        }).sort((a, b) => (b.createdAt as any) - (a.createdAt as any)); // Sort by most recent application
 
-    }, [profiles, interviews, employees, appointments]);
+            const response = await getCandidateStatusReportAction(params);
 
-    const filteredCandidates = useMemo(() => {
-        if (!searchTerm) return candidates;
-        const lowercasedTerm = searchTerm.toLowerCase();
-        return candidates.filter(c => c.fullName.toLowerCase().includes(lowercasedTerm));
-    }, [candidates, searchTerm]);
-    
-    const isLoading = profilesLoading || interviewsLoading || employeesLoading || appointmentsLoading;
+            if (response.error) {
+                setError(response.error);
+                return;
+            }
 
-    if (isLoading) {
-        return (
-            <div className="flex justify-center items-center h-64">
-                <Loader2 className="h-8 w-8 animate-spin text-accent" />
-                <p className="ml-4 text-muted-foreground">Loading report data...</p>
-            </div>
-        );
-    }
+            if (isNewSearch) {
+                setCandidates(response.results);
+            } else {
+                setCandidates(prev => [...prev, ...response.results]);
+            }
+            
+            setLastDocId(response.lastDocId || null);
+            setHasMore(response.hasMore);
+        });
+    }, [searchTerm, lastDocId]);
 
-    const StatusBadge = ({ status }: { status: CandidateStatus }) => {
+    useEffect(() => {
+        fetchReportData(true);
+    }, []);
+
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        fetchReportData(true);
+    };
+
+    const StatusBadge = ({ status }: { status: string }) => {
         const defaultRejectedStatuses = [
             'Phone Screen Failed', 'Final Interview Failed', 'Rejected at Orientation', 'No Show', 'Process Terminated',
             'Insufficient docs provided.','Pay rate too low','Invalid References provided.','Not a good fit (attitude, soft skills etc)','CG ghosted appointment', 'Candidate withdrew application'
@@ -166,7 +83,7 @@ export default function CandidateStatusReport() {
             status === 'Hired' ? 'bg-green-500' :
             status === 'Orientation Scheduled' ? 'bg-cyan-500' :
             status === 'Final Interview Passed' ? 'bg-blue-500' :
-            (status === 'Phonescreen Scheduled' || status === 'Phonescreen invite sent') ? 'bg-purple-500' :
+            (status === 'Phonescreen Scheduled') ? 'bg-purple-500' :
             status === 'Phonescreen Invite Needed' ? 'bg-orange-500' :
             status === 'Final Interview Pending' ? 'bg-yellow-500' :
             defaultRejectedStatuses.includes(status) ? 'bg-red-500' :
@@ -197,17 +114,27 @@ export default function CandidateStatusReport() {
                         </ul>
                     </Card>
                 </div>
-                <div className="relative pt-4">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                        placeholder="Search by candidate name..."
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        className="pl-8"
-                    />
-                </div>
+                <form onSubmit={handleSearch} className="relative pt-4 flex gap-2">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                            placeholder="Search by candidate name..."
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            className="pl-8"
+                        />
+                    </div>
+                    <Button type="submit" disabled={isLoading}>Search</Button>
+                </form>
             </CardHeader>
             <CardContent>
+                {error && (
+                    <Alert variant="destructive" className="mb-6">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Error</AlertTitle>
+                        <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                )}
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -220,14 +147,14 @@ export default function CandidateStatusReport() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {filteredCandidates.length === 0 ? (
+                        {candidates.length === 0 ? (
                              <TableRow>
                                 <TableCell colSpan={6} className="h-24 text-center">
-                                    No candidates found.
+                                    {isLoading ? <Loader2 className="h-8 w-8 animate-spin mx-auto text-accent" /> : "No candidates found."}
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            filteredCandidates.map(candidate => (
+                            candidates.map(candidate => (
                                 <TableRow key={candidate.id}>
                                     <TableCell>
                                         <div className="font-medium">{candidate.fullName}</div>
@@ -245,7 +172,7 @@ export default function CandidateStatusReport() {
                                         )}
                                     </TableCell>
                                     <TableCell>
-                                        {candidate.createdAt ? format((candidate.createdAt as any).toDate(), 'PP') : 'N/A'}
+                                        {candidate.createdAt ? format(new Date(candidate.createdAt), 'PP') : 'N/A'}
                                     </TableCell>
                                     <TableCell>
                                         <StatusBadge status={candidate.status} />
@@ -253,19 +180,19 @@ export default function CandidateStatusReport() {
                                     <TableCell>
                                         {candidate.status === 'Applied' && 'Needs Phone Screen'}
                                         {candidate.status === 'Phonescreen Scheduled' && candidate.appointment?.startTime && (
-                                            `PhoneScreen Interview: ${format((candidate.appointment.startTime as any).toDate(), 'PPp')}`
+                                            `PhoneScreen: ${format(new Date(candidate.appointment.startTime), 'PPp')}`
                                         )}
                                         {candidate.status === 'Phonescreen Invite Needed' && 'Needs calendar invite'}
                                         {(candidate.status === 'Phone Screen Failed' || candidate.status === 'Final Interview Failed' || candidate.status === 'Rejected at Orientation' || candidate.status === 'No Show') && 'Process Ended'}
                                         {candidate.status === 'Final Interview Pending' && candidate.interview?.interviewDateTime && (
-                                            `Final Interview: ${format((candidate.interview.interviewDateTime as any).toDate(), 'PPp')}`
+                                            `Final Interview: ${format(new Date(candidate.interview.interviewDateTime), 'PPp')}`
                                         )}
                                         {candidate.status === 'Final Interview Passed' && 'Needs Orientation'}
                                         {candidate.status === 'Orientation Scheduled' && candidate.interview?.orientationDateTime && (
-                                            `Orientation: ${format((candidate.interview.orientationDateTime as any).toDate(), 'PPp')}`
+                                            `Orientation: ${format(new Date(candidate.interview.orientationDateTime), 'PPp')}`
                                         )}
                                         {candidate.status === 'Hired' && candidate.employee?.hireDate && (
-                                            `Hired On: ${format((candidate.employee.hireDate as any).toDate(), 'PP')}`
+                                            `Hired On: ${format(new Date(candidate.employee.hireDate), 'PP')}`
                                         )}
                                     </TableCell>
                                 </TableRow>
@@ -273,6 +200,19 @@ export default function CandidateStatusReport() {
                         )}
                     </TableBody>
                 </Table>
+                
+                {hasMore && (
+                    <div className="flex justify-center mt-6">
+                        <Button 
+                            variant="outline" 
+                            onClick={() => fetchReportData(false)} 
+                            disabled={isLoading}
+                        >
+                            {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ChevronRight className="h-4 w-4 mr-2" />}
+                            Load Next 20 Records
+                        </Button>
+                    </div>
+                )}
             </CardContent>
         </Card>
     )
