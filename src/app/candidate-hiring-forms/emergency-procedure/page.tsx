@@ -16,7 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { RefreshCw, Save, X, Loader2, Edit2 } from "lucide-react";
 import { useUser, useDoc, useMemoFirebase, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { emergencyProcedureSchema, type EmergencyProcedureFormData, type OnboardingSignatures } from "@/lib/types";
+import { emergencyProcedureSchema, type EmergencyProcedureFormData, type OnboardingSignatures, type CaregiverProfile } from "@/lib/types";
 import { saveEmergencyProcedureData } from "@/lib/candidate-hiring-forms.actions";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -140,7 +140,7 @@ export default function EmergencyProcedurePage() {
       () => (profileIdToLoad ? doc(firestore, 'caregiver_profiles', profileIdToLoad) : null),
       [profileIdToLoad, firestore]
     );
-    const { data: profileData, isLoading: isProfileLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
+    const { data: profileData, isLoading: isDataLoading } = useDoc<CaregiverProfile>(caregiverProfileRef);
 
     const signaturesRef = useMemoFirebase(
       () => (profileIdToLoad ? doc(firestore, `caregiver_profiles/${profileIdToLoad}/signatures`, 'emergency_procedure') : null),
@@ -159,10 +159,10 @@ export default function EmergencyProcedurePage() {
     });
     
     useEffect(() => {
-        if (isPrintMode && !isDataLoading && !isProfileLoading) {
+        if (isPrintMode && !isDataLoading) {
           setTimeout(() => window.print(), 1000);
         }
-    }, [isPrintMode, isDataLoading, isProfileLoading]);
+    }, [isPrintMode, isDataLoading]);
 
     useEffect(() => {
         if (profileData || signaturesData || legacySignaturesData) {
@@ -222,7 +222,7 @@ export default function EmergencyProcedurePage() {
         }
     }
 
-    const isLoading = isUserLoading || isDataLoading;
+    const isLoading = isUserLoading || isDataLoading || isSignaturesLoading || isLegacySignaturesLoading;
 
     if(isLoading) {
       return (
@@ -324,5 +324,3 @@ export default function EmergencyProcedurePage() {
         </Card>
     );
 }
-
-    
