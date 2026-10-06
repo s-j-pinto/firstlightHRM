@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useEffect, useCallback } from 'react';
+import { useState, useTransition, useEffect, useCallback, useMemo } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -227,11 +227,21 @@ export default function ManageInterviewsClient() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const signaturesRef = useMemoFirebase(
-    () => (selectedCaregiver && db ? doc(db, `caregiver_profiles/${selectedCaregiver.id}/signatures`, 'onboarding_main') : null),
+  // Load all signatures from the subcollection and merge them
+  const signaturesQueryRef = useMemoFirebase(
+    () => (selectedCaregiver && db ? collection(db, `caregiver_profiles/${selectedCaregiver.id}/signatures`) : null),
     [selectedCaregiver, db]
   );
-  const { data: signaturesData } = useDoc<OnboardingSignatures>(signaturesRef);
+  const { data: signaturesList, isLoading: isSignaturesLoading } = useCollection<any>(signaturesQueryRef);
+
+  const mergedSignatures = useMemo(() => {
+    if (!signaturesList) return null;
+    const merged: any = {};
+    signaturesList.forEach(docData => {
+        Object.assign(merged, docData);
+    });
+    return merged as OnboardingSignatures;
+  }, [signaturesList]);
   
   const phoneScreenForm = useForm<PhoneScreenFormData>({
     resolver: zodResolver(phoneScreenSchema),
@@ -631,7 +641,7 @@ export default function ManageInterviewsClient() {
     if (!existingInterview?.onboardingFormsInitiated) return null;
     const completedForms = onboardingFormCompletionKeys.filter(key => {
         const isCompletedInProfile = !!(selectedCaregiver as any)[key];
-        const isCompletedInSignatures = signaturesData ? !!(signaturesData as any)[key] : false;
+        const isCompletedInSignatures = mergedSignatures ? !!(mergedSignatures as any)[key] : false;
         return isCompletedInProfile || isCompletedInSignatures;
     }).length;
     if (completedForms === onboardingFormCompletionKeys.length) return { text: "Completed", icon: CheckCircle, color: "text-green-500" };
@@ -1186,7 +1196,7 @@ export default function ManageInterviewsClient() {
                                         <Button type="button" variant="outline" size="sm" onClick={() => setIsQuestionsOpen(true)}><ClipboardList className="mr-2 h-4 w-4" />Situations</Button>
                                         <Button type="button" variant="outline" size="sm" onClick={() => setIsSkillsOpen(true)}><CheckSquare className="mr-2 h-4 w-4" />Skills & Exp</Button>
                                         <Button type="button" variant="outline" size="sm" onClick={() => setIsTransportationOpen(true)}><Car className="mr-2 h-4 w-4" />Transportation</Button>
-                                        <FormField control={assessmentForm.control} name="finalInterviewNotes" render={({ field }) => ( <FormItem><FormLabel>Interview Notes</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                        <FormField control={assessmentForm.control} name="finalInterviewNotes" render={({ field }) => ( <FormItem><FormLabel>Interview Notes</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
                                     </div>
                                 )}
                                 <div className="flex justify-between">
@@ -1232,6 +1242,12 @@ export default function ManageInterviewsClient() {
                                     <FileText className="mr-2 h-4 w-4"/>
                                     {existingInterview?.onboardingFormsInitiated ? 'Docs Initiated' : 'Initiate Docs'}
                                 </Button>
+                                {onboardingStatus && (
+                                    <div className={cn("flex items-center gap-1.5 text-xs font-semibold ml-auto", onboardingStatus.color)}>
+                                        <onboardingStatus.icon className="h-4 w-4" />
+                                        <span>Onboarding: {onboardingStatus.text}</span>
+                                    </div>
+                                )}
                             </div>
                         </CardHeader>
                         <CardContent>
@@ -1262,7 +1278,8 @@ export default function ManageInterviewsClient() {
                                         />
                                         <FormField control={hiringForm.control} name="teletrackPin" render={({ field }) => ( <FormItem><FormLabel>TeleTrack PIN</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                                     </div>
-                                    <Button type="submit" className="w-full" disabled={isSubmitting || !signaturesData?.hcs501EmployeeSignature}><UserCheck className="mr-2 h-4 w-4" />Hire Candidate</Button>
+                                    <Button type="submit" className="w-full" disabled={isSubmitting || !mergedSignatures?.hcs501EmployeeSignature}><UserCheck className="mr-2 h-4 w-4" />Hire Candidate</Button>
+                                    {!mergedSignatures?.hcs501EmployeeSignature && <p className="text-[10px] text-destructive text-center mt-1 font-medium">HCS 501 signature required before hiring.</p>}
                                 </form>
                             </Form>
                         </CardContent>
