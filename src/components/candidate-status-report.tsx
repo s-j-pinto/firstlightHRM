@@ -3,7 +3,7 @@
 
 import { useMemo, useState, useEffect, useTransition, useCallback } from 'react';
 import { Loader2, Search, Star, ChevronRight, AlertCircle } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { cn } from "@/lib/utils";
 import { getCandidateStatusReportAction } from '@/lib/caregiver.actions';
 
@@ -28,6 +28,17 @@ const ratingOptions = [
     { value: 'D', label: 'Below average; limited suitability' },
     { value: 'F', label: 'Not recommended for hire' },
 ];
+
+const safeFormatDate = (dateVal: any, formatStr: string) => {
+    if (!dateVal) return 'N/A';
+    try {
+        const d = typeof dateVal?.toDate === 'function' ? dateVal.toDate() : new Date(dateVal);
+        if (!isValid(d)) return 'Invalid Date';
+        return format(d, formatStr);
+    } catch (e) {
+        return 'Invalid Date';
+    }
+};
 
 export default function CandidateStatusReport() {
     const [searchTerm, setSearchTerm] = useState('');
@@ -172,7 +183,7 @@ export default function CandidateStatusReport() {
                                         )}
                                     </TableCell>
                                     <TableCell>
-                                        {candidate.createdAt ? format(new Date(candidate.createdAt), 'PP') : 'N/A'}
+                                        {candidate.createdAt ? safeFormatDate(candidate.createdAt, 'PP') : 'N/A'}
                                     </TableCell>
                                     <TableCell>
                                         <StatusBadge status={candidate.status} />
@@ -180,19 +191,19 @@ export default function CandidateStatusReport() {
                                     <TableCell>
                                         {candidate.status === 'Applied' && 'Needs Phone Screen'}
                                         {candidate.status === 'Phonescreen Scheduled' && candidate.appointment?.startTime && (
-                                            `PhoneScreen: ${format(new Date(candidate.appointment.startTime), 'PPp')}`
+                                            `PhoneScreen: ${safeFormatDate(candidate.appointment.startTime, 'PPp')}`
                                         )}
                                         {candidate.status === 'Phonescreen Invite Needed' && 'Needs calendar invite'}
                                         {(candidate.status === 'Phone Screen Failed' || candidate.status === 'Final Interview Failed' || candidate.status === 'Rejected at Orientation' || candidate.status === 'No Show') && 'Process Ended'}
                                         {candidate.status === 'Final Interview Pending' && candidate.interview?.interviewDateTime && (
-                                            `Final Interview: ${format(new Date(candidate.interview.interviewDateTime), 'PPp')}`
+                                            `Final Interview: ${safeFormatDate(candidate.interview.interviewDateTime, 'PPp')}`
                                         )}
                                         {candidate.status === 'Final Interview Passed' && 'Needs Orientation'}
                                         {candidate.status === 'Orientation Scheduled' && candidate.interview?.orientationDateTime && (
-                                            `Orientation: ${format(new Date(candidate.interview.orientationDateTime), 'PPp')}`
+                                            `Orientation: ${safeFormatDate(candidate.interview.orientationDateTime, 'PPp')}`
                                         )}
                                         {candidate.status === 'Hired' && candidate.employee?.hireDate && (
-                                            `Hired On: ${format(new Date(candidate.employee.hireDate), 'PP')}`
+                                            `Hired On: ${safeFormatDate(candidate.employee.hireDate, 'PP')}`
                                         )}
                                     </TableCell>
                                 </TableRow>
