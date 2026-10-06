@@ -31,9 +31,24 @@ const ratingOptions = [
 
 const safeFormatDate = (dateVal: any, formatStr: string) => {
     if (!dateVal) return 'N/A';
+    
+    let d: Date | null = null;
+
     try {
-        const d = typeof dateVal?.toDate === 'function' ? dateVal.toDate() : new Date(dateVal);
-        if (!isValid(d)) return 'Invalid Date';
+        if (dateVal instanceof Date) {
+            d = dateVal;
+        } else if (typeof dateVal?.toDate === 'function') {
+            d = dateVal.toDate();
+        } else if (typeof dateVal === 'object' && (dateVal.seconds !== undefined || dateVal._seconds !== undefined)) {
+            // Handle serialized Firestore timestamps (plain objects from server actions)
+            const s = dateVal.seconds !== undefined ? dateVal.seconds : dateVal._seconds;
+            const ns = dateVal.nanoseconds !== undefined ? dateVal.nanoseconds : (dateVal._nanoseconds || 0);
+            d = new Date(s * 1000 + ns / 1000000);
+        } else {
+            d = new Date(dateVal);
+        }
+
+        if (!d || !isValid(d)) return 'Invalid Date';
         return format(d, formatStr);
     } catch (e) {
         return 'Invalid Date';
