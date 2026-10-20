@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useTransition } from "react";
@@ -127,10 +126,10 @@ export default function ClientNotesSummaryViewer() {
                                 <div className="flex justify-between items-start">
                                     <div>
                                         <CardTitle className="text-xl">{client.clientName}</CardTitle>
-                                        <CardDescription className="flex items-center gap-2 mt-1">
+                                        <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
                                             <Badge variant="outline" className="text-[10px] uppercase">ID: {client.clientId}</Badge>
                                             <span className="text-xs">{client.response.reportPeriod.startDate} - {client.response.reportPeriod.endDate}</span>
-                                        </CardDescription>
+                                        </div>
                                     </div>
                                     <Badge className={cn(
                                         client.response.agencyOwnerReview.overallStatus.toLowerCase().includes('stable') ? 'bg-green-500' : 'bg-orange-500'
