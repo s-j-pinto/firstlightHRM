@@ -1,8 +1,8 @@
 
 "use client";
 
-import Link from "next/link";
-import Image from "next/image";
+import Link from "node_modules/next/link";
+import Image from "node_modules/next/image";
 import { usePathname, useRouter } from 'next/navigation';
 import { LogIn, LogOut, Phone } from "lucide-react";
 import { signOut } from "firebase/auth";
@@ -81,6 +81,9 @@ export function AppHeader() {
                 <Link href="/admin/assessments" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
                     Assessments
                 </Link>
+                 <Link href="/admin/client-notes-summary" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
+                    Notes Summary
+                </Link>
                </>
             )}
              {isStaffingAdminRoute && user && (
@@ -106,6 +109,9 @@ export function AppHeader() {
                  <Link href="/staffing-admin/reports" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
                     Reports
                 </Link>
+                <Link href="/staffing-admin/client-notes-summary" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
+                    Notes Summary
+                </Link>
                </>
             )}
              {isOwnerRoute && user && (
@@ -124,6 +130,9 @@ export function AppHeader() {
                 </Link>
                  <Link href="/owner/reports" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
                     Reports
+                </Link>
+                 <Link href="/owner/client-notes-summary" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground px-3 py-2 rounded-md">
+                    Notes Summary
                 </Link>
                </>
             )}

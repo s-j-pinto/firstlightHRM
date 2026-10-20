@@ -1262,3 +1262,47 @@ export const tppClientSignaturePayloadSchema = z.object({
   transportationWaiverWitnessSignature: z.string().optional(),
   transportationWaiverDate: z.string().optional(),
 });
+
+export interface ClientNotesSummary {
+    reportDate: string;
+    clients: {
+        clientName: string;
+        clientId: string;
+        response: {
+            reportPeriod: { startDate: string; endDate: string };
+            summary: string;
+            careActivities: {
+                highlights: string[];
+                personalCare?: string[];
+                mobility?: string[];
+                nutrition?: string[];
+                housekeeping?: string[];
+                social?: string[];
+            };
+            healthAndSafetyObservations: {
+                positives: string[];
+                concerns: string[];
+                notDocumented: string[];
+            };
+            careConcernsAndFollowUp: {
+                concern: string;
+                date: string;
+                description: string;
+                severity: "Low" | "Medium" | "High";
+                requiresOwnerReview: boolean;
+                requiresClinicalReview: boolean;
+                recommendedAction: string;
+            }[];
+            agencyOwnerReview: {
+                recommendedFollowUp: string[];
+                documentationGaps: string[];
+                operationalRisks: string[];
+                overallStatus: string;
+            };
+            documentationMetadata: {
+                totalVisits: number;
+                dataLimitations: string[];
+            };
+        };
+    }[];
+}

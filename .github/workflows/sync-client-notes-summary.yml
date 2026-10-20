@@ -1,0 +1,19 @@
+
+name: Weekly Client Notes Sync
+
+on:
+  schedule:
+    # Runs at 02:00 UTC Monday, which is 06:00 PM PST Sunday.
+    - cron: '0 2 * * 1'
+  workflow_dispatch: # Allows manual triggering from the Actions tab in GitHub for testing
+
+jobs:
+  sync_summary_data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call client notes summary sync webhook
+        run: |
+          curl --request GET \
+          --url https://care-connect-360--firstlighthomecare-hrm.us-central1.hosted.app/api/cron/sync-client-notes-summary \
+          --header 'Authorization: Bearer ${{ secrets.CRON_SECRET }}' \
+          --fail
