@@ -1,8 +1,8 @@
 
 "use client";
 
-import Link from "node_modules/next/link";
-import Image from "node_modules/next/image";
+import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from 'next/navigation';
 import { LogIn, LogOut, Phone } from "lucide-react";
 import { signOut } from "firebase/auth";

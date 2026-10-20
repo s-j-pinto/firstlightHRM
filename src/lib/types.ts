@@ -1269,38 +1269,48 @@ export interface ClientNotesSummary {
         clientName: string;
         clientId: string;
         response: {
+            clientName: string;
             reportPeriod: { startDate: string; endDate: string };
-            summary: string;
+            summary: {
+                overview: string;
+                totalVisitsDocumented: number;
+                primaryCareNeeds: string[];
+            };
             careActivities: {
-                highlights: string[];
-                personalCare?: string[];
-                mobility?: string[];
-                nutrition?: string[];
-                housekeeping?: string[];
-                social?: string[];
+                personalCare: string[];
+                householdMaintenance: string[];
+                nutrition: string[];
+                mobilityAndCommunityEngagement: string[];
+                otherActivities: string[];
             };
             healthAndSafetyObservations: {
-                positives: string[];
-                concerns: string[];
+                documentedPositiveObservations: string[];
+                medicalConcernsReported: string[];
+                fallsOrIncidentsReported: string[];
+                medicationUpdatesReported: string[];
+                changesInConditionReported: string[];
                 notDocumented: string[];
             };
             careConcernsAndFollowUp: {
                 concern: string;
-                date: string;
+                sourceDate: string;
                 description: string;
-                severity: "Low" | "Medium" | "High";
+                severity: string;
+                recommendedAction: string;
                 requiresOwnerReview: boolean;
                 requiresClinicalReview: boolean;
-                recommendedAction: string;
             }[];
             agencyOwnerReview: {
-                recommendedFollowUp: string[];
-                documentationGaps: string[];
-                operationalRisks: string[];
                 overallStatus: string;
+                completedCareHighlights: string[];
+                documentationGaps: string[];
+                itemsToMonitor: string[];
+                recommendedFollowUp: string[];
             };
             documentationMetadata: {
-                totalVisits: number;
+                sourceNoteCount: number;
+                clientReadStatus: string;
+                reportGeneratedDate: string;
                 dataLimitations: string[];
             };
         };

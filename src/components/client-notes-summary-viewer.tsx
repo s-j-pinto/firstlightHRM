@@ -4,7 +4,6 @@
 import { useState, useMemo, useTransition } from "react";
 import { collection, query, orderBy, limit } from "firebase/firestore";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { format } from "date-fns";
 import type { ClientNotesSummary } from "@/lib/types";
 import { sendWeeklySummaryEmail } from "@/lib/client-notes-summary.actions";
 
@@ -12,18 +11,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Calendar, FileText, Mail, AlertTriangle, ShieldCheck, ClipboardCheck, Info, Users, Activity, CheckCircle2 } from "lucide-react";
+import { Loader2, Calendar, FileText, Mail, AlertTriangle, ShieldCheck, ClipboardCheck, Info, Users, Activity, CheckCircle2, HeartPulse, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "./ui/scroll-area";
-import { Separator } from "./ui/separator";
+import { Label } from "./ui/label";
 
 export default function ClientNotesSummaryViewer() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSending, startSendTransition] = useTransition();
 
-  // Fetch up to 12 weeks of summaries
   const summariesQuery = useMemoFirebase(
     () => firestore ? query(collection(firestore, "client_notes_summaries"), orderBy("reportDate", "desc"), limit(12)) : null,
     [firestore]
@@ -88,7 +86,7 @@ export default function ClientNotesSummaryViewer() {
 
       {selectedReport && (
         <div className="space-y-8 animate-in fade-in duration-500">
-            {/* Executive Summary */}
+            {/* Executive Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Card className="bg-blue-50 border-blue-100">
                     <CardHeader className="pb-2"><CardTitle className="text-xs font-bold text-blue-800 uppercase">Clients Reviewed</CardTitle></CardHeader>
@@ -98,7 +96,7 @@ export default function ClientNotesSummaryViewer() {
                     <CardHeader className="pb-2"><CardTitle className="text-xs font-bold text-green-800 uppercase">Documented Visits</CardTitle></CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-green-900">
-                            {selectedReport.clients.reduce((acc, c) => acc + (c.response.documentationMetadata.totalVisits || 0), 0)}
+                            {selectedReport.clients.reduce((acc, c) => acc + (c.response.summary.totalVisitsDocumented || 0), 0)}
                         </div>
                     </CardContent>
                 </Card>
@@ -106,22 +104,21 @@ export default function ClientNotesSummaryViewer() {
                     <CardHeader className="pb-2"><CardTitle className="text-xs font-bold text-orange-800 uppercase">Owner Follow-ups</CardTitle></CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-orange-900">
-                            {selectedReport.clients.filter(c => c.response.agencyOwnerReview.recommendedFollowUp.length > 0).length}
+                            {selectedReport.clients.filter(c => c.response.agencyOwnerReview.recommendedFollowUp.length > 0 || c.response.careConcernsAndFollowUp.some(con => con.requiresOwnerReview)).length}
                         </div>
                     </CardContent>
                 </Card>
                 <Card className="bg-red-50 border-red-100">
-                    <CardHeader className="pb-2"><CardTitle className="text-xs font-bold text-red-800 uppercase">Clients w/ Concerns</CardTitle></CardHeader>
+                    <CardHeader className="pb-2"><CardTitle className="text-xs font-bold text-red-800 uppercase">Total Concerns</CardTitle></CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-red-900">
-                            {selectedReport.clients.filter(c => c.response.careConcernsAndFollowUp.length > 0).length}
+                            {selectedReport.clients.reduce((acc, c) => acc + (c.response.careConcernsAndFollowUp.length || 0), 0)}
                         </div>
                     </CardContent>
                 </Card>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Main Content Area */}
                 <div className="lg:col-span-2 space-y-6">
                     <h2 className="text-2xl font-bold flex items-center gap-2"><Users className="text-accent"/> Client Summaries</h2>
                     {selectedReport.clients.map(client => (
@@ -131,12 +128,12 @@ export default function ClientNotesSummaryViewer() {
                                     <div>
                                         <CardTitle className="text-xl">{client.clientName}</CardTitle>
                                         <CardDescription className="flex items-center gap-2 mt-1">
-                                            <Badge variant="outline" className="text-[10px] uppercase">{client.clientId}</Badge>
+                                            <Badge variant="outline" className="text-[10px] uppercase">ID: {client.clientId}</Badge>
                                             <span className="text-xs">{client.response.reportPeriod.startDate} - {client.response.reportPeriod.endDate}</span>
                                         </CardDescription>
                                     </div>
                                     <Badge className={cn(
-                                        client.response.agencyOwnerReview.overallStatus === 'Stable' ? 'bg-green-500' : 'bg-orange-500'
+                                        client.response.agencyOwnerReview.overallStatus.toLowerCase().includes('stable') ? 'bg-green-500' : 'bg-orange-500'
                                     )}>
                                         {client.response.agencyOwnerReview.overallStatus}
                                     </Badge>
@@ -145,46 +142,80 @@ export default function ClientNotesSummaryViewer() {
                             <CardContent className="pt-6 space-y-6">
                                 <div>
                                     <h4 className="text-sm font-bold flex items-center gap-2 mb-2"><FileText className="h-4 w-4 text-accent"/> Weekly Overview</h4>
-                                    <p className="text-sm text-muted-foreground leading-relaxed">{client.response.summary}</p>
+                                    <p className="text-sm text-muted-foreground leading-relaxed">{client.response.summary.overview}</p>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Care Highlights */}
                                     <div className="space-y-3">
-                                        <h4 className="text-sm font-bold flex items-center gap-2"><Activity className="h-4 w-4 text-accent"/> Care Highlights</h4>
-                                        <ul className="space-y-1">
-                                            {client.response.careActivities.highlights.map((h, i) => (
-                                                <li key={i} className="text-xs flex items-start gap-2">
-                                                    <CheckCircle2 className="h-3 w-3 mt-0.5 text-green-500 shrink-0"/> {h}
-                                                </li>
-                                            ))}
-                                        </ul>
+                                        <h4 className="text-sm font-bold flex items-center gap-2 mb-2"><Activity className="h-4 w-4 text-accent"/> Care Highlights</h4>
+                                        <div className="space-y-4">
+                                            {Object.entries(client.response.careActivities).map(([key, activities]) => {
+                                                if (!Array.isArray(activities) || activities.length === 0) return null;
+                                                return (
+                                                    <div key={key}>
+                                                        <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1">{key.replace(/([A-Z])/g, ' $1')}</p>
+                                                        <ul className="space-y-1">
+                                                            {activities.map((act, i) => (
+                                                                <li key={i} className="text-xs flex items-start gap-2">
+                                                                    <CheckCircle2 className="h-3 w-3 mt-0.5 text-green-500 shrink-0"/> {act}
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
                                     </div>
+
+                                    {/* Health Observations */}
                                     <div className="space-y-3">
-                                        <h4 className="text-sm font-bold flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-accent"/> Safety Observations</h4>
-                                        <ul className="space-y-1">
-                                            {client.response.healthAndSafetyObservations.positives.map((p, i) => (
-                                                <li key={i} className="text-xs text-green-700 flex items-start gap-2">
-                                                    <span className="h-1.5 w-1.5 rounded-full bg-green-500 mt-1.5 shrink-0"/> {p}
-                                                </li>
-                                            ))}
-                                            {client.response.healthAndSafetyObservations.concerns.map((c, i) => (
-                                                <li key={i} className="text-xs text-red-700 flex items-start gap-2">
-                                                    <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0"/> {c}
-                                                </li>
-                                            ))}
-                                        </ul>
+                                        <h4 className="text-sm font-bold flex items-center gap-2 mb-2"><HeartPulse className="h-4 w-4 text-accent"/> Health Observations</h4>
+                                        <div className="space-y-4">
+                                            {client.response.healthAndSafetyObservations.documentedPositiveObservations.length > 0 && (
+                                                <div>
+                                                    <p className="text-[10px] font-bold uppercase text-green-700 mb-1">Positives</p>
+                                                    <ul className="space-y-1">
+                                                        {client.response.healthAndSafetyObservations.documentedPositiveObservations.map((p, i) => (
+                                                            <li key={i} className="text-xs text-green-700 flex items-start gap-2">
+                                                                <span className="h-1 w-1 rounded-full bg-green-500 mt-1.5 shrink-0"/> {p}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                            {client.response.healthAndSafetyObservations.medicalConcernsReported.length > 0 && (
+                                                <div>
+                                                    <p className="text-[10px] font-bold uppercase text-red-700 mb-1">Reported Concerns</p>
+                                                    <ul className="space-y-1">
+                                                        {client.response.healthAndSafetyObservations.medicalConcernsReported.map((c, i) => (
+                                                            <li key={i} className="text-xs text-red-700 flex items-start gap-2">
+                                                                <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0"/> {c}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
 
+                                {/* Detailed Concerns */}
                                 {client.response.careConcernsAndFollowUp.length > 0 && (
                                     <div className="pt-4 border-t">
-                                        <h4 className="text-sm font-bold text-red-800 mb-3">Documented Concerns & Action Items</h4>
+                                        <h4 className="text-sm font-bold text-red-800 mb-3 flex items-center gap-2">
+                                            <Zap className="h-4 w-4"/> Actionable Concerns
+                                        </h4>
                                         <div className="space-y-3">
                                             {client.response.careConcernsAndFollowUp.map((item, i) => (
                                                 <div key={i} className="p-3 rounded-lg border bg-destructive/5 border-destructive/20 text-xs">
                                                     <div className="flex justify-between font-bold mb-1">
-                                                        <span>{item.concern} (${item.date})</span>
-                                                        <Badge variant="outline" className="text-[9px] uppercase border-red-200 text-red-800">{item.severity}</Badge>
+                                                        <span>{item.concern} ({item.sourceDate})</span>
+                                                        <div className="flex gap-1">
+                                                            {item.requiresOwnerReview && <Badge className="bg-orange-500 text-[8px] h-4">OWNER</Badge>}
+                                                            {item.requiresClinicalReview && <Badge className="bg-blue-500 text-[8px] h-4">CLINICAL</Badge>}
+                                                            <Badge variant="outline" className="text-[9px] uppercase border-red-200 text-red-800">{item.severity}</Badge>
+                                                        </div>
                                                     </div>
                                                     <p className="text-muted-foreground mb-2">{item.description}</p>
                                                     <div className="p-2 rounded bg-white/50 border border-destructive/10">
@@ -201,12 +232,12 @@ export default function ClientNotesSummaryViewer() {
                     ))}
                 </div>
 
-                {/* Sidebar: Checklists & Gaps */}
+                {/* Sidebar */}
                 <div className="space-y-6">
                     <Card className="shadow-lg border-accent/20">
-                        <CardHeader className="bg-accent/5"><CardTitle className="text-lg flex items-center gap-2"><ClipboardCheck className="text-accent"/> Action Checklist</CardTitle></CardHeader>
+                        <CardHeader className="bg-accent/5"><CardTitle className="text-lg flex items-center gap-2"><ClipboardCheck className="text-accent"/> Follow-Up List</CardTitle></CardHeader>
                         <CardContent className="pt-6">
-                             <ScrollArea className="h-[400px] pr-4">
+                             <ScrollArea className="h-[500px] pr-4">
                                 <div className="space-y-4">
                                     {selectedReport.clients.map(c => {
                                         const actions = Array.from(new Set([
