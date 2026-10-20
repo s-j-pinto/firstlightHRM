@@ -37,7 +37,10 @@ export default function ClientNotesSummaryViewer() {
   const handleSendEmail = () => {
     if (!selectedReport) return;
     startSendTransition(async () => {
-        const result = await sendWeeklySummaryEmail(selectedReport);
+        // Convert to a plain object to avoid "Only plain objects can be passed to Server Functions" error
+        // caused by Firestore Timestamps (syncedAt)
+        const sanitizedReport = JSON.parse(JSON.stringify(selectedReport));
+        const result = await sendWeeklySummaryEmail(sanitizedReport);
         if (result.error) {
             toast({ title: "Email Failed", description: result.error, variant: "destructive" });
         } else {
