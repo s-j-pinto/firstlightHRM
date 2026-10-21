@@ -9,7 +9,6 @@ import { useFirestore } from "@/firebase";
 import type { CaregiverProfile } from "@/lib/types";
 import { generalInfoSchema } from "@/lib/types";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
-import { format } from "date-fns";
 import { deleteCaregiverProfile, resetCaregiverInterview, searchCandidatesAction } from "@/lib/caregiver.actions";
 
 import { Input } from "@/components/ui/input";
@@ -122,7 +121,19 @@ export default function ManageApplicationsClient() {
     
     startSubmitTransition(() => {
       const profileRef = doc(db, "caregiver_profiles", selectedCaregiver.id);
-      const updateData = { ...data, fullNameLowercase: data.fullName.toLowerCase() };
+      const updateData: any = { 
+        ...data, 
+        fullNameLowercase: data.fullName.toLowerCase() 
+      };
+
+      // CRITICAL: Firestore does not support 'undefined' values. 
+      // We must explicitly remove any undefined fields before updating.
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key] === undefined) {
+          delete updateData[key];
+        }
+      });
+
       updateDocumentNonBlocking(profileRef, updateData);
       toast({ title: "Success", description: "Profile update initiated." });
       setSelectedCaregiver(null);
