@@ -1,7 +1,6 @@
-
 'use server';
 
-import { format, isDate } from 'date-fns';
+import { format, isDate, parse, isValid } from 'date-fns';
 
 // A plain object interface for just the data needed by this action.
 interface TeletrackApplicantPayload {
@@ -13,9 +12,9 @@ interface TeletrackApplicantPayload {
   phone?: string;
   driversLicenseNumber?: string;
   email?: string;
-  dob?: Date | string | { seconds: number; nanoseconds: number };
+  dob?: any;
   ssn?: string;
-  hireDate?: Date | string;
+  hireDate?: any;
   emergencyContact1_name?: string;
   emergencyContact1_relation?: string;
   emergencyContact1_phone?: string;
@@ -41,8 +40,8 @@ const safeToDate = (value: any): Date | null => {
     }
 
     // Handle client-side serialized Firestore Timestamps (plain objects)
-    if (typeof value === 'object' && typeof value.seconds === 'number' && typeof value.nanoseconds === 'number') {
-        return new Date(value.seconds * 1000 + value.nanoseconds / 1000000);
+    if (typeof value === 'object' && typeof value.seconds === 'number') {
+        return new Date(value.seconds * 1000 + (value.nanoseconds || 0) / 1000000);
     }
 
     // Handle standard Date objects
@@ -50,21 +49,21 @@ const safeToDate = (value: any): Date | null => {
         return value;
     }
     
-    // Handle ISO date strings and other string formats that new Date() can parse, including the custom "$D" prefix
+    // Handle strings
     if (typeof value === 'string') {
         const cleanValue = value.startsWith('$D') ? value.substring(2) : value;
+        
+        // Try MM/DD/YYYY first as it's the app standard
+        const parsedMMDD = parse(cleanValue, 'MM/dd/yyyy', new Date());
+        if (isValid(parsedMMDD)) return parsedMMDD;
+
+        // Fallback to standard JS parsing (ISO etc)
         const d = new Date(cleanValue);
         if (!isNaN(d.getTime())) {
             return d;
         }
     }
     
-    // Fallback attempt for any other format
-    const d = new Date(value);
-    if (!isNaN(d.getTime())) {
-        return d;
-    }
-
     return null;
 };
 
@@ -79,11 +78,13 @@ export async function triggerTeletrackImport(caregiver: TeletrackApplicantPayloa
     return { error: errorMsg };
   }
 
-  const nameParts = caregiver.fullName.split(' ');
-  const firstName = nameParts[0];
+  const nameParts = caregiver.fullName.trim().split(/\s+/);
+  const firstName = nameParts[0] || '';
   const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+  
   const dob = caregiver.dob ? safeToDate(caregiver.dob) : null;
   const formattedDob = dob ? format(dob, 'MM/dd/yyyy') : '';
+  
   const hireDate = caregiver.hireDate ? safeToDate(caregiver.hireDate) : null;
   const formattedHireDate = hireDate ? format(hireDate, 'MM/dd/yyyy') : '';
 
@@ -110,7 +111,7 @@ export async function triggerTeletrackImport(caregiver: TeletrackApplicantPayloa
 
   // This payload matches the `inputs` of the `workflow_dispatch` trigger.
   const payload = {
-    ref: 'main', // Assuming 'main' is the default branch for the workflow
+    ref: 'main', 
     inputs: {
       firstName: firstName,
       lastName: lastName,
@@ -131,7 +132,7 @@ export async function triggerTeletrackImport(caregiver: TeletrackApplicantPayloa
     }
   };
   
-  console.log("Data sent to Teletrack:", payload.inputs);
+  console.log(`[GitHub Action] Triggering for ${caregiver.fullName} (PIN: ${teletrackPin})`);
   
   try {
     const response = await fetch(GITHUB_TELETRACK_EXPIMP_API, {
@@ -140,6 +141,8 @@ export async function triggerTeletrackImport(caregiver: TeletrackApplicantPayloa
         'Accept': 'application/vnd.github+json',
         'Authorization': `Bearer ${GITHUB_PAT}`,
         'Content-Type': 'application/json',
+        'X-GitHub-Api-Version': '2022-11-28',
+        'User-Agent': 'FirstLightHRM-App'
       },
       body: JSON.stringify(payload),
     });
@@ -160,5 +163,3 @@ export async function triggerTeletrackImport(caregiver: TeletrackApplicantPayloa
     return { error: errorMsg };
   }
 }
-
-    

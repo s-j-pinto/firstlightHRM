@@ -46,11 +46,11 @@ import { formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { Dialog, DialogFooter, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
-import { Label } from './ui/label';
-import { Checkbox } from './ui/checkbox';
-import { DateInput } from './ui/date-input';
-import { ScrollArea } from './ui/scroll-area';
+import { Dialog, DialogFooter, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { DateInput } from '@/components/ui/date-input';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Badge } from './ui/badge';
 import Link from 'next/link';
@@ -865,6 +865,10 @@ export default function ManageInterviewsClient() {
     
     startSubmitTransition(async () => {
       try {
+        // RE-FETCH the latest profile data to ensure all onboarding info is captured (SSN, Emergency Contacts etc.)
+        const freshProfileSnap = await getDoc(doc(db, 'caregiver_profiles', selectedCaregiver.id));
+        const caregiver = { ...freshProfileSnap.data(), id: selectedCaregiver.id } as CaregiverProfile;
+
         const parsedHireDate = parse(data.hireDate, 'MM/dd/yyyy', new Date());
         if (!isValid(parsedHireDate)) {
             toast({ title: "Invalid Date", description: "Please enter a valid hire date (MM/DD/YYYY).", variant: "destructive" });
@@ -872,7 +876,7 @@ export default function ManageInterviewsClient() {
         }
 
         const employeeData = { 
-            caregiverProfileId: selectedCaregiver.id, 
+            caregiverProfileId: caregiver.id, 
             interviewId: existingInterview.id, 
             hiringManager: data.hiringManager, 
             hiringComments: data.hiringComments || '', 
@@ -881,46 +885,58 @@ export default function ManageInterviewsClient() {
             createdAt: Timestamp.now() 
         };
         
-        await setDoc(doc(db, 'caregiver_employees', selectedCaregiver.id), employeeData);
+        await setDoc(doc(db, 'caregiver_employees', caregiver.id), employeeData);
         
-        await updateDoc(doc(db, 'caregiver_profiles', selectedCaregiver.id), {
+        await updateDoc(doc(db, 'caregiver_profiles', caregiver.id), {
           hiringStatus: 'Hired',
           nextStepText: '',
           nextStepTime: null,
           lastUpdatedAt: Timestamp.now()
         });
 
+        // Use the FRESH caregiver data for the import payload
         const ttPayload: any = {
-            fullName: selectedCaregiver.fullName,
-            address: selectedCaregiver.address,
-            city: selectedCaregiver.city,
-            state: selectedCaregiver.state,
-            zip: selectedCaregiver.zip,
-            phone: selectedCaregiver.phone,
-            driversLicenseNumber: selectedCaregiver.driversLicenseNumber,
-            email: selectedCaregiver.email,
-            ssn: selectedCaregiver.ssn,
-            dob: selectedCaregiver.dob ? (selectedCaregiver.dob as any).toDate?.()?.toISOString() || String(selectedCaregiver.dob) : null,
+            fullName: caregiver.fullName,
+            address: caregiver.address,
+            city: caregiver.city,
+            state: caregiver.state,
+            zip: caregiver.zip,
+            phone: caregiver.phone,
+            driversLicenseNumber: caregiver.driversLicenseNumber,
+            email: caregiver.email,
+            ssn: caregiver.ssn,
+            dob: caregiver.dob, 
             hireDate: parsedHireDate.toISOString(),
-            emergencyContact1_name: selectedCaregiver.emergencyContact1_name,
-            emergencyContact1_relation: selectedCaregiver.emergencyContact1_relation,
-            emergencyContact1_phone: selectedCaregiver.emergencyContact1_phone,
-            emergencyContact1_address: selectedCaregiver.emergencyContact1_address,
-            emergencyContact1_city: selectedCaregiver.emergencyContact1_city,
-            emergencyContact1_state: selectedCaregiver.emergencyContact1_state,
-            emergencyContact1_zip: selectedCaregiver.emergencyContact1_zip,
-            emergencyContact2_name: selectedCaregiver.emergencyContact2_name,
-            emergencyContact2_relation: selectedCaregiver.emergencyContact2_relation,
-            emergencyContact2_phone: selectedCaregiver.emergencyContact2_phone,
-            emergencyContact2_address: selectedCaregiver.emergencyContact2_address,
-            emergencyContact2_city: selectedCaregiver.emergencyContact2_city,
-            emergencyContact2_state: selectedCaregiver.emergencyContact2_state,
-            emergencyContact2_zip: selectedCaregiver.emergencyContact2_zip,
+            emergencyContact1_name: caregiver.emergencyContact1_name,
+            emergencyContact1_relation: caregiver.emergencyContact1_relation,
+            emergencyContact1_phone: caregiver.emergencyContact1_phone,
+            emergencyContact1_address: caregiver.emergencyContact1_address,
+            emergencyContact1_city: caregiver.emergencyContact1_city,
+            emergencyContact1_state: caregiver.emergencyContact1_state,
+            emergencyContact1_zip: caregiver.emergencyContact1_zip,
+            emergencyContact2_name: caregiver.emergencyContact2_name,
+            emergencyContact2_relation: caregiver.emergencyContact2_relation,
+            emergencyContact2_phone: caregiver.emergencyContact2_phone,
+            emergencyContact2_address: caregiver.emergencyContact2_address,
+            emergencyContact2_city: caregiver.emergencyContact2_city,
+            emergencyContact2_state: caregiver.emergencyContact2_state,
+            emergencyContact2_zip: caregiver.emergencyContact2_zip,
         };
-        await triggerTeletrackImport(ttPayload, data.teletrackPin);
         
-        toast({ title: 'Success', description: 'Caregiver hired and TeleTrack import triggered.' });
-        setExistingEmployee({ id: selectedCaregiver.id, ...employeeData } as any);
+        const importResult = await triggerTeletrackImport(ttPayload, data.teletrackPin);
+        
+        if (importResult.error) {
+            toast({ 
+                title: 'Hired (but Import Failed)', 
+                description: `Candidate hired in database, but TeleTrack import failed: ${importResult.error}`,
+                variant: 'destructive',
+                duration: 15000
+            });
+        } else {
+            toast({ title: 'Success', description: 'Caregiver hired and TeleTrack import triggered.' });
+        }
+        
+        setExistingEmployee({ id: caregiver.id, ...employeeData } as any);
       } catch (e: any) {
         console.error("Hiring workflow error:", e);
         toast({ title: "Hiring Failed", description: e.message || "An unexpected error occurred while finalizing employment.", variant: "destructive" });
