@@ -70,7 +70,7 @@ const safeToDate = (value: any): Date | null => {
 
 export async function triggerTeletrackImport(caregiver: TeletrackApplicantPayload, teletrackPin: string) {
   const GITHUB_PAT = process.env.GITHUB_PAT;
-  const GITHUB_TELETRACK_EXPIMP_API = process.env.GITHUB_TELETRACK_EXPIMP_API;
+  const GITHUB_TELETRACK_EXPIMP_API = process.env.GITHUB_TELETRACK_EXPIMP_API || "https://api.github.com/repos/s-j-pinto/teletrack-export/actions/workflows/import-applicant.yml/dispatches";
 
   if (!GITHUB_PAT || !GITHUB_TELETRACK_EXPIMP_API) {
     const missing = [];
