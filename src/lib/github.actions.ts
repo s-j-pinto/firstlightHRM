@@ -73,7 +73,11 @@ export async function triggerTeletrackImport(caregiver: TeletrackApplicantPayloa
   const GITHUB_TELETRACK_EXPIMP_API = process.env.GITHUB_TELETRACK_EXPIMP_API;
 
   if (!GITHUB_PAT || !GITHUB_TELETRACK_EXPIMP_API) {
-    const errorMsg = 'GitHub PAT or TeleTrack API URL is not configured on the server.';
+    const missing = [];
+    if (!GITHUB_PAT) missing.push('GITHUB_PAT');
+    if (!GITHUB_TELETRACK_EXPIMP_API) missing.push('GITHUB_TELETRACK_EXPIMP_API');
+    
+    const errorMsg = `Configuration Error: Missing ${missing.join(' and ')} on the server. Please ensure these are set in Secret Manager and mapped in apphosting.yaml.`;
     console.error(`[GitHub Action Error] ${errorMsg}`);
     return { error: errorMsg };
   }

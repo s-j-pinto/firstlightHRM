@@ -923,7 +923,10 @@ export default function ManageInterviewsClient() {
             emergencyContact2_zip: caregiver.emergencyContact2_zip,
         };
         
-        const importResult = await triggerTeletrackImport(ttPayload, data.teletrackPin);
+        // CRITICAL: Sanitize the object for server action transfer to avoid Next.js serialization errors.
+        const sanitizedTtPayload = JSON.parse(JSON.stringify(ttPayload));
+
+        const importResult = await triggerTeletrackImport(sanitizedTtPayload, data.teletrackPin);
         
         if (importResult.error) {
             toast({ 
