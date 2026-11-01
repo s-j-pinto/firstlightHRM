@@ -65,6 +65,16 @@ export default function ReferralsPage() {
 
   const handleCopyCode = async () => {
     if (!referralProfile?.referralCode) return;
+    
+    if (!navigator.clipboard) {
+        toast({
+            title: "Copy Restricted",
+            description: "Your browser security settings prevent automatic copying. Please select and copy the code manually.",
+            variant: "destructive"
+        });
+        return;
+    }
+
     try {
         await navigator.clipboard.writeText(referralProfile.referralCode);
         toast({
@@ -181,7 +191,7 @@ export default function ReferralsPage() {
                                 <Textarea id="personalMessage" placeholder="e.g., Thought you might be interested in this!" {...form.register('personalMessage')} />
                             </div>
                              <Button type="submit" disabled={isSending || !referralProfile} className="w-full">
-                                {isSending ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2" />}
+                                {isSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2" />}
                                 Send Invite
                             </Button>
                         </form>

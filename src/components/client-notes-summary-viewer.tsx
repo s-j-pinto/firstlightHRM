@@ -74,14 +74,14 @@ export default function ClientNotesSummaryViewer() {
                 <SelectContent>
                     {summaries.map(s => (
                         <SelectItem key={s.id} value={s.id}>
-                            Week Ending: {s.clients[0]?.response.reportPeriod.endDate || s.id}
+                            Week Ending: {s.clients[0]?.response?.reportPeriod?.endDate || s.id}
                         </SelectItem>
                     ))}
                 </SelectContent>
             </Select>
         </div>
         <Button onClick={handleSendEmail} disabled={isSending} className="bg-accent hover:bg-accent/90 shadow-md">
-            {isSending ? <Loader2 className="animate-spin mr-2 h-4 w-4"/> : <Mail className="mr-2 h-4 w-4"/>}
+            {isSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Mail className="mr-2 h-4 w-4"/>}
             Email Report to Owner
         </Button>
       </div>
@@ -98,7 +98,7 @@ export default function ClientNotesSummaryViewer() {
                     <CardHeader className="pb-2"><CardTitle className="text-xs font-bold text-green-800 uppercase">Documented Visits</CardTitle></CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-green-900">
-                            {selectedReport.clients.reduce((acc, c) => acc + (c.response.summary.totalVisitsDocumented || 0), 0)}
+                            {selectedReport.clients.reduce((acc, c) => acc + (c.response?.summary?.totalVisitsDocumented || 0), 0)}
                         </div>
                     </CardContent>
                 </Card>
@@ -106,7 +106,7 @@ export default function ClientNotesSummaryViewer() {
                     <CardHeader className="pb-2"><CardTitle className="text-xs font-bold text-orange-800 uppercase">Owner Follow-ups</CardTitle></CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-orange-900">
-                            {selectedReport.clients.filter(c => c.response.agencyOwnerReview.recommendedFollowUp.length > 0 || c.response.careConcernsAndFollowUp.some(con => con.requiresOwnerReview)).length}
+                            {selectedReport.clients.filter(c => (c.response?.agencyOwnerReview?.recommendedFollowUp?.length || 0) > 0 || c.response?.careConcernsAndFollowUp?.some(con => con.requiresOwnerReview)).length}
                         </div>
                     </CardContent>
                 </Card>
@@ -114,7 +114,7 @@ export default function ClientNotesSummaryViewer() {
                     <CardHeader className="pb-2"><CardTitle className="text-xs font-bold text-red-800 uppercase">Total Concerns</CardTitle></CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-red-900">
-                            {selectedReport.clients.reduce((acc, c) => acc + (c.response.careConcernsAndFollowUp.length || 0), 0)}
+                            {selectedReport.clients.reduce((acc, c) => acc + (c.response?.careConcernsAndFollowUp?.length || 0), 0)}
                         </div>
                     </CardContent>
                 </Card>
@@ -131,20 +131,20 @@ export default function ClientNotesSummaryViewer() {
                                         <CardTitle className="text-xl">{client.clientName}</CardTitle>
                                         <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
                                             <Badge variant="outline" className="text-[10px] uppercase">ID: {client.clientId}</Badge>
-                                            <span className="text-xs">{client.response.reportPeriod.startDate} - {client.response.reportPeriod.endDate}</span>
+                                            <span className="text-xs">{client.response?.reportPeriod?.startDate} - {client.response?.reportPeriod?.endDate}</span>
                                         </div>
                                     </div>
                                     <Badge className={cn(
-                                        client.response.agencyOwnerReview.overallStatus.toLowerCase().includes('stable') ? 'bg-green-500' : 'bg-orange-500'
+                                        client.response?.agencyOwnerReview?.overallStatus?.toLowerCase().includes('stable') ? 'bg-green-500' : 'bg-orange-500'
                                     )}>
-                                        {client.response.agencyOwnerReview.overallStatus}
+                                        {client.response?.agencyOwnerReview?.overallStatus}
                                     </Badge>
                                 </div>
                             </CardHeader>
                             <CardContent className="pt-6 space-y-6">
                                 <div>
                                     <h4 className="text-sm font-bold flex items-center gap-2 mb-2"><FileText className="h-4 w-4 text-accent"/> Weekly Overview</h4>
-                                    <p className="text-sm text-muted-foreground leading-relaxed">{client.response.summary.overview}</p>
+                                    <p className="text-sm text-muted-foreground leading-relaxed">{client.response?.summary?.overview}</p>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -152,7 +152,7 @@ export default function ClientNotesSummaryViewer() {
                                     <div className="space-y-3">
                                         <h4 className="text-sm font-bold flex items-center gap-2 mb-2"><Activity className="h-4 w-4 text-accent"/> Care Highlights</h4>
                                         <div className="space-y-4">
-                                            {Object.entries(client.response.careActivities).map(([key, activities]) => {
+                                            {client.response?.careActivities && Object.entries(client.response.careActivities).map(([key, activities]) => {
                                                 if (!Array.isArray(activities) || activities.length === 0) return null;
                                                 return (
                                                     <div key={key}>
@@ -174,11 +174,11 @@ export default function ClientNotesSummaryViewer() {
                                     <div className="space-y-3">
                                         <h4 className="text-sm font-bold flex items-center gap-2 mb-2"><HeartPulse className="h-4 w-4 text-accent"/> Health Observations</h4>
                                         <div className="space-y-4">
-                                            {client.response.healthAndSafetyObservations.documentedPositiveObservations.length > 0 && (
+                                            {(client.response?.healthAndSafetyObservations?.documentedPositiveObservations?.length || 0) > 0 && (
                                                 <div>
                                                     <p className="text-[10px] font-bold uppercase text-green-700 mb-1">Positives</p>
                                                     <ul className="space-y-1">
-                                                        {client.response.healthAndSafetyObservations.documentedPositiveObservations.map((p, i) => (
+                                                        {client.response?.healthAndSafetyObservations?.documentedPositiveObservations?.map((p, i) => (
                                                             <li key={i} className="text-xs text-green-700 flex items-start gap-2">
                                                                 <span className="h-1 w-1 rounded-full bg-green-500 mt-1.5 shrink-0"/> {p}
                                                             </li>
@@ -186,11 +186,11 @@ export default function ClientNotesSummaryViewer() {
                                                     </ul>
                                                 </div>
                                             )}
-                                            {client.response.healthAndSafetyObservations.medicalConcernsReported.length > 0 && (
+                                            {(client.response?.healthAndSafetyObservations?.medicalConcernsReported?.length || 0) > 0 && (
                                                 <div>
                                                     <p className="text-[10px] font-bold uppercase text-red-700 mb-1">Reported Concerns</p>
                                                     <ul className="space-y-1">
-                                                        {client.response.healthAndSafetyObservations.medicalConcernsReported.map((c, i) => (
+                                                        {client.response?.healthAndSafetyObservations?.medicalConcernsReported?.map((c, i) => (
                                                             <li key={i} className="text-xs text-red-700 flex items-start gap-2">
                                                                 <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0"/> {c}
                                                             </li>
@@ -203,7 +203,7 @@ export default function ClientNotesSummaryViewer() {
                                 </div>
 
                                 {/* Detailed Concerns */}
-                                {client.response.careConcernsAndFollowUp.length > 0 && (
+                                {client.response?.careConcernsAndFollowUp && client.response.careConcernsAndFollowUp.length > 0 && (
                                     <div className="pt-4 border-t">
                                         <h4 className="text-sm font-bold text-red-800 mb-3 flex items-center gap-2">
                                             <Zap className="h-4 w-4"/> Actionable Concerns
@@ -243,8 +243,8 @@ export default function ClientNotesSummaryViewer() {
                                 <div className="space-y-4">
                                     {selectedReport.clients.map(c => {
                                         const actions = Array.from(new Set([
-                                            ...c.response.agencyOwnerReview.recommendedFollowUp,
-                                            ...c.response.careConcernsAndFollowUp.map(item => item.recommendedAction)
+                                            ...(c.response?.agencyOwnerReview?.recommendedFollowUp || []),
+                                            ...(c.response?.careConcernsAndFollowUp?.map(item => item.recommendedAction) || [])
                                         ]));
                                         if (actions.length === 0) return null;
                                         return (
@@ -271,9 +271,9 @@ export default function ClientNotesSummaryViewer() {
                              <div className="space-y-4">
                                 {selectedReport.clients.map(c => {
                                     const gaps = Array.from(new Set([
-                                        ...c.response.agencyOwnerReview.documentationGaps,
-                                        ...c.response.healthAndSafetyObservations.notDocumented,
-                                        ...c.response.documentationMetadata.dataLimitations
+                                        ...(c.response?.agencyOwnerReview?.documentationGaps || []),
+                                        ...(c.response?.healthAndSafetyObservations?.notDocumented || []),
+                                        ...(c.response?.documentationMetadata?.dataLimitations || [])
                                     ]));
                                     if (gaps.length === 0) return null;
                                     return (

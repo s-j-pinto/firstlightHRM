@@ -1,4 +1,3 @@
-
 'use server';
 
 import { serverDb } from '@/firebase/server-init';
@@ -14,11 +13,11 @@ export async function sendWeeklySummaryEmail(summary: ClientNotesSummary) {
     let totalConcerns = 0;
 
     summary.clients.forEach(c => {
-        totalVisits += c.response.summary.totalVisitsDocumented || 0;
-        const needsFollowUp = c.response.agencyOwnerReview.recommendedFollowUp.length > 0 || 
-                            c.response.careConcernsAndFollowUp.some(con => con.requiresOwnerReview);
+        totalVisits += c.response?.summary?.totalVisitsDocumented || 0;
+        const needsFollowUp = (c.response?.agencyOwnerReview?.recommendedFollowUp?.length || 0) > 0 || 
+                            c.response?.careConcernsAndFollowUp?.some(con => con.requiresOwnerReview);
         if (needsFollowUp) ownerFollowUpCount++;
-        totalConcerns += c.response.careConcernsAndFollowUp.length;
+        totalConcerns += c.response?.careConcernsAndFollowUp?.length || 0;
     });
 
     const overallStatus = ownerFollowUpCount > 0 ? "Action Required" : "Stable";
@@ -26,7 +25,7 @@ export async function sendWeeklySummaryEmail(summary: ClientNotesSummary) {
     // 2. Consolidate Section B (Priority Items)
     const priorityItems: string[] = [];
     summary.clients.forEach(c => {
-        c.response.careConcernsAndFollowUp.forEach(item => {
+        c.response?.careConcernsAndFollowUp?.forEach(item => {
             if (item.requiresOwnerReview || item.requiresClinicalReview || item.severity.toLowerCase() === 'high' || item.severity.toLowerCase() === 'medium') {
                 const badge = item.requiresOwnerReview ? "OWNER REVIEW" : (item.requiresClinicalReview ? "CLINICAL REVIEW" : "HIGH SEVERITY");
                 priorityItems.push(`
@@ -51,30 +50,30 @@ export async function sendWeeklySummaryEmail(summary: ClientNotesSummary) {
             <div style="background: #f9fafb; padding: 12px 15px; border-bottom: 1px solid #e5e7eb;">
                 <h3 style="margin: 0; color: #111827; font-size: 16px;">${c.clientName} (ID: ${c.clientId})</h3>
                 <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">
-                    Period: ${c.response.reportPeriod.startDate} to ${c.response.reportPeriod.endDate} | Visits: ${c.response.summary.totalVisitsDocumented}
+                    Period: ${c.response?.reportPeriod?.startDate} to ${c.response?.reportPeriod?.endDate} | Visits: ${c.response?.summary?.totalVisitsDocumented}
                 </div>
             </div>
             <div style="padding: 15px; font-size: 13px;">
-                <p><strong>Overview:</strong> ${c.response.summary.overview}</p>
+                <p><strong>Overview:</strong> ${c.response?.summary?.overview}</p>
                 
                 <div style="margin-top: 10px;">
                     <strong>Care Activity Highlights:</strong>
                     <ul style="margin: 5px 0; padding-left: 20px;">
-                        ${c.response.agencyOwnerReview.completedCareHighlights.map(h => `<li>${h}</li>`).join('')}
+                        ${c.response?.agencyOwnerReview?.completedCareHighlights?.map(h => `<li>${h}</li>`).join('') || ''}
                     </ul>
                 </div>
 
-                ${c.response.healthAndSafetyObservations.medicalConcernsReported.length > 0 ? `
+                ${(c.response?.healthAndSafetyObservations?.medicalConcernsReported?.length || 0) > 0 ? `
                     <div style="margin-top: 10px; color: #b91c1c;">
                         <strong>Medical Concerns Noted:</strong>
                         <ul style="margin: 5px 0; padding-left: 20px;">
-                            ${c.response.healthAndSafetyObservations.medicalConcernsReported.map(cc => `<li>${cc}</li>`).join('')}
+                            ${c.response?.healthAndSafetyObservations?.medicalConcernsReported?.map(cc => `<li>${cc}</li>`).join('') || ''}
                         </ul>
                     </div>
                 ` : ''}
 
                 <div style="margin-top: 15px; padding-top: 10px; border-top: 1px dashed #eee;">
-                    <strong>Status:</strong> <span style="font-weight: bold; color: ${c.response.agencyOwnerReview.overallStatus.toLowerCase().includes('stable') ? '#059669' : '#d97706'};">${c.response.agencyOwnerReview.overallStatus}</span>
+                    <strong>Status:</strong> <span style="font-weight: bold; color: ${c.response?.agencyOwnerReview?.overallStatus?.toLowerCase().includes('stable') ? '#059669' : '#d97706'};">${c.response?.agencyOwnerReview?.overallStatus}</span>
                 </div>
             </div>
         </div>
@@ -84,8 +83,8 @@ export async function sendWeeklySummaryEmail(summary: ClientNotesSummary) {
     const checklistItems: string[] = [];
     summary.clients.forEach(c => {
         const clientActions = new Set([
-            ...c.response.agencyOwnerReview.recommendedFollowUp,
-            ...c.response.careConcernsAndFollowUp.map(item => item.recommendedAction)
+            ...(c.response?.agencyOwnerReview?.recommendedFollowUp || []),
+            ...(c.response?.careConcernsAndFollowUp?.map(item => item.recommendedAction) || [])
         ]);
         clientActions.forEach(action => {
             if (action && action.toLowerCase() !== 'no specific follow-up action indicated by caregiver.') {
@@ -98,9 +97,9 @@ export async function sendWeeklySummaryEmail(summary: ClientNotesSummary) {
     const gapsItems: string[] = [];
     summary.clients.forEach(c => {
         const clientGaps = new Set([
-            ...c.response.agencyOwnerReview.documentationGaps,
-            ...c.response.healthAndSafetyObservations.notDocumented,
-            ...c.response.documentationMetadata.dataLimitations
+            ...(c.response?.agencyOwnerReview?.documentationGaps || []),
+            ...(c.response?.healthAndSafetyObservations?.notDocumented || []),
+            ...(c.response?.documentationMetadata?.dataLimitations || [])
         ]);
         clientGaps.forEach(gap => {
             if (gap) {
@@ -118,7 +117,7 @@ export async function sendWeeklySummaryEmail(summary: ClientNotesSummary) {
             </div>
 
             <h2 style="color: #E07A5F; border-bottom: 1px solid #eee; padding-bottom: 5px; font-size: 18px;">Section A: Executive Summary</h2>
-            <p><strong>Reporting Period:</strong> ${summary.clients[0]?.response.reportPeriod.startDate} to ${summary.clients[0]?.response.reportPeriod.endDate}</p>
+            <p><strong>Reporting Period:</strong> ${summary.clients[0]?.response?.reportPeriod?.startDate} to ${summary.clients[0]?.response?.reportPeriod?.endDate}</p>
             <ul style="padding-left: 20px;">
                 <li>Clients Reviewed: ${clientCount}</li>
                 <li>Total Documented Visits: ${totalVisits}</li>
@@ -145,8 +144,8 @@ export async function sendWeeklySummaryEmail(summary: ClientNotesSummary) {
         </body>
     `;
 
-    const reportStart = summary.clients[0]?.response.reportPeriod.startDate;
-    const reportEnd = summary.clients[0]?.response.reportPeriod.endDate;
+    const reportStart = summary.clients[0]?.response?.reportPeriod?.startDate;
+    const reportEnd = summary.clients[0]?.response?.reportPeriod?.endDate;
 
     try {
         await serverDb.collection("mail").add({
