@@ -1,3 +1,4 @@
+
 'use server';
 
 import { serverDb } from '@/firebase/server-init';
@@ -73,7 +74,7 @@ export async function sendWeeklySummaryEmail(summary: ClientNotesSummary) {
                 ` : ''}
 
                 <div style="margin-top: 15px; padding-top: 10px; border-top: 1px dashed #eee;">
-                    <strong>Status:</strong> <span style="font-weight: bold; color: ${c.response?.agencyOwnerReview?.overallStatus?.toLowerCase().includes('stable') ? '#059669' : '#d97706'};">${c.response?.agencyOwnerReview?.overallStatus}</span>
+                    <strong>Status:</strong> <span style="font-weight: bold; color: ${c.response?.agencyOwnerReview?.overallStatus?.toLowerCase().includes('stable') || c.response?.agencyOwnerReview?.overallStatus?.toLowerCase().includes('routine') ? '#059669' : '#d97706'};">${c.response?.agencyOwnerReview?.overallStatus}</span>
                 </div>
             </div>
         </div>
@@ -108,6 +109,33 @@ export async function sendWeeklySummaryEmail(summary: ClientNotesSummary) {
         });
     });
 
+    // 6. Section F (Predictive Health Analytics)
+    const analyticsItems: string[] = [];
+    summary.clients.forEach(c => {
+        const analytics = c.response?.predictiveHealthAnalytics;
+        if (analytics) {
+            const clientRisks: string[] = [];
+            if (analytics.cognitiveAndBehavioralChanges?.length) clientRisks.push(`Cognitive: ${analytics.cognitiveAndBehavioralChanges.join(', ')}`);
+            if (analytics.potentialUTIRelatedIndicators?.length) clientRisks.push(`UTI Risk: ${analytics.potentialUTIRelatedIndicators.join(', ')}`);
+            if (analytics.fallAndMobilityRisks?.length) clientRisks.push(`Fall Risk: ${analytics.fallAndMobilityRisks.join(', ')}`);
+            if (analytics.nutritionAndHydrationRisks?.length) clientRisks.push(`Nutrition: ${analytics.nutritionAndHydrationRisks.join(', ')}`);
+
+            if (clientRisks.length > 0 || analytics.weeklySummary) {
+                analyticsItems.push(`
+                    <div style="margin-bottom: 15px; padding: 12px; border: 1px solid #dbeafe; background: #eff6ff; border-radius: 4px;">
+                        <strong style="color: #1e40af; font-size: 14px;">${c.clientName} (ID: ${c.clientId})</strong><br/>
+                        <p style="font-size: 12px; font-style: italic; margin: 5px 0;">"${analytics.weeklySummary}"</p>
+                        ${clientRisks.length > 0 ? `
+                            <ul style="margin: 5px 0; padding-left: 20px; font-size: 12px; color: #1e3a8a;">
+                                ${clientRisks.map(r => `<li>${r}</li>`).join('')}
+                            </ul>
+                        ` : ''}
+                    </div>
+                `);
+            }
+        }
+    });
+
     // Final Assembly
     const emailHtml = `
         <body style="font-family: sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: auto; padding: 20px;">
@@ -127,6 +155,9 @@ export async function sendWeeklySummaryEmail(summary: ClientNotesSummary) {
 
             <h2 style="color: #E07A5F; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 30px; font-size: 18px;">Section B: Priority Items (Owner/Clinical Review)</h2>
             ${priorityItems.length > 0 ? priorityItems.join('') : '<p style="color: #6b7280; font-style: italic;">No high-priority concerns requiring immediate review.</p>'}
+
+            <h2 style="color: #E07A5F; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 30px; font-size: 18px;">Section F: Predictive Health Analytics</h2>
+            ${analyticsItems.length > 0 ? analyticsItems.join('') : '<p style="color: #6b7280; font-style: italic;">No specific health risks or predictive patterns identified this week.</p>'}
 
             <h2 style="color: #E07A5F; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 30px; font-size: 18px;">Section C: Weekly Client Detail</h2>
             ${clientSummariesHtml}

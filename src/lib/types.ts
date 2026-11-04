@@ -1265,6 +1265,8 @@ export const tppClientSignaturePayloadSchema = z.object({
 
 export interface ClientNotesSummary {
     reportDate: string;
+    id: string;
+    syncedAt: any;
     clients: {
         clientName: string;
         clientId: string;
@@ -1290,6 +1292,13 @@ export interface ClientNotesSummary {
                 medicationUpdatesReported: string[];
                 changesInConditionReported: string[];
                 notDocumented: string[];
+            };
+            predictiveHealthAnalytics: {
+                weeklySummary: string;
+                cognitiveAndBehavioralChanges: string[];
+                potentialUTIRelatedIndicators: string[];
+                fallAndMobilityRisks: string[];
+                nutritionAndHydrationRisks: string[];
             };
             careConcernsAndFollowUp: {
                 concern: string;

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useTransition } from "react";
@@ -10,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Calendar, FileText, Mail, AlertTriangle, ShieldCheck, ClipboardCheck, Info, Users, Activity, CheckCircle2, HeartPulse, Zap } from "lucide-react";
+import { Loader2, Calendar, FileText, Mail, AlertTriangle, ShieldCheck, ClipboardCheck, Info, Users, Activity, CheckCircle2, HeartPulse, Zap, Sparkles, Brain, Thermometer, Footprints, Droplets } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "./ui/scroll-area";
@@ -37,8 +38,6 @@ export default function ClientNotesSummaryViewer() {
   const handleSendEmail = () => {
     if (!selectedReport) return;
     startSendTransition(async () => {
-        // Convert to a plain object to avoid "Only plain objects can be passed to Server Functions" error
-        // caused by Firestore Timestamps (syncedAt)
         const sanitizedReport = JSON.parse(JSON.stringify(selectedReport));
         const result = await sendWeeklySummaryEmail(sanitizedReport);
         if (result.error) {
@@ -135,7 +134,7 @@ export default function ClientNotesSummaryViewer() {
                                         </div>
                                     </div>
                                     <Badge className={cn(
-                                        client.response?.agencyOwnerReview?.overallStatus?.toLowerCase().includes('stable') ? 'bg-green-500' : 'bg-orange-500'
+                                        client.response?.agencyOwnerReview?.overallStatus?.toLowerCase().includes('routine') || client.response?.agencyOwnerReview?.overallStatus?.toLowerCase().includes('stable') ? 'bg-green-500' : 'bg-orange-500'
                                     )}>
                                         {client.response?.agencyOwnerReview?.overallStatus}
                                     </Badge>
@@ -146,6 +145,45 @@ export default function ClientNotesSummaryViewer() {
                                     <h4 className="text-sm font-bold flex items-center gap-2 mb-2"><FileText className="h-4 w-4 text-accent"/> Weekly Overview</h4>
                                     <p className="text-sm text-muted-foreground leading-relaxed">{client.response?.summary?.overview}</p>
                                 </div>
+
+                                {/* NEW: Predictive Health Analytics Section */}
+                                {client.response?.predictiveHealthAnalytics && (
+                                    <Card className="bg-blue-50/50 border-blue-100">
+                                        <CardHeader className="py-3 bg-blue-100/50 border-b border-blue-100">
+                                            <CardTitle className="text-sm font-bold flex items-center gap-2 text-blue-900">
+                                                <Sparkles className="h-4 w-4" /> Predictive Health Analytics
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="py-4 space-y-4">
+                                            <p className="text-xs font-medium text-blue-800 leading-relaxed italic">
+                                                "{client.response.predictiveHealthAnalytics.weeklySummary}"
+                                            </p>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                {[
+                                                    { label: "Cognitive/Behavioral", icon: Brain, data: client.response.predictiveHealthAnalytics.cognitiveAndBehavioralChanges },
+                                                    { label: "UTI Indicators", icon: Thermometer, data: client.response.predictiveHealthAnalytics.potentialUTIRelatedIndicators },
+                                                    { label: "Fall/Mobility Risks", icon: Footprints, data: client.response.predictiveHealthAnalytics.fallAndMobilityRisks },
+                                                    { label: "Nutrition/Hydration", icon: Droplets, data: client.response.predictiveHealthAnalytics.nutritionAndHydrationRisks },
+                                                ].map((item, idx) => {
+                                                    if (!item.data || item.data.length === 0) return null;
+                                                    return (
+                                                        <div key={idx} className="space-y-1.5">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <item.icon className="h-3.5 w-3.5 text-blue-600" />
+                                                                <span className="text-[10px] font-bold uppercase tracking-tight text-blue-900">{item.label}</span>
+                                                            </div>
+                                                            <ul className="space-y-1 pl-5">
+                                                                {item.data.map((risk, i) => (
+                                                                    <li key={i} className="text-[11px] text-blue-800 list-disc">{risk}</li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                )}
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {/* Care Highlights */}
