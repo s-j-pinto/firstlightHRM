@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useRef, useEffect, useTransition, useState } from "react";
@@ -132,7 +131,7 @@ export default function DirectDepositFormPage() {
       resolver: zodResolver(directDepositFormSchema),
       defaultValues: {
         bankName1: '',
-        accountType1: undefined,
+        accountType1: 'Checking',
         routingNumber1: '',
         accountNumber1: '',
         depositAmount1: '',
@@ -191,11 +190,24 @@ export default function DirectDepositFormPage() {
     useEffect(() => {
         if (existingData) {
             const combinedData = { ...existingData, ...signaturesData };
-            const formData: Partial<DirectDepositFormData> = {};
+            const formData: DirectDepositFormData = {
+                bankName1: '',
+                accountType1: 'Checking',
+                routingNumber1: '',
+                accountNumber1: '',
+                depositAmount1: '',
+                accountType2: undefined,
+                routingNumber2: '',
+                accountNumber2: '',
+                directDepositAuthorizedSignature: '',
+                directDepositEmployeeId: '',
+                directDepositPrintName: '',
+                directDepositDate: '',
+            };
             const formSchemaKeys = Object.keys(directDepositFormSchema.shape) as Array<keyof DirectDepositFormData>;
             
             formSchemaKeys.forEach(key => {
-                if (Object.prototype.hasOwnProperty.call(combinedData, key)) {
+                if (combinedData[key] !== undefined && combinedData[key] !== null) {
                     const value = (combinedData as any)[key];
                     if (key.toLowerCase().includes('date') && value) {
                         const date = safeToDate(value);
