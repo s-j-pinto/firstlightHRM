@@ -400,7 +400,7 @@ function CandidateHiringFormsContent() {
 
 export default function CandidateHiringFormsPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-[50vh]"><Loader2 className="h-12 w-12 animate-spin text-accent" /></div>}>
+    <Suspense fallback={<div>Loading...</div>}>
         <CandidateHiringFormsContent />
     </Suspense>
   )

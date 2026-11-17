@@ -25,6 +25,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { DateInput } from "@/components/ui/date-input";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 
 const safeToDate = (value: any): Date | undefined => {
     if (!value) return undefined;
@@ -271,7 +272,7 @@ export default function DirectDepositFormPage() {
             <CardHeader className="border-b pb-6">
                 <div className="flex justify-between items-center mb-4">
                     <CardTitle className="text-3xl font-light text-slate-500">Intuit QuickBooks Payroll</CardTitle>
-                    <div className="text-4xl font-bold text-blue-600">intuit</div>
+                    <div className="text-4xl font-bold text-blue-600 font-code">intuit</div>
                 </div>
                 <Separator className="mb-4" />
                 <CardTitle className="text-xl">Employee Direct Deposit Authorization</CardTitle>

@@ -663,4 +663,3 @@ export async function generateAllFormsAsZipAction(candidateId: string) {
         return { zipData: zipAsBase64 };
     } catch (error: any) { return { error: `Failed to generate zip file: ${error.message}` }; }
 }
-
