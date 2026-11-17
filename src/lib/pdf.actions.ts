@@ -27,6 +27,7 @@ import { generateCaregiverResponsibilitiesPdf as generateCaregiverResponsibiliti
 import { generateLightHousekeepingPdf as generateLightHousekeepingPdfInternal } from './pdf-generators/light-housekeeping';
 import { generateCaregiverTelephonyInstructionsPdf as generateCaregiverTelephonyInstructionsPdfInternal } from './pdf-generators/caregiver-telephony-instructions';
 import { generateEmergencyProcedurePdf as generateEmergencyProcedurePdfInternal } from './pdf-generators/emergency-procedure';
+import { generateDirectDepositFormPdf as generateDirectDepositFormPdfInternal } from './pdf-generators/direct-deposit-form';
 import { generateVaWeeklyReportPdf as generateVaWeeklyReportPdfInternal } from './pdf-generators/va-weekly-report';
 import { generateMasterInterview360Pdf as generateMasterInterview360PdfInternal } from './pdf-generators/master-interview-360';
 import { generateNewHireChecklistPdf as generateNewHireChecklistPdfInternal } from './pdf-generators/new-hire-checklist';
@@ -65,6 +66,7 @@ export async function generateCaregiverResponsibilitiesPdf(formData: any) { retu
 export async function generateLightHousekeepingPdf() { return generateLightHousekeepingPdfInternal(); }
 export async function generateCaregiverTelephonyInstructionsPdf(formData: any) { return generateCaregiverTelephonyInstructionsPdfInternal(formData); }
 export async function generateEmergencyProcedurePdf(formData: any) { return generateEmergencyProcedurePdfInternal(formData); }
+export async function generateDirectDepositFormPdf(formData: any) { return generateDirectDepositFormPdfInternal(formData); }
 export async function generateNewHireChecklistPdf(formData: any) { return generateNewHireChecklistPdfInternal(formData); }
 
 

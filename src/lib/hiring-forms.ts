@@ -47,4 +47,5 @@ export const onboardingForms: FormDefinition[] = [
   { name: "Light Housekeeping", href: "/candidate-hiring-forms/light-housekeeping", completionKey: 'lightHousekeepingAcknowledged', pdfAction: 'lightHousekeeping' },
   { name: "Caregiver Telephony Instructions", href: "/candidate-hiring-forms/caregiver-telephony-instructions", completionKey: 'telephonyInstructionsAcknowledged', pdfAction: 'caregiverTelephonyInstructions' },
   { name: "Caregiver Emergency Procedures", href: "/candidate-hiring-forms/emergency-procedure", completionKey: 'emergencyProcedureSignature', pdfAction: 'emergencyProcedure' },
+  { name: "Direct Deposit Form", href: "/candidate-hiring-forms/direct-deposit-form", completionKey: 'directDepositAuthorizedSignature', pdfAction: 'directDeposit' },
 ];

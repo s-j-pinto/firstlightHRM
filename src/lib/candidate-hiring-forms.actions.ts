@@ -1,3 +1,4 @@
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -24,6 +25,7 @@ import {
     offerLetterSchema,
     caregiverResponsibilitiesSchema,
     emergencyProcedureSchema,
+    directDepositFormSchema,
     masterInterview360Schema,
     newHireChecklistSchema
 } from './types';
@@ -47,6 +49,7 @@ import {
     generateLightHousekeepingPdf,
     generateCaregiverTelephonyInstructionsPdf,
     generateEmergencyProcedurePdf,
+    generateDirectDepositFormPdf,
     generateMasterInterview360Pdf,
     generateNewHireChecklistPdf
 } from './pdf.actions';
@@ -96,7 +99,8 @@ function extractSignatures(data: any): { textual: any, signatures: any, presence
         'trainingAcknowledgementSignature',
         'offerLetterSignature',
         'caregiverResponsibilitiesSignature',
-        'emergencyProcedureSignature'
+        'emergencyProcedureSignature',
+        'directDepositAuthorizedSignature'
     ];
 
     const textual: any = {};
@@ -321,6 +325,16 @@ export async function saveEmergencyProcedureData(profileId: string, data: any) {
   if (!validatedFields.success) return { error: 'Invalid data provided.' };
   try {
     await saveThinData(profileId, validatedFields.data, 'emergency_procedure');
+    revalidatePath('/candidate-hiring-forms');
+    return { success: true };
+  } catch (error: any) { return { error: `Failed: ${error.message}` }; }
+}
+
+export async function saveDirectDepositFormData(profileId: string, data: any) {
+  const validatedFields = directDepositFormSchema.safeParse(data);
+  if (!validatedFields.success) return { error: 'Invalid data provided.' };
+  try {
+    await saveThinData(profileId, validatedFields.data, 'direct_deposit');
     revalidatePath('/candidate-hiring-forms');
     return { success: true };
   } catch (error: any) { return { error: `Failed: ${error.message}` }; }
@@ -565,6 +579,15 @@ export async function generateEmergencyProcedurePdfAction(candidateId: string) {
     } catch (error: any) { return { error: `Failed to generate PDF: ${error.message}` }; }
 }
 
+export async function generateDirectDepositFormPdfAction(candidateId: string) {
+    if (!candidateId) return { error: 'Candidate ID is required.' };
+    try {
+        const fullData = await getFullCandidateData(candidateId);
+        if (!fullData) return { error: 'Candidate profile not found.' };
+        return await generateDirectDepositFormPdf(fullData);
+    } catch (error: any) { return { error: `Failed to generate PDF: ${error.message}` }; }
+}
+
 export async function generateMasterInterview360PdfAction(candidateId: string) {
     if (!candidateId) return { error: 'Candidate ID is required.' };
     try {
@@ -613,6 +636,7 @@ export async function generateAllFormsAsZipAction(candidateId: string) {
             { key: 'lightHousekeepingAcknowledged', name: 'Light Housekeeping.pdf', generator: generateLightHousekeepingPdf },
             { key: 'telephonyInstructionsAcknowledged', name: 'Caregiver Telephony Instructions.pdf', generator: generateCaregiverTelephonyInstructionsPdf },
             { key: 'emergencyProcedureSignature', name: 'Caregiver Emergency Procedures.pdf', generator: generateEmergencyProcedurePdf },
+            { key: 'directDepositAuthorizedSignature', name: 'Direct Deposit Form.pdf', generator: generateDirectDepositFormPdf },
         ];
         const settingsSnap = await serverDb.collection('settings').doc('hiring_form_fields').get();
         const settingsData = settingsSnap.exists ? settingsSnap.data() : {};
@@ -639,3 +663,4 @@ export async function generateAllFormsAsZipAction(candidateId: string) {
         return { zipData: zipAsBase64 };
     } catch (error: any) { return { error: `Failed to generate zip file: ${error.message}` }; }
 }
+

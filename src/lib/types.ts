@@ -478,6 +478,22 @@ export const emergencyProcedureSchema = z.object({
 });
 export type EmergencyProcedureFormData = z.infer<typeof emergencyProcedureSchema>;
 
+export const directDepositFormSchema = z.object({
+  bankName1: z.string().trim().min(1, "Bank name is required."),
+  accountType1: z.enum(["Checking", "Savings"], { required_error: "Selection required" }),
+  routingNumber1: z.string().trim().min(1, "Routing number is required."),
+  accountNumber1: z.string().trim().min(1, "Account number is required."),
+  depositAmount1: z.string().trim().min(1, "Amount or percentage is required."),
+  accountType2: z.enum(["Checking", "Savings"]).optional(),
+  routingNumber2: z.string().trim().optional(),
+  accountNumber2: z.string().trim().optional(),
+  directDepositAuthorizedSignature: z.string().min(1, "Signature is required."),
+  directDepositEmployeeId: z.string().trim().optional(),
+  directDepositPrintName: z.string().trim().min(1, "Print name is required."),
+  directDepositDate: requiredDateString,
+});
+export type DirectDepositFormData = z.infer<typeof directDepositFormSchema>;
+
 export const newHireChecklistSchema = z.object({
     driversLicenseReceived: z.boolean().default(false),
     driversLicenseComment: z.string().trim().optional(),
@@ -527,6 +543,7 @@ export const onboardingSignaturesSchema = z.object({
     offerLetterSignature: z.string().optional(),
     caregiverResponsibilitiesSignature: z.string().optional(),
     emergencyProcedureSignature: z.string().optional(),
+    directDepositAuthorizedSignature: z.string().optional(),
     emergencyProcedureSignatureDate: dateString,
 });
 export type OnboardingSignatures = z.infer<typeof onboardingSignaturesSchema>;
@@ -583,6 +600,7 @@ export const caregiverFormSchema = generalInfoSchema
   .merge(caregiverResponsibilitiesSchema.partial())
   .merge(telephonyInstructionsSchema.partial())
   .merge(emergencyProcedureSchema.partial())
+  .merge(directDepositFormSchema.partial())
   .merge(newHireChecklistSchema.partial())
   .extend({ 
     lightHousekeepingAcknowledged: z.boolean().optional(),
@@ -644,7 +662,7 @@ export const interviewSchema = z.object({
   promptedCallFLHC: z.string().optional(),
   roleDurationPreference: z.string().optional(),
   experiencedConditions: z.string().optional(),
-  payExpectation: z.string().optional(),
+  payexpectation: z.string().optional(),
   howSoonStart: z.string().optional(),
   earliestStartTime: z.string().optional(),
   master360Saved: z.boolean().optional(),

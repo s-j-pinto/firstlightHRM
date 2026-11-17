@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Suspense, useTransition, useState, useEffect, useMemo, useCallback } from 'react';
@@ -29,6 +30,7 @@ import {
     generateLightHousekeepingPdfAction,
     generateCaregiverTelephonyInstructionsPdfAction,
     generateEmergencyProcedurePdfAction,
+    generateDirectDepositFormPdfAction,
     generateMasterInterview360PdfAction,
     generateNewHireChecklistPdfAction,
     generateAllFormsAsZipAction
@@ -247,6 +249,9 @@ function CandidateHiringFormsContent() {
         } else if (formAction === 'emergencyProcedure') {
             result = await generateEmergencyProcedurePdfAction(candidateId);
             fileName = `Emergency_Procedure_${fileSafeName}.pdf`;
+        } else if (formAction === 'directDeposit') {
+            result = await generateDirectDepositFormPdfAction(candidateId);
+            fileName = `Direct_Deposit_${fileSafeName}.pdf`;
         } else if (formAction === 'masterInterview360') {
             result = await generateMasterInterview360PdfAction(candidateId);
             fileName = `MASTER INTERVIEW 360-${candidateName}.pdf`;
