@@ -1,64 +1,31 @@
-
-
 "use client";
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import { Suspense } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Suspense, useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Calendar, Clock, MapPin } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 
 function ConfirmationPageContent() {
-  const searchParams = useSearchParams();
-  const time = searchParams.get('time');
-  
-  let appointmentTime: Date | null = null;
-  if(time) {
-    try {
-        appointmentTime = new Date(time);
-        if(isNaN(appointmentTime.getTime())) {
-            appointmentTime = null;
-        }
-    } catch (e) {
-        console.error("Invalid date format in URL", e);
-        appointmentTime = null;
-    }
-  }
+  const [receivedTime, setReceivedTime] = useState<string>('');
+
+  useEffect(() => {
+    // Capture the current date and time on the client side to avoid hydration mismatches.
+    setReceivedTime(format(new Date(), 'PPp'));
+  }, []);
 
   return (
     <main className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
       <Card className="w-full max-w-lg mx-auto my-8 animate-in fade-in-50 duration-500 shadow-lg">
-        <CardHeader className="items-center text-center">
+        <CardHeader className="items-center text-center pb-2">
             <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
-            <CardTitle className="text-3xl font-bold font-headline">Appointment Confirmed!</CardTitle>
-            <CardDescription>Your interview has been successfully scheduled.</CardDescription>
+            <CardTitle className="text-2xl font-bold font-headline">Appointment To Be Confirmed</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="p-4 border rounded-lg space-y-4 bg-background/50">
-            {appointmentTime ? (
-              <>
-                <p className="flex items-start">
-                    <Calendar className="h-5 w-5 mr-3 mt-1 text-accent flex-shrink-0" />
-                    <span className="font-semibold">{format(appointmentTime, 'EEEE, MMMM do, yyyy')}</span>
-                </p>
-                <p className="flex items-start">
-                    <Clock className="h-5 w-5 mr-3 mt-1 text-accent flex-shrink-0" />
-                    <span className="font-semibold">{format(appointmentTime, 'h:mm a')}</span>
-                </p>
-              </>
-            ) : (
-                <p className="font-semibold text-center">Appointment details will be sent via email.</p>
-            )}
-             <p className="flex items-start">
-                <MapPin className="h-5 w-5 mr-3 mt-1 text-accent flex-shrink-0" />
-                <span className="font-semibold">9650 Business Center Drive, Suite 113, Rancho Cucamonga, CA</span>
-            </p>
-          </div>
-          <p className="text-sm text-center text-muted-foreground">
-            You will receive a confirmation email with all the details shortly. We look forward to meeting you!
+        <CardContent className="space-y-6 pt-2">
+          <p className="text-center text-muted-foreground leading-relaxed px-4">
+            FirstLight Administrator has received your application on <span className="font-semibold text-foreground">{receivedTime || '...'}</span> along with your preferred time slots for a phone interview. We will send you a calendar invite after reviewing your application. Thanks
           </p>
-          <div className="text-center pt-2">
+          <div className="text-center pt-4">
             <Button asChild variant="outline">
               <Link href="/">Return to Home</Link>
             </Button>
@@ -71,7 +38,7 @@ function ConfirmationPageContent() {
 
 export default function ConfirmationPage() {
     return (
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
             <ConfirmationPageContent />
         </Suspense>
     )
